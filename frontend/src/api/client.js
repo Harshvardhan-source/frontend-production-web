@@ -50,7 +50,7 @@ api.interceptors.response.use(
   (err) => {
     if (!err.response) {
       err.userMessage =
-        'Cannot reach the server. Make sure Django is running on port 8000 ' +
+        'Cannot reach the server. Please try again later.' +
         'and "proxy": "http://localhost:8000" is set in package.json.';
     } else if (err.response.status === 403) {
       err.userMessage = 'Session expired or CSRF error. Please refresh the page.';
