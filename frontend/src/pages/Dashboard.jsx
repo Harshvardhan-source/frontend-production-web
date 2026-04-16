@@ -6,10 +6,13 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import Navbar from '../components/Navbar';
-import { dashboardApi } from '../api/client';
+import { dashboardApi, surveyApi } from '../api/client';
 import { useAuth } from '../App';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// NOTE: The raw `API` constant and all direct `fetch()` calls have been removed.
+// All requests now go through the configured axios client in ../api/client.js
+// which correctly reads VITE_API_URL from your Render environment variables.
+
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
 
 const WARD_NAMES = {
@@ -385,16 +388,19 @@ export default function Dashboard() {
   const debounceRef      = useRef(null);
   const searchResultsRef = useRef(null);
 
-  // ── Load stats in background — page renders immediately ──────────────────
+  // ── Load stats + serial number on mount ──────────────────────────────────
   useEffect(() => {
+    // FIX: was dashboardApi.stats() → still correct, no change needed here
     dashboardApi.stats()
       .then(r => { setStats(r.data); setError(''); })
       .catch(e => setError(e.userMessage || e.response?.data?.message || 'Could not load dashboard data.'))
       .finally(() => setStatsLoading(false));
 
-    fetch(`${API}/serial-number/`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => setNextSerial(d.serialNumber || 1))
+    // FIX: replaced raw fetch(`${API}/serial-number/`) with surveyApi.serialNumber()
+    // The old fetch was broken on Render because the `API` constant included '/api'
+    // in its fallback but VITE_API_URL does not — causing a doubled or missing path.
+    surveyApi.serialNumber()
+      .then(r => setNextSerial(r.data.serialNumber || 1))
       .catch(() => {});
   }, []);
 
@@ -403,10 +409,14 @@ export default function Dashboard() {
     if (!selectedWard) { setWardStats(null); setWardError(''); return; }
     setWardStatsLoading(true);
     setWardError('');
-    fetch(`${API}/ward-dashboard/?ward=${selectedWard}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => { if (d.success) setWardStats(d); else setWardError(d.message || 'Failed to load ward data.'); })
-      .catch(() => setWardError('Network error loading ward data.'))
+
+    // FIX: replaced raw fetch(`${API}/ward-dashboard/?ward=...`) with dashboardApi.wardStats()
+    dashboardApi.wardStats(selectedWard)
+      .then(r => {
+        if (r.data.success) setWardStats(r.data);
+        else setWardError(r.data.message || 'Failed to load ward data.');
+      })
+      .catch(e => setWardError(e.userMessage || 'Network error loading ward data.'))
       .finally(() => setWardStatsLoading(false));
   }, [selectedWard]);
 
@@ -414,14 +424,15 @@ export default function Dashboard() {
   const doSearch = useCallback(async (q) => {
     if (q.trim().length < 2) { setSearchRes(null); setSearchErr(''); return; }
     setSearching(true); setSearchErr('');
-    try {
-      const res  = await fetch(`${API}/house-search/?q=${encodeURIComponent(q)}`, { credentials: 'include' });
-      const data = await res.json();
-      if (data.success) setSearchRes(data);
-      else setSearchErr('Search failed.');
-    } catch {
-      setSearchErr('Network error. Make sure Django is running.');
-    } finally { setSearching(false); }
+
+    // FIX: replaced raw fetch(`${API}/house-search/?q=...`) with dashboardApi.houseSearch()
+    dashboardApi.houseSearch(q)
+      .then(r => {
+        if (r.data.success) setSearchRes(r.data);
+        else setSearchErr('Search failed.');
+      })
+      .catch(() => setSearchErr('Network error. Make sure the backend is reachable.'))
+      .finally(() => setSearching(false));
   }, []);
 
   const handleQueryChange = (e) => {
@@ -559,7 +570,6 @@ export default function Dashboard() {
                     Ward {selectedWard} — {wardStats?.wardName || WARD_NAMES[selectedWard]}
                   </span>
                   {wardStatsLoading && <span className="spinner" />}
-
                 </div>
                 <button
                   onClick={() => setSelectedWard('')}
