@@ -8,6 +8,10 @@ import {
 import Navbar from '../components/Navbar';
 import { dashboardApi } from '../api/client';
 import { useAuth } from '../App';
+
+const API = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '';
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
 
 const WARD_NAMES = {
@@ -390,17 +394,21 @@ export default function Dashboard() {
       .catch(e => setError(e.userMessage || e.response?.data?.message || 'Could not load dashboard data.'))
       .finally(() => setStatsLoading(false));
 
-    dashboardApi.serialNumber()
-      .then(r => setNextSerial(r.data.serialNumber || 1))
-      .catch(() => {});
+    // Replace fetch with axios api instance
+    import('../api/client').then(({ default: api }) => {
+      api.get('/api/serial-number/')
+        .then(r => setNextSerial(r.data.serialNumber || 1))
+        .catch(() => {});
+    });
   }, []);
   // ── Load ward-specific stats when selection changes ───────────────────────
   useEffect(() => {
     if (!selectedWard) { setWardStats(null); setWardError(''); return; }
     setWardStatsLoading(true);
     setWardError('');
-    dashboardApi.wardDashboard(selectedWard)
-      .then(r => { if (r.data.success) setWardStats(r.data); else setWardError(r.data.message || 'Failed to load ward data.'); })
+    fetch(`${API}/ward-dashboard/?ward=${selectedWard}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.success) setWardStats(d); else setWardError(d.message || 'Failed to load ward data.'); })
       .catch(() => setWardError('Network error loading ward data.'))
       .finally(() => setWardStatsLoading(false));
   }, [selectedWard]);
@@ -410,11 +418,12 @@ export default function Dashboard() {
     if (q.trim().length < 2) { setSearchRes(null); setSearchErr(''); return; }
     setSearching(true); setSearchErr('');
     try {
-      const r = await dashboardApi.houseSearch(q);
-      if (r.data.success) setSearchRes(r.data);
+      const res  = await fetch(`${API}/house-search/?q=${encodeURIComponent(q)}`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.success) setSearchRes(data);
       else setSearchErr('Search failed.');
     } catch {
-      setSearchErr('Network error. Please try again later.');
+      setSearchErr('Network error. Make sure Django is running.');
     } finally { setSearching(false); }
   }, []);
 
