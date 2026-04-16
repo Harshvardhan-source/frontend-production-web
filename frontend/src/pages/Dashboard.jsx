@@ -394,13 +394,12 @@ export default function Dashboard() {
       .catch(e => setError(e.userMessage || e.response?.data?.message || 'Could not load dashboard data.'))
       .finally(() => setStatsLoading(false));
 
-    // Replace fetch with axios api instance
-    import('../api/client').then(({ default: api }) => {
-      api.get('/api/serial-number/')
-        .then(r => setNextSerial(r.data.serialNumber || 1))
-        .catch(() => {});
-    });
+    fetch(`${API}/serial-number/`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setNextSerial(d.serialNumber || 1))
+      .catch(() => {});
   }, []);
+
   // ── Load ward-specific stats when selection changes ───────────────────────
   useEffect(() => {
     if (!selectedWard) { setWardStats(null); setWardError(''); return; }
