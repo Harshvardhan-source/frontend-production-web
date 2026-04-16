@@ -550,28 +550,31 @@ export default function Dashboard() {
           {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>⚠ {error}</div>}
 
           {/* Stat cards */}
-          <div className="grid-5 stagger mb-24" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}>
+          <div className="stagger mb-24" style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {STAT_CARDS.map(c => (
               activeLoading ? (
-                <StatCardSkeleton key={c.label} />
+                <div key={c.label} style={{ flex: '1 1 130px', maxWidth: 180 }}>
+                  <StatCardSkeleton />
+                </div>
               ) : (
                 <div key={c.label} style={{
+                  flex: '1 1 130px', maxWidth: 180,
                   background: 'linear-gradient(145deg, rgba(17,28,52,0.9) 0%, rgba(10,18,35,0.95) 100%)',
-                  border: `1px solid ${c.color}22`, borderRadius: 16, padding: '20px 22px',
+                  border: `1px solid ${c.color}22`, borderRadius: 12, padding: '12px 14px',
                   position: 'relative', overflow: 'hidden',
-                  boxShadow: `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`,
+                  boxShadow: `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`,
                   transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default',
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px ${c.color}33, inset 0 1px 0 rgba(255,255,255,0.05)`; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`; }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.3), 0 0 0 1px ${c.color}33`; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`; }}
                 >
-                  <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}18 0%, transparent 70%)`, pointerEvents: 'none' }} />
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{c.label}</div>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${c.color}15`, border: `1px solid ${c.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{c.icon}</div>
+                  <div style={{ position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}15 0%, transparent 70%)`, pointerEvents: 'none' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{c.label}</div>
+                    <div style={{ width: 26, height: 26, borderRadius: 7, background: `${c.color}15`, border: `1px solid ${c.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>{c.icon}</div>
                   </div>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-1px', lineHeight: 1, marginBottom: 6 }}>{c.value ?? '—'}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{c.sub}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 4 }}>{c.value ?? '—'}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{c.sub}</div>
                 </div>
               )
             ))}
