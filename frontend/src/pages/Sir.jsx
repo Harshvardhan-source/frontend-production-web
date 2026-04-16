@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '../components/Navbar';
 
-const API = '/api';
+const API = (process.env.REACT_APP_API_URL || '') + '/api';
 
 // ─── SVG Icon library — no emoji, no AI-generated icons ──────────────────────
 const Icon = {
