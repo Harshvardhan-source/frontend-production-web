@@ -4,7 +4,14 @@ import axios from 'axios';
 // baseURL is empty so every path like /api/... goes through CRA proxy.
 // Add  "proxy": "http://localhost:8000"  to package.json and restart npm start.
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || '',  // use env var in production
+  baseURL: process.env.REACT_APP_API_URL || '',
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// ── FastAPI Auth instance ─────────────────────────────────────────────────────
+const authClient = axios.create({
+  baseURL: process.env.REACT_APP_AUTH_URL || '',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -61,10 +68,10 @@ api.interceptors.response.use(
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
-  register: (data) => api.post('/api/register/', data),
-  login:    (data) => api.post('/api/login/',    data),
-  logout:   (data) => api.post('/api/logout/',   data),
-  me:       ()     => api.get('/api/me/'),
+  register: (data) => authClient.post('/auth/register', data),
+  login:    (data) => authClient.post('/auth/login',    data),
+  logout:   ()     => authClient.post('/auth/logout'),
+  me:       ()     => authClient.get('/auth/me'),
 };
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
