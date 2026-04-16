@@ -391,10 +391,11 @@ export default function Dashboard() {
     .filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
 
   const STAT_CARDS = [
-    { label: 'Total Surveys',  value: s.totalReg?.toLocaleString()   || null, icon: '✎', color: '#f59e0b', sub: 'Registered entries' },
-    { label: 'Total Voters',   value: s.totalVoters?.toLocaleString() || null, icon: '◉', color: '#22d3ee', sub: selectedWard ? `Ward ${selectedWard} voters` : 'Voter list records' },
-    { label: 'Houses Covered', value: s.houseCount?.toLocaleString()  || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
-    { label: 'Coverage',       value: (selectedWard ? wardStats : stats) ? `${coverage}%` : null, icon: '◈', color: '#8b5cf6', sub: 'Survey completion' },
+    { label: 'Total Surveys',    value: s.totalReg?.toLocaleString()          || null, icon: '✎', color: '#f59e0b', sub: 'Registered entries' },
+    { label: 'Total Voters',     value: s.totalVoters?.toLocaleString()        || null, icon: '◉', color: '#22d3ee', sub: selectedWard ? `Ward ${selectedWard} voters` : 'Voter list records' },
+    { label: 'Houses Covered',   value: s.houseCount?.toLocaleString()         || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
+    { label: 'Large Families',   value: s.largeFamilyCount?.toLocaleString()   ?? null, icon: '👨‍👩‍👧‍👦', color: '#f97316', sub: 'Houses with 15+ members' },
+    { label: 'Coverage',         value: (selectedWard ? wardStats : stats) ? `${coverage}%` : null, icon: '◈', color: '#8b5cf6', sub: 'Survey completion' },
   ];
 
   const hour     = new Date().getHours();
@@ -549,7 +550,7 @@ export default function Dashboard() {
           {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>⚠ {error}</div>}
 
           {/* Stat cards */}
-          <div className="grid-4 stagger mb-24">
+          <div className="grid-5 stagger mb-24" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}>
             {STAT_CARDS.map(c => (
               activeLoading ? (
                 <StatCardSkeleton key={c.label} />
