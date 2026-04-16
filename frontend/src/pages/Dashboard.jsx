@@ -1,35 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import Navbar from '../components/Navbar';
-import { dashboardApi, surveyApi } from '../api/client';
+import { dashboardApi } from '../api/client';
 import { useAuth } from '../App';
 
-// NOTE: The raw `API` constant and all direct `fetch()` calls have been removed.
-// All requests now go through the configured axios client in ../api/client.js
-// which correctly reads VITE_API_URL from your Render environment variables.
-
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
-
-const WARD_NAMES = {
-  '21': 'Padav West',         '24': 'Derebail South',    '25': 'Derebail North',
-  '26': 'Derebail Nairuthya', '27': 'Boloor',            '28': 'Mannagudda',
-  '29': 'Kambala',            '30': 'Kodialbail',        '31': 'Bejai',
-  '32': 'Kadri North',        '33': 'Kadri South',       '34': 'Shivabagh',
-  '35': 'Padav Central',      '36': 'Padav East',        '37': 'Maroli',
-  '38': 'Bendoor',            '39': 'Falnir',            '40': 'Court',
-  '41': 'Central',            '42': 'Dongarakery',       '43': 'Kudroli',
-  '44': 'Bunder',             '45': 'Port',              '46': 'Contonment',
-  '47': 'Millagres',          '48': 'Valancia',          '49': 'Kankanady',
-  '50': 'Alape South',        '51': 'Alape North',       '52': 'Kannur',
-  '53': 'Bajal',              '54': 'Jappimogaru',       '55': 'Attavara',
-  '56': 'Mangaladevi',        '57': 'Hoige Bazar',       '58': 'Bolar',
-  '59': 'Jeppu',              '60': 'Bengre',
-};
 
 const WARD_BOOTHS_MAP = {
   "ALAPE NORTH":[44,189,191,190,192,197,45],"ALAPE SOUTH":[188,187,186,185,184,209,210],
@@ -229,156 +209,13 @@ function HouseCard({ house, serialCounter, query }) {
   );
 }
 
-// ─── Ward Selector Dropdown ──────────────────────────────────────────────────
-// Uses a React Portal so the panel renders directly into document.body —
-// this escapes CSS transforms (e.g. anim-fade-up) and overflow:hidden parents
-// that would otherwise clip or misplace the panel.
-function WardSelector({ selectedWard, onChange }) {
-  const [open, setOpen]       = useState(false);
-  const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
-  const btnRef  = useRef(null);
-  const dropRef = useRef(null);
-
-  const toggleOpen = () => {
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setDropPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
-    }
-    setOpen(o => !o);
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const onOutside = (e) => {
-      if (
-        dropRef.current && !dropRef.current.contains(e.target) &&
-        btnRef.current  && !btnRef.current.contains(e.target)
-      ) setOpen(false);
-    };
-    const onScroll = (e) => { if (dropRef.current && dropRef.current.contains(e.target)) return; setOpen(false); };
-    document.addEventListener('mousedown', onOutside);
-    document.addEventListener('scroll',    onScroll, true);
-    return () => {
-      document.removeEventListener('mousedown', onOutside);
-      document.removeEventListener('scroll',    onScroll, true);
-    };
-  }, [open]);
-
-  const label       = selectedWard ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard]}` : 'All Wards';
-  const wardEntries = Object.entries(WARD_NAMES).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
-
-  const panel = (
-    <div
-      ref={dropRef}
-      style={{
-        position: 'fixed',
-        top:   dropPos.top,
-        right: dropPos.right,
-        zIndex: 999999,
-        width: 252,
-        maxHeight: 360,
-        overflowY: 'auto',
-        background: '#0c1526',
-        border: '1px solid rgba(255,255,255,0.13)',
-        borderRadius: 12,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.75)',
-        padding: '5px',
-      }}
-    >
-      {/* All Wards row */}
-      <button
-        onClick={() => { onChange(''); setOpen(false); }}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-          padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-          background: !selectedWard ? 'rgba(245,158,11,0.13)' : 'transparent',
-          color: !selectedWard ? '#f59e0b' : 'var(--text-2)',
-          fontSize: 13, fontWeight: !selectedWard ? 700 : 500, textAlign: 'left',
-        }}
-      >
-        <span style={{ fontSize: 14 }}>🗺</span>
-        <span style={{ flex: 1 }}>All Wards</span>
-        {!selectedWard && <span style={{ fontSize: 13, color: '#f59e0b' }}>✓</span>}
-      </button>
-
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '3px 8px 4px' }} />
-
-      {wardEntries.map(([num, name]) => {
-        const active = selectedWard === num;
-        return (
-          <button
-            key={num}
-            onClick={() => { onChange(num); setOpen(false); }}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
-              padding: '7px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: active ? 'rgba(245,158,11,0.12)' : 'transparent',
-              color: active ? '#f59e0b' : 'var(--text-2)',
-              fontSize: 13, fontWeight: active ? 700 : 400,
-              textAlign: 'left', transition: 'background 0.12s',
-            }}
-            onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-            onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
-          >
-            <span style={{
-              fontSize: 10, fontWeight: 700, lineHeight: 1,
-              background: active ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.07)',
-              borderRadius: 4, padding: '2px 6px',
-              color: active ? '#f59e0b' : 'var(--text-3)',
-              flexShrink: 0, minWidth: 26, textAlign: 'center',
-            }}>{num}</span>
-            <span style={{ flex: 1 }}>{name}</span>
-            {active && <span style={{ fontSize: 13, color: '#f59e0b', flexShrink: 0 }}>✓</span>}
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  return (
-    <>
-      {/* Trigger button */}
-      <button
-        ref={btnRef}
-        onClick={toggleOpen}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: selectedWard ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)',
-          border: `1px solid ${selectedWard ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.13)'}`,
-          borderRadius: 10, padding: '8px 14px', cursor: 'pointer',
-          fontSize: 13, fontWeight: 600,
-          color: selectedWard ? '#f59e0b' : 'var(--text-2)',
-          whiteSpace: 'nowrap', minWidth: 210, flexShrink: 0,
-          transition: 'all 0.18s',
-        }}
-      >
-        <span style={{ fontSize: 16 }}>🏘</span>
-        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-        <span style={{
-          fontSize: 10, color: 'var(--text-3)', flexShrink: 0,
-          transform: open ? 'rotate(180deg)' : 'none',
-          transition: 'transform 0.2s', display: 'inline-block',
-        }}>▼</span>
-      </button>
-
-      {/* Portal — renders into document.body, fully outside any transform context */}
-      {open && createPortal(panel, document.body)}
-    </>
-  );
-}
-
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user }              = useAuth();
+  // stats starts as null — UI renders immediately with skeletons, fills in as data arrives
   const [stats, setStats]     = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError]     = useState('');
-
-  // Ward filter
-  const [selectedWard, setSelectedWard]         = useState('');
-  const [wardStats, setWardStats]               = useState(null);
-  const [wardStatsLoading, setWardStatsLoading] = useState(false);
-  const [wardError, setWardError]               = useState('');
 
   const [query, setQuery]         = useState('');
   const [searching, setSearching] = useState(false);
@@ -388,51 +225,31 @@ export default function Dashboard() {
   const debounceRef      = useRef(null);
   const searchResultsRef = useRef(null);
 
-  // ── Load stats + serial number on mount ──────────────────────────────────
+  // ── Load stats in background — page renders immediately ──────────────────
   useEffect(() => {
-    // FIX: was dashboardApi.stats() → still correct, no change needed here
     dashboardApi.stats()
       .then(r => { setStats(r.data); setError(''); })
       .catch(e => setError(e.userMessage || e.response?.data?.message || 'Could not load dashboard data.'))
       .finally(() => setStatsLoading(false));
 
-    // FIX: replaced raw fetch(`${API}/serial-number/`) with surveyApi.serialNumber()
-    // The old fetch was broken on Render because the `API` constant included '/api'
-    // in its fallback but VITE_API_URL does not — causing a doubled or missing path.
-    surveyApi.serialNumber()
-      .then(r => setNextSerial(r.data.serialNumber || 1))
+    fetch(`${API}/serial-number/`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setNextSerial(d.serialNumber || 1))
       .catch(() => {});
   }, []);
-
-  // ── Load ward-specific stats when selection changes ───────────────────────
-  useEffect(() => {
-    if (!selectedWard) { setWardStats(null); setWardError(''); return; }
-    setWardStatsLoading(true);
-    setWardError('');
-
-    // FIX: replaced raw fetch(`${API}/ward-dashboard/?ward=...`) with dashboardApi.wardStats()
-    dashboardApi.wardStats(selectedWard)
-      .then(r => {
-        if (r.data.success) setWardStats(r.data);
-        else setWardError(r.data.message || 'Failed to load ward data.');
-      })
-      .catch(e => setWardError(e.userMessage || 'Network error loading ward data.'))
-      .finally(() => setWardStatsLoading(false));
-  }, [selectedWard]);
 
   // ── Search ────────────────────────────────────────────────────────────────
   const doSearch = useCallback(async (q) => {
     if (q.trim().length < 2) { setSearchRes(null); setSearchErr(''); return; }
     setSearching(true); setSearchErr('');
-
-    // FIX: replaced raw fetch(`${API}/house-search/?q=...`) with dashboardApi.houseSearch()
-    dashboardApi.houseSearch(q)
-      .then(r => {
-        if (r.data.success) setSearchRes(r.data);
-        else setSearchErr('Search failed.');
-      })
-      .catch(() => setSearchErr('Network error. Make sure the backend is reachable.'))
-      .finally(() => setSearching(false));
+    try {
+      const res  = await fetch(`${API}/house-search/?q=${encodeURIComponent(q)}`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.success) setSearchRes(data);
+      else setSearchErr('Search failed.');
+    } catch {
+      setSearchErr('Network error. Make sure Django is running.');
+    } finally { setSearching(false); }
   }, []);
 
   const handleQueryChange = (e) => {
@@ -444,24 +261,21 @@ export default function Dashboard() {
 
   const clearSearch = () => { setQuery(''); setSearchRes(null); setSearchErr(''); };
 
-  const activeStatsLoading = selectedWard ? wardStatsLoading : statsLoading;
-  const wardNoData = !!(selectedWard && !wardStatsLoading && !wardStats);
-  const s        = (selectedWard ? wardStats : stats) || {};
+  const s        = stats || {};
   const coverage = s.totalVoters ? Math.min(100, ((s.totalReg / s.totalVoters) * 100).toFixed(1)) : 0;
 
   const wardData = Object.entries(s.wardCoverage || {})
     .sort((a, b) => b[1] - a[1]).slice(0, 10)
     .map(([name, val]) => ({ name: name.length > 11 ? name.slice(0, 11) + '…' : name, value: +val.toFixed(1) }));
 
-  // For ward view show survey religion; for all-wards show voter religion
-  const religionPie = Object.entries(selectedWard ? (s.regReligion || {}) : (s.voterReligion || {}))
+  const religionPie = Object.entries(s.voterReligion || {})
     .filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
 
   const STAT_CARDS = [
     { label: 'Total Surveys',  value: s.totalReg?.toLocaleString()   || null, icon: '✎', color: '#f59e0b', sub: 'Registered entries' },
-    { label: 'Total Voters',   value: s.totalVoters?.toLocaleString() || null, icon: '◉', color: '#22d3ee', sub: selectedWard ? `Ward ${selectedWard} voters` : 'Voter list records' },
-    { label: 'Houses', value: s.houseCount?.toLocaleString()  || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
-    { label: 'Coverage',       value: (selectedWard ? wardStats : stats) ? `${coverage}%` : null, icon: '◈', color: '#8b5cf6', sub: 'Survey completion' },
+    { label: 'Total Voters',   value: s.totalVoters?.toLocaleString() || null, icon: '◉', color: '#22d3ee', sub: 'Voter list records' },
+    { label: 'Houses Covered', value: s.houseCount?.toLocaleString()  || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
+    { label: 'Coverage',       value: stats ? `${coverage}%` : null,           icon: '◈', color: '#8b5cf6', sub: 'Survey completion' },
   ];
 
   const hour     = new Date().getHours();
@@ -536,97 +350,17 @@ export default function Dashboard() {
         <>
           {/* Header */}
           <div className="page-header anim-fade-up">
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <span className="badge badge-cyan mb-8">Dashboard</span>
-                <h1>{greeting}, {user?.username} 👋</h1>
-                <p>
-                  {selectedWard
-                    ? <>Viewing <strong style={{ color: '#f59e0b' }}>Ward {selectedWard} — {WARD_NAMES[selectedWard]}</strong></>
-                    : 'Your constituency intelligence overview'
-                  }
-                </p>
-              </div>
-              <div style={{ paddingTop: 4 }}>
-                <WardSelector selectedWard={selectedWard} onChange={setSelectedWard} />
-              </div>
-            </div>
+            <span className="badge badge-cyan mb-8">Dashboard</span>
+            <h1>{greeting}, {user?.username} 👋</h1>
+            <p>Your constituency intelligence overview</p>
           </div>
-
-          {/* Ward Info Card */}
-          {selectedWard && (
-            <div className="anim-fade-up" style={{ marginBottom: 20 }}>
-
-              {/* Header bar */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)',
-                borderRadius: wardStatsLoading || !wardStats ? 12 : '12px 12px 0 0',
-                padding: '10px 16px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 18 }}>🏘</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b' }}>
-                    Ward {selectedWard} — {wardStats?.wardName || WARD_NAMES[selectedWard]}
-                  </span>
-                  {wardStatsLoading && <span className="spinner" />}
-                </div>
-                <button
-                  onClick={() => setSelectedWard('')}
-                  style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#f59e0b' }}
-                >✕ Clear Filter</button>
-              </div>
-
-              {/* WardReference detail grid */}
-              {!wardStatsLoading && wardStats && (() => {
-                const nd = (v) => (v !== null && v !== undefined && v !== '') ? v : 'No Data';
-                const rows = [
-                  { label: 'District ID',      value: nd(wardStats.districtId),     icon: '🏛' },
-                  { label: 'Constituency ID',  value: nd(wardStats.constituencyId), icon: '📍' },
-                  { label: 'Total Voters',     value: nd(wardStats.totalVoters?.toLocaleString()), icon: '◉', color: '#22d3ee' },
-                  { label: 'Male Voters',      value: nd(wardStats.voterMale?.toLocaleString()),   icon: '♂', color: '#22d3ee' },
-                  { label: 'Female Voters',    value: nd(wardStats.voterFemale?.toLocaleString()), icon: '♀', color: '#ec4899' },
-                  { label: 'Trans Voters',     value: nd(wardStats.voterTrans?.toLocaleString()),  icon: '⚧', color: '#a78bfa' },
-                  { label: 'Hindu',            value: nd(wardStats.voterReligion?.Hindu?.toLocaleString()),     icon: '🕉', color: '#f97316' },
-                  { label: 'Muslim',           value: nd(wardStats.voterReligion?.Muslim?.toLocaleString()),    icon: '☪', color: '#10b981' },
-                  { label: 'Christian',        value: nd(wardStats.voterReligion?.Christian?.toLocaleString()), icon: '✝', color: '#8b5cf6' },
-                ];
-                return (
-                  <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-                    gap: 1, background: 'rgba(245,158,11,0.12)',
-                    border: '1px solid rgba(245,158,11,0.25)', borderTop: 'none',
-                    borderRadius: '0 0 12px 12px', overflow: 'hidden',
-                  }}>
-                    {rows.map(({ label, value, icon, color }) => (
-                      <div key={label} style={{
-                        background: '#0c1526', padding: '12px 14px',
-                        display: 'flex', flexDirection: 'column', gap: 4,
-                      }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span>{icon}</span>{label}
-                        </div>
-                        <div style={{
-                          fontSize: 16, fontWeight: 700,
-                          color: value === 'No Data' ? 'rgba(255,255,255,0.2)' : (color || 'var(--text-1)'),
-                          fontStyle: value === 'No Data' ? 'italic' : 'normal',
-                        }}>
-                          {value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
 
           {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>⚠ {error}</div>}
 
           {/* Stat cards — skeleton while loading, real values when ready */}
           <div className="grid-4 stagger mb-24">
             {STAT_CARDS.map(c => (
-              activeStatsLoading ? (
+              statsLoading ? (
                 <StatCardSkeleton key={c.label} />
               ) : (
                 <div key={c.label} className="card stat-card">
@@ -634,9 +368,7 @@ export default function Dashboard() {
                     <span style={{ fontSize: 18 }}>{c.icon}</span>
                   </div>
                   <div className="stat-label">{c.label}</div>
-                  <div className="stat-value" style={{ color: wardNoData ? 'rgba(255,255,255,0.18)' : c.color, fontSize: wardNoData ? 16 : undefined, fontStyle: wardNoData ? 'italic' : 'normal' }}>
-                    {wardNoData ? 'No Data' : (c.value ?? '—')}
-                  </div>
+                  <div className="stat-value" style={{ color: c.color }}>{c.value ?? '—'}</div>
                   <div className="stat-sub">{c.sub}</div>
                 </div>
               )
@@ -648,24 +380,20 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-16">
               <div>
                 <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700 }}>Overall Survey Coverage</h2>
-                <p style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 3 }}>
-                  {selectedWard ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard]}` : 'Completion progress across all wards'}
-                </p>
+                <p style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 3 }}>Completion progress across all wards</p>
               </div>
-              {activeStatsLoading
+              {statsLoading
                 ? <Skeleton w={60} h={36} radius={8} />
-                : wardNoData
-                  ? <div style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>No Data</div>
-                  : <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: 'var(--gold)' }}>{coverage}%</div>
+                : <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: 'var(--gold)' }}>{coverage}%</div>
               }
             </div>
             <div className="progress-track" style={{ height: 10 }}>
-              {!activeStatsLoading && !wardNoData && <div className="progress-fill" style={{ width: `${coverage}%` }} />}
+              {!statsLoading && <div className="progress-fill" style={{ width: `${coverage}%` }} />}
             </div>
-            {!activeStatsLoading && (
+            {!statsLoading && (
               <div className="flex justify-between mt-8">
-                <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{wardNoData ? '—' : s.totalReg?.toLocaleString()} surveyed</span>
-                <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{wardNoData ? '—' : s.totalVoters?.toLocaleString()} total voters</span>
+                <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{s.totalReg?.toLocaleString()} surveyed</span>
+                <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{s.totalVoters?.toLocaleString()} total voters</span>
               </div>
             )}
           </div>
@@ -674,12 +402,10 @@ export default function Dashboard() {
           <div className="grid-2 mb-24 gap-20">
             <div className="card card-pad">
               <div className="section-head"><h2>Ward Coverage</h2><p>Survey completion % — top 10 wards</p></div>
-              {activeStatsLoading ? (
+              {statsLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '10px 0' }}>
                   {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={22} radius={4} style={{ width: `${80 - i * 8}%` }} />)}
                 </div>
-              ) : wardNoData ? (
-                <div className="empty-state" style={{ padding: 40 }}><div className="empty-state-icon">📊</div><p style={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No Data</p></div>
               ) : wardData.length === 0 ? (
                 <div className="empty-state" style={{ padding: 40 }}><div className="empty-state-icon">📊</div><p>No ward data yet</p></div>
               ) : (
@@ -697,16 +423,11 @@ export default function Dashboard() {
             </div>
 
             <div className="card card-pad">
-              <div className="section-head">
-                <h2>Voter Demographics</h2>
-                <p>{selectedWard ? 'Religion-wise voter distribution (WardReference)' : 'Religion-wise voter distribution'}</p>
-              </div>
-              {activeStatsLoading ? (
+              <div className="section-head"><h2>Voter Demographics</h2><p>Religion-wise voter distribution</p></div>
+              {statsLoading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 230 }}>
                   <Skeleton w={160} h={160} radius={80} />
                 </div>
-              ) : wardNoData ? (
-                <div className="empty-state" style={{ padding: 40 }}><div className="empty-state-icon">🥧</div><p style={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No Data</p></div>
               ) : religionPie.length === 0 ? (
                 <div className="empty-state" style={{ padding: 40 }}><div className="empty-state-icon">🥧</div><p>No religion data yet</p></div>
               ) : (
@@ -727,7 +448,7 @@ export default function Dashboard() {
           <div className="grid-2 gap-20">
             <div className="card card-pad">
               <div className="section-head"><h2>Gender Breakdown</h2></div>
-              {activeStatsLoading ? (
+              {statsLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -739,24 +460,11 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
-              ) : wardNoData ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {['Male Voters', 'Female Voters', 'Male Registered', 'Female Registered'].map(lbl => (
-                    <div key={lbl}>
-                      <div className="flex justify-between mb-4">
-                        <span style={{ fontSize: 13, color: '#c0cce8', fontWeight: 500 }}>{lbl}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>No Data</span>
-                      </div>
-                      <div className="progress-track" style={{ height: 5 }} />
-                    </div>
-                  ))}
-                </div>
               ) : (
                 <div className="flex-col gap-16" style={{ display: 'flex' }}>
                   {[
                     { label: 'Male Voters',       val: s.voterMale,   total: s.totalVoters, color: '#22d3ee' },
                     { label: 'Female Voters',     val: s.voterFemale, total: s.totalVoters, color: '#ec4899' },
-                    ...(s.voterTrans > 0 ? [{ label: 'Trans Voters', val: s.voterTrans, total: s.totalVoters, color: '#a78bfa' }] : []),
                     { label: 'Male Registered',   val: s.regMale,     total: s.totalReg,    color: '#22d3ee' },
                     { label: 'Female Registered', val: s.regFemale,   total: s.totalReg,    color: '#ec4899' },
                   ].map(item => (
