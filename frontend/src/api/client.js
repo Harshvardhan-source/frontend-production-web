@@ -1,8 +1,6 @@
 import axios from 'axios';
 
 // ── Axios instance ───────────────────────────────────────────────────────────
-// baseURL is empty so every path like /api/... goes through CRA proxy.
-// Add  "proxy": "http://localhost:8000"  to package.json and restart npm start.
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',
   withCredentials: true,
@@ -15,6 +13,7 @@ const authClient = axios.create({
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
+
 // ── CSRF token helper ────────────────────────────────────────────────────────
 let csrfReady = false;
 
@@ -49,9 +48,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (!err.response) {
-      err.userMessage =
-        'Cannot reach the server. Please try again later.' +
-        'and "proxy": "http://localhost:8000" is set in package.json.';
+      err.userMessage = 'Cannot reach the server. Please try again later.';
     } else if (err.response.status === 403) {
       err.userMessage = 'Session expired or CSRF error. Please refresh the page.';
     } else if (err.response.status === 404) {
@@ -76,24 +73,18 @@ export const authApi = {
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
 export const dashboardApi = {
-  stats: () => api.get('/api/dashboard/'),
+  stats:        () => api.get('/api/dashboard/'),
+  serialNumber: () => api.get('/api/serial-number/'),
+  wardDashboard:(ward) => api.get(`/api/ward-dashboard/?ward=${ward}`),
+  houseSearch:  (q)    => api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
 };
 
 // ── Survey ───────────────────────────────────────────────────────────────────
 export const surveyApi = {
-  // Get next serial number
-  serialNumber: () => api.get('/api/serial-number/'),
-
-  // Save a single survey record (main household member form)
-  save: (data) => api.post('/api/save-survey/', data),
-
-  // Save first-time voters who will be eligible by 2028
-  // payload: { futureVoters: [{name, dob, gender}], houseNumber, wardNumber, address }
-  saveFutureVoters: (data) => api.post('/api/save-future-voters/', data),
-
-  // Save deceased household members
-  // payload: { deceased: [{name, voterid, gender, ageAtDeath, deathCertificate, houseNumber, address}] }
-  saveDeceased: (data) => api.post('/api/save-deceased/', data),
+  serialNumber:   ()     => api.get('/api/serial-number/'),
+  save:           (data) => api.post('/api/save-survey/', data),
+  saveFutureVoters:(data) => api.post('/api/save-future-voters/', data),
+  saveDeceased:   (data) => api.post('/api/save-deceased/', data),
 };
 
 // ── Schemes ──────────────────────────────────────────────────────────────────
@@ -114,22 +105,14 @@ export const dataApi = {
     });
   },
 
-  // Update a voter record in MongoDB (MainB.CollDB)
-  // payload: { voter_id: "ABC123", "Voter Name": "New Name", "Age": "30", ... }
-  updateVoter: (payload) => api.post('/api/update-voter/', payload),
-
-  // Update a survey record in MongoDB (SurveyDataBase.SurveyRecords)
-  // payload: { record_id: "64a1b2...", firstName: "Ravi", wardNumber: "5", ... }
+  updateVoter:  (payload) => api.post('/api/update-voter/',  payload),
   updateSurvey: (payload) => api.post('/api/update-survey/', payload),
 };
 
 // ── Voters ───────────────────────────────────────────────────────────────────
 export const voterApi = {
-  // Load full alphabetical list on page mount (up to 2 000 voters)
   list:   (limit = 2000) => api.get('/api/voters/', { params: { limit } }),
-  // Keyword search
   search: (q, page = 1)  => api.get('/api/voters/', { params: { q, page } }),
-  // Family members by house number
   family: (house)        => api.get('/api/voter-family/', { params: { house } }),
 };
 
