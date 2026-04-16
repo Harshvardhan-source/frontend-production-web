@@ -63,10 +63,11 @@ function WardSelector({ value, onChange }) {
 
   const panel = (
     <div ref={panelRef} style={{
-      position: 'fixed', top: dropPos.top, right: dropPos.right, zIndex: 999999,
+      position: 'fixed', top: dropPos.top, right: dropPos.right, zIndex: 2147483647,
       width: 252, maxHeight: 360, overflowY: 'auto',
       background: '#0c1526', border: '1px solid rgba(255,255,255,0.13)',
       borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.75)', padding: 5,
+      isolation: 'isolate',
     }}>
       {entries.map(([num, name]) => {
         const active = value === num;
@@ -701,3 +702,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
