@@ -4,14 +4,14 @@ import axios from 'axios';
 // baseURL is empty so every path like /api/... goes through CRA proxy.
 // Add  "proxy": "http://localhost:8000"  to package.json and restart npm start.
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || '',
+  baseURL: import.meta.env.VITE_API_URL || '',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
 // ── FastAPI Auth instance ─────────────────────────────────────────────────────
 const authClient = axios.create({
-  baseURL: process.env.REACT_APP_AUTH_URL || '',
+  baseURL: import.meta.env.VITE_AUTH_URL || '',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
