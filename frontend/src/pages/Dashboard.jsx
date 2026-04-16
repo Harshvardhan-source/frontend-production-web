@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import Navbar from '../components/Navbar';
 import { dashboardApi } from '../api/client';
+import api from '../api/client';
 import { useAuth } from '../App';
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
 
@@ -322,6 +323,277 @@ function HouseCard({ house, serialCounter, query }) {
   );
 }
 
+// ─── Large Families Modal ─────────────────────────────────────────────────────
+function LargeFamiliesModal({ onClose }) {
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+  const [data, setData]           = useState([]);   // byWard array
+  const [total, setTotal]         = useState(0);
+  const [expandedWard, setExpandedWard] = useState(null);
+  const [search, setSearch]       = useState('');
+
+  useEffect(() => {
+    api.get('/api/large-families/')
+      .then(r => {
+        if (r.data.success) {
+          setData(r.data.byWard || []);
+          setTotal(r.data.total || 0);
+          if (r.data.byWard?.length) setExpandedWard(r.data.byWard[0].wardNumber);
+        } else {
+          setError('Failed to load data.');
+        }
+      })
+      .catch(e => setError(e.userMessage || 'Network error.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Filter wards/houses by search
+  const lowerSearch = search.toLowerCase();
+  const filtered = data
+    .map(ward => ({
+      ...ward,
+      houses: search
+        ? ward.houses.filter(h =>
+            String(h.houseNo).toLowerCase().includes(lowerSearch) ||
+            String(h.booth).includes(lowerSearch)
+          )
+        : ward.houses,
+    }))
+    .filter(ward =>
+      !search ||
+      ward.wardName.toLowerCase().includes(lowerSearch) ||
+      ward.houses.length > 0
+    );
+
+  const modal = (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        padding: '40px 16px', overflowY: 'auto',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 780,
+          background: 'linear-gradient(160deg, #0e1a33 0%, #090e1c 100%)',
+          border: '1px solid rgba(249,115,22,0.25)',
+          borderRadius: 20, overflow: 'hidden',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+        }}
+      >
+        {/* ── Header ── */}
+        <div style={{
+          padding: '22px 26px 18px',
+          background: 'linear-gradient(135deg, rgba(249,115,22,0.12), transparent)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+              background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+            }}>👨‍👩‍👧‍👦</div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 2 }}>
+                Large Families
+                {!loading && <span style={{ marginLeft: 10, fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>{total} houses · 15+ members</span>}
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Ward-wise breakdown of households with 15 or more registered voters</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 10, width: 34, height: 34, cursor: 'pointer',
+            fontSize: 16, color: 'rgba(255,255,255,0.5)', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>✕</button>
+        </div>
+
+        {/* ── Search ── */}
+        <div style={{ padding: '14px 26px 0' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 10, padding: '8px 14px',
+          }}>
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 15 }}>⌕</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Filter by ward, house number or booth…"
+              style={{
+                flex: 1, background: 'none', border: 'none', outline: 'none',
+                fontSize: 13, color: '#fff',
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0,
+              }}>✕</button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Body ── */}
+        <div style={{ padding: '18px 26px 26px', maxHeight: '70vh', overflowY: 'auto' }}>
+          {loading && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[1,2,3].map(i => (
+                <div key={i} style={{
+                  height: 76, borderRadius: 14,
+                  background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.6s ease-in-out infinite',
+                }} />
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <div style={{ padding: '20px 0', color: '#f87171', textAlign: 'center', fontSize: 14 }}>⚠ {error}</div>
+          )}
+
+          {!loading && !error && filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+              <div style={{ fontWeight: 600 }}>No results found</div>
+            </div>
+          )}
+
+          {!loading && filtered.map((ward, wi) => {
+            const isOpen = expandedWard === ward.wardNumber;
+            const barMax = filtered[0]?.count || 1;
+            return (
+              <div key={ward.wardNumber} style={{ marginBottom: 12 }}>
+                {/* Ward Header Card */}
+                <div
+                  onClick={() => setExpandedWard(isOpen ? null : ward.wardNumber)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 18px',
+                    background: isOpen
+                      ? 'linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.04))'
+                      : 'rgba(255,255,255,0.025)',
+                    border: `1px solid ${isOpen ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.07)'}`,
+                    borderRadius: isOpen ? '14px 14px 0 0' : 14,
+                    cursor: 'pointer', transition: 'all 0.18s',
+                  }}
+                  onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                  onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
+                >
+                  {/* Ward number badge */}
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 11, flexShrink: 0,
+                    background: isOpen ? 'rgba(249,115,22,0.18)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${isOpen ? 'rgba(249,115,22,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    gap: 0,
+                  }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: isOpen ? '#f97316' : 'rgba(255,255,255,0.3)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Ward</span>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: isOpen ? '#f97316' : 'var(--text-1)', lineHeight: 1.1 }}>{ward.wardNumber}</span>
+                  </div>
+
+                  {/* Ward name + bar */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ward.wardName}</span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{ward.count} house{ward.count !== 1 ? 's' : ''}</span>
+                    </div>
+                    {/* Proportional bar */}
+                    <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3 }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${Math.round((ward.count / barMax) * 100)}%`,
+                        background: isOpen
+                          ? 'linear-gradient(90deg, #f97316, #fb923c)'
+                          : 'rgba(249,115,22,0.45)',
+                        borderRadius: 3, transition: 'width 0.5s ease',
+                      }} />
+                    </div>
+                  </div>
+
+                  <span style={{ color: isOpen ? '#f97316' : 'rgba(255,255,255,0.25)', fontSize: 16, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>⌄</span>
+                </div>
+
+                {/* House cards grid */}
+                {isOpen && (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(176px, 1fr))',
+                    gap: 10, padding: '12px 14px 14px',
+                    background: 'rgba(249,115,22,0.03)',
+                    border: '1px solid rgba(249,115,22,0.15)',
+                    borderTop: 'none', borderRadius: '0 0 14px 14px',
+                  }}>
+                    {ward.houses.map((house, hi) => {
+                      // Colour bands by size
+                      const color = house.memberCount >= 25 ? '#ef4444'
+                                  : house.memberCount >= 20 ? '#f97316'
+                                  : '#f59e0b';
+                      return (
+                        <div key={`${house.houseNo}-${hi}`} style={{
+                          background: `linear-gradient(145deg, ${color}0d, rgba(10,18,34,0.8))`,
+                          border: `1px solid ${color}28`,
+                          borderRadius: 12, padding: '13px 15px',
+                          position: 'relative', overflow: 'hidden',
+                          boxShadow: `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 ${color}18`,
+                          transition: 'transform 0.15s, box-shadow 0.15s',
+                          cursor: 'default',
+                        }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 ${color}28`;
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.transform = 'none';
+                            e.currentTarget.style.boxShadow = `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 ${color}18`;
+                          }}
+                        >
+                          {/* Glow blob */}
+                          <div style={{ position: 'absolute', top: -18, right: -18, width: 60, height: 60, borderRadius: '50%', background: `radial-gradient(circle, ${color}20 0%, transparent 70%)`, pointerEvents: 'none' }} />
+
+                          {/* House icon */}
+                          <div style={{
+                            fontSize: 22, marginBottom: 8,
+                            filter: `drop-shadow(0 0 6px ${color}60)`,
+                          }}>⌂</div>
+
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 3 }}>House No</div>
+                          <div style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: '-0.3px', marginBottom: 8, wordBreak: 'break-all' }}>{house.houseNo}</div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: 5,
+                              background: `${color}18`, border: `1px solid ${color}30`,
+                              borderRadius: 20, padding: '3px 9px',
+                            }}>
+                              <span style={{ fontSize: 11 }}>👥</span>
+                              <span style={{ fontSize: 12, fontWeight: 800, color }}>{house.memberCount}</span>
+                            </div>
+                            {house.booth && (
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '2px 7px' }}>Booth {house.booth}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(modal, document.body);
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user }              = useAuth();
@@ -334,6 +606,8 @@ export default function Dashboard() {
   const [wardStats,         setWardStats]         = useState(null);
   const [wardStatsLoading,  setWardStatsLoading]  = useState(false);
   const [wardError,         setWardError]         = useState('');
+
+  const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
 
   const [query, setQuery]         = useState('');
   const [searching, setSearching] = useState(false);
@@ -564,15 +838,24 @@ export default function Dashboard() {
               activeLoading ? (
                 <StatCardSkeleton key={c.label} />
               ) : (
-                <div key={c.label} style={{
-                  background: 'linear-gradient(145deg, rgba(17,28,52,0.9) 0%, rgba(10,18,35,0.95) 100%)',
-                  border: `1px solid ${c.color}22`, borderRadius: 14, padding: '16px 18px',
-                  position: 'relative', overflow: 'hidden',
-                  boxShadow: `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`,
-                  transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px ${c.color}33, inset 0 1px 0 rgba(255,255,255,0.05)`; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`; }}
+                <div key={c.label}
+                  onClick={c.label === 'Large Families' ? () => setLargeFamiliesOpen(true) : undefined}
+                  style={{
+                    background: 'linear-gradient(145deg, rgba(17,28,52,0.9) 0%, rgba(10,18,35,0.95) 100%)',
+                    border: `1px solid ${c.color}22`, borderRadius: 14, padding: '16px 18px',
+                    position: 'relative', overflow: 'hidden',
+                    boxShadow: `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`,
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    cursor: c.label === 'Large Families' ? 'pointer' : 'default',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px ${c.color}33, inset 0 1px 0 rgba(255,255,255,0.05)`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`;
+                  }}
                 >
                   <div style={{ position: 'absolute', top: -25, right: -25, width: 80, height: 80, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}16 0%, transparent 70%)`, pointerEvents: 'none' }} />
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -580,7 +863,12 @@ export default function Dashboard() {
                     <div style={{ width: 30, height: 30, borderRadius: 8, background: `${c.color}15`, border: `1px solid ${c.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{c.icon}</div>
                   </div>
                   <div style={{ fontSize: 26, fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 5 }}>{c.value ?? '—'}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{c.sub}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{c.sub}</div>
+                    {c.label === 'Large Families' && (
+                      <span style={{ fontSize: 10, color: `${c.color}90`, background: `${c.color}12`, border: `1px solid ${c.color}25`, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>View ›</span>
+                    )}
+                  </div>
                 </div>
               )
             ))}
@@ -753,5 +1041,6 @@ export default function Dashboard() {
         </>
       </div>
     </div>
+    {largeFamiliesOpen && <LargeFamiliesModal onClose={() => setLargeFamiliesOpen(false)} />}
   );
 }
