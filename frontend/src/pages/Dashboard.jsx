@@ -49,7 +49,11 @@ function WardSelector({ value, onChange }) {
       if (panelRef.current && !panelRef.current.contains(e.target) &&
           btnRef.current  && !btnRef.current.contains(e.target)) setOpen(false);
     };
-    const onScroll = () => setOpen(false);
+    // Only close on scroll if the scroll happened OUTSIDE the dropdown panel
+    const onScroll = (e) => {
+      if (panelRef.current && panelRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onOutside);
     document.addEventListener('scroll', onScroll, true);
     return () => {
@@ -64,11 +68,16 @@ function WardSelector({ value, onChange }) {
   const panel = (
     <div ref={panelRef} style={{
       position: 'fixed', top: dropPos.top, right: dropPos.right, zIndex: 2147483647,
-      width: 252, maxHeight: 360, overflowY: 'auto',
+      width: 252, maxHeight: 400, overflowY: 'scroll',
       background: '#0c1526', border: '1px solid rgba(255,255,255,0.13)',
       borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.75)', padding: 5,
       isolation: 'isolate',
-    }}>
+      scrollbarWidth: 'thin',
+      scrollbarColor: 'rgba(255,255,255,0.2) transparent',
+    }}
+      onWheel={e => e.stopPropagation()}
+      onTouchMove={e => e.stopPropagation()}
+    >
       {entries.map(([num, name]) => {
         const active = value === num;
         return (
@@ -550,30 +559,27 @@ export default function Dashboard() {
           {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>⚠ {error}</div>}
 
           {/* Stat cards */}
-          <div className="stagger mb-24" style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <div className="stagger mb-24" style={{ display: 'grid', gridTemplateColumns: `repeat(${STAT_CARDS.length}, 1fr)`, gap: 12 }}>
             {STAT_CARDS.map(c => (
               activeLoading ? (
-                <div key={c.label} style={{ flex: '1 1 130px', maxWidth: 180 }}>
-                  <StatCardSkeleton />
-                </div>
+                <StatCardSkeleton key={c.label} />
               ) : (
                 <div key={c.label} style={{
-                  flex: '1 1 130px', maxWidth: 180,
                   background: 'linear-gradient(145deg, rgba(17,28,52,0.9) 0%, rgba(10,18,35,0.95) 100%)',
-                  border: `1px solid ${c.color}22`, borderRadius: 12, padding: '12px 14px',
+                  border: `1px solid ${c.color}22`, borderRadius: 14, padding: '16px 18px',
                   position: 'relative', overflow: 'hidden',
-                  boxShadow: `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`,
+                  boxShadow: `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`,
                   transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default',
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.3), 0 0 0 1px ${c.color}33`; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`; }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px ${c.color}33, inset 0 1px 0 rgba(255,255,255,0.05)`; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`; }}
                 >
-                  <div style={{ position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}15 0%, transparent 70%)`, pointerEvents: 'none' }} />
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{c.label}</div>
-                    <div style={{ width: 26, height: 26, borderRadius: 7, background: `${c.color}15`, border: `1px solid ${c.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>{c.icon}</div>
+                  <div style={{ position: 'absolute', top: -25, right: -25, width: 80, height: 80, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}16 0%, transparent 70%)`, pointerEvents: 'none' }} />
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.7px' }}>{c.label}</div>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: `${c.color}15`, border: `1px solid ${c.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{c.icon}</div>
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 4 }}>{c.value ?? '—'}</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 5 }}>{c.value ?? '—'}</div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{c.sub}</div>
                 </div>
               )
