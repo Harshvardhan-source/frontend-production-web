@@ -7,7 +7,12 @@ import DeceasedRow from '../components/DeceasedRow';
 
 const RELIGIONS   = ['Hindu','Muslim','Christian','Jain','Buddhist','Sikh'];
 const COMMUNITIES = { Hindu:['General','OBC','SC','ST'], Muslim:['General','OBC'], Christian:['General','OBC','SC','ST'], Jain:['General'], Buddhist:['SC','ST','General'], Sikh:['General','OBC'] };
-const SUBCATS     = { SC:['Adi Karnataka','Adi Dravida','Holeya','Madiga','Banjara'], ST:['Gond','Kuruba','Siddi','Soliga'], OBC:['Ediga','Idiga','Kuruba','Mudaliar','Vokkaligas'], General:['—'] };
+const SUBCATS     = {
+  OBC:     ['I','II A','II B','III A','III B'],
+  SC:      ['SC (Left)','SC (Right)','SC (Touchables)','Others (Minor SC groups)'],
+  ST:      ['Nayaka / Naikda','Soliga','Jenu Kuruba','Betta Kuruba','Gond','Koli Dhor','Siddi','Yerava','Kattunayakan'],
+  General: ['—'],
+};
 const DISEASES    = ['Dengue','Cancer','Malaria','Liver disease','Lung disease','Heart disease','Kidney disease','Diabetes','Pneumonia','Mental disorder','Bird flu virus','Respiratory infection'];
 const EMP_TYPES   = ['Government','Private','Self-Employed','Daily Wage','Business'];
 const EDU_TYPES   = ['Primary','Secondary','Higher Secondary','Graduation','Post Graduation','Doctorate'];
@@ -54,7 +59,7 @@ function blankForm(serialNo, wardNumber, locked = {}, prefill = {}) {
     // ── Member-specific (blank each time) ──
     firstName: prefill.firstName || '', middleName:'', lastName: prefill.lastName || '',
     addharNumber:'', contactNumber:'',
-    serialNumber: serialNo, dob:'',
+    serialNumber: serialNo, dob:'', age:'',
     gender:      prefill.gender       || '',
     voterid:     prefill.voterid      || '',
     maritalStatus:'', annualIncome:'',
@@ -74,6 +79,16 @@ function blankForm(serialNo, wardNumber, locked = {}, prefill = {}) {
     areaType:     locked.areaType     || prefill.areaType     || '',
     homeType:     locked.homeType     || prefill.homeType     || '',
     familyIncome: locked.familyIncome || prefill.familyIncome || '',
+    // ── 2025 voter roll fields (pre-populated, editable) ──
+    relation:          prefill.relation         || '',
+    relationName:      prefill.relationName     || '',
+    partNo:            prefill.partNo           || '',
+    sectionName:       prefill.sectionName      || '',
+    pollingStation:    prefill.pollingStation   || '',
+    pollingStationAddr:prefill.pollingStationAddr|| '',
+    sourcePdfName:     prefill.sourcePdfName    || '',
+    pageNoOfCard:      prefill.pageNoOfCard     || '',
+    predictedReligion: prefill.predictedReligion|| '',
   };
 }
 
@@ -185,10 +200,14 @@ function FutureVoterRow({ voter, index, onChange, onRemove, defaultHouseNumber, 
         </div>
 
         <div>
-          <label className="field-label" style={{ fontSize:11 }}>Head of Family Contact No.</label>
-          <input className="input" type="tel" placeholder="10-digit mobile"
+          <label className="field-label" style={{ fontSize:11 }}>Head of Family Contact No. (10-digit)</label>
+          <input className="input" type="tel" inputMode="numeric" placeholder="10-digit mobile"
+            maxLength={10}
             value={voter.headContactNumber || ''}
-            onChange={e => onChange(index, 'headContactNumber', e.target.value)} />
+            onChange={e => {
+              const digits = e.target.value.replace(/\D/g,'').slice(0,10);
+              onChange(index, 'headContactNumber', digits);
+            }} />
         </div>
 
         <div>
@@ -530,6 +549,19 @@ export default function SurveyForm() {
 
             {/* ── Step 1: Personal ── */}
             {step === 1 && <>
+              {/* 2025 Roll prefill banner */}
+              {(form.voterid || form.relation || form.pollingStation) && (
+                <div style={{ gridColumn:'1/-1', background:'rgba(34,211,238,0.06)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:10, padding:'10px 14px', marginBottom:4 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#22d3ee', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.06em' }}>📋 Pre-filled from 2025 Voter Roll — verify &amp; complete</div>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 20px', fontSize:11, color:'var(--text-2)' }}>
+                    {form.voterid       && <span>🪪 <b>{form.voterid}</b></span>}
+                    {form.relation      && <span>👤 {form.relation}: {form.relationName}</span>}
+                    {form.partNo        && <span>📍 Part {form.partNo}</span>}
+                    {form.pollingStation&& <span>🏫 {form.pollingStation}</span>}
+                    {form.sectionName   && <span>📌 {form.sectionName}</span>}
+                  </div>
+                </div>
+              )}
               <SectionDivider title="Personal Information" />
               <Field label="Head of House?">
                 <select className="input" value={form.isHeadOfHouse} onChange={set('isHeadOfHouse')}>
@@ -537,15 +569,90 @@ export default function SurveyForm() {
                   <option value="Yes">Yes — Head of Household</option>
                 </select>
               </Field>
-              <Field label="First Name">{I('firstName','text','First name')}</Field>
+              <Field label="First Name *">{I('firstName','text','First name')}</Field>
               <Field label="Middle Name">{I('middleName','text','Middle name')}</Field>
               <Field label="Last Name">{I('lastName','text','Last name')}</Field>
-              <Field label="Date of Birth">{I('dob','date')}</Field>
+
+              {/* DOB — mandatory; if blank show Age fallback */}
+              <Field label="Date of Birth *">
+                <input className="input" type="date" value={form.dob} onChange={set('dob')} />
+              </Field>
+              {!form.dob && (
+                <Field label="Age (if DOB unknown)">
+                  <input className="input" type="number" min="1" max="120" placeholder="Enter age"
+                    value={form.age || ''} onChange={set('age')} />
+                </Field>
+              )}
+
               <Field label="Gender">{S('gender',['Male','Female','Other'])}</Field>
               <Field label="Marital Status">{S('maritalStatus',['Single','Married','Widowed','Divorced'])}</Field>
-              <Field label="Aadhar Number">{I('addharNumber','text','12-digit Aadhar')}</Field>
-              <Field label="Contact Number">{I('contactNumber','tel','10-digit mobile')}</Field>
-              <Field label="Voter ID">{I('voterid','text','Voter ID')}</Field>
+
+              {/* Voter ID — 10-char alphanumeric mandatory */}
+              <Field label="Voter ID * (10-char)">
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="e.g. NUX4000139"
+                  value={form.voterid}
+                  maxLength={10}
+                  onChange={e => {
+                    const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+                    setForm(p => ({ ...p, voterid: v }));
+                  }}
+                  style={{ letterSpacing: '0.08em' }}
+                />
+                {form.voterid && form.voterid.length !== 10 && (
+                  <div style={{ fontSize:11, color:'#f87171', marginTop:4 }}>
+                    ⚠ Voter ID must be exactly 10 characters ({form.voterid.length}/10)
+                  </div>
+                )}
+              </Field>
+
+              {/* Aadhar — 12-digit mandatory */}
+              <Field label="Aadhar Number * (12-digit)">
+                <input
+                  className="input"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="XXXX XXXX XXXX"
+                  maxLength={14}
+                  value={form.addharNumber
+                    ? form.addharNumber.replace(/\D/g,'').replace(/(\d{4})(?=\d)/g,'$1 ').trim()
+                    : ''}
+                  onChange={e => {
+                    const digits = e.target.value.replace(/\D/g,'').slice(0,12);
+                    setForm(p => ({ ...p, addharNumber: digits }));
+                  }}
+                  style={{ letterSpacing: '0.1em' }}
+                />
+                {form.addharNumber && form.addharNumber.length !== 12 && (
+                  <div style={{ fontSize:11, color:'#f87171', marginTop:4 }}>
+                    ⚠ Aadhar must be exactly 12 digits ({form.addharNumber.length}/12)
+                  </div>
+                )}
+              </Field>
+
+              {/* Phone — 10-digit mandatory */}
+              <Field label="Contact Number * (10-digit)">
+                <input
+                  className="input"
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="10-digit mobile"
+                  maxLength={10}
+                  value={form.contactNumber}
+                  onChange={e => {
+                    const digits = e.target.value.replace(/\D/g,'').slice(0,10);
+                    setForm(p => ({ ...p, contactNumber: digits }));
+                  }}
+                />
+                {form.contactNumber && form.contactNumber.length !== 10 && (
+                  <div style={{ fontSize:11, color:'#f87171', marginTop:4 }}>
+                    ⚠ Phone must be exactly 10 digits ({form.contactNumber.length}/10)
+                  </div>
+                )}
+              </Field>
+
               <SectionDivider title="Outstation Resident" subtitle="Voter registered here but currently residing elsewhere" color="linear-gradient(#f59e0b,#f97316)" />
               <Field label="Outstation Resident?">
                 <select className="input" value={form.outstationResident} onChange={set('outstationResident')}>
@@ -655,7 +762,7 @@ export default function SurveyForm() {
             {/* ── Step 4: Employment & Health ── */}
             {step === 4 && <>
               <SectionDivider title="Employment & Health" />
-              <Field label="Employment Status">{S('employmentStatus',['Employed','UnEmployed','Minor','Retired'])}</Field>
+              <Field label="Employment Status">{S('employmentStatus',['None','Employed','UnEmployed','Minor','Retired'])}</Field>
               {form.employmentStatus === 'Employed' && <Field label="Employment Type">{S('employmentType', EMP_TYPES)}</Field>}
               <Field label="Health Status">{S('healthStatus',['Healthy','Diseased'])}</Field>
               {form.healthStatus === 'Diseased' && <>
