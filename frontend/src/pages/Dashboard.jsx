@@ -9,9 +9,7 @@ import Navbar from '../components/Navbar';
 import { dashboardApi } from '../api/client';
 import { useAuth } from '../App';
 
-const API = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api`
-  : '';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
 
 const WARD_NAMES = {
