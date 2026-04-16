@@ -524,23 +524,12 @@ export default function SurveyForm() {
                 </select>
               </Field>
               <Field label="Booth No">
-                {form.wardNumber && WARD_BOOTHS[form.wardNumber] ? (
-                  <>
-                    <select className="input" value={String(form.boothNo)} onChange={set('boothNo')}>
-                      <option value="">— Select Booth —</option>
-                      {WARD_BOOTHS[form.wardNumber].map(b => (
-                        <option key={b} value={String(b)}>Booth {b}</option>
-                      ))}
-                    </select>
-                    {form.boothNo && (
-                      <div style={{ fontSize:11, color:'var(--gold)', marginTop:4 }}>
-                        ✓ Booth {form.boothNo} — editable
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <input className="input" type="text" placeholder="Select ward first"
-                    value={form.boothNo} onChange={set('boothNo')} disabled={!form.wardNumber} />
+                <input className="input" type="text" inputMode="numeric" placeholder="e.g. 44"
+                  value={form.boothNo} onChange={e => setForm(p => ({ ...p, boothNo: e.target.value.replace(/\D/g,'') }))} />
+                {form.boothNo && (
+                  <div style={{ fontSize:11, color:'var(--gold)', marginTop:4 }}>
+                    ✓ Booth {form.boothNo} — pre-filled, editable
+                  </div>
                 )}
               </Field>
               <Field label="Area Type">{S('areaType', ['Urban','Rural','Semi-Urban'])}</Field>
@@ -714,23 +703,12 @@ export default function SurveyForm() {
                 </select>
               </Field>
               <Field label="Booth No">
-                {form.wardNumber && WARD_BOOTHS[form.wardNumber] ? (
-                  <>
-                    <select className="input" value={String(form.boothNo)} onChange={set('boothNo')}>
-                      <option value="">— Select Booth —</option>
-                      {WARD_BOOTHS[form.wardNumber].map(b => (
-                        <option key={b} value={String(b)}>Booth {b}</option>
-                      ))}
-                    </select>
-                    {form.boothNo && (
-                      <div style={{ fontSize:11, color:'var(--gold)', marginTop:4 }}>
-                        ✓ Booth {form.boothNo} — editable
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <input className="input" type="text" placeholder="Select ward first"
-                    value={form.boothNo} onChange={set('boothNo')} disabled={!form.wardNumber} />
+                <input className="input" type="text" inputMode="numeric" placeholder="e.g. 44"
+                  value={form.boothNo} onChange={e => setForm(p => ({ ...p, boothNo: e.target.value.replace(/\D/g,'') }))} />
+                {form.boothNo && (
+                  <div style={{ fontSize:11, color:'var(--gold)', marginTop:4 }}>
+                    ✓ Booth {form.boothNo} — pre-filled, editable
+                  </div>
                 )}
               </Field>
               <Field label="Area Type">
