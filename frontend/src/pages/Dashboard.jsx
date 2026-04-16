@@ -7,8 +7,6 @@ import {
 import Navbar from '../components/Navbar';
 import { dashboardApi } from '../api/client';
 import { useAuth } from '../App';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
 
 const WARD_BOOTHS_MAP = {
@@ -232,9 +230,8 @@ export default function Dashboard() {
       .catch(e => setError(e.userMessage || e.response?.data?.message || 'Could not load dashboard data.'))
       .finally(() => setStatsLoading(false));
 
-    fetch(`${API}/serial-number/`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => setNextSerial(d.serialNumber || 1))
+    dashboardApi.serialNumber()
+      .then(r => setNextSerial(r.data.serialNumber || 1))
       .catch(() => {});
   }, []);
 
@@ -243,12 +240,11 @@ export default function Dashboard() {
     if (q.trim().length < 2) { setSearchRes(null); setSearchErr(''); return; }
     setSearching(true); setSearchErr('');
     try {
-      const res  = await fetch(`${API}/house-search/?q=${encodeURIComponent(q)}`, { credentials: 'include' });
-      const data = await res.json();
-      if (data.success) setSearchRes(data);
+      const r = await dashboardApi.houseSearch(q);
+      if (r.data.success) setSearchRes(r.data);
       else setSearchErr('Search failed.');
     } catch {
-      setSearchErr('Network error. Make sure Django is running.');
+      setSearchErr('Network error. Please try again later.');
     } finally { setSearching(false); }
   }, []);
 

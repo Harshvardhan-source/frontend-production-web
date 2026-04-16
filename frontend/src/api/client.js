@@ -4,14 +4,14 @@ import axios from 'axios';
 // baseURL is empty so every path like /api/... goes through CRA proxy.
 // Add  "proxy": "http://localhost:8000"  to package.json and restart npm start.
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || '',
+  baseURL: import.meta.env.VITE_API_URL || '',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
 // ── FastAPI Auth instance ─────────────────────────────────────────────────────
 const authClient = axios.create({
-  baseURL: process.env.REACT_APP_AUTH_URL || '',
+  baseURL: import.meta.env.VITE_AUTH_URL || '',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -49,9 +49,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (!err.response) {
-      err.userMessage =
-        'Cannot reach the server. Please try again later.'+
-        'and "proxy": "http://localhost:8000" is set in package.json.';
+      err.userMessage = 'Cannot reach the server. Please try again later.';
     } else if (err.response.status === 403) {
       err.userMessage = 'Session expired or CSRF error. Please refresh the page.';
     } else if (err.response.status === 404) {
@@ -76,7 +74,9 @@ export const authApi = {
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
 export const dashboardApi = {
-  stats: () => api.get('/api/dashboard/'),
+  stats:         () =>     api.get('/api/dashboard/'),
+  serialNumber:  () =>     api.get('/api/serial-number/'),
+  houseSearch:   (q) =>    api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
 };
 
 // ── Survey ───────────────────────────────────────────────────────────────────
