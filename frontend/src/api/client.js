@@ -73,9 +73,10 @@ export const authApi = {
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
 export const dashboardApi = {
-  stats:         () =>     api.get('/api/dashboard/'),
-  serialNumber:  () =>     api.get('/api/serial-number/'),
-  houseSearch:   (q) =>    api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
+  stats:        ()      => api.get('/api/dashboard/'),
+  wardStats:    (ward)  => api.get('/api/ward-dashboard/', { params: { ward } }),
+  serialNumber: ()      => api.get('/api/serial-number/'),
+  houseSearch:  (q)     => api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
 };
 
 // ── Survey ───────────────────────────────────────────────────────────────────

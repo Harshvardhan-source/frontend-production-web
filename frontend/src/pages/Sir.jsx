@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '../components/Navbar';
 
-const API = (process.env.REACT_APP_API_URL || '') + '/api';
+const API = (process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com') + '/api';
 
 // ─── SVG Icon library — no emoji, no AI-generated icons ──────────────────────
 const Icon = {
@@ -390,6 +390,10 @@ function LiveCheckPanel() {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setState('checking');
+
+    // 55s timeout — covers Render free-tier cold start (~30-50s)
+    const timeoutId = setTimeout(() => abortRef.current?.abort(), 55000);
+
     try {
       const res  = await fetch(`${API}/sir/check/`, {
         method: 'POST', credentials: 'include',
@@ -401,7 +405,15 @@ function LiveCheckPanel() {
       if (data.success) { setResult(data); setState('result'); }
       else setState('error');
     } catch (err) {
-      if (err.name !== 'AbortError') setState('error');
+      if (err.name === 'AbortError') {
+        // Could be user-initiated clear OR our 55s timeout
+        // Only show error if input still has values (i.e. not a user clear)
+        if (name || epic || house) setState('error');
+      } else {
+        setState('error');
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }, []);
 
@@ -447,7 +459,7 @@ function LiveCheckPanel() {
   const statusLine = () => {
     if (state === 'idle')     return null;
     if (state === 'typing')   return <StatusPill color="#6b7280" dot="pulse">Waiting…</StatusPill>;
-    if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Checking rolls…</StatusPill>;
+    if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Checking rolls… (may take up to 30s on first load)</StatusPill>;
     if (state === 'error')    return <StatusPill color="#ef4444" dot="">Error — try again</StatusPill>;
     if (state === 'result' && effectivePrimary) return <StatusPill color={catMeta.color} dot="solid">{effectivePrimary.label}</StatusPill>;
     return null;
@@ -820,7 +832,7 @@ export default function SIR() {
     if (!window.confirm('Process ALL voters through SIR? This may take several minutes.')) return;
     setBulkRunning(true); setBulkMsg('');
     try {
-      const res  = await fetch(`${API}/sir-bulk/`, { method:'POST', credentials:'include' });
+      const res  = await fetch(`${API}/sir-bulk/`, { method:'POST', credentials:'include', headers:{ 'Content-Type':'application/json' } });
       const json = await res.json();
       setBulkMsg(json.success
         ? `Done — ${json.processed?.toLocaleString()} voters processed`
