@@ -4,11 +4,10 @@ import axios from 'axios';
 // baseURL is empty so every path like /api/... goes through CRA proxy.
 // Add  "proxy": "http://localhost:8000"  to package.json and restart npm start.
 const api = axios.create({
-  baseURL: '',
-  withCredentials: true,          // send Django session cookie
+  baseURL: process.env.REACT_APP_API_URL || '',  // use env var in production
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
-
 // ── CSRF token helper ────────────────────────────────────────────────────────
 let csrfReady = false;
 
