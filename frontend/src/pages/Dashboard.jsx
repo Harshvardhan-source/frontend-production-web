@@ -28,6 +28,8 @@ const WARD_NAMES = {
 };
 
 // ─── Ward Selector Dropdown ───────────────────────────────────────────────────
+// Uses createPortal so the panel renders in document.body — completely outside
+// any overflow:hidden or stacking context that would cause it to overlap content.
 function WardSelector({ value, onChange }) {
   const [open, setOpen]       = useState(false);
   const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
@@ -48,6 +50,7 @@ function WardSelector({ value, onChange }) {
       if (panelRef.current && !panelRef.current.contains(e.target) &&
           btnRef.current  && !btnRef.current.contains(e.target)) setOpen(false);
     };
+    // Only close on scroll if the scroll happened OUTSIDE the dropdown panel
     const onScroll = (e) => {
       if (panelRef.current && panelRef.current.contains(e.target)) return;
       setOpen(false);
@@ -331,6 +334,7 @@ function HouseMembersPanel({ house, onBack }) {
     api.get('/api/house-search/', { params: { q: String(house.houseNo) } })
       .then(r => {
         if (r.data.success) {
+          // find the exact house by houseNo
           const match = r.data.houses.find(h => String(h.house_no) === String(house.houseNo))
                      || r.data.houses[0];
           setMembers(match?.members || []);
@@ -342,6 +346,7 @@ function HouseMembersPanel({ house, onBack }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Panel header */}
       <div style={{
         padding: '18px 22px 14px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -366,6 +371,7 @@ function HouseMembersPanel({ house, onBack }) {
         }}>👥 {house.memberCount}</div>
       </div>
 
+      {/* Members list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 22px 22px' }}>
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -392,12 +398,15 @@ function HouseMembersPanel({ house, onBack }) {
               border: `1px solid ${m.surveyed ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'}`,
               borderRadius: 10,
             }}>
+              {/* Serial */}
               <div style={{
                 width: 26, height: 26, borderRadius: 6, flexShrink: 0,
                 background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)',
               }}>{i + 1}</div>
+
+              {/* Avatar initial */}
               <div style={{
                 width: 34, height: 34, borderRadius: 8, flexShrink: 0,
                 background: m.surveyed ? 'rgba(16,185,129,0.15)' : `${genderColor}18`,
@@ -406,6 +415,8 @@ function HouseMembersPanel({ house, onBack }) {
                 fontSize: 13, fontWeight: 800,
                 color: m.surveyed ? '#10b981' : genderColor,
               }}>{(m.name || '?')[0].toUpperCase()}</div>
+
+              {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {m.name || '—'}
@@ -417,6 +428,8 @@ function HouseMembersPanel({ house, onBack }) {
                   {m.age && <span>Age {m.age}</span>}
                 </div>
               </div>
+
+              {/* Surveyed badge */}
               {m.surveyed ? (
                 <div style={{
                   background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)',
@@ -444,7 +457,7 @@ function LargeFamiliesModal({ onClose }) {
   const [total, setTotal]             = useState(0);
   const [expandedWard, setExpandedWard] = useState(null);
   const [search, setSearch]           = useState('');
-  const [selectedHouse, setSelectedHouse] = useState(null);
+  const [selectedHouse, setSelectedHouse] = useState(null); // drill-down
 
   useEffect(() => {
     api.get('/api/large-families/')
@@ -471,6 +484,7 @@ function LargeFamiliesModal({ onClose }) {
     }))
     .filter(ward => !search || ward.wardName.toLowerCase().includes(lowerSearch) || ward.houses.length > 0);
 
+  // accent colour: teal
   const ACCENT = '#22d3ee';
 
   const modal = (
@@ -495,6 +509,7 @@ function LargeFamiliesModal({ onClose }) {
           maxHeight: '88vh',
         }}
       >
+        {/* ── Header ── */}
         <div style={{
           padding: '20px 24px 16px',
           background: 'rgba(34,211,238,0.05)',
@@ -526,12 +541,14 @@ function LargeFamiliesModal({ onClose }) {
           }}>✕</button>
         </div>
 
+        {/* ── Drill-down: member panel ── */}
         {selectedHouse ? (
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <HouseMembersPanel house={selectedHouse} onBack={() => setSelectedHouse(null)} />
           </div>
         ) : (
           <>
+            {/* ── Search ── */}
             <div style={{ padding: '12px 24px 0', flexShrink: 0 }}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 10,
@@ -551,6 +568,7 @@ function LargeFamiliesModal({ onClose }) {
               </div>
             </div>
 
+            {/* ── Body ── */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 24px 24px' }}>
               {loading && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -559,18 +577,22 @@ function LargeFamiliesModal({ onClose }) {
                   ))}
                 </div>
               )}
+
               {error && <div style={{ padding: '20px 0', color: '#f87171', textAlign: 'center', fontSize: 14 }}>⚠ {error}</div>}
+
               {!loading && !error && filtered.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}>
                   <div style={{ fontSize: 34, marginBottom: 8 }}>🔍</div>
                   <div style={{ fontWeight: 600 }}>No results found</div>
                 </div>
               )}
+
               {!loading && filtered.map(ward => {
                 const isOpen = expandedWard === ward.wardNumber;
                 const barMax = filtered[0]?.count || 1;
                 return (
                   <div key={ward.wardNumber} style={{ marginBottom: 10 }}>
+                    {/* Ward row */}
                     <div
                       onClick={() => setExpandedWard(isOpen ? null : ward.wardNumber)}
                       style={{
@@ -583,6 +605,7 @@ function LargeFamiliesModal({ onClose }) {
                       onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
                       onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                     >
+                      {/* Ward badge */}
                       <div style={{
                         width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                         background: isOpen ? 'rgba(34,211,238,0.13)' : 'rgba(255,255,255,0.05)',
@@ -592,6 +615,8 @@ function LargeFamiliesModal({ onClose }) {
                         <span style={{ fontSize: 8, fontWeight: 700, color: isOpen ? ACCENT : 'rgba(255,255,255,0.25)', letterSpacing: '0.4px', textTransform: 'uppercase' }}>Ward</span>
                         <span style={{ fontSize: 14, fontWeight: 900, color: isOpen ? ACCENT : '#e2e8f0', lineHeight: 1.1 }}>{ward.wardNumber}</span>
                       </div>
+
+                      {/* Name + bar */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 }}>
                           <span style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ward.wardName}</span>
@@ -606,9 +631,11 @@ function LargeFamiliesModal({ onClose }) {
                           }} />
                         </div>
                       </div>
+
                       <span style={{ color: isOpen ? ACCENT : 'rgba(255,255,255,0.2)', fontSize: 15, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>⌄</span>
                     </div>
 
+                    {/* House list (simple rows) */}
                     {isOpen && (
                       <div style={{
                         border: '1px solid rgba(34,211,238,0.14)', borderTop: 'none',
@@ -678,11 +705,11 @@ function LargeFamiliesModal({ onClose }) {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user }              = useAuth();
-  const location              = useLocation(); // ← FIX: read returnQuery on mount
   const [stats, setStats]     = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError]     = useState('');
 
+  // ── Ward filter state ─────────────────────────────────────────────────────
   const [selectedWard,      setSelectedWard]      = useState('');
   const [wardStats,         setWardStats]         = useState(null);
   const [wardStatsLoading,  setWardStatsLoading]  = useState(false);
@@ -698,20 +725,7 @@ export default function Dashboard() {
   const debounceRef      = useRef(null);
   const searchResultsRef = useRef(null);
 
-  // ── Search (defined before mount effect so it can be called inside it) ────
-  const doSearch = useCallback(async (q) => {
-    if (q.trim().length < 2) { setSearchRes(null); setSearchErr(''); return; }
-    setSearching(true); setSearchErr('');
-    try {
-      const r = await dashboardApi.houseSearch(q);
-      if (r.data.success) setSearchRes(r.data);
-      else setSearchErr('Search failed.');
-    } catch {
-      setSearchErr('Network error. Please try again later.');
-    } finally { setSearching(false); }
-  }, []);
-
-  // ── Load stats + restore search query when returning from SurveyForm ─────
+  // ── Load stats in background — page renders immediately ──────────────────
   useEffect(() => {
     dashboardApi.stats()
       .then(r => { setStats(r.data); setError(''); })
@@ -721,16 +735,7 @@ export default function Dashboard() {
     dashboardApi.serialNumber()
       .then(r => setNextSerial(r.data.serialNumber || 1))
       .catch(() => {});
-
-    // ── FIX: restore search query when navigating back from SurveyForm ──────
-    const restoredQuery = location.state?.returnQuery;
-    if (restoredQuery) {
-      setQuery(restoredQuery);
-      doSearch(restoredQuery);
-      // Clear router state so a hard refresh doesn't re-trigger the search
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Load ward stats when ward changes ─────────────────────────────────────
   useEffect(() => {
@@ -742,6 +747,19 @@ export default function Dashboard() {
       .catch(e => setWardError(e.userMessage || 'Network error loading ward data.'))
       .finally(() => setWardStatsLoading(false));
   }, [selectedWard]);
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  const doSearch = useCallback(async (q) => {
+    if (q.trim().length < 2) { setSearchRes(null); setSearchErr(''); return; }
+    setSearching(true); setSearchErr('');
+    try {
+      const r = await dashboardApi.houseSearch(q);
+      if (r.data.success) setSearchRes(r.data);
+      else setSearchErr('Search failed.');
+    } catch {
+      setSearchErr('Network error. Please try again later.');
+    } finally { setSearching(false); }
+  }, []);
 
   const handleQueryChange = (e) => {
     const val = e.target.value;
@@ -840,8 +858,9 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Dashboard content ───────────────────────────────────────────── */}
+        {/* ── Dashboard content — renders immediately, stats fill in ─────── */}
         <>
+          {/* Header */}
           <div className="page-header anim-fade-up">
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div>
@@ -855,6 +874,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Ward Info Card — demographic data only, no duplicate stats */}
           {selectedWard && (
             <div className="anim-fade-up" style={{ marginBottom: 24 }}>
               <div style={{
