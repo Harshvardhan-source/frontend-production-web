@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { surveyApi, wardsApi } from '../api/client';
 import api from '../api/client';
+import DeceasedRow from '../components/DeceasedRow';
 
 const RELIGIONS   = ['Hindu','Muslim','Christian','Jain','Buddhist','Sikh'];
 const COMMUNITIES = { Hindu:['General','OBC','SC','ST'], Muslim:['General','OBC'], Christian:['General','OBC','SC','ST'], Jain:['General'], Buddhist:['SC','ST','General'], Sikh:['General','OBC'] };
@@ -209,120 +210,6 @@ function FutureVoterRow({ voter, index, onChange, onRemove, defaultHouseNumber, 
   );
 }
 
-// ── Deceased Row ──────────────────────────────────────────────────────────────
-function DeceasedRow({ rec, index, onChange, onRemove }) {
-  return (
-    <div style={{ background:'rgba(239,68,68,0.04)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:10, padding:14, marginBottom:10 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-        <span style={{ fontSize:12, fontWeight:700, color:'#f87171' }}>Deceased #{index + 1}</span>
-        <button onClick={() => onRemove(index)}
-          style={{ background:'rgba(239,68,68,0.12)', border:'1px solid rgba(239,68,68,0.3)',
-            color:'#f87171', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontSize:12 }}>
-          Remove
-        </button>
-      </div>
-
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:10 }}>
-
-        <div>
-          <label className="field-label" style={{ fontSize:11 }}>Full Name *</label>
-          <input className="input" placeholder="Full name" value={rec.name}
-            onChange={e => onChange(index, 'name', e.target.value)} />
-        </div>
-
-        <div>
-          <label className="field-label" style={{ fontSize:11 }}>Voter ID *</label>
-          <input className="input" placeholder="Voter ID" value={rec.voterid}
-            onChange={e => onChange(index, 'voterid', e.target.value)} />
-        </div>
-
-        <div>
-          <label className="field-label" style={{ fontSize:11 }}>Gender *</label>
-          <select className="input" value={rec.gender} onChange={e => onChange(index, 'gender', e.target.value)}>
-            <option value="">— Select —</option>
-            {['Male','Female','Other'].map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="field-label" style={{ fontSize:11 }}>Age at Death *</label>
-          <input className="input" type="number" placeholder="Age" value={rec.ageAtDeath}
-            onChange={e => onChange(index, 'ageAtDeath', e.target.value)} />
-        </div>
-
-        <div>
-          <label className="field-label" style={{ fontSize:11 }}>Date of Birth</label>
-          <input className="input" type="date" value={rec.dob || ''}
-            onChange={e => onChange(index, 'dob', e.target.value)} />
-        </div>
-
-        <div>
-          <label className="field-label" style={{ fontSize:11 }}>Date of Death *</label>
-          <input className="input" type="date" value={rec.dateOfDeath || ''}
-            onChange={e => onChange(index, 'dateOfDeath', e.target.value)} />
-        </div>
-
-        <div>
-          <label className="field-label" style={{ fontSize:11 }}>Death Certificate No.</label>
-          <input className="input" placeholder="Certificate number" value={rec.deathCertificate}
-            onChange={e => onChange(index, 'deathCertificate', e.target.value)} />
-        </div>
-
-        <div>
-          <label className="field-label" style={{ fontSize:11 }}>House Number</label>
-          <input className="input" placeholder="House no." value={rec.houseNumber}
-            onChange={e => onChange(index, 'houseNumber', e.target.value)} />
-        </div>
-
-        <div style={{ gridColumn:'1/-1' }}>
-          <label className="field-label" style={{ fontSize:11 }}>Address</label>
-          <input className="input" placeholder="Address" value={rec.address}
-            onChange={e => onChange(index, 'address', e.target.value)} />
-        </div>
-
-        {/* ── Death Certificate File Upload ── */}
-        <div style={{ gridColumn:'1/-1' }}>
-          <label className="field-label" style={{ fontSize:11 }}>
-            Death Certificate Document
-            <span style={{ fontSize:10, color:'var(--text-3)', marginLeft:6, fontWeight:400 }}>PDF, DOCX, JPG, PNG</span>
-          </label>
-          <div style={{
-            border:'1px dashed rgba(239,68,68,0.35)', borderRadius:8,
-            padding:'10px 14px', background:'rgba(239,68,68,0.03)',
-            display:'flex', alignItems:'center', gap:12,
-          }}>
-            <input
-              type="file"
-              accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
-              id={`cert-file-${index}`}
-              style={{ display:'none' }}
-              onChange={e => onChange(index, 'certificateFile', e.target.files[0] || null)}
-            />
-            <label htmlFor={`cert-file-${index}`} style={{
-              cursor:'pointer',
-              background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)',
-              color:'#f87171', borderRadius:6, padding:'6px 14px',
-              fontSize:12, fontWeight:600, whiteSpace:'nowrap', flexShrink:0,
-            }}>
-              📎 Choose File
-            </label>
-            <span style={{ fontSize:12, color:'var(--text-3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
-              {rec.certificateFile ? rec.certificateFile.name : 'No file chosen'}
-            </span>
-            {rec.certificateFile && (
-              <button
-                onClick={() => onChange(index, 'certificateFile', null)}
-                style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-3)', fontSize:16, flexShrink:0, padding:0 }}
-              >✕</button>
-            )}
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function SurveyForm() {
   const location = useLocation();
@@ -417,7 +304,8 @@ export default function SurveyForm() {
         boothNo:      form.boothNo            || '',
         serialNumber: form.serialNumber       || '',
       };
-      const res = await fetch('/api/sir/check/', {
+      const SIR_URL = (process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com') + '/api/sir/check/';
+      const res = await fetch(SIR_URL, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
