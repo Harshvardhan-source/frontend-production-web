@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -26,62 +27,90 @@ const WARD_NAMES = {
 };
 
 // ─── Ward Selector Dropdown ───────────────────────────────────────────────────
+// Uses createPortal so the panel renders in document.body — completely outside
+// any overflow:hidden or stacking context that would cause it to overlap content.
 function WardSelector({ value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [open, setOpen]       = useState(false);
+  const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
+  const btnRef  = useRef(null);
+  const panelRef = useRef(null);
+
+  const openDropdown = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
+    setOpen(o => !o);
+  };
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+    if (!open) return;
+    const onOutside = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target) &&
+          btnRef.current  && !btnRef.current.contains(e.target)) setOpen(false);
+    };
+    const onScroll = () => setOpen(false);
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('scroll', onScroll, true);
+    };
+  }, [open]);
 
   const entries = [['', 'All Wards'], ...Object.entries(WARD_NAMES).sort((a,b) => +a[0] - +b[0])];
   const label   = value ? `Ward ${value} — ${WARD_NAMES[value]}` : 'All Wards';
 
+  const panel = (
+    <div ref={panelRef} style={{
+      position: 'fixed', top: dropPos.top, right: dropPos.right, zIndex: 999999,
+      width: 252, maxHeight: 360, overflowY: 'auto',
+      background: '#0c1526', border: '1px solid rgba(255,255,255,0.13)',
+      borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.75)', padding: 5,
+    }}>
+      {entries.map(([num, name]) => {
+        const active = value === num;
+        return (
+          <button key={num} onClick={() => { onChange(num); setOpen(false); }} style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+            background: active ? 'rgba(245,158,11,0.12)' : 'transparent',
+            color: active ? '#f59e0b' : 'var(--text-2)',
+            fontSize: 13, fontWeight: active ? 700 : 400, textAlign: 'left',
+            transition: 'background 0.12s',
+          }}
+            onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+            onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+          >
+            {num
+              ? <span style={{ fontSize: 10, fontWeight: 700, background: active ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.07)', borderRadius: 4, padding: '2px 6px', color: active ? '#f59e0b' : 'var(--text-3)', minWidth: 26, textAlign: 'center', flexShrink: 0 }}>{num}</span>
+              : <span style={{ fontSize: 14, flexShrink: 0 }}>🗺</span>
+            }
+            <span style={{ flex: 1 }}>{name}</span>
+            {active && <span style={{ color: '#f59e0b', fontSize: 13, flexShrink: 0 }}>✓</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-      <button onClick={() => setOpen(o => !o)} style={{
-        display: 'flex', alignItems: 'center', gap: 8, minWidth: 200,
+    <>
+      <button ref={btnRef} onClick={openDropdown} style={{
+        display: 'flex', alignItems: 'center', gap: 8, minWidth: 210, flexShrink: 0,
         background: value ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.05)',
         border: `1px solid ${value ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.12)'}`,
         borderRadius: 10, padding: '8px 14px', cursor: 'pointer',
         fontSize: 13, fontWeight: 600,
-        color: value ? '#f59e0b' : 'var(--text-2)', transition: 'all 0.2s',
+        color: value ? '#f59e0b' : 'var(--text-2)', transition: 'all 0.18s',
+        whiteSpace: 'nowrap',
       }}>
-        <span>🏘</span>
-        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-        <span style={{ fontSize: 10, color: 'var(--text-3)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+        <span style={{ fontSize: 16 }}>🏘</span>
+        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+        <span style={{ fontSize: 10, color: 'var(--text-3)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 9999,
-          width: 240, maxHeight: 340, overflowY: 'auto',
-          background: '#0c1526', border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.7)', padding: 4,
-        }}>
-          {entries.map(([num, name]) => {
-            const active = value === num;
-            return (
-              <button key={num} onClick={() => { onChange(num); setOpen(false); }} style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: active ? 'rgba(245,158,11,0.12)' : 'transparent',
-                color: active ? '#f59e0b' : 'var(--text-2)',
-                fontSize: 13, fontWeight: active ? 700 : 400, textAlign: 'left',
-              }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
-              >
-                {num && <span style={{ fontSize: 10, fontWeight: 700, background: active ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.07)', borderRadius: 4, padding: '2px 6px', color: active ? '#f59e0b' : 'var(--text-3)', minWidth: 26, textAlign: 'center' }}>{num}</span>}
-                <span style={{ flex: 1 }}>{name}</span>
-                {active && <span style={{ color: '#f59e0b', fontSize: 12 }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+      {open && createPortal(panel, document.body)}
+    </>
   );
 }
 
