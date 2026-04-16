@@ -53,8 +53,10 @@ function blankForm(serialNo, wardNumber, locked = {}, prefill = {}) {
   const resolvedWard  = locked.wardNumber || wardNumber
     || (prefill.boothNo ? getWardByBooth(prefill.boothNo) : '')
     || prefill.wardNumber || '';
-  const resolvedBooth = locked.boothNo
-    || (prefill.boothNo ? String(prefill.boothNo) : '') || '';
+  // Booth: locked.boothNo takes precedence (set when navigating from SurveyOpt or after 1st save)
+  const resolvedBooth = locked.boothNo != null && locked.boothNo !== ''
+    ? String(locked.boothNo)
+    : (prefill.boothNo ? String(prefill.boothNo) : '');
   return {
     // ── Member-specific (blank each time) ──
     firstName: prefill.firstName || '', middleName:'', lastName: prefill.lastName || '',
@@ -260,9 +262,17 @@ export default function SurveyForm() {
   const [sirMember,    setSirMember]   = useState('');     // name of checked member
   const [sirChecking,  setSirChecking] = useState(false);  // manual check in progress
 
-  const lockedRef = useRef({ houseNumber:'', address:'', wardNumber,
-    boothNo: boothNo || prefill.boothNo || '', areaType:'', homeType:'', familyIncome:'' });
-  const [form, setForm] = useState(() => blankForm(serialNo, wardNumber, {}, prefill));
+  // Resolve booth: explicit boothNo from nav state > prefill.boothNo
+  const resolvedBooth = boothNo ? String(boothNo) : (prefill.boothNo ? String(prefill.boothNo) : '');
+  // Resolve ward: explicit wardNumber > wardName > derive from booth
+  const resolvedWard  = wardNumber || wardName
+    || (resolvedBooth ? getWardByBooth(resolvedBooth) : '')
+    || prefill.wardNumber || '';
+
+  const lockedRef = useRef({ houseNumber:'', address:'', wardNumber: resolvedWard,
+    boothNo: resolvedBooth, areaType:'', homeType:'', familyIncome:'' });
+  const [form, setForm] = useState(() => blankForm(serialNo, resolvedWard,
+    { wardNumber: resolvedWard, boothNo: resolvedBooth }, prefill));
 
   const set = (k) => (e) => {
     const val = e.target?.value ?? e;
@@ -515,12 +525,19 @@ export default function SurveyForm() {
               </Field>
               <Field label="Booth No">
                 {form.wardNumber && WARD_BOOTHS[form.wardNumber] ? (
-                  <select className="input" value={String(form.boothNo)} onChange={set('boothNo')}>
-                    <option value="">— Select Booth —</option>
-                    {WARD_BOOTHS[form.wardNumber].map(b => (
-                      <option key={b} value={String(b)}>Booth {b}</option>
-                    ))}
-                  </select>
+                  <>
+                    <select className="input" value={String(form.boothNo)} onChange={set('boothNo')}>
+                      <option value="">— Select Booth —</option>
+                      {WARD_BOOTHS[form.wardNumber].map(b => (
+                        <option key={b} value={String(b)}>Booth {b}</option>
+                      ))}
+                    </select>
+                    {form.boothNo && (
+                      <div style={{ fontSize:11, color:'var(--gold)', marginTop:4 }}>
+                        ✓ Booth {form.boothNo} — editable
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <input className="input" type="text" placeholder="Select ward first"
                     value={form.boothNo} onChange={set('boothNo')} disabled={!form.wardNumber} />
@@ -698,12 +715,19 @@ export default function SurveyForm() {
               </Field>
               <Field label="Booth No">
                 {form.wardNumber && WARD_BOOTHS[form.wardNumber] ? (
-                  <select className="input" value={String(form.boothNo)} onChange={set('boothNo')}>
-                    <option value="">— Select Booth —</option>
-                    {WARD_BOOTHS[form.wardNumber].map(b => (
-                      <option key={b} value={String(b)}>Booth {b}</option>
-                    ))}
-                  </select>
+                  <>
+                    <select className="input" value={String(form.boothNo)} onChange={set('boothNo')}>
+                      <option value="">— Select Booth —</option>
+                      {WARD_BOOTHS[form.wardNumber].map(b => (
+                        <option key={b} value={String(b)}>Booth {b}</option>
+                      ))}
+                    </select>
+                    {form.boothNo && (
+                      <div style={{ fontSize:11, color:'var(--gold)', marginTop:4 }}>
+                        ✓ Booth {form.boothNo} — editable
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <input className="input" type="text" placeholder="Select ward first"
                     value={form.boothNo} onChange={set('boothNo')} disabled={!form.wardNumber} />
