@@ -323,14 +323,141 @@ function HouseCard({ house, serialCounter, query }) {
   );
 }
 
+// ─── Large Families · Member Detail Panel ────────────────────────────────────
+function HouseMembersPanel({ house, onBack }) {
+  const [members, setMembers]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error,   setError]     = useState('');
+
+  useEffect(() => {
+    setLoading(true); setError('');
+    api.get('/api/house-search/', { params: { q: String(house.houseNo) } })
+      .then(r => {
+        if (r.data.success) {
+          // find the exact house by houseNo
+          const match = r.data.houses.find(h => String(h.house_no) === String(house.houseNo))
+                     || r.data.houses[0];
+          setMembers(match?.members || []);
+        } else { setError('Failed to load members.'); }
+      })
+      .catch(() => setError('Network error.'))
+      .finally(() => setLoading(false));
+  }, [house.houseNo]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Panel header */}
+      <div style={{
+        padding: '18px 22px 14px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}>
+        <button onClick={onBack} style={{
+          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 8, padding: '5px 10px', cursor: 'pointer',
+          fontSize: 13, color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 5,
+        }}>← Back</button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0' }}>
+            House No: <span style={{ color: '#22d3ee' }}>{house.houseNo}</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+            {house.booth && `Booth ${house.booth} · `}{house.memberCount} registered voters
+          </div>
+        </div>
+        <div style={{
+          background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)',
+          borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#22d3ee',
+        }}>👥 {house.memberCount}</div>
+      </div>
+
+      {/* Members list */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 22px 22px' }}>
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ height: 52, borderRadius: 10, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.6s ease-in-out infinite' }} />
+            ))}
+          </div>
+        )}
+        {error && <div style={{ color: '#f87171', textAlign: 'center', padding: '24px 0', fontSize: 14 }}>⚠ {error}</div>}
+        {!loading && !error && members.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>👤</div>
+            <div>No member records found</div>
+          </div>
+        )}
+        {!loading && members.map((m, i) => {
+          const genderColor = m.gender === 'M' ? '#22d3ee' : m.gender === 'F' ? '#ec4899' : '#a78bfa';
+          const genderIcon  = m.gender === 'M' ? '♂' : m.gender === 'F' ? '♀' : '⚧';
+          return (
+            <div key={`${m.voterid || 'noid'}-${i}`} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 14px', marginBottom: 7,
+              background: m.surveyed ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${m.surveyed ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'}`,
+              borderRadius: 10,
+            }}>
+              {/* Serial */}
+              <div style={{
+                width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)',
+              }}>{i + 1}</div>
+
+              {/* Avatar initial */}
+              <div style={{
+                width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                background: m.surveyed ? 'rgba(16,185,129,0.15)' : `${genderColor}18`,
+                border: `1px solid ${m.surveyed ? 'rgba(16,185,129,0.3)' : `${genderColor}30`}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 800,
+                color: m.surveyed ? '#10b981' : genderColor,
+              }}>{(m.name || '?')[0].toUpperCase()}</div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {m.name || '—'}
+                  {m.relation && <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{m.relation}</span>}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {m.voterid && <span>🪪 {m.voterid}</span>}
+                  <span style={{ color: genderColor }}>{genderIcon} {m.gender}</span>
+                  {m.age && <span>Age {m.age}</span>}
+                </div>
+              </div>
+
+              {/* Surveyed badge */}
+              {m.surveyed ? (
+                <div style={{
+                  background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)',
+                  borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#10b981', flexShrink: 0,
+                }}>✓ Done</div>
+              ) : (
+                <div style={{
+                  background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                  borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 600, color: '#f87171', flexShrink: 0,
+                }}>Pending</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Large Families Modal ─────────────────────────────────────────────────────
 function LargeFamiliesModal({ onClose }) {
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
-  const [data, setData]           = useState([]);   // byWard array
-  const [total, setTotal]         = useState(0);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState('');
+  const [data, setData]               = useState([]);
+  const [total, setTotal]             = useState(0);
   const [expandedWard, setExpandedWard] = useState(null);
-  const [search, setSearch]       = useState('');
+  const [search, setSearch]           = useState('');
+  const [selectedHouse, setSelectedHouse] = useState(null); // drill-down
 
   useEffect(() => {
     api.get('/api/large-families/')
@@ -339,15 +466,12 @@ function LargeFamiliesModal({ onClose }) {
           setData(r.data.byWard || []);
           setTotal(r.data.total || 0);
           if (r.data.byWard?.length) setExpandedWard(r.data.byWard[0].wardNumber);
-        } else {
-          setError('Failed to load data.');
-        }
+        } else { setError('Failed to load data.'); }
       })
       .catch(e => setError(e.userMessage || 'Network error.'))
       .finally(() => setLoading(false));
   }, []);
 
-  // Filter wards/houses by search
   const lowerSearch = search.toLowerCase();
   const filtered = data
     .map(ward => ({
@@ -355,22 +479,20 @@ function LargeFamiliesModal({ onClose }) {
       houses: search
         ? ward.houses.filter(h =>
             String(h.houseNo).toLowerCase().includes(lowerSearch) ||
-            String(h.booth).includes(lowerSearch)
-          )
+            String(h.booth).includes(lowerSearch))
         : ward.houses,
     }))
-    .filter(ward =>
-      !search ||
-      ward.wardName.toLowerCase().includes(lowerSearch) ||
-      ward.houses.length > 0
-    );
+    .filter(ward => !search || ward.wardName.toLowerCase().includes(lowerSearch) || ward.houses.length > 0);
+
+  // accent colour: teal
+  const ACCENT = '#22d3ee';
 
   const modal = (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+        background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         padding: '40px 16px', overflowY: 'auto',
       }}
@@ -378,215 +500,201 @@ function LargeFamiliesModal({ onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: '100%', maxWidth: 780,
-          background: 'linear-gradient(160deg, #0e1a33 0%, #090e1c 100%)',
-          border: '1px solid rgba(249,115,22,0.25)',
+          width: '100%', maxWidth: 760,
+          background: 'linear-gradient(160deg, #0d1b30 0%, #090e1c 100%)',
+          border: '1px solid rgba(34,211,238,0.18)',
           borderRadius: 20, overflow: 'hidden',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.65)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: '88vh',
         }}
       >
         {/* ── Header ── */}
         <div style={{
-          padding: '22px 26px 18px',
-          background: 'linear-gradient(135deg, rgba(249,115,22,0.12), transparent)',
+          padding: '20px 24px 16px',
+          background: 'rgba(34,211,238,0.05)',
           borderBottom: '1px solid rgba(255,255,255,0.07)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
-              width: 46, height: 46, borderRadius: 12, flexShrink: 0,
-              background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+              width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+              background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
             }}>👨‍👩‍👧‍👦</div>
             <div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 2 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>
                 Large Families
-                {!loading && <span style={{ marginLeft: 10, fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>{total} houses · 15+ members</span>}
+                {!loading && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>{total} houses · 15+ members</span>}
               </div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Ward-wise breakdown of households with 15 or more registered voters</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
+                {selectedHouse ? 'Member records' : 'Ward-wise breakdown · click any house to view members'}
+              </div>
             </div>
           </div>
           <button onClick={onClose} style={{
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 10, width: 34, height: 34, cursor: 'pointer',
-            fontSize: 16, color: 'rgba(255,255,255,0.5)', flexShrink: 0,
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 8, width: 32, height: 32, cursor: 'pointer',
+            fontSize: 15, color: 'rgba(255,255,255,0.45)', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>✕</button>
         </div>
 
-        {/* ── Search ── */}
-        <div style={{ padding: '14px 26px 0' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 10, padding: '8px 14px',
-          }}>
-            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 15 }}>⌕</span>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Filter by ward, house number or booth…"
-              style={{
-                flex: 1, background: 'none', border: 'none', outline: 'none',
-                fontSize: 13, color: '#fff',
-              }}
-            />
-            {search && (
-              <button onClick={() => setSearch('')} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0,
-              }}>✕</button>
-            )}
+        {/* ── Drill-down: member panel ── */}
+        {selectedHouse ? (
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <HouseMembersPanel house={selectedHouse} onBack={() => setSelectedHouse(null)} />
           </div>
-        </div>
-
-        {/* ── Body ── */}
-        <div style={{ padding: '18px 26px 26px', maxHeight: '70vh', overflowY: 'auto' }}>
-          {loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[1,2,3].map(i => (
-                <div key={i} style={{
-                  height: 76, borderRadius: 14,
-                  background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.6s ease-in-out infinite',
-                }} />
-              ))}
-            </div>
-          )}
-
-          {error && (
-            <div style={{ padding: '20px 0', color: '#f87171', textAlign: 'center', fontSize: 14 }}>⚠ {error}</div>
-          )}
-
-          {!loading && !error && filtered.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}>
-              <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
-              <div style={{ fontWeight: 600 }}>No results found</div>
-            </div>
-          )}
-
-          {!loading && filtered.map((ward, wi) => {
-            const isOpen = expandedWard === ward.wardNumber;
-            const barMax = filtered[0]?.count || 1;
-            return (
-              <div key={ward.wardNumber} style={{ marginBottom: 12 }}>
-                {/* Ward Header Card */}
-                <div
-                  onClick={() => setExpandedWard(isOpen ? null : ward.wardNumber)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '14px 18px',
-                    background: isOpen
-                      ? 'linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.04))'
-                      : 'rgba(255,255,255,0.025)',
-                    border: `1px solid ${isOpen ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.07)'}`,
-                    borderRadius: isOpen ? '14px 14px 0 0' : 14,
-                    cursor: 'pointer', transition: 'all 0.18s',
-                  }}
-                  onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                  onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
-                >
-                  {/* Ward number badge */}
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 11, flexShrink: 0,
-                    background: isOpen ? 'rgba(249,115,22,0.18)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${isOpen ? 'rgba(249,115,22,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    gap: 0,
-                  }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: isOpen ? '#f97316' : 'rgba(255,255,255,0.3)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Ward</span>
-                    <span style={{ fontSize: 15, fontWeight: 900, color: isOpen ? '#f97316' : 'var(--text-1)', lineHeight: 1.1 }}>{ward.wardNumber}</span>
-                  </div>
-
-                  {/* Ward name + bar */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ward.wardName}</span>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{ward.count} house{ward.count !== 1 ? 's' : ''}</span>
-                    </div>
-                    {/* Proportional bar */}
-                    <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3 }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${Math.round((ward.count / barMax) * 100)}%`,
-                        background: isOpen
-                          ? 'linear-gradient(90deg, #f97316, #fb923c)'
-                          : 'rgba(249,115,22,0.45)',
-                        borderRadius: 3, transition: 'width 0.5s ease',
-                      }} />
-                    </div>
-                  </div>
-
-                  <span style={{ color: isOpen ? '#f97316' : 'rgba(255,255,255,0.25)', fontSize: 16, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>⌄</span>
-                </div>
-
-                {/* House cards grid */}
-                {isOpen && (
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(176px, 1fr))',
-                    gap: 10, padding: '12px 14px 14px',
-                    background: 'rgba(249,115,22,0.03)',
-                    border: '1px solid rgba(249,115,22,0.15)',
-                    borderTop: 'none', borderRadius: '0 0 14px 14px',
-                  }}>
-                    {ward.houses.map((house, hi) => {
-                      // Colour bands by size
-                      const color = house.memberCount >= 25 ? '#ef4444'
-                                  : house.memberCount >= 20 ? '#f97316'
-                                  : '#f59e0b';
-                      return (
-                        <div key={`${house.houseNo}-${hi}`} style={{
-                          background: `linear-gradient(145deg, ${color}0d, rgba(10,18,34,0.8))`,
-                          border: `1px solid ${color}28`,
-                          borderRadius: 12, padding: '13px 15px',
-                          position: 'relative', overflow: 'hidden',
-                          boxShadow: `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 ${color}18`,
-                          transition: 'transform 0.15s, box-shadow 0.15s',
-                          cursor: 'default',
-                        }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 ${color}28`;
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.transform = 'none';
-                            e.currentTarget.style.boxShadow = `0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 ${color}18`;
-                          }}
-                        >
-                          {/* Glow blob */}
-                          <div style={{ position: 'absolute', top: -18, right: -18, width: 60, height: 60, borderRadius: '50%', background: `radial-gradient(circle, ${color}20 0%, transparent 70%)`, pointerEvents: 'none' }} />
-
-                          {/* House icon */}
-                          <div style={{
-                            fontSize: 22, marginBottom: 8,
-                            filter: `drop-shadow(0 0 6px ${color}60)`,
-                          }}>⌂</div>
-
-                          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 3 }}>House No</div>
-                          <div style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: '-0.3px', marginBottom: 8, wordBreak: 'break-all' }}>{house.houseNo}</div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{
-                              display: 'flex', alignItems: 'center', gap: 5,
-                              background: `${color}18`, border: `1px solid ${color}30`,
-                              borderRadius: 20, padding: '3px 9px',
-                            }}>
-                              <span style={{ fontSize: 11 }}>👥</span>
-                              <span style={{ fontSize: 12, fontWeight: 800, color }}>{house.memberCount}</span>
-                            </div>
-                            {house.booth && (
-                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '2px 7px' }}>Booth {house.booth}</span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+        ) : (
+          <>
+            {/* ── Search ── */}
+            <div style={{ padding: '12px 24px 0', flexShrink: 0 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 9, padding: '7px 12px',
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 14 }}>⌕</span>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Filter by ward, house number or booth…"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 13, color: '#fff' }}
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0 }}>✕</button>
                 )}
               </div>
-            );
-          })}
-        </div>
+            </div>
+
+            {/* ── Body ── */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 24px 24px' }}>
+              {loading && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[1,2,3].map(i => (
+                    <div key={i} style={{ height: 64, borderRadius: 12, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.6s ease-in-out infinite' }} />
+                  ))}
+                </div>
+              )}
+
+              {error && <div style={{ padding: '20px 0', color: '#f87171', textAlign: 'center', fontSize: 14 }}>⚠ {error}</div>}
+
+              {!loading && !error && filtered.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}>
+                  <div style={{ fontSize: 34, marginBottom: 8 }}>🔍</div>
+                  <div style={{ fontWeight: 600 }}>No results found</div>
+                </div>
+              )}
+
+              {!loading && filtered.map(ward => {
+                const isOpen = expandedWard === ward.wardNumber;
+                const barMax = filtered[0]?.count || 1;
+                return (
+                  <div key={ward.wardNumber} style={{ marginBottom: 10 }}>
+                    {/* Ward row */}
+                    <div
+                      onClick={() => setExpandedWard(isOpen ? null : ward.wardNumber)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                        background: isOpen ? 'rgba(34,211,238,0.07)' : 'rgba(255,255,255,0.025)',
+                        border: `1px solid ${isOpen ? 'rgba(34,211,238,0.22)' : 'rgba(255,255,255,0.07)'}`,
+                        borderRadius: isOpen ? '12px 12px 0 0' : 12,
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                      onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
+                    >
+                      {/* Ward badge */}
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                        background: isOpen ? 'rgba(34,211,238,0.13)' : 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${isOpen ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.09)'}`,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <span style={{ fontSize: 8, fontWeight: 700, color: isOpen ? ACCENT : 'rgba(255,255,255,0.25)', letterSpacing: '0.4px', textTransform: 'uppercase' }}>Ward</span>
+                        <span style={{ fontSize: 14, fontWeight: 900, color: isOpen ? ACCENT : '#e2e8f0', lineHeight: 1.1 }}>{ward.wardNumber}</span>
+                      </div>
+
+                      {/* Name + bar */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ward.wardName}</span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', flexShrink: 0 }}>{ward.count} house{ward.count !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${Math.round((ward.count / barMax) * 100)}%`,
+                            background: isOpen ? `linear-gradient(90deg, ${ACCENT}, #67e8f9)` : 'rgba(34,211,238,0.35)',
+                            borderRadius: 2, transition: 'width 0.5s ease',
+                          }} />
+                        </div>
+                      </div>
+
+                      <span style={{ color: isOpen ? ACCENT : 'rgba(255,255,255,0.2)', fontSize: 15, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>⌄</span>
+                    </div>
+
+                    {/* House list (simple rows) */}
+                    {isOpen && (
+                      <div style={{
+                        border: '1px solid rgba(34,211,238,0.14)', borderTop: 'none',
+                        borderRadius: '0 0 12px 12px',
+                        background: 'rgba(34,211,238,0.02)',
+                        padding: '10px 12px 12px',
+                      }}>
+                        {ward.houses.map((house, hi) => {
+                          const big = house.memberCount >= 25;
+                          return (
+                            <div
+                              key={`${house.houseNo}-${hi}`}
+                              onClick={() => setSelectedHouse(house)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 12,
+                                padding: '9px 14px', marginBottom: 6,
+                                background: 'rgba(255,255,255,0.025)',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                borderRadius: 9, cursor: 'pointer', transition: 'all 0.15s',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(34,211,238,0.06)';
+                                e.currentTarget.style.borderColor = 'rgba(34,211,238,0.2)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.025)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                              }}
+                            >
+                              <span style={{ fontSize: 16, flexShrink: 0 }}>⌂</span>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>
+                                House No: {house.houseNo}
+                              </span>
+                              {house.booth && (
+                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', borderRadius: 5, padding: '2px 7px', flexShrink: 0 }}>
+                                  Booth {house.booth}
+                                </span>
+                              )}
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                background: big ? 'rgba(239,68,68,0.1)' : 'rgba(34,211,238,0.1)',
+                                border: `1px solid ${big ? 'rgba(239,68,68,0.25)' : 'rgba(34,211,238,0.25)'}`,
+                                borderRadius: 16, padding: '3px 10px', flexShrink: 0,
+                              }}>
+                                <span style={{ fontSize: 10 }}>👥</span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: big ? '#f87171' : ACCENT }}>{house.memberCount}</span>
+                              </div>
+                              <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14, flexShrink: 0 }}>›</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
