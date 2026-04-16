@@ -76,9 +76,9 @@ export const authApi = {
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
 export const dashboardApi = {
-  stats:        () => api.get('/api/dashboard/'),
-  serialNumber: () => api.get('/api/serial-number/'),  // ← add this
+  stats: () => api.get('/api/dashboard/'),
 };
+
 // ── Survey ───────────────────────────────────────────────────────────────────
 export const surveyApi = {
   // Get next serial number
