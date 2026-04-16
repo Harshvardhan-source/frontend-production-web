@@ -685,6 +685,7 @@ export default function Dashboard() {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
+    <>
     <div className="page">
       <Navbar />
       <div className="page-inner">
@@ -1042,5 +1043,6 @@ export default function Dashboard() {
       </div>
     </div>
     {largeFamiliesOpen && <LargeFamiliesModal onClose={() => setLargeFamiliesOpen(false)} />}
+    </>
   );
 }
