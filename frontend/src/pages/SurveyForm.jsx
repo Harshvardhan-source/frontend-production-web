@@ -396,9 +396,14 @@ export default function SurveyForm() {
           return { ...rest, fileIndex: d.certificateFile ? i : null };
         });
         fd.append('deceased', JSON.stringify(deceasedMeta));
-        await api.post('/api/save-deceased/', fd, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        // ⚠️ Do NOT set Content-Type manually — axios must set it with the correct boundary
+        const deceasedRes  = await api.post('/api/save-deceased/', fd);
+        const uploadedUrls = deceasedRes?.data?.certificateUrls || [];
+        const withFiles    = validDeceased.filter(d => d.certificateFile).length;
+        if (withFiles > 0 && uploadedUrls.length === 0) {
+          setError('⚠ Certificate file could not be uploaded to GCS. Check Render env vars: GCS_BUCKET_NAME and GOOGLE_APPLICATION_CREDENTIALS_JSON.');
+          return;
+        }
       }
 
       setSavedMembers(prev => [...prev, { ...form }]);
