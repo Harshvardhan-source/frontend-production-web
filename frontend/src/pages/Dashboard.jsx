@@ -760,7 +760,6 @@ export default function Dashboard() {
         searchResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 300);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once on mount — location.state is stable at mount time
 
   // ── Load ward stats when ward changes ─────────────────────────────────────
