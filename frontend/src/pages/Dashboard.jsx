@@ -9,6 +9,7 @@ import Navbar from '../components/Navbar';
 import { dashboardApi } from '../api/client';
 import api from '../api/client';
 import { useAuth } from '../App';
+
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
 
 const WARD_NAMES = {
@@ -742,25 +743,25 @@ export default function Dashboard() {
   }, []);
 
   // ── Restore search when navigating back from SurveyForm ──────────────────
-  // SurveyForm passes returnQuery in location.state when navigating back to '/'
+  // Keyed on location.key so it re-fires every time Dashboard is navigated back
+  // to (not just first mount). SurveyForm passes returnQuery in location.state.
   useEffect(() => {
     const returnQuery = location.state?.returnQuery;
     if (returnQuery && returnQuery.trim().length >= 2) {
       setQuery(returnQuery);
-      // Trigger search immediately — no debounce needed on navigation back
       setSearching(true);
       setSearchErr('');
       dashboardApi.houseSearch(returnQuery)
         .then(r => { if (r.data.success) setSearchRes(r.data); })
         .catch(() => {})
         .finally(() => setSearching(false));
-      // Scroll to search results after a short render delay
+      // Scroll to results after render
       setTimeout(() => {
         searchResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 300);
+      }, 200);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount — location.state is stable at mount time
+  }, [location.key]); // re-run on every navigation back to this page
 
   // ── Load ward stats when ward changes ─────────────────────────────────────
   useEffect(() => {
