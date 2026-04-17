@@ -204,6 +204,9 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
       : member.gender === 'F' ? 'Female'
       : member.gender === 'O' ? 'Other' : (member.gender || '');
 
+    // Persist query so Dashboard can restore it after returning from SurveyForm
+    sessionStorage.setItem('dashboardReturnQuery', query || '');
+
     navigate('/survey/form', {
       state: {
         wardNumber:  resolvedWard, wardName: resolvedWard, boothNo: boothStr,
@@ -743,25 +746,26 @@ export default function Dashboard() {
   }, []);
 
   // ── Restore search when navigating back from SurveyForm ──────────────────
-  // Keyed on location.key so it re-fires every time Dashboard is navigated back
-  // to (not just first mount). SurveyForm passes returnQuery in location.state.
+  // Uses sessionStorage so it works regardless of router remount behaviour.
+  // handleStartSurvey writes the query to sessionStorage before navigating away;
+  // we read it on every mount and clear it so a manual refresh doesn't re-trigger.
   useEffect(() => {
-    const returnQuery = location.state?.returnQuery;
-    if (returnQuery && returnQuery.trim().length >= 2) {
-      setQuery(returnQuery);
+    const savedQuery = sessionStorage.getItem('dashboardReturnQuery') || '';
+    sessionStorage.removeItem('dashboardReturnQuery');
+    const q = savedQuery.trim();
+    if (q.length >= 2) {
+      setQuery(q);
       setSearching(true);
       setSearchErr('');
-      dashboardApi.houseSearch(returnQuery)
+      dashboardApi.houseSearch(q)
         .then(r => { if (r.data.success) setSearchRes(r.data); })
         .catch(() => {})
         .finally(() => setSearching(false));
-      // Scroll to results after render
       setTimeout(() => {
         searchResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 200);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]); // re-run on every navigation back to this page
+  }, []); // runs once on mount — sessionStorage survives navigation
 
   // ── Load ward stats when ward changes ─────────────────────────────────────
   useEffect(() => {
