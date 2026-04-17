@@ -215,7 +215,7 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
           houseNumber:  hs.houseNumber  || member.house_no || '',
           wardNumber:   resolvedWard,
           boothNo:      boothStr,
-          address:      hs.address      || '',
+          address:      hs.address      || member.address  || '',   // ← voter's 2025 address as fallback
           areaType:     hs.areaType     || '',
           homeType:     hs.homeType     || '',
           familyIncome: hs.familyIncome || '',
