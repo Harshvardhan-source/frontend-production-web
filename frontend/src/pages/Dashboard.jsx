@@ -109,11 +109,12 @@ function WardSelector({ value, onChange }) {
   return (
     <>
       <button ref={btnRef} onClick={openDropdown} style={{
-        display: 'flex', alignItems: 'center', gap: 8, minWidth: 210, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 8,
+        width: '100%',
         background: value ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.05)',
         border: `1px solid ${value ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.12)'}`,
-        borderRadius: 10, padding: '8px 14px', cursor: 'pointer',
-        fontSize: 13, fontWeight: 600,
+        borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
+        fontSize: 14, fontWeight: 600, minHeight: 48,
         color: value ? '#f59e0b' : 'var(--text-2)', transition: 'all 0.18s',
         whiteSpace: 'nowrap',
       }}>
@@ -820,59 +821,92 @@ export default function Dashboard() {
 
   return (
     <>
+    {/* ── Mobile-first responsive styles ──────────────────────────────────── */}
+    <style>{`
+      .db-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      @media (min-width: 500px) {
+        .db-stat-grid { grid-template-columns: repeat(3, 1fr); }
+      }
+      @media (min-width: 820px) {
+        .db-stat-grid { grid-template-columns: repeat(5, 1fr); }
+      }
+      .db-two-col {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      @media (min-width: 700px) {
+        .db-two-col { grid-template-columns: 1fr 1fr; }
+      }
+      .db-header-row {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      @media (min-width: 600px) {
+        .db-header-row { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+      }
+    `}</style>
+
     <div className="page">
       <Navbar />
       <div className="page-inner">
 
-        {/* ── Search Bar ──────────────────────────────────────────────────── */}
-        <div className="anim-fade-up" style={{ marginBottom: 28 }}>
+        {/* ── Search Bar ─────────────────────────────────────────────────── */}
+        <div className="anim-fade-up" style={{ marginBottom: 20 }}>
           <div style={{
-            position: 'relative', background: 'rgba(17,28,52,0.8)',
-            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
-            padding: '4px 6px 4px 16px', display: 'flex', alignItems: 'center', gap: 10,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(12px)',
+            background: 'rgba(17,28,52,0.9)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 14, padding: '4px 8px 4px 14px',
+            display: 'flex', alignItems: 'center', gap: 8,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
           }}>
             <span style={{ fontSize: 18, color: 'var(--text-3)', flexShrink: 0 }}>⌕</span>
             <input
               value={query} onChange={handleQueryChange}
-              placeholder="Search by Voter Name, Voter ID, House No or Relation Name…"
-              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text-1)', padding: '10px 0' }}
+              placeholder="Search name, Voter ID or House No…"
+              style={{
+                flex: 1, background: 'none', border: 'none', outline: 'none',
+                fontSize: 16, color: 'var(--text-1)', padding: '12px 0',
+              }}
             />
             {searching && <span className="spinner" style={{ flexShrink: 0 }} />}
             {query && !searching && (
               <button onClick={clearSearch} style={{
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8, padding: '4px 10px', cursor: 'pointer',
-                fontSize: 12, color: 'var(--text-2)', flexShrink: 0,
-              }}>✕ Clear</button>
+                borderRadius: 8, padding: '0', cursor: 'pointer',
+                fontSize: 16, color: 'var(--text-2)', flexShrink: 0,
+                width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>✕</button>
             )}
           </div>
           {!query && (
             <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-              {['Search by name', 'Search by Voter ID', 'Search by House No'].map(hint => (
-                <span key={hint} style={{ fontSize: 11, color: 'var(--text-3)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '3px 10px' }}>{hint}</span>
+              {['By name', 'By Voter ID', 'By House No'].map(hint => (
+                <span key={hint} style={{ fontSize: 12, color: 'var(--text-3)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '5px 12px' }}>{hint}</span>
               ))}
             </div>
           )}
         </div>
 
-        {/* ── Search Results ──────────────────────────────────────────────── */}
+        {/* ── Search Results ─────────────────────────────────────────────── */}
         {(query.trim().length >= 2) && (
-          <div ref={searchResultsRef} className="anim-fade-up" style={{ marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: 'var(--text-1)', margin: 0 }}>
-                  Search Results
-                  {searchRes && <span style={{ marginLeft: 10, fontSize: 13, color: 'var(--text-3)', fontWeight: 400 }}>{searchRes.total_houses} house{searchRes.total_houses !== 1 ? 's' : ''} found</span>}
-                </h2>
-                {query && <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>Showing results for "<span style={{ color: 'var(--gold)' }}>{query}</span>"</p>}
-              </div>
+          <div ref={searchResultsRef} className="anim-fade-up" style={{ marginBottom: 28 }}>
+            <div style={{ marginBottom: 14 }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: 'var(--text-1)', margin: 0 }}>
+                Search Results
+                {searchRes && <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--text-3)', fontWeight: 400 }}>{searchRes.total_houses} house{searchRes.total_houses !== 1 ? 's' : ''} found</span>}
+              </h2>
+              {query && <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>Results for "<span style={{ color: 'var(--gold)' }}>{query}</span>"</p>}
             </div>
-            {searchErr && <div className="alert alert-error" style={{ marginBottom: 16 }}>⚠ {searchErr}</div>}
-            {searching && <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '24px 0', color: 'var(--text-3)', fontSize: 14 }}><span className="spinner" /> Searching…</div>}
+            {searchErr && <div className="alert alert-error" style={{ marginBottom: 14 }}>⚠ {searchErr}</div>}
+            {searching && <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '20px 0', color: 'var(--text-3)', fontSize: 14 }}><span className="spinner" /> Searching…</div>}
             {!searching && searchRes && searchRes.total_houses === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px 20px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 14, color: 'var(--text-3)' }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+              <div style={{ textAlign: 'center', padding: '36px 16px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 14, color: 'var(--text-3)' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>No results found</div>
                 <div style={{ fontSize: 13 }}>Try a different name, voter ID or house number</div>
               </div>
@@ -884,77 +918,66 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Dashboard content — renders immediately, stats fill in ─────── */}
         <>
-          {/* Header */}
+          {/* ── Header ─────────────────────────────────────────────────────── */}
           <div className="page-header anim-fade-up">
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div>
+            <div className="db-header-row">
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <span className="badge badge-cyan mb-8">Dashboard</span>
-                <h1>{greeting}, {user?.username} 👋</h1>
-                <p>{selectedWard ? <>Viewing <strong style={{ color: '#f59e0b' }}>Ward {selectedWard} — {WARD_NAMES[selectedWard]}</strong></> : 'Your constituency intelligence overview'}</p>
+                <h1 style={{ fontSize: 'clamp(20px, 5vw, 30px)', marginBottom: 4 }}>{greeting}, {user?.username} 👋</h1>
+                <p style={{ fontSize: 13 }}>{selectedWard ? <>Viewing <strong style={{ color: '#f59e0b' }}>Ward {selectedWard} — {WARD_NAMES[selectedWard]}</strong></> : 'Your constituency intelligence overview'}</p>
               </div>
-              <div style={{ paddingTop: 4 }}>
+              <div style={{ width: '100%', maxWidth: 280 }}>
                 <WardSelector value={selectedWard} onChange={setSelectedWard} />
               </div>
             </div>
           </div>
 
-          {/* Ward Info Card — demographic data only, no duplicate stats */}
+          {/* ── Ward Info Card ─────────────────────────────────────────────── */}
           {selectedWard && (
-            <div className="anim-fade-up" style={{ marginBottom: 24 }}>
+            <div className="anim-fade-up" style={{ marginBottom: 20 }}>
               <div style={{
                 background: 'linear-gradient(135deg,rgba(245,158,11,0.13) 0%,rgba(245,158,11,0.04) 100%)',
                 border: '1px solid rgba(245,158,11,0.28)',
                 borderRadius: wardStatsLoading || !wardStats ? 14 : '14px 14px 0 0',
-                padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🏘</div>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#f59e0b' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>🏘</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       Ward {selectedWard} — {wardStats?.wardName || WARD_NAMES[selectedWard]}
                     </div>
-                    {wardStats && (
-                      <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.55)', marginTop: 2 }}>
-                        District {wardStats.districtId} · Constituency {wardStats.constituencyId}
-                      </div>
-                    )}
+                    {wardStats && <div style={{ fontSize: 11, color: 'rgba(245,158,11,0.55)', marginTop: 1 }}>District {wardStats.districtId} · Constituency {wardStats.constituencyId}</div>}
                   </div>
                   {wardStatsLoading && <span className="spinner" />}
                 </div>
                 <button onClick={() => setSelectedWard('')} style={{
                   background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.28)',
-                  borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#f59e0b',
-                }}>✕ Clear</button>
+                  borderRadius: 8, padding: '0', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#f59e0b',
+                  width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>✕</button>
               </div>
 
               {!wardStatsLoading && wardStats && (
-                <div style={{
-                  background: 'rgba(10,18,34,0.97)',
-                  border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none',
-                  borderRadius: '0 0 14px 14px', padding: '18px 20px',
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 14 }}>Voter Roll Demographics</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16 }}>
+                <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none', borderRadius: '0 0 14px 14px', padding: '14px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>Voter Roll Demographics</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
                     {[
-                      { label: 'Total Voters', value: wardStats.totalVoters, color: '#22d3ee', pct: 100 },
-                      { label: 'Male',         value: wardStats.totalMale,   color: '#22d3ee', pct: wardStats.totalVoters ? Math.round(wardStats.totalMale / wardStats.totalVoters * 100) : 0 },
-                      { label: 'Female',       value: wardStats.totalFemale, color: '#ec4899', pct: wardStats.totalVoters ? Math.round(wardStats.totalFemale / wardStats.totalVoters * 100) : 0 },
-                      { label: 'Hindu',        value: wardStats.totalHindu,  color: '#f97316', pct: wardStats.totalVoters ? Math.round(wardStats.totalHindu / wardStats.totalVoters * 100) : 0 },
-                      { label: 'Muslim',       value: wardStats.totalMuslim, color: '#10b981', pct: wardStats.totalVoters ? Math.round(wardStats.totalMuslim / wardStats.totalVoters * 100) : 0 },
-                      { label: 'Christian',    value: wardStats.totalChristian, color: '#8b5cf6', pct: wardStats.totalVoters ? Math.round(wardStats.totalChristian / wardStats.totalVoters * 100) : 0 },
+                      { label: 'Total', value: wardStats.totalVoters, color: '#22d3ee', pct: 100 },
+                      { label: 'Male',  value: wardStats.totalMale,   color: '#22d3ee', pct: wardStats.totalVoters ? Math.round(wardStats.totalMale / wardStats.totalVoters * 100) : 0 },
+                      { label: 'Female',value: wardStats.totalFemale, color: '#ec4899', pct: wardStats.totalVoters ? Math.round(wardStats.totalFemale / wardStats.totalVoters * 100) : 0 },
+                      { label: 'Hindu', value: wardStats.totalHindu,  color: '#f97316', pct: wardStats.totalVoters ? Math.round(wardStats.totalHindu / wardStats.totalVoters * 100) : 0 },
+                      { label: 'Muslim',value: wardStats.totalMuslim, color: '#10b981', pct: wardStats.totalVoters ? Math.round(wardStats.totalMuslim / wardStats.totalVoters * 100) : 0 },
+                      { label: 'Chrstn',value: wardStats.totalChristian, color: '#8b5cf6', pct: wardStats.totalVoters ? Math.round(wardStats.totalChristian / wardStats.totalVoters * 100) : 0 },
                     ].map(({ label, value, color, pct }) => (
                       <div key={label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                          <div>
-                            <span style={{ fontSize: 15, fontWeight: 800, color }}>{value?.toLocaleString() ?? '—'}</span>
-                            {pct !== 100 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginLeft: 4 }}>{pct}%</span>}
-                          </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                          <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color }}>{value?.toLocaleString() ?? '—'}</span>
                         </div>
                         <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2, transition: 'width 0.7s ease' }} />
+                          <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
                         </div>
                       </div>
                     ))}
@@ -965,10 +988,10 @@ export default function Dashboard() {
             </div>
           )}
 
-          {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>⚠ {error}</div>}
+          {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
 
-          {/* Stat cards */}
-          <div className="stagger mb-24" style={{ display: 'grid', gridTemplateColumns: `repeat(${STAT_CARDS.length}, 1fr)`, gap: 12 }}>
+          {/* ── Stat cards — 2 cols mobile → 3 cols tablet → 5 cols desktop ── */}
+          <div className="db-stat-grid stagger mb-24">
             {STAT_CARDS.map(c => (
               activeLoading ? (
                 <StatCardSkeleton key={c.label} />
@@ -977,31 +1000,22 @@ export default function Dashboard() {
                   onClick={c.label === 'Large Families' ? () => setLargeFamiliesOpen(true) : undefined}
                   style={{
                     background: 'linear-gradient(145deg, rgba(17,28,52,0.9) 0%, rgba(10,18,35,0.95) 100%)',
-                    border: `1px solid ${c.color}22`, borderRadius: 14, padding: '16px 18px',
+                    border: `1px solid ${c.color}22`, borderRadius: 14, padding: '14px 12px',
                     position: 'relative', overflow: 'hidden',
-                    boxShadow: `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`,
-                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`,
                     cursor: c.label === 'Large Families' ? 'pointer' : 'default',
                   }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px ${c.color}33, inset 0 1px 0 rgba(255,255,255,0.05)`;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`;
-                  }}
                 >
-                  <div style={{ position: 'absolute', top: -25, right: -25, width: 80, height: 80, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}16 0%, transparent 70%)`, pointerEvents: 'none' }} />
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.7px' }}>{c.label}</div>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: `${c.color}15`, border: `1px solid ${c.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{c.icon}</div>
+                  <div style={{ position: 'absolute', top: -18, right: -18, width: 60, height: 60, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}18 0%, transparent 70%)`, pointerEvents: 'none' }} />
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.4, maxWidth: '65%' }}>{c.label}</div>
+                    <div style={{ width: 28, height: 28, borderRadius: 7, background: `${c.color}15`, border: `1px solid ${c.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>{c.icon}</div>
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 5 }}>{c.value ?? '—'}</div>
+                  <div style={{ fontSize: 'clamp(20px, 4vw, 26px)', fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 5 }}>{c.value ?? '—'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{c.sub}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 500, lineHeight: 1.3 }}>{c.sub}</div>
                     {c.label === 'Large Families' && (
-                      <span style={{ fontSize: 10, color: `${c.color}90`, background: `${c.color}12`, border: `1px solid ${c.color}25`, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>View ›</span>
+                      <span style={{ fontSize: 9, color: `${c.color}90`, background: `${c.color}12`, border: `1px solid ${c.color}25`, borderRadius: 5, padding: '2px 5px', fontWeight: 700 }}>View ›</span>
                     )}
                   </div>
                 </div>
@@ -1009,23 +1023,23 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Coverage bar */}
+          {/* ── Coverage bar ────────────────────────────────────────────────── */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))',
-            border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '22px 26px',
-            marginBottom: 24, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 16px',
+            marginBottom: 18, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
             position: 'relative', overflow: 'hidden',
           }} className="anim-fade-up">
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, #8b5cf6 0%, #22d3ee ${coverage}%, rgba(255,255,255,0.06) ${coverage}%)`, borderRadius: '16px 16px 0 0' }} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginBottom: 3 }}>Survey Coverage</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{selectedWard ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard]}` : 'Completion across all wards'}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Survey Coverage</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{selectedWard ? `Ward ${selectedWard}` : 'All wards'}</div>
               </div>
-              {activeLoading ? <Skeleton w={80} h={40} radius={10} /> : (
+              {activeLoading ? <Skeleton w={70} h={36} radius={9} /> : (
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 900, color: '#8b5cf6', letterSpacing: '-1.5px', lineHeight: 1 }}>{coverage}%</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>{s.totalReg?.toLocaleString() || 0} of {s.totalVoters?.toLocaleString() || 0}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 900, color: '#8b5cf6', letterSpacing: '-1px', lineHeight: 1 }}>{coverage}%</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{s.totalReg?.toLocaleString() || 0} / {s.totalVoters?.toLocaleString() || 0}</div>
                 </div>
               )}
             </div>
@@ -1034,76 +1048,73 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Charts */}
-          <div className="grid-2 mb-24 gap-20">
-            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '22px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', marginBottom: 3 }}>Ward Coverage</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Survey completion % — top 10 wards</div>
+          {/* ── Charts — stack on mobile ─────────────────────────────────── */}
+          <div className="db-two-col mb-24">
+            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Ward Coverage</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Top 10 wards by completion %</div>
               </div>
               {activeLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={22} radius={4} style={{ width: `${80 - i * 8}%` }} />)}
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={20} radius={4} style={{ width: `${80 - i * 8}%` }} />)}
                 </div>
               ) : wardData.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 32, marginBottom: 8 }}>📊</div><div style={{ fontSize: 13 }}>No ward data yet</div></div>
+                <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 28, marginBottom: 6 }}>📊</div><div style={{ fontSize: 12 }}>No ward data yet</div></div>
               ) : (
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={wardData} layout="vertical" margin={{ left: 0, right: 20 }}>
-                    <XAxis type="number" domain={[0, 100]} tick={{ fill: '#8899bb', fontSize: 11 }} tickFormatter={v => `${v}%`} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="name" width={90} tick={{ fill: '#8899bb', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={wardData} layout="vertical" margin={{ left: 0, right: 14 }}>
+                    <XAxis type="number" domain={[0, 100]} tick={{ fill: '#8899bb', fontSize: 10 }} tickFormatter={v => `${v}%`} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" width={82} tick={{ fill: '#8899bb', fontSize: 10 }} axisLine={false} tickLine={false} />
                     <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
-                    <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                    <Bar dataKey="value" radius={[0, 5, 5, 0]}>
                       {wardData.map((e, i) => <Cell key={i} fill={e.value >= 70 ? '#10b981' : e.value >= 45 ? '#f59e0b' : '#ef4444'} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
-            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '22px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', marginBottom: 3 }}>Voter Demographics</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Religion-wise distribution</div>
+            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Voter Demographics</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Religion-wise distribution</div>
               </div>
               {activeLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 230 }}><Skeleton w={160} h={160} radius={80} /></div>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 210 }}><Skeleton w={140} h={140} radius={70} /></div>
               ) : religionPie.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 32, marginBottom: 8 }}>🥧</div><div style={{ fontSize: 13 }}>No data yet</div></div>
+                <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 28, marginBottom: 6 }}>🥧</div><div style={{ fontSize: 12 }}>No data yet</div></div>
               ) : (
-                <ResponsiveContainer width="100%" height={230}>
+                <ResponsiveContainer width="100%" height={210}>
                   <PieChart>
-                    <Pie data={religionPie} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
+                    <Pie data={religionPie} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
                       {religionPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={v => v.toLocaleString()} contentStyle={{ background: '#0c1526', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f0f4ff', fontSize: 13 }} />
-                    <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12, color: '#8899bb' }} />
+                    <Tooltip formatter={v => v.toLocaleString()} contentStyle={{ background: '#0c1526', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f0f4ff', fontSize: 12 }} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, color: '#8899bb' }} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
             </div>
           </div>
 
-          {/* Gender + Quick Actions */}
-          <div className="grid-2 gap-20">
-            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '22px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', marginBottom: 3 }}>Gender Breakdown</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Voter & survey distribution</div>
+          {/* ── Gender + Quick Actions — stack on mobile ──────────────────── */}
+          <div className="db-two-col" style={{ marginBottom: 24 }}>
+            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Gender Breakdown</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Voter & survey distribution</div>
               </div>
               {activeLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Skeleton w="45%" h={12} />
-                        <Skeleton w="20%" h={12} />
-                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><Skeleton w="45%" h={12} /><Skeleton w="20%" h={12} /></div>
                       <Skeleton h={5} radius={3} />
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
                     { label: 'Male Voters',       val: selectedWard ? s.totalMale   : s.voterMale,   total: s.totalVoters, color: '#22d3ee' },
                     { label: 'Female Voters',     val: selectedWard ? s.totalFemale : s.voterFemale, total: s.totalVoters, color: '#ec4899' },
@@ -1116,11 +1127,11 @@ export default function Dashboard() {
                     const pct = item.total ? ((item.val || 0) / item.total * 100).toFixed(0) : 0;
                     return (
                       <div key={item.label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
                           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>{item.label}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ fontSize: 13, fontWeight: 700, color: item.color }}>{(item.val || 0).toLocaleString()}</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: `${item.color}12`, borderRadius: 4, padding: '1px 6px' }}>{pct}%</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: `${item.color}12`, borderRadius: 4, padding: '1px 5px' }}>{pct}%</span>
                           </div>
                         </div>
                         <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
@@ -1133,10 +1144,10 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '22px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', marginBottom: 3 }}>Quick Actions</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Jump to key features</div>
+            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Quick Actions</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Jump to key features</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[
@@ -1146,28 +1157,17 @@ export default function Dashboard() {
                   { to: '/data',    label: 'View All Data',            desc: 'Survey & voter datasets',  icon: '⊟', color: '#8b5cf6' },
                 ].map(item => (
                   <Link key={item.to} to={item.to} style={{
-                    display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px',
-                    borderRadius: 12,
-                    background: 'rgba(255,255,255,0.02)',
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '13px 12px',
+                    borderRadius: 12, background: 'rgba(255,255,255,0.02)',
                     border: '1px solid rgba(255,255,255,0.06)',
-                    textDecoration: 'none', transition: 'all 0.2s',
-                  }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = `${item.color}0d`;
-                      e.currentTarget.style.borderColor = `${item.color}30`;
-                      e.currentTarget.style.transform = 'translateX(3px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-                      e.currentTarget.style.transform = 'none';
-                    }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 11, background: `${item.color}15`, border: `1px solid ${item.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{item.icon}</div>
+                    textDecoration: 'none', minHeight: 58,
+                  }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: `${item.color}15`, border: `1px solid ${item.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{item.icon}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-1)', marginBottom: 2 }}>{item.label}</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{item.desc}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{item.desc}</div>
                     </div>
-                    <span style={{ color: `${item.color}60`, fontSize: 18, flexShrink: 0 }}>›</span>
+                    <span style={{ color: `${item.color}60`, fontSize: 20, flexShrink: 0 }}>›</span>
                   </Link>
                 ))}
               </div>
