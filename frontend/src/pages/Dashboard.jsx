@@ -204,9 +204,6 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
       : member.gender === 'F' ? 'Female'
       : member.gender === 'O' ? 'Other' : (member.gender || '');
 
-    // Persist query so Dashboard can restore it after returning from SurveyForm
-    sessionStorage.setItem('dashboardReturnQuery', query || '');
-
     navigate('/survey/form', {
       state: {
         wardNumber:  resolvedWard, wardName: resolvedWard, boothNo: boothStr,
@@ -746,26 +743,25 @@ export default function Dashboard() {
   }, []);
 
   // ── Restore search when navigating back from SurveyForm ──────────────────
-  // Uses sessionStorage so it works regardless of router remount behaviour.
-  // handleStartSurvey writes the query to sessionStorage before navigating away;
-  // we read it on every mount and clear it so a manual refresh doesn't re-trigger.
+  // SurveyForm passes returnQuery in location.state when navigating back to '/'
   useEffect(() => {
-    const savedQuery = sessionStorage.getItem('dashboardReturnQuery') || '';
-    sessionStorage.removeItem('dashboardReturnQuery');
-    const q = savedQuery.trim();
-    if (q.length >= 2) {
-      setQuery(q);
+    const returnQuery = location.state?.returnQuery;
+    if (returnQuery && returnQuery.trim().length >= 2) {
+      setQuery(returnQuery);
+      // Trigger search immediately — no debounce needed on navigation back
       setSearching(true);
       setSearchErr('');
-      dashboardApi.houseSearch(q)
+      dashboardApi.houseSearch(returnQuery)
         .then(r => { if (r.data.success) setSearchRes(r.data); })
         .catch(() => {})
         .finally(() => setSearching(false));
+      // Scroll to search results after a short render delay
       setTimeout(() => {
         searchResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 200);
+      }, 300);
     }
-  }, []); // runs once on mount — sessionStorage survives navigation
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount — location.state is stable at mount time
 
   // ── Load ward stats when ward changes ─────────────────────────────────────
   useEffect(() => {
@@ -794,6 +790,7 @@ export default function Dashboard() {
   const handleQueryChange = (e) => {
     const val = e.target.value;
     setQuery(val);
+    if (!val.trim()) { setSearchRes(null); setSearchErr(''); }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => doSearch(val), 200);
   };
@@ -861,7 +858,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── Search Results ──────────────────────────────────────────────── */}
-        {(query || searchRes) && (
+        {(query.trim().length >= 2) && (
           <div ref={searchResultsRef} className="anim-fade-up" style={{ marginBottom: 32 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
