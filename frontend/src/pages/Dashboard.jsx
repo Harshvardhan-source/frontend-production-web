@@ -206,7 +206,9 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
     navigate('/survey/form', {
       state: {
         wardNumber:  resolvedWard, wardName: resolvedWard, boothNo: boothStr,
-        serialNo:    serialStart,  returnTo: '/',          returnQuery: query || '',
+        // Use voter's 2025 roll serial as the starting serial — NOT an auto-counter
+        serialNo:    member.serial_no ? parseInt(member.serial_no) : serialStart,
+        returnTo: '/', returnQuery: query || '',
         prefill: {
           voterid:      member.voterid || '',
           gender:       genderFull,
@@ -215,7 +217,8 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
           houseNumber:  hs.houseNumber  || member.house_no || '',
           wardNumber:   resolvedWard,
           boothNo:      boothStr,
-          address:      hs.address      || member.address  || '',   // ← voter's 2025 address as fallback
+          // ← voter's own address from 2025 DB is authoritative; hs.address is from a prior survey
+          address:      member.address  || hs.address      || '',
           areaType:     hs.areaType     || '',
           homeType:     hs.homeType     || '',
           familyIncome: hs.familyIncome || '',
