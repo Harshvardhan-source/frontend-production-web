@@ -829,10 +829,10 @@ export default function Dashboard() {
 
   const STAT_CARDS = [
     { label: 'Total Surveys',    value: s.totalReg?.toLocaleString()          || null, icon: '✎', color: '#f59e0b', sub: 'Registered entries' },
-    { label: 'Total Voters',     value: s.totalVoters?.toLocaleString()        || null, icon: '◉', color: '#22d3ee', sub: selectedWard ? `Ward ${selectedWard} voters` : 'Voter list records' },
+    { label: 'Total Voters',     value: (selectedWard ? (wardStats?.ward2026?.totalElectors || s.totalVoters) : s.totalVoters)?.toLocaleString() || null, icon: '◉', color: '#22d3ee', sub: selectedWard ? '2026 Total Electors' : 'Voter list records' },
     { label: 'Houses Covered',   value: s.houseCount?.toLocaleString()         || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
     { label: 'Large Families',   value: s.largeFamilyCount?.toLocaleString()   ?? null, icon: '👨‍👩‍👧‍👦', color: '#f97316', sub: 'Houses with 15+ members' },
-    { label: 'Coverage',         value: (selectedWard ? wardStats : stats) ? `${coverage}%` : null, icon: '◈', color: '#8b5cf6', sub: 'Survey completion' },
+    { label: 'Coverage',         value: (selectedWard ? wardStats : stats) ? `${coverage}%` : null, icon: '◈', color: '#8b5cf6', sub: selectedWard ? `${wardStats?.ward2026?.pctTotal || ''}` || 'Survey completion' : 'Survey completion' },
   ];
 
   const hour     = new Date().getHours();
@@ -980,7 +980,55 @@ export default function Dashboard() {
 
               {!wardStatsLoading && wardStats && (
                 <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none', borderRadius: '0 0 14px 14px', padding: '14px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>Voter Roll Demographics</div>
+
+                  {/* ── 2026 Voter Roll Stats ── */}
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>
+                    2026 Voter Roll · Electors Data
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8, marginBottom: 14 }}>
+                    {[
+                      { label: 'Total Electors', value: wardStats.ward2026?.totalElectors,  color: '#22d3ee' },
+                      { label: 'Cutoff Elec',    value: wardStats.ward2026?.cutoffElectors,  color: '#f59e0b' },
+                      { label: 'BLO Mapped',     value: wardStats.ward2026?.bloMapped,       color: '#10b981' },
+                      { label: 'Total Mapped',   value: wardStats.ward2026?.totalMapped,     color: '#10b981' },
+                      { label: '% BLO Mapped',   value: wardStats.ward2026?.pctBloMapped,    color: '#10b981', isPct: true },
+                      { label: 'Age≤Cutoff',     value: wardStats.ward2026?.ageCutoff,       color: '#8b5cf6' },
+                      { label: 'Progeny >18',    value: wardStats.ward2026?.progeny18,       color: '#a78bfa' },
+                      { label: '% Progeny',      value: wardStats.ward2026?.pctProgeny,      color: '#a78bfa', isPct: true },
+                      { label: 'Electors Mapped',value: wardStats.ward2026?.electorsMapped,  color: '#f97316' },
+                      { label: '% Total',        value: wardStats.ward2026?.pctTotal,        color: '#f97316', isPct: true },
+                    ].filter(x => x.value !== undefined && x.value !== '' && x.value !== 0).map(({ label, value, color, isPct }) => {
+                      const display = isPct
+                        ? (typeof value === 'number' ? value.toFixed(2) + '%' : String(value).replace('%','') + '%')
+                        : (typeof value === 'number' ? value.toLocaleString() : value);
+                      const totalE  = wardStats.ward2026?.totalElectors || 1;
+                      const pct     = (!isPct && typeof value === 'number') ? Math.round(value / totalE * 100) : null;
+                      return (
+                        <div key={label}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                            <span style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                            <span style={{ fontSize: 12, fontWeight: 800, color }}>{display ?? '—'}</span>
+                          </div>
+                          {pct !== null && (
+                            <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                              <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* ── Supervisors ── */}
+                  {wardStats.ward2026?.supervisors && (
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '8px 10px', marginBottom: 14 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Supervisors · </span>
+                      <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>{wardStats.ward2026.supervisors}</span>
+                    </div>
+                  )}
+
+                  {/* ── Voter Roll Demographics (WardReference) ── */}
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>Voter Roll Demographics</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
                     {[
                       { label: 'Total', value: wardStats.totalVoters, color: '#22d3ee', pct: 100 },
