@@ -708,6 +708,7 @@ function LargeFamiliesModal({ onClose }) {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user }              = useAuth();
+  const location              = useLocation();
   const [stats, setStats]     = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError]     = useState('');
@@ -739,6 +740,27 @@ export default function Dashboard() {
       .then(r => setNextSerial(r.data.serialNumber || 1))
       .catch(() => {});
   }, []);
+
+  // ── Restore search when navigating back from SurveyForm ──────────────────
+  // SurveyForm passes returnQuery in location.state when navigating back to '/'
+  useEffect(() => {
+    const returnQuery = location.state?.returnQuery;
+    if (returnQuery && returnQuery.trim().length >= 2) {
+      setQuery(returnQuery);
+      // Trigger search immediately — no debounce needed on navigation back
+      setSearching(true);
+      setSearchErr('');
+      dashboardApi.houseSearch(returnQuery)
+        .then(r => { if (r.data.success) setSearchRes(r.data); })
+        .catch(() => {})
+        .finally(() => setSearching(false));
+      // Scroll to search results after a short render delay
+      setTimeout(() => {
+        searchResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount — location.state is stable at mount time
 
   // ── Load ward stats when ward changes ─────────────────────────────────────
   useEffect(() => {
