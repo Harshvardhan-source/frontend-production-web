@@ -246,6 +246,11 @@ export default function SurveyForm() {
   const [currentSerial, setCurrentSerial] = useState(serialNo);
   const [flashMsg,      setFlashMsg]      = useState('');
 
+  // ── 2025 voter roll status — updated after each save ─────────────────────
+  // null = unknown, true = in roll, false = NOT in roll (saved to NotFoundRecordSurvey)
+  const [inVoterRoll,   setInVoterRoll]   = useState(null);
+  const [serialSource,  setSerialSource]  = useState(null); // '2025_roll' or 'manual'
+
   const [totalMembers,  setTotalMembers]  = useState('');
   const [adultCount,    setAdultCount]    = useState('');
   const [childCount,    setChildCount]    = useState('');
@@ -362,6 +367,12 @@ export default function SurveyForm() {
       const { data } = await surveyApi.save(form);
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
 
+      // ── Update voter-roll status from backend response ─────────────────
+      if (data.inVoterRoll !== undefined) setInVoterRoll(data.inVoterRoll);
+      if (data.serialSource)              setSerialSource(data.serialSource);
+      // Backend resolved the real 2025 serial — update our counter to match
+      const confirmedSerial = data.serialNumber || currentSerial;
+
       if (savedMembers.length === 0) {
         lockedRef.current = {
           houseNumber:  form.houseNumber,
@@ -406,7 +417,7 @@ export default function SurveyForm() {
         }
       }
 
-      setSavedMembers(prev => [...prev, { ...form }]);
+      setSavedMembers(prev => [...prev, { ...form, serialNumber: confirmedSerial }]);
 
       // ── SIR result comes back from the same save call ────────────────
       if (data.sir && (data.sir.results?.length || data.sir.suspicious?.length)) {
@@ -423,8 +434,10 @@ export default function SurveyForm() {
         return;
       }
 
-      const nextSerial = currentSerial + 1;
+      const nextSerial = confirmedSerial + 1;
       setCurrentSerial(nextSerial);
+      setInVoterRoll(null);    // reset for next member
+      setSerialSource(null);
       setStep(1);
       setFutureVoters([]);
       setShowFuture(false);
@@ -460,7 +473,19 @@ export default function SurveyForm() {
         )}
 
         <div className="page-header anim-fade-up">
-          <span className="badge badge-gold mb-8">Serial #{currentSerial}</span>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap' }}>
+            <span className="badge badge-gold">Serial #{currentSerial}</span>
+            {serialSource === '2025_roll' && (
+              <span style={{ fontSize:10, fontWeight:700, background:'rgba(34,211,238,0.12)', color:'#22d3ee', border:'1px solid rgba(34,211,238,0.3)', borderRadius:20, padding:'2px 10px' }}>
+                📋 From 2025 Voter Roll
+              </span>
+            )}
+            {serialSource === 'manual' && (
+              <span style={{ fontSize:10, fontWeight:700, background:'rgba(245,158,11,0.1)', color:'#f59e0b', border:'1px solid rgba(245,158,11,0.25)', borderRadius:20, padding:'2px 10px' }}>
+                ✎ Manual Serial
+              </span>
+            )}
+          </div>
           <h1>Survey Registration</h1>
           <p>Ward: {wardName || `#${wardNumber}`}
             {savedMembers.length > 0 && (
@@ -470,6 +495,27 @@ export default function SurveyForm() {
             )}
           </p>
         </div>
+
+        {/* ── Not in 2025 voter roll warning ── shown after save if voter was not found */}
+        {inVoterRoll === false && (
+          <div style={{
+            display:'flex', alignItems:'flex-start', gap:12, marginBottom:16,
+            background:'rgba(251,191,36,0.07)', border:'1px solid rgba(251,191,36,0.3)',
+            borderRadius:12, padding:'12px 16px',
+          }}>
+            <span style={{ fontSize:20, flexShrink:0 }}>⚠️</span>
+            <div>
+              <div style={{ fontWeight:700, fontSize:13, color:'#fbbf24', marginBottom:3 }}>
+                Voter not found in 2025 Voter Roll
+              </div>
+              <div style={{ fontSize:12, color:'rgba(251,191,36,0.7)', lineHeight:1.5 }}>
+                This record was saved to <strong style={{ color:'#fbbf24' }}>NotFoundRecordSurvey</strong> collection.
+                The voter's EPIC ID or name does not match any record in the 2025 voter list.
+                Please verify the Voter ID and re-submit if incorrect.
+              </div>
+            </div>
+          </div>
+        )}
 
         {savedMembers.length > 0 && (
           <div className="anim-fade-up" style={{ marginBottom:16 }}>
