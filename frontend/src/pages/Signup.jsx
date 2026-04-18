@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../api/client';
 
+// ── Ward list ─────────────────────────────────────────────────────────────────
 const WARD_BOOTHS = {
   'PADAVU': [31,32,33,55,56,57,58], 'DEREBAIL SOUTH': [9,11,13,17],
   'DEREBAIL WEST': [1,2,3,5,6,7,8], 'DEREBAIL SOUTH WEST': [4,10,89,90,91,92,94],
@@ -25,68 +26,11 @@ const WARD_BOOTHS = {
 };
 const WARDS = Object.keys(WARD_BOOTHS).sort();
 
-// ── Role definitions with precise access descriptions ─────────────────────────
 const ROLES = [
-  {
-    key: 'mla',
-    label: 'MLA',
-    icon: '🏛️',
-    color: '#f59e0b',
-    needsWard: false, needsBooth: false,
-    desc: 'Full read/write access to all wards & booths',
-    access: [
-      '⚡ SuperUser — Admin Panel access',
-      '✓ Read & write: all wards and booths',
-      '✓ Approve / reject user registrations',
-    ],
-    badge: 'SUPERUSER',
-    badgeColor: '#f59e0b',
-  },
-  {
-    key: 'pa',
-    label: 'Office P.A',
-    icon: '📋',
-    color: '#f59e0b',
-    needsWard: false, needsBooth: false,
-    desc: 'Full admin access on behalf of MLA',
-    access: [
-      '⚡ SuperUser — Admin Panel access',
-      '✓ Read & write: all wards and booths',
-      '✓ Approve / reject user registrations',
-    ],
-    badge: 'SUPERUSER',
-    badgeColor: '#f59e0b',
-  },
-  {
-    key: 'corporator',
-    label: 'Corporator',
-    icon: '🏘',
-    color: '#22d3ee',
-    needsWard: true, needsBooth: false,
-    desc: 'Read/write your ward · Read-only all other wards',
-    access: [
-      '✎ Write: your assigned ward only',
-      '👁 Read-only: all other wards & booths',
-      '✗ No Admin Panel access',
-    ],
-    badge: 'WARD ACCESS',
-    badgeColor: '#22d3ee',
-  },
-  {
-    key: 'booth_worker',
-    label: 'Booth Worker',
-    icon: '🗳️',
-    color: '#10b981',
-    needsWard: true, needsBooth: true,
-    desc: 'Read/write your booth · Read-only all other booths',
-    access: [
-      '✎ Write: your assigned booth only',
-      '👁 Read-only: all other booths & wards',
-      '✗ No Admin Panel access',
-    ],
-    badge: 'BOOTH ACCESS',
-    badgeColor: '#10b981',
-  },
+  { key:'mla',         label:'MLA',          icon:'🏛️', desc:'Full access — all wards & booths',                color:'#f59e0b', needsWard:false, needsBooth:false },
+  { key:'pa',          label:'Office P.A',   icon:'📋', desc:'Full admin access on behalf of MLA',             color:'#f59e0b', needsWard:false, needsBooth:false },
+  { key:'corporator',  label:'Corporator',   icon:'🏘', desc:'Read/write for your assigned ward only',         color:'#22d3ee', needsWard:true,  needsBooth:false },
+  { key:'booth_worker',label:'Booth Worker', icon:'🗳️', desc:'Read/write for your assigned booth only',       color:'#10b981', needsWard:true,  needsBooth:true  },
 ];
 
 export default function Signup() {
@@ -141,24 +85,15 @@ export default function Signup() {
         <div style={{ fontSize:52, marginBottom:14 }}>🎉</div>
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:22, color:'var(--text-1)', marginBottom:8 }}>Request Submitted!</h2>
         <p style={{ color:'var(--text-2)', fontSize:13, lineHeight:1.6, marginBottom:22 }}>
-          Your registration as <strong style={{ color:sel?.color }}>{sel?.label}</strong> is pending admin approval.
+          Your registration as <strong style={{ color: sel?.color }}>{sel?.label}</strong> is pending admin approval.
           You'll be able to log in once approved.
         </p>
-        <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.18)', borderRadius:10, padding:'12px 16px', marginBottom:16, fontSize:12, color:'rgba(255,255,255,0.55)', textAlign:'left' }}>
+        <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.18)', borderRadius:10, padding:'12px 16px', marginBottom:24, fontSize:12, color:'rgba(255,255,255,0.55)', textAlign:'left' }}>
           <div><strong style={{ color:'var(--text-1)' }}>📧 {form.email}</strong></div>
-          <div>Role: <span style={{ color:sel?.color }}>{sel?.label}</span></div>
+          <div>Role: <span style={{ color: sel?.color }}>{sel?.label}</span></div>
           {ward  && <div>Ward:  {ward}</div>}
           {booth && <div>Booth: {booth}</div>}
         </div>
-        {/* Access summary */}
-        {sel?.access && (
-          <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'10px 14px', marginBottom:20, textAlign:'left' }}>
-            <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Your access once approved</div>
-            {sel.access.map((line, i) => (
-              <div key={i} style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginBottom:3 }}>{line}</div>
-            ))}
-          </div>
-        )}
         <button className="btn btn-primary btn-lg btn-full" onClick={() => navigate('/login')}>
           Go to Login →
         </button>
@@ -170,6 +105,8 @@ export default function Signup() {
     <div style={S.root}>
       <div style={S.g1}/><div style={S.g2}/>
       <div style={S.card} className="anim-fade-up">
+
+        {/* Logo */}
         <div className="flex items-center gap-12 mb-20">
           <div style={S.logo}>⊛</div>
           <div>
@@ -182,16 +119,16 @@ export default function Signup() {
         {/* Step bar */}
         <div style={{ display:'flex', alignItems:'center', marginBottom:24 }}>
           {['Account Details','Select Role'].map((label, i) => {
-            const n = i+1, active = step===n, past = step>n;
+            const n = i + 1, active = step === n, past = step > n;
             return (
               <React.Fragment key={label}>
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-                  <div style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, background:active||past?'#f59e0b':'rgba(255,255,255,0.06)', color:active||past?'#090e1c':'var(--text-3)', border:`2px solid ${active||past?'#f59e0b':'rgba(255,255,255,0.1)'}` }}>
+                  <div style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, background: active||past ? '#f59e0b':'rgba(255,255,255,0.06)', color: active||past ? '#090e1c':'var(--text-3)', border:`2px solid ${active||past?'#f59e0b':'rgba(255,255,255,0.1)'}` }}>
                     {past ? '✓' : n}
                   </div>
-                  <div style={{ fontSize:10, fontWeight:600, color:active?'#f59e0b':'var(--text-3)', whiteSpace:'nowrap' }}>{label}</div>
+                  <div style={{ fontSize:10, fontWeight:600, color: active?'#f59e0b':'var(--text-3)', whiteSpace:'nowrap' }}>{label}</div>
                 </div>
-                {i===0 && <div style={{ flex:1, height:2, background:step>1?'#f59e0b':'rgba(255,255,255,0.06)', margin:'0 10px 18px', transition:'all 0.3s' }} />}
+                {i === 0 && <div style={{ flex:1, height:2, background: step>1?'#f59e0b':'rgba(255,255,255,0.06)', margin:'0 10px 18px', transition:'all 0.3s' }} />}
               </React.Fragment>
             );
           })}
@@ -209,7 +146,8 @@ export default function Signup() {
             ].map(({ k, label, type, ph }) => (
               <div key={k} className="field">
                 <label className="field-label">{label}</label>
-                <input className="input" type={type} placeholder={ph} value={form[k]} onChange={set(k)} required />
+                <input className="input" type={type} placeholder={ph}
+                  value={form[k]} onChange={set(k)} required />
               </div>
             ))}
             <button className="btn btn-primary btn-lg btn-full" type="submit" style={{ marginTop:4 }}>
@@ -222,82 +160,55 @@ export default function Signup() {
         {step === 2 && (
           <div>
             <div style={{ fontSize:15, fontWeight:800, color:'var(--text-1)', marginBottom:4 }}>What is your role?</div>
-            <div style={{ fontSize:12, color:'var(--text-3)', marginBottom:16 }}>
-              Select your position. Access will be granted by the admin after review.
-            </div>
+            <div style={{ fontSize:12, color:'var(--text-3)', marginBottom:16 }}>Select your position. Access will be granted by the admin after review.</div>
 
+            {/* Role cards */}
             <div style={{ display:'flex', flexDirection:'column', gap:9, marginBottom:18 }}>
-              {ROLES.map(r => {
-                const active = role === r.key;
-                return (
-                  <button key={r.key} type="button"
-                    onClick={() => { setRole(r.key); setWard(''); setBooth(''); setError(''); }}
-                    style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'12px 14px', borderRadius:12, cursor:'pointer', textAlign:'left',
-                      background:active ? `${r.color}14` : 'rgba(255,255,255,0.03)',
-                      border:active ? `2px solid ${r.color}` : '2px solid rgba(255,255,255,0.07)',
-                      transition:'all 0.15s' }}>
-                    <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:17,
-                      background:active?`${r.color}22`:'rgba(255,255,255,0.05)',
-                      border:`1px solid ${active?r.color+'44':'rgba(255,255,255,0.07)'}` }}>
-                      {r.icon}
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:2 }}>
-                        <span style={{ fontWeight:700, fontSize:13, color:active?r.color:'var(--text-1)' }}>{r.label}</span>
-                        <span style={{ fontSize:8, fontWeight:800, letterSpacing:'0.06em', background:`${r.badgeColor}18`, color:r.badgeColor, border:`1px solid ${r.badgeColor}30`, borderRadius:4, padding:'1px 5px' }}>
-                          {r.badge}
-                        </span>
-                      </div>
-                      <div style={{ fontSize:11, color:'var(--text-3)', marginBottom: active ? 6 : 0 }}>{r.desc}</div>
-                      {/* Expanded access list when selected */}
-                      {active && (
-                        <div style={{ marginTop:4, display:'flex', flexDirection:'column', gap:2 }}>
-                          {r.access.map((line, i) => (
-                            <div key={i} style={{ fontSize:10, color:`${r.color}cc` }}>{line}</div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ width:16, height:16, borderRadius:'50%', flexShrink:0, marginTop:2,
-                      background:active?r.color:'transparent',
-                      border:`2px solid ${active?r.color:'rgba(255,255,255,0.18)'}`,
-                      display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      {active && <div style={{ width:5, height:5, borderRadius:'50%', background:'#090e1c' }}/>}
-                    </div>
-                  </button>
-                );
-              })}
+              {ROLES.map(r => (
+                <button key={r.key} type="button"
+                  onClick={() => { setRole(r.key); setWard(''); setBooth(''); setError(''); }}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px', borderRadius:12, cursor:'pointer', textAlign:'left',
+                    background: role===r.key ? `${r.color}14` : 'rgba(255,255,255,0.03)',
+                    border: role===r.key ? `2px solid ${r.color}` : '2px solid rgba(255,255,255,0.07)',
+                    transition:'all 0.15s' }}>
+                  <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:17,
+                    background: role===r.key ? `${r.color}22` : 'rgba(255,255,255,0.05)',
+                    border:`1px solid ${role===r.key?r.color+'44':'rgba(255,255,255,0.07)'}` }}>
+                    {r.icon}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:700, fontSize:13, color: role===r.key?r.color:'var(--text-1)', marginBottom:1 }}>{r.label}</div>
+                    <div style={{ fontSize:11, color:'var(--text-3)' }}>{r.desc}</div>
+                  </div>
+                  <div style={{ width:16, height:16, borderRadius:'50%', flexShrink:0,
+                    background: role===r.key?r.color:'transparent',
+                    border:`2px solid ${role===r.key?r.color:'rgba(255,255,255,0.18)'}`,
+                    display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {role===r.key && <div style={{ width:5, height:5, borderRadius:'50%', background:'#090e1c' }}/>}
+                  </div>
+                </button>
+              ))}
             </div>
 
             {/* Ward select */}
             {sel?.needsWard && (
               <div className="field mb-14">
-                <label className="field-label">{role==='corporator' ? 'Your Ward (write access)' : 'Ward (for booth lookup)'}</label>
+                <label className="field-label">{role==='corporator'?'Your Ward':'Ward (for booth lookup)'}</label>
                 <select className="input" value={ward} onChange={e => { setWard(e.target.value); setBooth(''); }} style={{ marginTop:7 }}>
                   <option value="">— Select ward —</option>
                   {WARDS.map(w => <option key={w} value={w}>{w}</option>)}
                 </select>
-                {role==='corporator' && ward && (
-                  <div style={{ fontSize:11, color:'rgba(34,211,238,0.6)', marginTop:4 }}>
-                    ✓ You will have write access to <strong>{ward}</strong> · Read-only for all other wards
-                  </div>
-                )}
               </div>
             )}
 
             {/* Booth select */}
             {sel?.needsBooth && ward && (
               <div className="field mb-14">
-                <label className="field-label">Your Booth (write access)</label>
+                <label className="field-label">Your Booth</label>
                 <select className="input" value={booth} onChange={e => setBooth(e.target.value)} style={{ marginTop:7 }}>
                   <option value="">— Select booth —</option>
                   {(WARD_BOOTHS[ward]||[]).map(b => <option key={b} value={b}>Booth {b}</option>)}
                 </select>
-                {booth && (
-                  <div style={{ fontSize:11, color:'rgba(16,185,129,0.6)', marginTop:4 }}>
-                    ✓ You will have write access to <strong>Booth {booth}</strong> · Read-only for all other booths
-                  </div>
-                )}
               </div>
             )}
 
@@ -333,13 +244,13 @@ export default function Signup() {
 }
 
 const S = {
-  root:      { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:20, position:'relative', overflow:'hidden' },
-  g1:        { position:'fixed', top:'-15%', right:'-10%', width:'55%', height:'55%', background:'radial-gradient(ellipse,rgba(34,211,238,0.07) 0%,transparent 70%)', pointerEvents:'none' },
-  g2:        { position:'fixed', bottom:'-15%', left:'-10%', width:'50%', height:'50%', background:'radial-gradient(ellipse,rgba(245,158,11,0.06) 0%,transparent 70%)', pointerEvents:'none' },
-  card:      { width:'100%', maxWidth:460, background:'rgba(17,28,52,0.92)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'var(--r-xl)', padding:'36px 32px', backdropFilter:'blur(24px)', boxShadow:'var(--shadow-lg)', position:'relative', zIndex:1 },
-  logo:      { width:44, height:44, background:'linear-gradient(135deg,#f59e0b,#d97706)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, color:'#090e1c', fontWeight:900, boxShadow:'0 4px 16px rgba(245,158,11,0.35)', flexShrink:0 },
-  logoName:  { fontFamily:'var(--font-display)', fontWeight:800, fontSize:15, color:'var(--text-1)', lineHeight:1.2 },
-  logoSub:   { fontSize:11, color:'var(--text-2)', marginTop:2 },
+  root:     { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:20, position:'relative', overflow:'hidden' },
+  g1:       { position:'fixed', top:'-15%', right:'-10%', width:'55%', height:'55%', background:'radial-gradient(ellipse,rgba(34,211,238,0.07) 0%,transparent 70%)', pointerEvents:'none' },
+  g2:       { position:'fixed', bottom:'-15%', left:'-10%', width:'50%', height:'50%', background:'radial-gradient(ellipse,rgba(245,158,11,0.06) 0%,transparent 70%)', pointerEvents:'none' },
+  card:     { width:'100%', maxWidth:460, background:'rgba(17,28,52,0.92)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'var(--r-xl)', padding:'36px 32px', backdropFilter:'blur(24px)', boxShadow:'var(--shadow-lg)', position:'relative', zIndex:1 },
+  logo:     { width:44, height:44, background:'linear-gradient(135deg,#f59e0b,#d97706)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, color:'#090e1c', fontWeight:900, boxShadow:'0 4px 16px rgba(245,158,11,0.35)', flexShrink:0 },
+  logoName: { fontFamily:'var(--font-display)', fontWeight:800, fontSize:15, color:'var(--text-1)', lineHeight:1.2 },
+  logoSub:  { fontSize:11, color:'var(--text-2)', marginTop:2 },
   switchText:{ textAlign:'center', fontSize:14, color:'var(--text-2)', marginTop:22 },
-  link:      { color:'var(--gold)', fontWeight:600 },
+  link:     { color:'var(--gold)', fontWeight:600 },
 };
