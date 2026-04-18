@@ -71,7 +71,7 @@ export default function Navbar() {
             <div className="nav-user-info desktop-only">
               <span className="nav-username">{user?.username}</span>
               <span className={`nav-role nav-role-${user?.role}`}>
-                {user?.role === 'mla' ? '⚡ ' : ''}{(user?.role || 'booth_worker').replace('_', ' ')}
+                {(user?.role || 'booth_worker').replace('_', ' ')}
               </span>
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function Navbar() {
         .nav-avatar    { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #090e1c; flex-shrink: 0; }
         .nav-user-info { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
         .nav-username  { font-size: 13px; font-weight: 600; color: var(--text-2); line-height: 1.2; }
-        .nav-role      { font-size: 7.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; }
+        .nav-role      { font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; }
         .nav-role-mla         { color: #f59e0b; }
         .nav-role-pa          { color: #a78bfa; }
         .nav-role-corporator  { color: #22d3ee; }
