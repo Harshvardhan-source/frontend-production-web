@@ -57,7 +57,7 @@ function AuthProvider({ children }) {
         }
       })
       .catch(() => {}); // silent — don't log out on me() failure
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoggedIn: !!user }}>
