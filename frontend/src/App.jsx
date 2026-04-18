@@ -56,7 +56,15 @@ function AuthProvider({ children }) {
           sessionStorage.setItem('cc_user', JSON.stringify(updated));
         }
       })
-      .catch(() => {}); // silent — don't log out on me() failure
+      .catch((err) => {
+        // Token expired or revoked — clear stale session and force re-login
+        if (err?.response?.status === 401) {
+          setUser(null);
+          sessionStorage.removeItem('cc_user');
+          sessionStorage.removeItem('cc_token');
+        }
+        // Other errors (network etc.) — stay logged in, try again later
+      });
   }, []); // run once on mount
 
   return (
