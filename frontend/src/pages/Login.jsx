@@ -19,13 +19,20 @@ export default function Login() {
     try {
       const { data } = await authApi.login(form);
       if (data.success) {
-        login({ username: data.username, email: form.email });
+        login({ username: data.username, email: form.email, role: data.role, ward: data.ward, booth: data.booth });
         navigate('/');
       } else {
         setError(data.message || 'Login failed.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Server error. Please try again.');
+      const msg = err.response?.data?.message || err.response?.data?.detail || '';
+      if (err.response?.status === 403 && msg.toLowerCase().includes('pending')) {
+        setError('⏳ Your account is pending admin approval. Please wait.');
+      } else if (err.response?.status === 403 && msg.toLowerCase().includes('rejected')) {
+        setError('❌ Your registration was rejected. Please contact the admin.');
+      } else {
+        setError(msg || 'Server error. Please try again.');
+      }
     } finally { setBusy(false); }
   };
 
@@ -85,3 +92,4 @@ const S = {
   switchText: { textAlign:'center', fontSize:14, color:'var(--text-2)', marginTop:22 },
   link:    { color:'var(--gold)', fontWeight:600 },
 };
+
