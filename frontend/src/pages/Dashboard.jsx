@@ -1712,8 +1712,72 @@ export default function Dashboard() {
                   : 'Your constituency intelligence overview'
                 }</p>
               </div>
-              <div style={{ width: '100%', maxWidth: 280 }}>
-                <WardSelector value={selectedWard} onChange={setSelectedWard} />
+
+              {/* ── Ward + Booth selectors stacked ── */}
+              <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Ward selector */}
+                <WardSelector value={selectedWard} onChange={(w) => { setSelectedWard(w); setSelectedBooth(''); setBoothStats(null); }} />
+
+                {/* Booth selector — only visible when a ward is selected */}
+                {selectedWard && (
+                  <div style={{
+                    background: 'rgba(34,211,238,0.05)',
+                    border: '1px solid rgba(34,211,238,0.2)',
+                    borderRadius: 10, padding: '8px 10px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 14 }}>🗳</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(34,211,238,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Select Booth
+                        </span>
+                        {selectedBooth && (
+                          <span style={{ fontSize: 10, fontWeight: 800, color: '#22d3ee', background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 5, padding: '1px 6px' }}>
+                            #{selectedBooth}
+                          </span>
+                        )}
+                      </div>
+                      {selectedBooth && (
+                        <button
+                          onClick={() => { setSelectedBooth(''); setBoothStats(null); }}
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}
+                        >✕ Clear</button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {(WARD_NUM_TO_BOOTHS[selectedWard] || []).map(b => {
+                        const isActive = selectedBooth === String(b);
+                        const boothSIR = (SIR_BOOTH_DATA[String(selectedWard)] || []).find(bd => bd.booth === b);
+                        const isWeak   = boothSIR && boothSIR.totalMappedPct < 60;
+                        return (
+                          <button
+                            key={b}
+                            onClick={() => setSelectedBooth(isActive ? '' : String(b))}
+                            title={boothSIR ? `Mapped: ${boothSIR.totalMappedPct}% · BLO: ${boothSIR.bloMappedPct}%` : `Booth ${b}`}
+                            style={{
+                              padding: '4px 9px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                              cursor: 'pointer', transition: 'all 0.13s', minWidth: 34, minHeight: 30,
+                              background: isActive ? '#22d3ee' : isWeak ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)',
+                              border: isActive ? '1px solid #22d3ee' : isWeak ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(255,255,255,0.1)',
+                              color: isActive ? '#090e1c' : isWeak ? '#f87171' : 'var(--text-2)',
+                              position: 'relative',
+                            }}
+                          >
+                            {b}
+                            {isWeak && !isActive && (
+                              <span style={{ position: 'absolute', top: -3, right: -3, width: 6, height: 6, borderRadius: '50%', background: '#ef4444', border: '1px solid #090e1c' }} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedBooth && (
+                      <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(34,211,238,0.5)', fontWeight: 500 }}>
+                        Booth {selectedBooth} selected · stats shown below
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1848,27 +1912,9 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* ── Booth Selector ── */}
+          {/* ── Booth Stats Panel (appears below header when booth is selected) ── */}
           {selectedWard && wardStats && (
             <div className="anim-fade-up" style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>Select Booth</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
-                  {(WARD_NUM_TO_BOOTHS[selectedWard] || []).map(b => (
-                    <button key={b} onClick={() => setSelectedBooth(selectedBooth === String(b) ? '' : String(b))} style={{
-                      padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                      cursor: 'pointer', transition: 'all 0.15s',
-                      background: selectedBooth === String(b) ? '#f59e0b' : 'rgba(255,255,255,0.05)',
-                      border: selectedBooth === String(b) ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
-                      color: selectedBooth === String(b) ? '#090e1c' : 'var(--text-2)',
-                      minWidth: 38, minHeight: 36,
-                    }}>{b}</button>
-                  ))}
-                </div>
-                {selectedBooth && (
-                  <button onClick={() => { setSelectedBooth(''); setBoothStats(null); }} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--text-2)', flexShrink: 0, minHeight: 36 }}>✕ Clear</button>
-                )}
-              </div>
 
               {selectedBooth && (
                 <div style={{ marginTop: 12, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(34,211,238,0.25)' }}>
