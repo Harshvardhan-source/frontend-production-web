@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../App';
-import api from '../api/client';
-import { authApi } from '../api/client';
+import api, { authApi } from '../api/client';
 
 // ── Role labels ───────────────────────────────────────────────────────────────
 const ROLE_LABELS = {

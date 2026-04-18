@@ -95,4 +95,3 @@ const S = {
   switchText: { textAlign:'center', fontSize:14, color:'var(--text-2)', marginTop:22 },
   link:    { color:'var(--gold)', fontWeight:600 },
 };
-
