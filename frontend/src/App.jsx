@@ -43,14 +43,17 @@ function AuthProvider({ children }) {
     authApi.me()
       .then(({ data }) => {
         if (data?.token) sessionStorage.setItem('cc_token', data.token);
-        // Refresh role/ward/booth from DB in case admin updated them
+        // Refresh role/ward/booth from DB in case admin updated them.
+        // Use explicit != null check, NOT || — data.role can legitimately be ""
+        // (e.g. mla has no ward/booth), and || would wrongly fall back to a
+        // stale sessionStorage value, causing the role to flip on every reload.
         if (data?.success) {
           const updated = {
             ...user,
-            role:   data.role   || user.role   || '',
-            ward:   data.ward   || user.ward   || '',
-            booth:  data.booth  || user.booth  || '',
-            status: data.status || user.status || '',
+            role:   data.role   != null ? data.role   : (user.role   ?? ''),
+            ward:   data.ward   != null ? data.ward   : (user.ward   ?? ''),
+            booth:  data.booth  != null ? data.booth  : (user.booth  ?? ''),
+            status: data.status != null ? data.status : (user.status ?? ''),
           };
           setUser(updated);
           sessionStorage.setItem('cc_user', JSON.stringify(updated));
