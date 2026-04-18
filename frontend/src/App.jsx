@@ -19,67 +19,89 @@ export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 function AuthProvider({ children }) {
+  // ── FIX 1: localStorage instead of sessionStorage for cc_user.
+  //    sessionStorage is TAB-SCOPED — it is wiped the moment the user navigates
+  //    to another website and comes back, or opens a new tab. This caused the
+  //    role to vanish or flip on every reload from another site.
+  //    localStorage persists across tabs, reloads, and browser restarts.
   const [user, setUser] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem('cc_user')); } catch { return null; }
+    try { return JSON.parse(localStorage.getItem('cc_user')); } catch { return null; }
   });
+
+  // ── FIX 2: authReady — wait for /auth/me to finish before Protected routes
+  //    decide to redirect. Without this, Protected briefly sees user=null while
+  //    the async /auth/me is in-flight and incorrectly redirects to /login.
+  const [authReady, setAuthReady] = useState(false);
+
+  const _persist = (userData) => localStorage.setItem('cc_user', JSON.stringify(userData));
+  const _clear   = () => { localStorage.removeItem('cc_user'); sessionStorage.removeItem('cc_token'); };
 
   const login = useCallback((userData) => {
     setUser(userData);
-    sessionStorage.setItem('cc_user', JSON.stringify(userData));
+    _persist(userData);
   }, []);
 
   const logout = useCallback(async () => {
     try { await authApi.logout({ username: user?.username, email: user?.email }); } catch {}
     setUser(null);
-    sessionStorage.removeItem('cc_user');
-    sessionStorage.removeItem('cc_token');
+    _clear();
   }, [user]);
 
-  // On startup: fetch fresh token from FastAPI and store it for Django requests.
-  // Django lives on a different domain so it never receives the FastAPI cookie —
-  // we bridge this by sending the token as Authorization: Bearer in client.js.
+  // ── On every mount: call /auth/me to get a fresh JWT and re-read the role
+  //    directly from UserReg — the SINGLE source of truth.
+  //    The FastAPI httpOnly cookie survives navigation between sites, so this
+  //    correctly re-hydrates the session even after localStorage was wiped.
+  //    We no longer skip this when user===null — the cookie may still be valid.
   useEffect(() => {
-    if (!user) return;
     authApi.me()
       .then(({ data }) => {
         if (data?.token) sessionStorage.setItem('cc_token', data.token);
-        // Refresh role/ward/booth from DB in case admin updated them.
-        // Use explicit != null check, NOT || — data.role can legitimately be ""
-        // (e.g. mla has no ward/booth), and || would wrongly fall back to a
-        // stale sessionStorage value, causing the role to flip on every reload.
+
         if (data?.success) {
+          // ── FIX 3: != null instead of || when merging DB values.
+          //    data.role is "" for mla/pa (no ward/booth assigned), and || treats
+          //    "" as falsy — silently falling back to the stale localStorage value
+          //    and causing the role to flip randomly between reloads.
+          const prev = user || {};
           const updated = {
-            ...user,
-            role:   data.role   != null ? data.role   : (user.role   ?? ''),
-            ward:   data.ward   != null ? data.ward   : (user.ward   ?? ''),
-            booth:  data.booth  != null ? data.booth  : (user.booth  ?? ''),
-            status: data.status != null ? data.status : (user.status ?? ''),
+            ...prev,
+            username: data.username ?? prev.username ?? '',
+            email:    data.email    ?? prev.email    ?? '',
+            role:     data.role   != null ? data.role   : (prev.role   ?? ''),
+            ward:     data.ward   != null ? data.ward   : (prev.ward   ?? ''),
+            booth:    data.booth  != null ? data.booth  : (prev.booth  ?? ''),
+            status:   data.status != null ? data.status : (prev.status ?? ''),
           };
           setUser(updated);
-          sessionStorage.setItem('cc_user', JSON.stringify(updated));
+          _persist(updated);
+        } else {
+          setUser(null);
+          _clear();
         }
       })
       .catch((err) => {
-        // Token expired or revoked — clear stale session and force re-login
         if (err?.response?.status === 401) {
+          // Token expired — force re-login
           setUser(null);
-          sessionStorage.removeItem('cc_user');
-          sessionStorage.removeItem('cc_token');
+          _clear();
         }
-        // Other errors (network etc.) — stay logged in, try again later
-      });
-  }, []); // run once on mount
+        // Network / 5xx: keep localStorage state, user stays logged in
+      })
+      .finally(() => setAuthReady(true));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoggedIn: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoggedIn: !!user, authReady }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 // ─── Protected Route ──────────────────────────────────────────────────────────
+// Render nothing until authReady — prevents the flash-redirect-to-login on reload.
 function Protected({ children }) {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, authReady } = useAuth();
+  if (!authReady) return null;
   return isLoggedIn ? children : <Navigate to="/login" replace />;
 }
 
@@ -98,7 +120,6 @@ export default function App() {
           <Route path="/schemes/voters" element={<Protected><SchemeVoters /></Protected>} />
           <Route path="/data"           element={<Protected><DataView /></Protected>} />
           <Route path="/voters"         element={<Protected><VoterSearch /></Protected>} />
-          
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
           <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
           <Route path="*"               element={<Navigate to="/" replace />} />
