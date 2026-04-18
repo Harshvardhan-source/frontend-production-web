@@ -19,22 +19,25 @@ export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 function AuthProvider({ children }) {
-  // ── FIX 1: localStorage instead of sessionStorage for cc_user.
-  //    sessionStorage is TAB-SCOPED — it is wiped the moment the user navigates
-  //    to another website and comes back, or opens a new tab. This caused the
-  //    role to vanish or flip on every reload from another site.
-  //    localStorage persists across tabs, reloads, and browser restarts.
+  // sessionStorage is intentionally TAB-SCOPED.
+  // Two different users can be logged in on two separate tabs without
+  // contaminating each other. localStorage is SHARED across all tabs of the
+  // same domain — switching it to localStorage caused Tab 2's login to
+  // overwrite Tab 1's cc_user, making the name and role flip on reload.
   const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('cc_user')); } catch { return null; }
+    try { return JSON.parse(sessionStorage.getItem('cc_user')); } catch { return null; }
   });
 
-  // ── FIX 2: authReady — wait for /auth/me to finish before Protected routes
-  //    decide to redirect. Without this, Protected briefly sees user=null while
-  //    the async /auth/me is in-flight and incorrectly redirects to /login.
+  // authReady: true once /auth/me has resolved (success or failure).
+  // Protected routes render null (not redirect) until this is set,
+  // preventing the flash-to-login on page reload.
   const [authReady, setAuthReady] = useState(false);
 
-  const _persist = (userData) => localStorage.setItem('cc_user', JSON.stringify(userData));
-  const _clear   = () => { localStorage.removeItem('cc_user'); sessionStorage.removeItem('cc_token'); };
+  const _persist = (u) => sessionStorage.setItem('cc_user', JSON.stringify(u));
+  const _clear   = () => {
+    sessionStorage.removeItem('cc_user');
+    sessionStorage.removeItem('cc_token');
+  };
 
   const login = useCallback((userData) => {
     setUser(userData);
@@ -47,45 +50,45 @@ function AuthProvider({ children }) {
     _clear();
   }, [user]);
 
-  // ── On every mount: call /auth/me to get a fresh JWT and re-read the role
-  //    directly from UserReg — the SINGLE source of truth.
-  //    The FastAPI httpOnly cookie survives navigation between sites, so this
-  //    correctly re-hydrates the session even after localStorage was wiped.
-  //    We no longer skip this when user===null — the cookie may still be valid.
+  // On every mount, ALWAYS call /auth/me — even if sessionStorage is empty.
+  // The FastAPI httpOnly cookie (cc_token) is domain-scoped and survives:
+  //   • navigating to another site and coming back
+  //   • manual page reload (F5 / Ctrl+R)
+  //   • closing and reopening the tab (cookie persists, sessionStorage does not)
+  // /auth/me reads role/ward/booth fresh from UserReg every time, so the DB
+  // is always the single source of truth regardless of what sessionStorage had.
   useEffect(() => {
     authApi.me()
       .then(({ data }) => {
         if (data?.token) sessionStorage.setItem('cc_token', data.token);
 
         if (data?.success) {
-          // ── FIX 3: != null instead of || when merging DB values.
-          //    data.role is "" for mla/pa (no ward/booth assigned), and || treats
-          //    "" as falsy — silently falling back to the stale localStorage value
-          //    and causing the role to flip randomly between reloads.
-          const prev = user || {};
+          // Use != null (not ||) so a legitimate empty string (e.g. mla has
+          // ward:"" and booth:"") is kept as-is and never replaced by a stale
+          // sessionStorage fallback.
           const updated = {
-            ...prev,
-            username: data.username ?? prev.username ?? '',
-            email:    data.email    ?? prev.email    ?? '',
-            role:     data.role   != null ? data.role   : (prev.role   ?? ''),
-            ward:     data.ward   != null ? data.ward   : (prev.ward   ?? ''),
-            booth:    data.booth  != null ? data.booth  : (prev.booth  ?? ''),
-            status:   data.status != null ? data.status : (prev.status ?? ''),
+            username: data.username ?? '',
+            email:    data.email    ?? '',
+            role:     data.role     != null ? data.role   : '',
+            ward:     data.ward     != null ? data.ward   : '',
+            booth:    data.booth    != null ? data.booth  : '',
+            status:   data.status   != null ? data.status : '',
           };
           setUser(updated);
           _persist(updated);
         } else {
+          // /auth/me returned success:false — not authenticated
           setUser(null);
           _clear();
         }
       })
       .catch((err) => {
         if (err?.response?.status === 401) {
-          // Token expired — force re-login
+          // Cookie expired or revoked — force re-login
           setUser(null);
           _clear();
         }
-        // Network / 5xx: keep localStorage state, user stays logged in
+        // Network / 5xx errors: keep whatever sessionStorage had
       })
       .finally(() => setAuthReady(true));
   }, []); // run once on mount
@@ -98,7 +101,8 @@ function AuthProvider({ children }) {
 }
 
 // ─── Protected Route ──────────────────────────────────────────────────────────
-// Render nothing until authReady — prevents the flash-redirect-to-login on reload.
+// Wait for authReady before deciding — prevents redirect-to-login during the
+// async /auth/me call that happens on every page load.
 function Protected({ children }) {
   const { isLoggedIn, authReady } = useAuth();
   if (!authReady) return null;
