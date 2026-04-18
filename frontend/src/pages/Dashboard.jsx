@@ -68,6 +68,11 @@ const WARD_BOOTHS_MAP = Object.fromEntries(
   Object.values(WARD_FULL_DATA).map(({ name, booths }) => [name, booths])
 );
 
+// ward_number (str) → sorted booth list  e.g. '21' → [31,32,33,55,56,57,58]
+const WARD_NUM_TO_BOOTHS = Object.fromEntries(
+  Object.entries(WARD_FULL_DATA).map(([num, { booths }]) => [String(num), [...booths].sort((a,b) => a-b)])
+);
+
 // ─── Ward Selector Dropdown ───────────────────────────────────────────────────
 // Uses createPortal so the panel renders in document.body — completely outside
 // any overflow:hidden or stacking context that would cause it to overlap content.
@@ -740,6 +745,12 @@ export default function Dashboard() {
   const [wardStatsLoading,  setWardStatsLoading]  = useState(false);
   const [wardError,         setWardError]         = useState('');
 
+  // ── Booth-level state ─────────────────────────────────────────────────────
+  const [selectedBooth,     setSelectedBooth]     = useState('');
+  const [boothStats,        setBoothStats]        = useState(null);
+  const [boothStatsLoading, setBoothStatsLoading] = useState(false);
+  const [boothError,        setBoothError]        = useState('');
+
   const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
 
   const [query, setQuery]         = useState('');
@@ -784,14 +795,27 @@ export default function Dashboard() {
 
   // ── Load ward stats when ward changes ─────────────────────────────────────
   useEffect(() => {
-    if (!selectedWard) { setWardStats(null); setWardError(''); return; }
+    if (!selectedWard) { setWardStats(null); setWardError(''); setSelectedBooth(''); setBoothStats(null); return; }
     setWardStatsLoading(true);
     setWardError('');
+    setSelectedBooth('');   // reset booth when ward changes
+    setBoothStats(null);
     dashboardApi.wardStats(selectedWard)
       .then(r => { if (r.data.success) setWardStats(r.data); else setWardError(r.data.message || 'Failed to load ward data.'); })
       .catch(e => setWardError(e.userMessage || 'Network error loading ward data.'))
       .finally(() => setWardStatsLoading(false));
   }, [selectedWard]);
+
+  // ── Load booth stats when booth changes ───────────────────────────────────
+  useEffect(() => {
+    if (!selectedWard || !selectedBooth) { setBoothStats(null); setBoothError(''); return; }
+    setBoothStatsLoading(true);
+    setBoothError('');
+    dashboardApi.boothStats(selectedWard, selectedBooth)
+      .then(r => { if (r.data.success) setBoothStats(r.data); else setBoothError(r.data.message || 'Failed to load booth data.'); })
+      .catch(e => setBoothError(e.userMessage || 'Network error loading booth data.'))
+      .finally(() => setBoothStatsLoading(false));
+  }, [selectedWard, selectedBooth]);
 
   // ── Search ────────────────────────────────────────────────────────────────
   const doSearch = useCallback(async (q) => {
@@ -816,9 +840,11 @@ export default function Dashboard() {
 
   const clearSearch = () => { setQuery(''); setSearchRes(null); setSearchErr(''); };
 
-  const activeLoading = selectedWard ? wardStatsLoading : statsLoading;
-  const s             = (selectedWard ? wardStats : stats) || {};
-  const coverage      = s.totalVoters ? Math.min(100, ((s.totalReg / s.totalVoters) * 100).toFixed(1)) : 0;
+  const activeLoading = selectedBooth ? boothStatsLoading : (selectedWard ? wardStatsLoading : statsLoading);
+  const s             = (selectedBooth ? boothStats : selectedWard ? wardStats : stats) || {};
+  const coverage      = s.totalElectors
+    ? Math.min(100, ((s.totalReg / s.totalElectors) * 100).toFixed(1))
+    : (s.totalVoters ? Math.min(100, ((s.totalReg / s.totalVoters) * 100).toFixed(1)) : 0);
 
   const wardData = Object.entries(s.wardCoverage || {})
     .sort((a, b) => b[1] - a[1]).slice(0, 10)
@@ -828,11 +854,24 @@ export default function Dashboard() {
     .filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
 
   const STAT_CARDS = [
-    { label: 'Total Surveys',    value: s.totalReg?.toLocaleString()          || null, icon: '✎', color: '#f59e0b', sub: 'Registered entries' },
-    { label: 'Total Voters',     value: (selectedWard ? (wardStats?.ward2026?.totalElectors || s.totalVoters) : s.totalVoters)?.toLocaleString() || null, icon: '◉', color: '#22d3ee', sub: selectedWard ? '2026 Total Electors' : 'Voter list records' },
-    { label: 'Houses Covered',   value: s.houseCount?.toLocaleString()         || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
-    { label: 'Large Families',   value: s.largeFamilyCount?.toLocaleString()   ?? null, icon: '👨‍👩‍👧‍👦', color: '#f97316', sub: 'Houses with 15+ members' },
-    { label: 'Coverage',         value: (selectedWard ? wardStats : stats) ? `${coverage}%` : null, icon: '◈', color: '#8b5cf6', sub: selectedWard ? `${wardStats?.ward2026?.pctTotal || ''}` || 'Survey completion' : 'Survey completion' },
+    { label: 'Total Surveys',  value: s.totalReg?.toLocaleString() || null, icon: '✎', color: '#f59e0b', sub: 'Registered entries' },
+    {
+      label: 'Total Voters',
+      value: (selectedBooth ? boothStats?.totalElectors : selectedWard ? (wardStats?.totalElectors || wardStats?.totalVoters) : s.totalVoters)?.toLocaleString() || null,
+      icon: '◉', color: '#22d3ee',
+      sub: selectedBooth ? `Booth ${selectedBooth} Electors` : selectedWard ? '2026 Total Electors' : 'Voter list records',
+    },
+    { label: 'Houses Covered', value: s.houseCount?.toLocaleString() || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
+    { label: 'Large Families', value: s.largeFamilyCount?.toLocaleString() ?? null, icon: '👨‍👩‍👧‍👦', color: '#f97316', sub: 'Houses with 15+ members' },
+    {
+      label: 'Coverage',
+      value: (selectedBooth ? boothStats : selectedWard ? wardStats : stats) ? `${coverage}%` : null,
+      icon: '◈', color: '#8b5cf6',
+      sub: selectedBooth
+        ? `Booth ${selectedBooth} completion`
+        : selectedWard ? `${wardStats?.ward2026?.pctTotal || ''}` || 'Survey completion'
+        : 'Survey completion',
+    },
   ];
 
   const hour     = new Date().getHours();
@@ -944,7 +983,13 @@ export default function Dashboard() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span className="badge badge-cyan mb-8">Dashboard</span>
                 <h1 style={{ fontSize: 'clamp(20px, 5vw, 30px)', marginBottom: 4 }}>{greeting}, {user?.username} 👋</h1>
-                <p style={{ fontSize: 13 }}>{selectedWard ? <>Viewing <strong style={{ color: '#f59e0b' }}>Ward {selectedWard} — {WARD_NAMES[selectedWard]}</strong></> : 'Your constituency intelligence overview'}</p>
+                <p style={{ fontSize: 13 }}>{
+                selectedBooth
+                  ? <>Viewing <strong style={{ color: '#22d3ee' }}>Ward {selectedWard} · Booth {selectedBooth}</strong></>
+                  : selectedWard
+                  ? <>Viewing <strong style={{ color: '#f59e0b' }}>Ward {selectedWard} — {WARD_NAMES[selectedWard]}</strong></>
+                  : 'Your constituency intelligence overview'
+              }</p>
               </div>
               <div style={{ width: '100%', maxWidth: 280 }}>
                 <WardSelector value={selectedWard} onChange={setSelectedWard} />
@@ -1055,6 +1100,137 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* ── Booth Selector — appears after a ward is selected ────────────── */}
+          {selectedWard && wardStats && (
+            <div className="anim-fade-up" style={{ marginBottom: 16 }}>
+
+              {/* Booth dropdown row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+                  Select Booth
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+                  {(WARD_NUM_TO_BOOTHS[selectedWard] || []).map(b => (
+                    <button
+                      key={b}
+                      onClick={() => setSelectedBooth(selectedBooth === String(b) ? '' : String(b))}
+                      style={{
+                        padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        background: selectedBooth === String(b) ? '#f59e0b' : 'rgba(255,255,255,0.05)',
+                        border: selectedBooth === String(b) ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                        color: selectedBooth === String(b) ? '#090e1c' : 'var(--text-2)',
+                        minWidth: 38, minHeight: 36,
+                      }}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+                {selectedBooth && (
+                  <button
+                    onClick={() => { setSelectedBooth(''); setBoothStats(null); }}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--text-2)', flexShrink: 0, minHeight: 36 }}
+                  >✕ Clear</button>
+                )}
+              </div>
+
+              {/* Booth stats card */}
+              {selectedBooth && (
+                <div style={{ marginTop: 12, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(34,211,238,0.25)' }}>
+
+                  {/* Header */}
+                  <div style={{
+                    background: 'linear-gradient(135deg,rgba(34,211,238,0.12) 0%,rgba(34,211,238,0.04) 100%)',
+                    padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
+                    borderBottom: boothStatsLoading || !boothStats ? 'none' : '1px solid rgba(34,211,238,0.15)',
+                  }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, background: 'rgba(34,211,238,0.15)', border: '1px solid rgba(34,211,238,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🗳</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#22d3ee' }}>
+                        Booth {selectedBooth} — {wardStats?.wardName || WARD_NAMES[selectedWard]}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(34,211,238,0.5)', marginTop: 1 }}>
+                        Ward {selectedWard} · Booth-level electors data
+                      </div>
+                    </div>
+                    {boothStatsLoading && <span className="spinner" />}
+                  </div>
+
+                  {/* Booth data panel */}
+                  {!boothStatsLoading && boothStats && (
+                    <div style={{ background: 'rgba(10,18,34,0.97)', padding: '14px' }}>
+
+                      {/* 2026 Electors metrics */}
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>
+                        2026 Voter Roll · Booth {selectedBooth} Data
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8, marginBottom: 14 }}>
+                        {[
+                          { label: 'Total Electors', value: boothStats.totalElectors,     color: '#22d3ee' },
+                          { label: 'Cutoff Elec',    value: boothStats.cutoffElec,         color: '#f59e0b' },
+                          { label: 'BLO Mapped',     value: boothStats.bloMapped,          color: '#10b981' },
+                          { label: 'Total Mapped',   value: boothStats.totalMapped,        color: '#10b981' },
+                          { label: '% BLO Mapped',   value: boothStats.pctBloMapped,       color: '#10b981', isPct: true },
+                          { label: 'Age≤Cutoff',     value: boothStats.ageCutoff,          color: '#8b5cf6' },
+                          { label: 'Progeny >18',    value: boothStats.progeny18,          color: '#a78bfa' },
+                          { label: '% Progeny',      value: boothStats.pctProgeny,         color: '#a78bfa', isPct: true },
+                          { label: 'Elec Mapped',    value: boothStats.electorsMapped,     color: '#f97316' },
+                          { label: '% Elec Mapped',  value: boothStats.pctElectorsMapped,  color: '#f97316', isPct: true },
+                          { label: '% Completed',    value: boothStats.pctTotalCompleted,  color: '#22d3ee', isPct: true },
+                        ].filter(x => x.value !== undefined && x.value !== '' && x.value !== 0).map(({ label, value, color, isPct }) => {
+                          const display = isPct
+                            ? (typeof value === 'number' ? value.toFixed(2) + '%' : String(value).replace('%','') + '%')
+                            : (typeof value === 'number' ? value.toLocaleString() : value);
+                          const totalE = boothStats.totalElectors || 1;
+                          const pct    = (!isPct && typeof value === 'number') ? Math.round(value / totalE * 100) : null;
+                          return (
+                            <div key={label}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                                <span style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                                <span style={{ fontSize: 12, fontWeight: 800, color }}>{display ?? '—'}</span>
+                              </div>
+                              {pct !== null && (
+                                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                                  <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Survey coverage for this booth */}
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>
+                        Survey Coverage · Booth {selectedBooth}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
+                        {[
+                          { label: 'Surveys Done', value: boothStats.totalReg,   color: '#f59e0b', pct: boothStats.totalElectors ? Math.round(boothStats.totalReg / boothStats.totalElectors * 100) : 0 },
+                          { label: 'Houses',        value: boothStats.houseCount, color: '#10b981', pct: 100 },
+                          { label: 'Male',          value: boothStats.regMale,    color: '#22d3ee', pct: boothStats.totalReg ? Math.round(boothStats.regMale / boothStats.totalReg * 100) : 0 },
+                          { label: 'Female',        value: boothStats.regFemale,  color: '#ec4899', pct: boothStats.totalReg ? Math.round(boothStats.regFemale / boothStats.totalReg * 100) : 0 },
+                          { label: 'Coverage',      value: `${boothStats.coveragePct}%`, color: '#8b5cf6', pct: Math.min(boothStats.coveragePct, 100) },
+                        ].map(({ label, value, color, pct }) => (
+                          <div key={label}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                              <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 800, color }}>{typeof value === 'number' ? value.toLocaleString() : value}</span>
+                            </div>
+                            <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                              <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {boothError && <div className="alert alert-error" style={{ margin: 8 }}>⚠ {boothError}</div>}
+                </div>
+              )}
+            </div>
+          )}
+
           {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
 
           {/* ── Stat cards — 2 cols mobile → 3 cols tablet → 5 cols desktop ── */}
@@ -1101,12 +1277,12 @@ export default function Dashboard() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Survey Coverage</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{selectedWard ? `Ward ${selectedWard}` : 'All wards'}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{selectedBooth ? `Booth ${selectedBooth}` : selectedWard ? `Ward ${selectedWard}` : 'All wards'}</div>
               </div>
               {activeLoading ? <Skeleton w={70} h={36} radius={9} /> : (
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 900, color: '#8b5cf6', letterSpacing: '-1px', lineHeight: 1 }}>{coverage}%</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{s.totalReg?.toLocaleString() || 0} / {s.totalVoters?.toLocaleString() || 0}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{s.totalReg?.toLocaleString() || 0} / {(selectedBooth ? boothStats?.totalElectors : s.totalVoters)?.toLocaleString() || 0}</div>
                 </div>
               )}
             </div>
