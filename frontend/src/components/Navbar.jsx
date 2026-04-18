@@ -68,7 +68,12 @@ export default function Navbar() {
         <div className="nav-right">
           <div className="nav-user">
             <span className="nav-avatar">{(user?.username || 'U')[0].toUpperCase()}</span>
-            <span className="nav-username desktop-only">{user?.username}</span>
+            <div className="nav-user-info desktop-only">
+              <span className="nav-username">{user?.username}</span>
+              <span className={`nav-role nav-role-${user?.role}`}>
+                {(user?.role || 'booth_worker').replace('_', ' ')}
+              </span>
+            </div>
           </div>
           <button onClick={handleLogout} className="btn btn-danger btn-sm desktop-only">⏻ Logout</button>
           <button className="hamburger mobile-only" onClick={() => setOpen(p => !p)} aria-label="Menu">
@@ -155,10 +160,16 @@ export default function Navbar() {
         .nav-link-active     { color: var(--gold) !important; background: var(--gold-dim) !important; }
         .nav-link-icon       { font-size: 15px; }
 
-        .nav-right  { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-        .nav-user   { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--r-full); }
-        .nav-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #090e1c; }
-        .nav-username { font-size: 13px; font-weight: 600; color: var(--text-2); }
+        .nav-right     { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+        .nav-user      { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--r-full); }
+        .nav-avatar    { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #090e1c; flex-shrink: 0; }
+        .nav-user-info { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+        .nav-username  { font-size: 13px; font-weight: 600; color: var(--text-2); line-height: 1.2; }
+        .nav-role      { font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1; }
+        .nav-role-mla         { color: #f59e0b; }
+        .nav-role-pa          { color: #a78bfa; }
+        .nav-role-corporator  { color: #22d3ee; }
+        .nav-role-booth_worker{ color: #10b981; }
 
         .hamburger  { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 5px; padding: 4px; }
         .hamburger span { width: 22px; height: 2px; background: var(--text-1); border-radius: 2px; display: block; transition: all 0.28s var(--ease); }
