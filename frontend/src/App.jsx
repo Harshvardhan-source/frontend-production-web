@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authApi } from './api/client';
 
@@ -11,7 +11,7 @@ import SchemeOpt    from './pages/SchemeOpt';
 import SchemeVoters from './pages/SchemeVoters';
 import DataView     from './pages/DataView';
 import VoterSearch  from './pages/VoterSearch';
-import SIR          from './pages/Sir';  // ← ADD THIS LINE: Import SIR component
+import SIR          from './pages/Sir';
 import AdminPanel   from './pages/AdminPanel';
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -32,7 +32,40 @@ function AuthProvider({ children }) {
     try { await authApi.logout({ username: user?.username, email: user?.email }); } catch {}
     setUser(null);
     sessionStorage.removeItem('cc_user');
+    sessionStorage.removeItem('cc_token');
   }, [user]);
+
+  // ── On startup: call /auth/me to get fresh JWT and store it for Django ────
+  // This fixes cross-domain auth: FastAPI sets cookie on its domain, but Django
+  // needs the token via Authorization header. /auth/me returns a fresh token
+  // so existing sessions don't need to log out.
+  useEffect(() => {
+    if (!user) return;
+    authApi.me()
+      .then(({ data }) => {
+        if (data.token) {
+          sessionStorage.setItem('cc_token', data.token);
+        }
+        // Refresh role/ward/booth in case admin changed them
+        if (data.success) {
+          const updated = {
+            ...user,
+            role:   data.role   || user.role   || '',
+            ward:   data.ward   || user.ward   || '',
+            booth:  data.booth  || user.booth  || '',
+            status: data.status || user.status || '',
+          };
+          setUser(updated);
+          sessionStorage.setItem('cc_user', JSON.stringify(updated));
+        }
+      })
+      .catch(() => {
+        // Token expired or invalid — clear session
+        setUser(null);
+        sessionStorage.removeItem('cc_user');
+        sessionStorage.removeItem('cc_token');
+      });
+  }, []); // run once on mount
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoggedIn: !!user }}>
@@ -63,10 +96,9 @@ export default function App() {
           <Route path="/data"           element={<Protected><DataView /></Protected>} />
           <Route path="/voters"         element={<Protected><VoterSearch /></Protected>} />
           
-          {/* ─── ADD THIS ROUTE: SIR Module ──────────────────────────────────── */}
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
-          
           <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
+
           <Route path="*"               element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
