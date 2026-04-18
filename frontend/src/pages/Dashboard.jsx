@@ -215,8 +215,26 @@ const ChartTip = ({ active, payload, label }) => {
 };
 
 // ─── Member Row ───────────────────────────────────────────────────────────────
-function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData, query, onSurveyDone }) {
+function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData, query, onSurveyDone, user }) {
   const navigate = useNavigate();
+
+  // ── RBAC: can this user start a survey for this member? ───────────────────
+  const canSurvey = (() => {
+    if (!user) return false;
+    const role = user.role || '';
+    if (role === 'mla' || role === 'pa' || !role) return true;  // superuser or legacy
+    const hs        = houseSurveyData || {};
+    const boothStr  = String(hs.boothNo || member.booth || '');
+    const resolvedW = (hs.wardNumber && isNaN(hs.wardNumber) ? hs.wardNumber : '')
+      || wardByBooth(boothStr) || (wardNumber && isNaN(wardNumber) ? wardNumber : '') || '';
+    if (role === 'corporator') {
+      return String(user.ward || '').toUpperCase() === String(resolvedW || wardNumber || '').toUpperCase();
+    }
+    if (role === 'booth_worker') {
+      return String(user.booth) === boothStr;
+    }
+    return false;
+  })();
 
   const handleStartSurvey = () => {
     const hs       = houseSurveyData || {};
@@ -285,20 +303,29 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>
           ✓ Done
         </div>
-      ) : (
+      ) : canSurvey ? (
         <button onClick={handleStartSurvey} style={{
           background: 'linear-gradient(135deg,#f59e0b,#d97706)', border: 'none', borderRadius: 8,
           padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#090e1c',
           cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
           boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
         }}>✎ Survey</button>
+      ) : (
+        <div title={
+          (user?.role === 'corporator') ? `Only your ward (${user.ward}) allowed` :
+          (user?.role === 'booth_worker') ? `Only booth ${user.booth} allowed` : 'No access'
+        } style={{
+          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 8, padding: '5px 12px', fontSize: 10, fontWeight: 600,
+          color: 'rgba(255,255,255,0.2)', flexShrink: 0, whiteSpace: 'nowrap', cursor: 'not-allowed',
+        }}>🔒 No Access</div>
       )}
     </div>
   );
 }
 
 // ─── House Card ───────────────────────────────────────────────────────────────
-function HouseCard({ house, serialCounter, query }) {
+function HouseCard({ house, serialCounter, query, user }) {
   const [expanded, setExpanded] = useState(true);
   const pct         = house.total_members ? Math.round((house.surveyed / house.total_members) * 100) : 0;
   const statusColor = pct === 100 ? '#10b981' : pct > 0 ? '#f59e0b' : '#ef4444';
@@ -344,6 +371,7 @@ function HouseCard({ house, serialCounter, query }) {
               key={`${house.house_no}-${m.voterid || 'noid'}-${i}`}
               member={m} wardNumber={house.ward} wardName={`Ward ${house.ward}`}
               serialStart={serialCounter + i} houseSurveyData={house.house_survey_data} query={query}
+              user={user}
             />
           ))}
         </div>
@@ -971,7 +999,7 @@ export default function Dashboard() {
             )}
             {!searching && searchRes && searchRes.houses.map((house, idx) => {
               const prevCount = searchRes.houses.slice(0, idx).reduce((a, h) => a + (h.total_members || 0), 0);
-              return <HouseCard key={house.house_no} house={house} serialCounter={nextSerial + prevCount} query={query} />;
+              return <HouseCard key={house.house_no} house={house} serialCounter={nextSerial + prevCount} query={query} user={user} />;
             })}
           </div>
         )}
