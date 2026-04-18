@@ -186,9 +186,129 @@ function UserCard({ user, onApprove, onReject, onEdit, tab }) {
 }
 
 
+// ── Admin Re-Auth Gate ─────────────────────────────────────────────────────────
+// Shown every time the admin panel is visited — requires password re-entry.
+// Calls FastAPI /auth/verify-admin which checks the password against DB.
+function AdminReAuthGate({ onVerified }) {
+  const { user: authUser } = useAuth();
+  const [password, setPassword] = useState('');
+  const [error,    setError]    = useState('');
+  const [busy,     setBusy]     = useState(false);
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (!password.trim()) return setError('Please enter your password.');
+    setBusy(true); setError('');
+    try {
+      const { data } = await authApi.verifyAdmin({
+        email:    authUser?.email,
+        password: password,
+      });
+      if (data.success) {
+        onVerified();
+      } else {
+        setError(data.detail || 'Incorrect password.');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.response?.data?.message || '';
+      if (err.response?.status === 401) {
+        setError('Incorrect password. Please try again.');
+      } else if (err.response?.status === 403) {
+        setError('You do not have admin privileges.');
+      } else {
+        setError(msg || 'Verification failed. Please try again.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="page">
+      <Navbar />
+      <div className="page-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+        <div className="anim-fade-up" style={{
+          width: '100%', maxWidth: 400,
+          background: 'rgba(17,28,52,0.95)',
+          border: '1px solid rgba(245,158,11,0.25)',
+          borderRadius: 18, padding: '36px 32px',
+          backdropFilter: 'blur(24px)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+        }}>
+          {/* Icon */}
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: '50%', margin: '0 auto 14px',
+              background: 'rgba(245,158,11,0.12)',
+              border: '2px solid rgba(245,158,11,0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26,
+            }}>🔐</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: 'var(--text-1)', marginBottom: 6 }}>
+              Admin Verification
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.6 }}>
+              Confirm your identity to access the Admin Panel.
+            </div>
+          </div>
+
+          {/* Who is logged in */}
+          <div style={{
+            background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)',
+            borderRadius: 10, padding: '10px 14px', marginBottom: 22,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+              background: 'linear-gradient(135deg,#f59e0b,#d97706)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 800, color: '#090e1c',
+            }}>
+              {(authUser?.username || 'A')[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>{authUser?.username}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{authUser?.email}</div>
+            </div>
+          </div>
+
+          {error && (
+            <div className="alert alert-error" style={{ marginBottom: 16, fontSize: 13 }}>⚠ {error}</div>
+          )}
+
+          <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="field">
+              <label className="field-label">Your Password</label>
+              <input
+                className="input"
+                type="password"
+                placeholder="Enter your password to continue"
+                value={password}
+                onChange={e => { setPassword(e.target.value); setError(''); }}
+                autoFocus
+                required
+              />
+            </div>
+            <button
+              className="btn btn-primary btn-lg btn-full"
+              type="submit"
+              disabled={busy}
+              style={{ marginTop: 4 }}
+            >
+              {busy ? <span className="spinner" /> : '🔓 Verify & Enter Admin Panel'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function AdminPanel() {
   const { user: authUser } = useAuth();
+  const [verified, setVerified] = useState(false);       // re-auth gate
   const [data,    setData]    = useState({ pending: [], approved: [], rejected: [] });
   const [tab,     setTab]     = useState('pending');
   const [loading, setLoading] = useState(true);
@@ -253,6 +373,14 @@ export default function AdminPanel() {
       setActing(false);
     }
   };
+
+  // ── Re-auth gate — shown before panel content on every visit ────────────────
+  if (!verified) {
+    // If not admin at all, skip the gate and fall through to Access Denied below
+    if (authUser && ['mla', 'pa'].includes(authUser.role)) {
+      return <AdminReAuthGate onVerified={() => setVerified(true)} />;
+    }
+  }
 
   // Access guard
   if (authUser && !['mla', 'pa'].includes(authUser.role)) {
