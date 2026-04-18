@@ -35,7 +35,16 @@ export default function Login() {
         setError(data.message || 'Login failed.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Server error. Please try again.');
+      const msg = err.response?.data?.detail || err.response?.data?.message || '';
+      if (err.response?.status === 401) {
+        setError('Invalid email or password.');
+      } else if (err.response?.status === 403 && msg.toLowerCase().includes('pending')) {
+        setError('⏳ Your account is pending admin approval.');
+      } else if (err.response?.status === 403 && msg.toLowerCase().includes('rejected')) {
+        setError('❌ Your registration was rejected. Contact the admin.');
+      } else {
+        setError(msg || 'Server error. Please try again.');
+      }
     } finally { setBusy(false); }
   };
 
