@@ -74,13 +74,15 @@ api.interceptors.response.use(
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
-  register: (data) => authClient.post('/auth/register', data),
-  login:    (data) => authClient.post('/auth/login',    data),
-  logout:   ()     => {
+  register:    (data) => authClient.post('/auth/register',     data),
+  login:       (data) => authClient.post('/auth/login',        data),
+  logout:      ()     => {
     sessionStorage.removeItem('cc_token');
     return authClient.post('/auth/logout');
   },
-  me:       ()     => authClient.get('/auth/me'),
+  me:          ()     => authClient.get('/auth/me'),
+  // Re-authentication gate for the Admin Panel — calls FastAPI /auth/verify-admin
+  verifyAdmin: (data) => authClient.post('/auth/verify-admin', data),
 };
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
