@@ -34,8 +34,17 @@ function getCookie(name) {
   return match ? decodeURIComponent(match[2]) : '';
 }
 
-// Attach CSRF token to every state-changing request automatically
+// Attach CSRF token + JWT Authorization header to Django requests
+// The cc_token cookie is set by FastAPI on its own domain and is NOT sent to Django
+// (different subdomain). So we read the token from sessionStorage and send it
+// as Authorization: Bearer <token> — which Django's _user_from_request supports.
 api.interceptors.request.use(async (config) => {
+  // Always attach JWT if available
+  const token = sessionStorage.getItem('cc_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  // CSRF for state-changing requests
   if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
     await ensureCsrf();
     config.headers['X-CSRFToken'] = getCookie('csrftoken');
@@ -67,17 +76,18 @@ api.interceptors.response.use(
 export const authApi = {
   register: (data) => authClient.post('/auth/register', data),
   login:    (data) => authClient.post('/auth/login',    data),
-  logout:   ()     => authClient.post('/auth/logout'),
+  logout:   ()     => {
+    sessionStorage.removeItem('cc_token');
+    return authClient.post('/auth/logout');
+  },
   me:       ()     => authClient.get('/auth/me'),
 };
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
 export const dashboardApi = {
-  stats:         () =>           api.get('/api/dashboard/'),
-  serialNumber:  () =>           api.get('/api/serial-number/'),
-  houseSearch:   (q) =>          api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
-  wardStats:     (ward) =>       api.get(`/api/ward-dashboard/?ward=${ward}`),
-  boothStats:    (ward, booth) => api.get(`/api/booth-dashboard/?ward=${ward}&booth=${booth}`),
+  stats:         () =>     api.get('/api/dashboard/'),
+  serialNumber:  () =>     api.get('/api/serial-number/'),
+  houseSearch:   (q) =>    api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
 };
 
 // ── Survey ───────────────────────────────────────────────────────────────────

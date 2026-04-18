@@ -19,20 +19,23 @@ export default function Login() {
     try {
       const { data } = await authApi.login(form);
       if (data.success) {
-        login({ username: data.username, email: form.email, role: data.role, ward: data.ward, booth: data.booth });
+        // Store JWT so Django can receive it via Authorization: Bearer header
+        // (FastAPI sets cc_token cookie on its own domain — not sent cross-domain to Django)
+        if (data.token) sessionStorage.setItem('cc_token', data.token);
+        login({
+          username: data.username,
+          email:    form.email,
+          role:     data.role  || '',
+          ward:     data.ward  || '',
+          booth:    data.booth || '',
+          status:   data.status || 'approved',
+        });
         navigate('/');
       } else {
         setError(data.message || 'Login failed.');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || err.response?.data?.detail || '';
-      if (err.response?.status === 403 && msg.toLowerCase().includes('pending')) {
-        setError('⏳ Your account is pending admin approval. Please wait.');
-      } else if (err.response?.status === 403 && msg.toLowerCase().includes('rejected')) {
-        setError('❌ Your registration was rejected. Please contact the admin.');
-      } else {
-        setError(msg || 'Server error. Please try again.');
-      }
+      setError(err.response?.data?.message || 'Server error. Please try again.');
     } finally { setBusy(false); }
   };
 
