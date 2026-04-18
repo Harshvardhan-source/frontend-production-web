@@ -97,9 +97,6 @@ const SIR_WARD_DATA = {
   60: { classification:'CONGRESS STRONG',pollRate:41.6, alert:'⚠ CONG RISK',hindu:30.9, muslim:68.3, christian:0.8,  bloMapped:60.39, progeny:127.86,totalMapped:90.09, totalElectors:10897, supervisors:'SIDDARAJU 105-115, YADAVA HOSABETTU 93-104', bjpProj:30.9, congProj:69.1, margin:-38.2, riskStatus:'⚠ RISK', priority:'WATCH'    },
 };
 
-// ─── SIR BOOTH DRILL-DOWN DATA (from BOOTH DRILL-DOWN sheet — risk wards only) ─
-const SIR_BOOTH_DATA = {"21":[{"booth":31,"totalElectors":1496,"cutoffElectors":987,"bloMapped":577,"totalMapped":577,"bloMappedPct":58.46,"ageCutoff":515,"progeny18":427,"progenyPct":63.42,"totalMappedPct":67.11},{"booth":32,"totalElectors":711,"cutoffElectors":502,"bloMapped":351,"totalMapped":351,"bloMappedPct":69.92,"ageCutoff":205,"progeny18":268,"progenyPct":109.44,"totalMappedPct":87.06},{"booth":33,"totalElectors":803,"cutoffElectors":553,"bloMapped":357,"totalMapped":357,"bloMappedPct":64.56,"ageCutoff":250,"progeny18":229,"progenyPct":64.34,"totalMappedPct":72.98},{"booth":55,"totalElectors":1314,"cutoffElectors":847,"bloMapped":482,"totalMapped":482,"bloMappedPct":56.91,"ageCutoff":469,"progeny18":412,"progenyPct":81.26,"totalMappedPct":68.04},{"booth":56,"totalElectors":1240,"cutoffElectors":767,"bloMapped":416,"totalMapped":416,"bloMappedPct":54.24,"ageCutoff":476,"progeny18":380,"progenyPct":64.2,"totalMappedPct":64.19},{"booth":57,"totalElectors":941,"cutoffElectors":665,"bloMapped":330,"totalMapped":330,"bloMappedPct":49.62,"ageCutoff":275,"progeny18":227,"progenyPct":64.98,"totalMappedPct":59.19},{"booth":58,"totalElectors":1037,"cutoffElectors":724,"bloMapped":461,"totalMapped":461,"bloMappedPct":63.67,"ageCutoff":313,"progeny18":311,"progenyPct":102.04,"totalMappedPct":74.45}],"24":[{"booth":9,"totalElectors":1079,"cutoffElectors":752,"bloMapped":434,"totalMapped":434,"bloMappedPct":57.71,"ageCutoff":329,"progeny18":257,"progenyPct":92.13,"totalMappedPct":62.0},{"booth":11,"totalElectors":1318,"cutoffElectors":932,"bloMapped":481,"totalMapped":481,"bloMappedPct":51.61,"ageCutoff":398,"progeny18":192,"progenyPct":65.87,"totalMappedPct":51.06},{"booth":13,"totalElectors":1036,"cutoffElectors":719,"bloMapped":418,"totalMapped":418,"bloMappedPct":58.14,"ageCutoff":314,"progeny18":279,"progenyPct":66.17,"totalMappedPct":45.07},{"booth":17,"totalElectors":1334,"cutoffElectors":937,"bloMapped":493,"totalMapped":493,"bloMappedPct":52.61,"ageCutoff":397,"progeny18":423,"progenyPct":116.11,"totalMappedPct":68.67}],"27":[{"booth":82,"totalElectors":820,"cutoffElectors":590,"bloMapped":415,"totalMapped":415,"bloMappedPct":70.34,"ageCutoff":231,"progeny18":245,"progenyPct":122.04,"totalMappedPct":80.49},{"booth":83,"totalElectors":444,"cutoffElectors":304,"bloMapped":226,"totalMapped":226,"bloMappedPct":74.34,"ageCutoff":142,"progeny18":140,"progenyPct":84.0,"totalMappedPct":82.43},{"booth":84,"totalElectors":1032,"cutoffElectors":749,"bloMapped":369,"totalMapped":369,"bloMappedPct":49.27,"ageCutoff":285,"progeny18":203,"progenyPct":64.0,"totalMappedPct":55.43},{"booth":88,"totalElectors":973,"cutoffElectors":716,"bloMapped":336,"totalMapped":336,"bloMappedPct":46.93,"ageCutoff":257,"progeny18":192,"progenyPct":68.25,"totalMappedPct":54.27},{"booth":93,"totalElectors":843,"cutoffElectors":606,"bloMapped":398,"totalMapped":398,"bloMappedPct":65.68,"ageCutoff":238,"progeny18":197,"progenyPct":107.09,"totalMappedPct":70.58},{"booth":95,"totalElectors":1193,"cutoffElectors":848,"bloMapped":457,"totalMapped":458,"bloMappedPct":54.01,"ageCutoff":344,"progeny18":292,"progenyPct":112.09,"totalMappedPct":62.78},{"booth":96,"totalElectors":543,"cutoffElectors":356,"bloMapped":239,"totalMapped":239,"bloMappedPct":67.13,"ageCutoff":187,"progeny18":160,"progenyPct":83.42,"totalMappedPct":73.48},{"booth":97,"totalElectors":770,"cutoffElectors":522,"bloMapped":402,"totalMapped":402,"bloMappedPct":77.01,"ageCutoff":249,"progeny18":253,"progenyPct":86.38,"totalMappedPct":85.06}],"28":[{"booth":12,"totalElectors":1106,"cutoffElectors":805,"bloMapped":437,"totalMapped":437,"bloMappedPct":54.29,"ageCutoff":292,"progeny18":237,"progenyPct":73.05,"totalMappedPct":63.02},{"booth":75,"totalElectors":620,"cutoffElectors":427,"bloMapped":263,"totalMapped":263,"bloMappedPct":61.59,"ageCutoff":195,"progeny18":168,"progenyPct":88.44,"totalMappedPct":69.52},{"booth":78,"totalElectors":791,"cutoffElectors":405,"bloMapped":138,"totalMapped":138,"bloMappedPct":34.07,"ageCutoff":386,"progeny18":217,"progenyPct":45.48,"totalMappedPct":44.88},{"booth":79,"totalElectors":726,"cutoffElectors":646,"bloMapped":460,"totalMapped":460,"bloMappedPct":71.21,"ageCutoff":80,"progeny18":73,"progenyPct":117.58,"totalMappedPct":73.42},{"booth":80,"totalElectors":1113,"cutoffElectors":793,"bloMapped":382,"totalMapped":382,"bloMappedPct":48.17,"ageCutoff":319,"progeny18":169,"progenyPct":67.46,"totalMappedPct":49.51},{"booth":81,"totalElectors":1316,"cutoffElectors":976,"bloMapped":534,"totalMapped":534,"bloMappedPct":54.71,"ageCutoff":340,"progeny18":226,"progenyPct":59.67,"totalMappedPct":57.75},{"booth":85,"totalElectors":674,"cutoffElectors":506,"bloMapped":282,"totalMapped":282,"bloMappedPct":55.73,"ageCutoff":167,"progeny18":139,"progenyPct":100.0,"totalMappedPct":62.46},{"booth":86,"totalElectors":1245,"cutoffElectors":885,"bloMapped":432,"totalMapped":432,"bloMappedPct":48.81,"ageCutoff":361,"progeny18":219,"progenyPct":65.34,"totalMappedPct":52.29},{"booth":87,"totalElectors":511,"cutoffElectors":366,"bloMapped":196,"totalMapped":196,"bloMappedPct":53.55,"ageCutoff":149,"progeny18":112,"progenyPct":88.89,"totalMappedPct":60.27}],"29":[{"booth":68,"totalElectors":700,"cutoffElectors":476,"bloMapped":195,"totalMapped":195,"bloMappedPct":40.97,"ageCutoff":224,"progeny18":145,"progenyPct":56.09,"totalMappedPct":48.57},{"booth":69,"totalElectors":928,"cutoffElectors":663,"bloMapped":369,"totalMapped":369,"bloMappedPct":55.66,"ageCutoff":264,"progeny18":176,"progenyPct":64.18,"totalMappedPct":58.73},{"booth":71,"totalElectors":1071,"cutoffElectors":748,"bloMapped":428,"totalMapped":428,"bloMappedPct":57.22,"ageCutoff":324,"progeny18":221,"progenyPct":73.98,"totalMappedPct":60.6},{"booth":72,"totalElectors":582,"cutoffElectors":404,"bloMapped":226,"totalMapped":226,"bloMappedPct":55.94,"ageCutoff":177,"progeny18":151,"progenyPct":70.43,"totalMappedPct":64.78},{"booth":73,"totalElectors":1236,"cutoffElectors":806,"bloMapped":567,"totalMapped":567,"bloMappedPct":70.35,"ageCutoff":428,"progeny18":371,"progenyPct":99.33,"totalMappedPct":75.89}],"31":[{"booth":15,"totalElectors":531,"cutoffElectors":380,"bloMapped":208,"totalMapped":208,"bloMappedPct":54.74,"ageCutoff":151,"progeny18":171,"progenyPct":101.85,"totalMappedPct":71.37},{"booth":16,"totalElectors":1041,"cutoffElectors":740,"bloMapped":388,"totalMapped":388,"bloMappedPct":52.43,"ageCutoff":304,"progeny18":200,"progenyPct":50.79,"totalMappedPct":56.48},{"booth":18,"totalElectors":1196,"cutoffElectors":829,"bloMapped":375,"totalMapped":375,"bloMappedPct":45.24,"ageCutoff":369,"progeny18":265,"progenyPct":73.06,"totalMappedPct":53.51},{"booth":19,"totalElectors":1146,"cutoffElectors":796,"bloMapped":515,"totalMapped":515,"bloMappedPct":64.7,"ageCutoff":352,"progeny18":304,"progenyPct":74.66,"totalMappedPct":71.47},{"booth":20,"totalElectors":1235,"cutoffElectors":856,"bloMapped":516,"totalMapped":516,"bloMappedPct":60.28,"ageCutoff":383,"progeny18":431,"progenyPct":99.75,"totalMappedPct":76.68},{"booth":21,"totalElectors":993,"cutoffElectors":690,"bloMapped":322,"totalMapped":322,"bloMappedPct":46.67,"ageCutoff":294,"progeny18":254,"progenyPct":79.28,"totalMappedPct":58.01},{"booth":23,"totalElectors":1104,"cutoffElectors":772,"bloMapped":336,"totalMapped":336,"bloMappedPct":43.52,"ageCutoff":332,"progeny18":210,"progenyPct":91.44,"totalMappedPct":49.46}],"32":[{"booth":27,"totalElectors":1090,"cutoffElectors":754,"bloMapped":422,"totalMapped":422,"bloMappedPct":55.97,"ageCutoff":338,"progeny18":202,"progenyPct":52.38,"totalMappedPct":57.25},{"booth":28,"totalElectors":895,"cutoffElectors":643,"bloMapped":433,"totalMapped":433,"bloMappedPct":67.34,"ageCutoff":251,"progeny18":282,"progenyPct":90.84,"totalMappedPct":79.89},{"booth":29,"totalElectors":1456,"cutoffElectors":991,"bloMapped":618,"totalMapped":618,"bloMappedPct":62.36,"ageCutoff":471,"progeny18":389,"progenyPct":93.48,"totalMappedPct":69.16},{"booth":30,"totalElectors":1483,"cutoffElectors":1059,"bloMapped":570,"totalMapped":570,"bloMappedPct":53.82,"ageCutoff":434,"progeny18":352,"progenyPct":73.74,"totalMappedPct":62.17},{"booth":63,"totalElectors":1509,"cutoffElectors":1046,"bloMapped":498,"totalMapped":498,"bloMappedPct":47.61,"ageCutoff":464,"progeny18":259,"progenyPct":64.17,"totalMappedPct":50.17}],"34":[{"booth":45,"totalElectors":1115,"cutoffElectors":729,"bloMapped":401,"totalMapped":401,"bloMappedPct":55.01,"ageCutoff":385,"progeny18":282,"progenyPct":101.49,"totalMappedPct":61.26},{"booth":60,"totalElectors":930,"cutoffElectors":658,"bloMapped":427,"totalMapped":427,"bloMappedPct":64.89,"ageCutoff":289,"progeny18":368,"progenyPct":111.0,"totalMappedPct":85.48},{"booth":134,"totalElectors":899,"cutoffElectors":614,"bloMapped":276,"totalMapped":276,"bloMappedPct":44.95,"ageCutoff":289,"progeny18":308,"progenyPct":86.27,"totalMappedPct":64.96},{"booth":135,"totalElectors":722,"cutoffElectors":514,"bloMapped":374,"totalMapped":374,"bloMappedPct":72.76,"ageCutoff":210,"progeny18":262,"progenyPct":103.96,"totalMappedPct":88.09},{"booth":136,"totalElectors":1354,"cutoffElectors":835,"bloMapped":338,"totalMapped":338,"bloMappedPct":40.48,"ageCutoff":511,"progeny18":495,"progenyPct":109.62,"totalMappedPct":61.52},{"booth":139,"totalElectors":1274,"cutoffElectors":936,"bloMapped":472,"totalMapped":472,"bloMappedPct":50.43,"ageCutoff":343,"progeny18":273,"progenyPct":104.67,"totalMappedPct":58.48}],"36":[{"booth":36,"totalElectors":650,"cutoffElectors":447,"bloMapped":274,"totalMapped":274,"bloMappedPct":61.3,"ageCutoff":204,"progeny18":164,"progenyPct":67.76,"totalMappedPct":67.38},{"booth":37,"totalElectors":971,"cutoffElectors":668,"bloMapped":370,"totalMapped":370,"bloMappedPct":55.39,"ageCutoff":302,"progeny18":291,"progenyPct":71.08,"totalMappedPct":68.07},{"booth":38,"totalElectors":1067,"cutoffElectors":729,"bloMapped":419,"totalMapped":419,"bloMappedPct":57.48,"ageCutoff":342,"progeny18":308,"progenyPct":62.57,"totalMappedPct":68.13},{"booth":41,"totalElectors":1063,"cutoffElectors":825,"bloMapped":414,"totalMapped":414,"bloMappedPct":50.18,"ageCutoff":241,"progeny18":139,"progenyPct":58.43,"totalMappedPct":52.02},{"booth":42,"totalElectors":720,"cutoffElectors":408,"bloMapped":148,"totalMapped":148,"bloMappedPct":36.27,"ageCutoff":324,"progeny18":229,"progenyPct":50.46,"totalMappedPct":52.36}],"38":[{"booth":133,"totalElectors":970,"cutoffElectors":699,"bloMapped":698,"totalMapped":698,"bloMappedPct":99.86,"ageCutoff":272,"progeny18":349,"progenyPct":103.89,"totalMappedPct":107.94},{"booth":138,"totalElectors":917,"cutoffElectors":663,"bloMapped":353,"totalMapped":353,"bloMappedPct":53.24,"ageCutoff":285,"progeny18":235,"progenyPct":84.75,"totalMappedPct":64.12},{"booth":140,"totalElectors":1203,"cutoffElectors":853,"bloMapped":390,"totalMapped":390,"bloMappedPct":45.72,"ageCutoff":350,"progeny18":248,"progenyPct":87.3,"totalMappedPct":53.03},{"booth":166,"totalElectors":1181,"cutoffElectors":794,"bloMapped":411,"totalMapped":411,"bloMappedPct":51.76,"ageCutoff":384,"progeny18":283,"progenyPct":84.58,"totalMappedPct":58.76},{"booth":167,"totalElectors":1173,"cutoffElectors":777,"bloMapped":430,"totalMapped":430,"bloMappedPct":55.34,"ageCutoff":399,"progeny18":360,"progenyPct":89.47,"totalMappedPct":67.35},{"booth":171,"totalElectors":852,"cutoffElectors":617,"bloMapped":334,"totalMapped":334,"bloMappedPct":54.13,"ageCutoff":379,"progeny18":286,"progenyPct":90.26,"totalMappedPct":71.6}],"40":[{"booth":129,"totalElectors":945,"cutoffElectors":697,"bloMapped":412,"totalMapped":412,"bloMappedPct":59.11,"ageCutoff":243,"progeny18":319,"progenyPct":144.84,"totalMappedPct":77.35},{"booth":130,"totalElectors":1276,"cutoffElectors":848,"bloMapped":327,"totalMapped":327,"bloMappedPct":38.56,"ageCutoff":451,"progeny18":316,"progenyPct":81.45,"totalMappedPct":50.39},{"booth":131,"totalElectors":1016,"cutoffElectors":709,"bloMapped":238,"totalMapped":238,"bloMappedPct":33.57,"ageCutoff":306,"progeny18":199,"progenyPct":72.48,"totalMappedPct":43.01},{"booth":132,"totalElectors":1093,"cutoffElectors":754,"bloMapped":378,"totalMapped":378,"bloMappedPct":50.13,"ageCutoff":344,"progeny18":425,"progenyPct":98.9,"totalMappedPct":73.47},{"booth":146,"totalElectors":1337,"cutoffElectors":823,"bloMapped":346,"totalMapped":346,"bloMappedPct":42.04,"ageCutoff":529,"progeny18":402,"progenyPct":68.43,"totalMappedPct":55.95},{"booth":147,"totalElectors":313,"cutoffElectors":192,"bloMapped":100,"totalMapped":100,"bloMappedPct":52.08,"ageCutoff":120,"progeny18":100,"progenyPct":97.64,"totalMappedPct":63.9}],"41":[{"booth":124,"totalElectors":728,"cutoffElectors":498,"bloMapped":292,"totalMapped":292,"bloMappedPct":58.63,"ageCutoff":229,"progeny18":173,"progenyPct":97.11,"totalMappedPct":63.87},{"booth":125,"totalElectors":954,"cutoffElectors":678,"bloMapped":473,"totalMapped":473,"bloMappedPct":69.76,"ageCutoff":274,"progeny18":243,"progenyPct":115.72,"totalMappedPct":75.05},{"booth":126,"totalElectors":761,"cutoffElectors":531,"bloMapped":385,"totalMapped":385,"bloMappedPct":72.5,"ageCutoff":230,"progeny18":166,"progenyPct":123.53,"totalMappedPct":72.4},{"booth":127,"totalElectors":1451,"cutoffElectors":1084,"bloMapped":605,"totalMapped":605,"bloMappedPct":55.81,"ageCutoff":366,"progeny18":246,"progenyPct":72.34,"totalMappedPct":58.65},{"booth":128,"totalElectors":988,"cutoffElectors":687,"bloMapped":451,"totalMapped":451,"bloMappedPct":65.65,"ageCutoff":303,"progeny18":218,"progenyPct":67.6,"totalMappedPct":67.71}],"42":[{"booth":74,"totalElectors":1229,"cutoffElectors":891,"bloMapped":506,"totalMapped":506,"bloMappedPct":56.79,"ageCutoff":338,"progeny18":243,"progenyPct":86.7,"totalMappedPct":60.94},{"booth":76,"totalElectors":888,"cutoffElectors":600,"bloMapped":342,"totalMapped":342,"bloMappedPct":57.0,"ageCutoff":294,"progeny18":204,"progenyPct":63.52,"totalMappedPct":61.49},{"booth":77,"totalElectors":1359,"cutoffElectors":953,"bloMapped":542,"totalMapped":542,"bloMappedPct":56.87,"ageCutoff":408,"progeny18":225,"progenyPct":78.84,"totalMappedPct":56.44},{"booth":112,"totalElectors":1250,"cutoffElectors":889,"bloMapped":457,"totalMapped":457,"bloMappedPct":51.41,"ageCutoff":354,"progeny18":229,"progenyPct":63.78,"totalMappedPct":54.88},{"booth":115,"totalElectors":739,"cutoffElectors":495,"bloMapped":319,"totalMapped":319,"bloMappedPct":64.44,"ageCutoff":244,"progeny18":257,"progenyPct":85.77,"totalMappedPct":77.94},{"booth":117,"totalElectors":1348,"cutoffElectors":951,"bloMapped":578,"totalMapped":578,"bloMappedPct":60.78,"ageCutoff":399,"progeny18":258,"progenyPct":85.68,"totalMappedPct":62.02},{"booth":118,"totalElectors":851,"cutoffElectors":565,"bloMapped":326,"totalMapped":326,"bloMappedPct":57.7,"ageCutoff":286,"progeny18":314,"progenyPct":113.5,"totalMappedPct":75.21}],"46":[{"booth":141,"totalElectors":1062,"cutoffElectors":755,"bloMapped":434,"totalMapped":434,"bloMappedPct":57.48,"ageCutoff":311,"progeny18":288,"progenyPct":99.7,"totalMappedPct":67.98},{"booth":145,"totalElectors":613,"cutoffElectors":382,"bloMapped":229,"totalMapped":229,"bloMappedPct":59.95,"ageCutoff":230,"progeny18":177,"progenyPct":62.3,"totalMappedPct":66.23},{"booth":149,"totalElectors":1043,"cutoffElectors":687,"bloMapped":349,"totalMapped":349,"bloMappedPct":50.8,"ageCutoff":359,"progeny18":243,"progenyPct":66.58,"totalMappedPct":56.76},{"booth":150,"totalElectors":1377,"cutoffElectors":935,"bloMapped":540,"totalMapped":540,"bloMappedPct":57.75,"ageCutoff":445,"progeny18":271,"progenyPct":61.47,"totalMappedPct":58.9}],"48":[{"booth":137,"totalElectors":926,"cutoffElectors":547,"bloMapped":304,"totalMapped":304,"bloMappedPct":55.58,"ageCutoff":373,"progeny18":238,"progenyPct":63.94,"totalMappedPct":58.53},{"booth":176,"totalElectors":951,"cutoffElectors":668,"bloMapped":361,"totalMapped":361,"bloMappedPct":54.04,"ageCutoff":231,"progeny18":218,"progenyPct":182.58,"totalMappedPct":96.45},{"booth":177,"totalElectors":584,"cutoffElectors":425,"bloMapped":247,"totalMapped":247,"bloMappedPct":58.12,"ageCutoff":288,"progeny18":275,"progenyPct":73.44,"totalMappedPct":66.88},{"booth":178,"totalElectors":1233,"cutoffElectors":846,"bloMapped":554,"totalMapped":554,"bloMappedPct":65.48,"ageCutoff":164,"progeny18":171,"progenyPct":73.1,"totalMappedPct":71.58},{"booth":187,"totalElectors":1396,"cutoffElectors":976,"bloMapped":538,"totalMapped":538,"bloMappedPct":55.12,"ageCutoff":143,"progeny18":213,"progenyPct":125.16,"totalMappedPct":87.78}],"59":[{"booth":158,"totalElectors":827,"cutoffElectors":589,"bloMapped":297,"totalMapped":297,"bloMappedPct":50.42,"ageCutoff":241,"progeny18":322,"progenyPct":140.45,"totalMappedPct":74.85},{"booth":159,"totalElectors":800,"cutoffElectors":662,"bloMapped":269,"totalMapped":269,"bloMappedPct":40.63,"ageCutoff":128,"progeny18":135,"progenyPct":140.0,"totalMappedPct":50.5},{"booth":160,"totalElectors":1019,"cutoffElectors":749,"bloMapped":402,"totalMapped":402,"bloMappedPct":53.67,"ageCutoff":280,"progeny18":238,"progenyPct":69.7,"totalMappedPct":62.81},{"booth":161,"totalElectors":1127,"cutoffElectors":825,"bloMapped":553,"totalMapped":553,"bloMappedPct":67.03,"ageCutoff":285,"progeny18":254,"progenyPct":121.43,"totalMappedPct":71.61},{"booth":224,"totalElectors":834,"cutoffElectors":608,"bloMapped":394,"totalMapped":394,"bloMappedPct":64.8,"ageCutoff":226,"progeny18":270,"progenyPct":148.21,"totalMappedPct":79.62},{"booth":225,"totalElectors":754,"cutoffElectors":526,"bloMapped":307,"totalMapped":307,"bloMappedPct":58.37,"ageCutoff":227,"progeny18":232,"progenyPct":115.13,"totalMappedPct":71.49},{"booth":245,"totalElectors":1260,"cutoffElectors":792,"bloMapped":469,"totalMapped":469,"bloMappedPct":59.22,"ageCutoff":468,"progeny18":370,"progenyPct":83.94,"totalMappedPct":66.59},{"booth":246,"totalElectors":1090,"cutoffElectors":685,"bloMapped":410,"totalMapped":410,"bloMappedPct":59.85,"ageCutoff":409,"progeny18":375,"progenyPct":85.88,"totalMappedPct":72.02}],"60":[{"booth":98,"totalElectors":824,"cutoffElectors":618,"bloMapped":299,"totalMapped":299,"bloMappedPct":48.38,"ageCutoff":224,"progeny18":334,"progenyPct":99.18,"totalMappedPct":76.82},{"booth":99,"totalElectors":1354,"cutoffElectors":723,"bloMapped":420,"totalMapped":420,"bloMappedPct":58.09,"ageCutoff":624,"progeny18":779,"progenyPct":136.21,"totalMappedPct":88.55}]};
-
 // ─── Priority helpers ─────────────────────────────────────────────────────────
 const PRIORITY_CONFIG = {
   CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: '🔴 CRITICAL', order: 0 },
@@ -654,434 +651,6 @@ function AllWardsHeatmap({ onSelectWard }) {
           {showAll ? '▲ Show Less' : `▼ Show All ${wards.length} Wards`}
         </button>
       )}
-    </div>
-  );
-}
-
-// ─── Ward-level SIR Booth Drill-Down Table ────────────────────────────────────
-function WardBoothDrillDown({ wardNum }) {
-  const booths = SIR_BOOTH_DATA[String(wardNum)];
-  if (!booths || booths.length === 0) return null;
-
-  const wardTotal = booths.reduce((a, b) => a + b.totalElectors, 0);
-  const wardBLO   = booths.reduce((a, b) => a + b.bloMapped, 0);
-  const wardProg  = booths.reduce((a, b) => a + b.progeny18, 0);
-  const wardMapped= booths.reduce((a, b) => a + b.totalMapped, 0);
-  const weakBooths = booths.filter(b => b.totalMappedPct < 60);
-  const strongBooths = booths.filter(b => b.totalMappedPct >= 75);
-
-  return (
-    <div style={{
-      background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))',
-      border: '1px solid rgba(34,211,238,0.15)',
-      borderRadius: 14, overflow: 'hidden', marginTop: 16,
-    }}>
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg,rgba(34,211,238,0.1),rgba(34,211,238,0.02))',
-        borderBottom: '1px solid rgba(34,211,238,0.12)',
-        padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>📋</div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#22d3ee' }}>Booth-Level SIR Drill-Down</div>
-            <div style={{ fontSize: 10, color: 'rgba(34,211,238,0.5)', marginTop: 1 }}>{booths.length} booths · {wardTotal.toLocaleString()} total electors</div>
-          </div>
-        </div>
-        {/* Ward totals */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {[
-            { label: 'BLO Mapped', val: ((wardBLO/wardTotal)*100).toFixed(1)+'%', ok: wardBLO/wardTotal >= 0.6, color: '#22d3ee' },
-            { label: 'Progeny', val: wardProg.toLocaleString(), ok: true, color: '#a78bfa' },
-            { label: 'Weak Booths', val: weakBooths.length, ok: weakBooths.length === 0, color: weakBooths.length > 0 ? '#f87171' : '#10b981' },
-          ].map(({ label, val, ok, color }) => (
-            <div key={label} style={{ background: ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 8, padding: '4px 10px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color }}>{val}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Weak booths alert */}
-      {weakBooths.length > 0 && (
-        <div style={{ background: 'rgba(239,68,68,0.06)', borderBottom: '1px solid rgba(239,68,68,0.12)', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12 }}>⚠</span>
-          <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600 }}>
-            {weakBooths.length} booth{weakBooths.length > 1 ? 's' : ''} below 60% SIR mapping: Booths {weakBooths.map(b => b.booth).join(', ')}
-          </span>
-        </div>
-      )}
-
-      {/* Table header */}
-      <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1fr 1fr 1fr 1fr', gap: 4, padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.2)' }}>
-        {['Booth', 'Electors', 'BLO Map%', 'Progeny%', 'Mapped%', 'Status'].map(h => (
-          <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
-        ))}
-      </div>
-
-      {/* Table rows */}
-      {booths.map(b => {
-        const weak = b.totalMappedPct < 60;
-        const good = b.totalMappedPct >= 75;
-        const rowColor = weak ? 'rgba(239,68,68,0.04)' : good ? 'rgba(16,185,129,0.03)' : 'transparent';
-        return (
-          <div key={b.booth} style={{
-            display: 'grid', gridTemplateColumns: '50px 1fr 1fr 1fr 1fr 1fr',
-            gap: 4, padding: '7px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)',
-            background: rowColor, alignItems: 'center',
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#22d3ee' }}>{b.booth}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-2)' }}>{b.totalElectors.toLocaleString()}</div>
-            <div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: b.bloMappedPct >= 60 ? '#10b981' : '#f87171' }}>{b.bloMappedPct}%</span>
-              <div style={{ marginTop: 2, height: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 1 }}>
-                <div style={{ width: `${Math.min(b.bloMappedPct, 100)}%`, height: '100%', background: b.bloMappedPct >= 60 ? '#10b981' : '#ef4444', borderRadius: 1 }} />
-              </div>
-            </div>
-            <div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: b.progenyPct >= 80 ? '#a78bfa' : '#f59e0b' }}>{b.progenyPct}%</span>
-            </div>
-            <div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b' }}>{b.totalMappedPct}%</span>
-              <div style={{ marginTop: 2, height: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 1 }}>
-                <div style={{ width: `${Math.min(b.totalMappedPct, 100)}%`, height: '100%', background: weak ? '#ef4444' : good ? '#10b981' : '#f59e0b', borderRadius: 1 }} />
-              </div>
-            </div>
-            <div>
-              <span style={{ fontSize: 9, fontWeight: 700, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b', background: weak ? 'rgba(239,68,68,0.1)' : good ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', borderRadius: 4, padding: '2px 5px' }}>
-                {weak ? '⚠ LOW' : good ? '✓ GOOD' : '~ OK'}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Ward-level bar chart summary */}
-      <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Booth Mapping Distribution</div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 44 }}>
-          {booths.map(b => {
-            const h = Math.round((b.totalMappedPct / 120) * 44);
-            const color = b.totalMappedPct < 60 ? '#ef4444' : b.totalMappedPct >= 75 ? '#10b981' : '#f59e0b';
-            return (
-              <div key={b.booth} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <div style={{ width: '100%', height: h, background: `${color}cc`, borderRadius: '2px 2px 0 0', minHeight: 4, position: 'relative' }}
-                  title={`Booth ${b.booth}: ${b.totalMappedPct}%`} />
-                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', transform: 'rotate(-45deg)', transformOrigin: 'center', whiteSpace: 'nowrap' }}>{b.booth}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Ward Political Snapshot (for selected ward, shown near top) ───────────────
-function WardPoliticalSnapshot({ wardNum }) {
-  const d = SIR_WARD_DATA[Number(wardNum)];
-  if (!d) return null;
-  const pCfg   = PRIORITY_CONFIG[d.priority]   || PRIORITY_CONFIG.NORMAL;
-  const clsCfg = CLASSIFICATION_CONFIG[d.classification] || { color: '#8899bb', bg: 'rgba(255,255,255,0.05)', label: d.classification };
-  const bjpWin = d.margin > 0;
-  const isTight = Math.abs(d.margin) < 10;
-  const pollBelow = d.pollRate < 60.7;
-  const booths = SIR_BOOTH_DATA[String(wardNum)] || [];
-  const weakCount = booths.filter(b => b.totalMappedPct < 60).length;
-
-  return (
-    <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }} className="anim-fade-up">
-
-      {/* Poll rate card */}
-      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: `1px solid ${pollBelow ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.2)'}`, borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Voter Turnout</div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-          <span style={{ fontSize: 26, fontWeight: 900, color: pollBelow ? '#f87171' : '#10b981', fontFamily: 'var(--font-display)' }}>{d.pollRate}%</span>
-          <span style={{ fontSize: 11, color: pollBelow ? '#f87171' : '#10b981', fontWeight: 700 }}>{pollBelow ? '▼' : '▲'} {Math.abs((d.pollRate-60.7).toFixed(1))}% vs avg</span>
-        </div>
-        <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
-          <div style={{ position: 'absolute', left: '60.7%', top: 0, bottom: 0, width: 1.5, background: 'rgba(255,255,255,0.3)', zIndex: 2 }} />
-          <div style={{ width: `${d.pollRate}%`, height: '100%', background: pollBelow ? 'linear-gradient(90deg,#ef444480,#ef4444)' : 'linear-gradient(90deg,#10b98180,#10b981)', borderRadius: 3 }} />
-        </div>
-        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginTop: 4, textAlign: 'right' }}>Constituency avg: 60.7%</div>
-      </div>
-
-      {/* BJP vs INC card */}
-      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Political Projection</div>
-        <div style={{ display: 'flex', borderRadius: 5, overflow: 'hidden', height: 20, marginBottom: 8 }}>
-          <div style={{ width: `${d.bjpProj}%`, background: 'linear-gradient(90deg,#f97316,#fb923c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {d.bjpProj > 20 && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{d.bjpProj}%</span>}
-          </div>
-          <div style={{ flex: 1, background: 'linear-gradient(90deg,#10b981,#34d399)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {d.congProj > 20 && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{d.congProj}%</span>}
-          </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#f97316' }}>BJP {d.bjpProj}%</span>
-          <div style={{ background: isTight ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isTight ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 5, padding: '2px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 900, color: bjpWin ? '#f97316' : '#10b981' }}>{bjpWin ? '+' : ''}{d.margin}%</div>
-            {isTight && <div style={{ fontSize: 8, color: '#f59e0b', fontWeight: 700 }}>⚠ TIGHT</div>}
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>INC {d.congProj}%</span>
-        </div>
-      </div>
-
-      {/* SIR survey card */}
-      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>SIR Survey Status</div>
-        {[
-          { label: 'BLO Mapped', val: d.bloMapped, threshold: 60, color: '#22d3ee' },
-          { label: 'Progeny 18+', val: d.progeny, threshold: 80, color: '#a78bfa' },
-          { label: 'Total Mapped', val: d.totalMapped, threshold: 65, color: '#f59e0b' },
-        ].map(({ label, val, threshold, color }) => {
-          const ok = val >= threshold;
-          return (
-            <div key={label} style={{ marginBottom: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: ok ? color : '#f87171' }}>{val.toFixed(1)}% {ok ? '✓' : '⚠'}</span>
-              </div>
-              <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
-                <div style={{ width: `${Math.min(val, 100)}%`, height: '100%', background: ok ? color : '#ef4444', borderRadius: 2 }} />
-              </div>
-            </div>
-          );
-        })}
-        {weakCount > 0 && (
-          <div style={{ marginTop: 6, fontSize: 10, color: '#f87171', fontWeight: 600 }}>⚠ {weakCount} booth{weakCount > 1 ? 's' : ''} below 60% threshold</div>
-        )}
-      </div>
-
-      {/* Community card */}
-      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Community Composition</div>
-        {[
-          { label: 'Hindu', pct: d.hindu, color: '#f97316' },
-          { label: 'Muslim', pct: d.muslim, color: '#10b981' },
-          { label: 'Christian', pct: d.christian, color: '#8b5cf6' },
-        ].map(({ label, pct, color }) => (
-          <div key={label} style={{ marginBottom: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-              <span style={{ fontSize: 11, fontWeight: 800, color }}>{pct}%</span>
-            </div>
-            <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
-              <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 2 }} />
-            </div>
-          </div>
-        ))}
-        <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          <span style={{ fontSize: 9, background: clsCfg.bg, color: clsCfg.color, borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>{clsCfg.label}</span>
-          <span style={{ fontSize: 9, background: pCfg.bg, color: pCfg.color, borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>{pCfg.label}</span>
-        </div>
-      </div>
-
-    </div>
-  );
-}
-
-// ─── Ward vs Constituency Comparison Panel ────────────────────────────────────
-function WardVsConstituency({ wardNum }) {
-  const d = SIR_WARD_DATA[Number(wardNum)];
-  if (!d) return null;
-
-  const allWards = Object.values(SIR_WARD_DATA);
-  const avgPoll    = (allWards.reduce((s, w) => s + w.pollRate, 0)    / allWards.length).toFixed(1);
-  const avgBLO     = (allWards.reduce((s, w) => s + w.bloMapped, 0)   / allWards.length).toFixed(1);
-  const avgTotal   = (allWards.reduce((s, w) => s + w.totalMapped, 0) / allWards.length).toFixed(1);
-  const avgElectors= Math.round(allWards.reduce((s, w) => s + w.totalElectors, 0) / allWards.length);
-
-  // rank this ward
-  const sortedPoll  = [...allWards].sort((a,b) => b.pollRate    - a.pollRate);
-  const sortedMapped= [...allWards].sort((a,b) => b.totalMapped - a.totalMapped);
-  const sortedBLO   = [...allWards].sort((a,b) => b.bloMapped   - a.bloMapped);
-
-  const rankPoll  = sortedPoll.findIndex(w => w.pollRate    === d.pollRate)    + 1;
-  const rankMapped= sortedMapped.findIndex(w => w.totalMapped=== d.totalMapped)+ 1;
-  const rankBLO   = sortedBLO.findIndex(w => w.bloMapped   === d.bloMapped)   + 1;
-  const total38   = allWards.length;
-
-  const metrics = [
-    { label: 'Voter Turnout',  ward: d.pollRate,    avg: parseFloat(avgPoll),    rank: rankPoll,   unit: '%', threshold: 60.7,  color: '#22d3ee' },
-    { label: 'BLO Mapped',    ward: d.bloMapped,   avg: parseFloat(avgBLO),     rank: rankBLO,    unit: '%', threshold: 60,    color: '#f59e0b' },
-    { label: 'Total Mapped',  ward: d.totalMapped, avg: parseFloat(avgTotal),   rank: rankMapped, unit: '%', threshold: 65,    color: '#10b981' },
-  ];
-
-  return (
-    <div style={{
-      background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))',
-      border: '1px solid rgba(255,255,255,0.07)',
-      borderRadius: 14, padding: '14px', marginTop: 16,
-    }} className="anim-fade-up">
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>Ward vs Constituency Average</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>How Ward {wardNum} compares across {total38} wards</div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {metrics.map(({ label, ward, avg, rank, unit, threshold, color }) => {
-          const aboveAvg = ward >= avg;
-          const aboveThreshold = ward >= threshold;
-          const wardW  = Math.min(ward / 1.2, 100);
-          const avgW   = Math.min(avg  / 1.2, 100);
-
-          return (
-            <div key={label}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{label}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.04)', borderRadius: 4, padding: '1px 6px' }}>Avg {avg}{unit}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: aboveThreshold ? color : '#f87171' }}>{ward}{unit}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.04)', borderRadius: 4, padding: '1px 5px' }}>#{rank}</span>
-                </div>
-              </div>
-              {/* Dual bar: ward vs avg */}
-              <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', left: `${avgW}%`, top: 0, bottom: 0, width: 2, background: 'rgba(255,255,255,0.3)', zIndex: 2 }} />
-                <div style={{ width: `${wardW}%`, height: '100%', background: aboveThreshold ? `linear-gradient(90deg,${color}80,${color})` : 'linear-gradient(90deg,#ef444480,#ef4444)', borderRadius: 3, transition: 'width 0.6s ease' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{aboveAvg ? `▲ ${(ward - avg).toFixed(1)}${unit} above avg` : `▼ ${(avg - ward).toFixed(1)}${unit} below avg`}</span>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Rank {rank} / {total38}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Electors info */}
-      <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-        {[
-          { label: 'This Ward', val: d.totalElectors.toLocaleString(), color: '#f59e0b', sub: 'Total Electors' },
-          { label: 'Avg Ward',  val: avgElectors.toLocaleString(), color: '#22d3ee', sub: 'Avg Electors' },
-          { label: 'Margin',    val: `${d.bjpWin || d.margin > 0 ? '+' : ''}${d.margin}%`, color: d.margin > 0 ? '#f97316' : '#10b981', sub: d.margin > 0 ? 'BJP leads' : 'INC leads' },
-        ].map(({ label, val, color, sub }) => (
-          <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color }}>{val}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{sub}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Constituency-level SIR Summary (shown on overall view) ───────────────────
-function ConstituencySIRSummary() {
-  const allWards = Object.entries(SIR_WARD_DATA);
-  const total    = allWards.length;
-
-  // Classification breakdown
-  const clsCounts = {};
-  allWards.forEach(([, d]) => {
-    const key = d.classification;
-    clsCounts[key] = (clsCounts[key] || 0) + 1;
-  });
-
-  // Priority distribution
-  const priCounts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, WATCH: 0, NORMAL: 0 };
-  allWards.forEach(([, d]) => { priCounts[d.priority] = (priCounts[d.priority] || 0) + 1; });
-
-  // Aggregates
-  const avgPoll    = (allWards.reduce((s,[,d]) => s + d.pollRate,    0) / total).toFixed(1);
-  const avgMapped  = (allWards.reduce((s,[,d]) => s + d.totalMapped, 0) / total).toFixed(1);
-  const avgBLO     = (allWards.reduce((s,[,d]) => s + d.bloMapped,   0) / total).toFixed(1);
-  const totalElect = allWards.reduce((s,[,d]) => s + d.totalElectors, 0);
-
-  const bjpWards   = allWards.filter(([,d]) => d.margin > 0).length;
-  const congWards  = allWards.filter(([,d]) => d.margin < 0).length;
-  const tightWards = allWards.filter(([,d]) => Math.abs(d.margin) < 10).length;
-
-  // Weakest 5 wards by totalMapped
-  const weakest5 = [...allWards].sort(([,a],[,b]) => a.totalMapped - b.totalMapped).slice(0, 5);
-
-  return (
-    <div style={{
-      background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))',
-      border: '1px solid rgba(139,92,246,0.2)',
-      borderRadius: 16, overflow: 'hidden', marginBottom: 18,
-    }} className="anim-fade-up">
-      {/* Header */}
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'linear-gradient(135deg,rgba(139,92,246,0.08),transparent)' }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: '#a78bfa' }}>📊 Constituency SIR Intelligence Summary</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Mangaluru City South · {total} wards · {totalElect.toLocaleString()} total electors</div>
-      </div>
-
-      <div style={{ padding: '14px 16px' }}>
-        {/* Top KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 16 }}>
-          {[
-            { label: 'BJP Wards',    val: bjpWards,           color: '#f97316', sub: 'BJP leading', icon: '🚩' },
-            { label: 'INC Wards',    val: congWards,          color: '#10b981', sub: 'Congress leading', icon: '🏳️' },
-            { label: 'Tight Races',  val: tightWards,         color: '#f59e0b', sub: 'Margin < 10%', icon: '⚖️' },
-            { label: 'Avg Turnout',  val: avgPoll+'%',        color: '#22d3ee', sub: 'Across all wards', icon: '🗳' },
-            { label: 'Avg BLO Map',  val: avgBLO+'%',         color: '#f59e0b', sub: 'SIR survey', icon: '📋' },
-            { label: 'Avg Mapped',   val: avgMapped+'%',      color: '#10b981', sub: 'Total completion', icon: '◈' },
-          ].map(({ label, val, color, sub, icon }) => (
-            <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${color}18`, borderRadius: 10, padding: '10px 12px' }}>
-              <div style={{ fontSize: 16, marginBottom: 4 }}>{icon}</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{typeof val === 'number' ? val : val}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{label}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{sub}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Priority Distribution */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Priority Distribution</div>
-          <div style={{ display: 'flex', height: 28, borderRadius: 6, overflow: 'hidden', gap: 1 }}>
-            {Object.entries(priCounts).filter(([,v]) => v > 0).map(([p, cnt]) => {
-              const cfg = PRIORITY_CONFIG[p];
-              const w   = (cnt / total * 100).toFixed(1);
-              return (
-                <div key={p} style={{ width: `${w}%`, background: cfg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: cnt > 0 ? 24 : 0, position: 'relative' }} title={`${p}: ${cnt} wards`}>
-                  {cnt >= 2 && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{cnt}</span>}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
-            {Object.entries(priCounts).filter(([,v]) => v > 0).map(([p, cnt]) => {
-              const cfg = PRIORITY_CONFIG[p];
-              return (
-                <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: cfg.color }} />
-                  {cfg.label.split(' ').slice(1).join(' ')}: {cnt}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Weakest wards */}
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>⚠ Weakest Wards by SIR Mapping</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {weakest5.map(([wNum, wd]) => {
-              const pCfg = PRIORITY_CONFIG[wd.priority] || PRIORITY_CONFIG.NORMAL;
-              const wName = WARD_NAMES[wNum] || wNum;
-              return (
-                <div key={wNum} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.1)', borderRadius: 8 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(255,255,255,0.06)', borderRadius: 3, padding: '2px 5px', color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{wNum}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-1)', flex: 1 }}>{wName}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: pCfg.color }}>{pCfg.label.split(' ')[0]}</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#f87171' }}>{wd.totalMapped.toFixed(1)}%</div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>mapped</div>
-                  </div>
-                  <div style={{ width: 50, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, flexShrink: 0 }}>
-                    <div style={{ width: `${Math.min(wd.totalMapped, 100)}%`, height: '100%', background: '#ef4444', borderRadius: 2 }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -1712,72 +1281,8 @@ export default function Dashboard() {
                   : 'Your constituency intelligence overview'
                 }</p>
               </div>
-
-              {/* ── Ward + Booth selectors stacked ── */}
-              <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* Ward selector */}
-                <WardSelector value={selectedWard} onChange={(w) => { setSelectedWard(w); setSelectedBooth(''); setBoothStats(null); }} />
-
-                {/* Booth selector — only visible when a ward is selected */}
-                {selectedWard && (
-                  <div style={{
-                    background: 'rgba(34,211,238,0.05)',
-                    border: '1px solid rgba(34,211,238,0.2)',
-                    borderRadius: 10, padding: '8px 10px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 14 }}>🗳</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(34,211,238,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Select Booth
-                        </span>
-                        {selectedBooth && (
-                          <span style={{ fontSize: 10, fontWeight: 800, color: '#22d3ee', background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 5, padding: '1px 6px' }}>
-                            #{selectedBooth}
-                          </span>
-                        )}
-                      </div>
-                      {selectedBooth && (
-                        <button
-                          onClick={() => { setSelectedBooth(''); setBoothStats(null); }}
-                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}
-                        >✕ Clear</button>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                      {(WARD_NUM_TO_BOOTHS[selectedWard] || []).map(b => {
-                        const isActive = selectedBooth === String(b);
-                        const boothSIR = (SIR_BOOTH_DATA[String(selectedWard)] || []).find(bd => bd.booth === b);
-                        const isWeak   = boothSIR && boothSIR.totalMappedPct < 60;
-                        return (
-                          <button
-                            key={b}
-                            onClick={() => setSelectedBooth(isActive ? '' : String(b))}
-                            title={boothSIR ? `Mapped: ${boothSIR.totalMappedPct}% · BLO: ${boothSIR.bloMappedPct}%` : `Booth ${b}`}
-                            style={{
-                              padding: '4px 9px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                              cursor: 'pointer', transition: 'all 0.13s', minWidth: 34, minHeight: 30,
-                              background: isActive ? '#22d3ee' : isWeak ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)',
-                              border: isActive ? '1px solid #22d3ee' : isWeak ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(255,255,255,0.1)',
-                              color: isActive ? '#090e1c' : isWeak ? '#f87171' : 'var(--text-2)',
-                              position: 'relative',
-                            }}
-                          >
-                            {b}
-                            {isWeak && !isActive && (
-                              <span style={{ position: 'absolute', top: -3, right: -3, width: 6, height: 6, borderRadius: '50%', background: '#ef4444', border: '1px solid #090e1c' }} />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {selectedBooth && (
-                      <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(34,211,238,0.5)', fontWeight: 500 }}>
-                        Booth {selectedBooth} selected · stats shown below
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div style={{ width: '100%', maxWidth: 280 }}>
+                <WardSelector value={selectedWard} onChange={setSelectedWard} />
               </div>
             </div>
           </div>
@@ -1889,21 +1394,6 @@ export default function Dashboard() {
                 <WardSIRPanel wardNum={selectedWard} />
               )}
 
-              {/* ── NEW: Ward Political Snapshot Cards ── */}
-              {selectedWard && !wardStatsLoading && (
-                <WardPoliticalSnapshot wardNum={selectedWard} />
-              )}
-
-              {/* ── NEW: Booth-Level SIR Drill-Down ── */}
-              {selectedWard && !wardStatsLoading && SIR_BOOTH_DATA[String(selectedWard)] && (
-                <WardBoothDrillDown wardNum={selectedWard} />
-              )}
-
-              {/* ── NEW: Ward vs Constituency Comparison ── */}
-              {selectedWard && !wardStatsLoading && (
-                <WardVsConstituency wardNum={selectedWard} />
-              )}
-
               {/* ── Bottom rounded border on full card ── */}
               {!wardStatsLoading && wardStats && (
                 <div style={{ height: 0, border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none', borderRadius: '0 0 14px 14px' }} />
@@ -1912,9 +1402,27 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* ── Booth Stats Panel (appears below header when booth is selected) ── */}
+          {/* ── Booth Selector ── */}
           {selectedWard && wardStats && (
             <div className="anim-fade-up" style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>Select Booth</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+                  {(WARD_NUM_TO_BOOTHS[selectedWard] || []).map(b => (
+                    <button key={b} onClick={() => setSelectedBooth(selectedBooth === String(b) ? '' : String(b))} style={{
+                      padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                      cursor: 'pointer', transition: 'all 0.15s',
+                      background: selectedBooth === String(b) ? '#f59e0b' : 'rgba(255,255,255,0.05)',
+                      border: selectedBooth === String(b) ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                      color: selectedBooth === String(b) ? '#090e1c' : 'var(--text-2)',
+                      minWidth: 38, minHeight: 36,
+                    }}>{b}</button>
+                  ))}
+                </div>
+                {selectedBooth && (
+                  <button onClick={() => { setSelectedBooth(''); setBoothStats(null); }} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--text-2)', flexShrink: 0, minHeight: 36 }}>✕ Clear</button>
+                )}
+              </div>
 
               {selectedBooth && (
                 <div style={{ marginTop: 12, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(34,211,238,0.25)' }}>
@@ -2101,11 +1609,6 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-
-          {/* ── NEW: Constituency SIR Intelligence Summary (only on overall view) ─── */}
-          {!selectedWard && (
-            <ConstituencySIRSummary />
-          )}
 
           {/* ── NEW: Risk Wards Overview (only on overall view) ───────────── */}
           {!selectedWard && (
