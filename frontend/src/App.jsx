@@ -35,19 +35,16 @@ function AuthProvider({ children }) {
     sessionStorage.removeItem('cc_token');
   }, [user]);
 
-  // ── On startup: call /auth/me to get fresh JWT and store it for Django ────
-  // This fixes cross-domain auth: FastAPI sets cookie on its domain, but Django
-  // needs the token via Authorization header. /auth/me returns a fresh token
-  // so existing sessions don't need to log out.
+  // On startup: fetch fresh token from FastAPI and store it for Django requests.
+  // Django lives on a different domain so it never receives the FastAPI cookie —
+  // we bridge this by sending the token as Authorization: Bearer in client.js.
   useEffect(() => {
     if (!user) return;
     authApi.me()
       .then(({ data }) => {
-        if (data.token) {
-          sessionStorage.setItem('cc_token', data.token);
-        }
-        // Refresh role/ward/booth in case admin changed them
-        if (data.success) {
+        if (data?.token) sessionStorage.setItem('cc_token', data.token);
+        // Refresh role/ward/booth from DB in case admin updated them
+        if (data?.success) {
           const updated = {
             ...user,
             role:   data.role   || user.role   || '',
@@ -59,13 +56,8 @@ function AuthProvider({ children }) {
           sessionStorage.setItem('cc_user', JSON.stringify(updated));
         }
       })
-      .catch(() => {
-        // Token expired or invalid — clear session
-        setUser(null);
-        sessionStorage.removeItem('cc_user');
-        sessionStorage.removeItem('cc_token');
-      });
-  }, []); // run once on mount
+      .catch(() => {}); // silent — don't log out on me() failure
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoggedIn: !!user }}>
@@ -98,7 +90,6 @@ export default function App() {
           
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
           <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
-
           <Route path="*"               element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

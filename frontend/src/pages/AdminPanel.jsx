@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../App';
 import api from '../api/client';
+import { authApi } from '../api/client';
 
 // ── Role labels ───────────────────────────────────────────────────────────────
 const ROLE_LABELS = {
@@ -202,6 +203,19 @@ export default function AdminPanel() {
   const fetchUsers = useCallback(async () => {
     setLoading(true); setError('');
     try {
+      // ── Ensure Django has a valid token via Authorization header ─────────
+      // The cc_token cookie is set on FastAPI's domain, not Django's domain.
+      // So we call authApi.me() (FastAPI) first to get a fresh JWT, then
+      // store it so client.js interceptor can add Authorization: Bearer.
+      if (!sessionStorage.getItem('cc_token')) {
+        try {
+          const meRes = await authApi.me();
+          if (meRes.data?.token) {
+            sessionStorage.setItem('cc_token', meRes.data.token);
+          }
+        } catch {}
+      }
+
       const r = await api.get('/api/admin/users/');
       if (r.data.success) setData(r.data);
       else setError(r.data.message || 'Failed to load users.');
