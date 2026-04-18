@@ -1030,10 +1030,24 @@ export default function Dashboard() {
                   <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>
                     2026 Voter Roll · Electors Data
                   </div>
+
+                  {/* Booth list row */}
+                  {(wardStats.ward2026?.boothCount > 0 || wardStats.ward2026?.boothList) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 10px' }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', flexShrink: 0 }}>Booths</span>
+                      {wardStats.ward2026?.boothCount > 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#22d3ee', flexShrink: 0 }}>{wardStats.ward2026.boothCount} booths</span>
+                      )}
+                      {wardStats.ward2026?.boothList && (
+                        <span style={{ fontSize: 10, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {wardStats.ward2026.boothList}</span>
+                      )}
+                    </div>
+                  )}
+
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8, marginBottom: 14 }}>
                     {[
                       { label: 'Total Electors', value: wardStats.ward2026?.totalElectors,  color: '#22d3ee' },
-                      { label: 'Cutoff Elec',    value: wardStats.ward2026?.cutoffElectors,  color: '#f59e0b' },
+                      { label: 'Cutoff Elec',    value: wardStats.ward2026?.cutoffElec,      color: '#f59e0b' },
                       { label: 'BLO Mapped',     value: wardStats.ward2026?.bloMapped,       color: '#10b981' },
                       { label: 'Total Mapped',   value: wardStats.ward2026?.totalMapped,     color: '#10b981' },
                       { label: '% BLO Mapped',   value: wardStats.ward2026?.pctBloMapped,    color: '#10b981', isPct: true },
