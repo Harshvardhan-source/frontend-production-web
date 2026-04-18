@@ -218,21 +218,20 @@ const ChartTip = ({ active, payload, label }) => {
 function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData, query, onSurveyDone, user }) {
   const navigate = useNavigate();
 
-  // ── RBAC: can this user start a survey for this member? ───────────────────
+  // RBAC: can this user survey this member?
   const canSurvey = (() => {
-    if (!user) return false;
+    if (!user) return true;  // no auth context = legacy, allow
     const role = user.role || '';
-    if (role === 'mla' || role === 'pa' || !role) return true;  // superuser or legacy
-    const hs        = houseSurveyData || {};
-    const boothStr  = String(hs.boothNo || member.booth || '');
-    const resolvedW = (hs.wardNumber && isNaN(hs.wardNumber) ? hs.wardNumber : '')
-      || wardByBooth(boothStr) || (wardNumber && isNaN(wardNumber) ? wardNumber : '') || '';
-    if (role === 'corporator') {
-      return String(user.ward || '').toUpperCase() === String(resolvedW || wardNumber || '').toUpperCase();
-    }
-    if (role === 'booth_worker') {
-      return String(user.booth) === boothStr;
-    }
+    if (!role || role === 'mla' || role === 'pa') return true;
+    const hs       = houseSurveyData || {};
+    const bStr     = String(hs.boothNo || member.booth || '');
+    const resWard  = (hs.wardNumber && isNaN(hs.wardNumber) ? hs.wardNumber : '')
+                   || wardByBooth(bStr)
+                   || (wardNumber && isNaN(wardNumber) ? wardNumber : '') || '';
+    if (role === 'corporator')
+      return String(user.ward || '').toUpperCase() === String(resWard || wardNumber || '').toUpperCase();
+    if (role === 'booth_worker')
+      return String(user.booth) === bStr;
     return false;
   })();
 
@@ -311,14 +310,10 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
           boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
         }}>✎ Survey</button>
       ) : (
-        <div title={
-          (user?.role === 'corporator') ? `Only your ward (${user.ward}) allowed` :
-          (user?.role === 'booth_worker') ? `Only booth ${user.booth} allowed` : 'No access'
-        } style={{
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 8, padding: '5px 12px', fontSize: 10, fontWeight: 600,
-          color: 'rgba(255,255,255,0.2)', flexShrink: 0, whiteSpace: 'nowrap', cursor: 'not-allowed',
-        }}>🔒 No Access</div>
+        <div title={user?.role === 'corporator' ? `Ward ${user.ward} only` : user?.role === 'booth_worker' ? `Booth ${user.booth} only` : 'No access'}
+          style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'5px 10px', fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.2)', flexShrink:0, cursor:'not-allowed' }}>
+          🔒 No Access
+        </div>
       )}
     </div>
   );
