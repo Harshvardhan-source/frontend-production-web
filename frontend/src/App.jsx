@@ -88,7 +88,7 @@ function AuthProvider({ children }) {
         // Network / 5xx: keep localStorage state, user stays logged in
       })
       .finally(() => setAuthReady(true));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoggedIn: !!user, authReady }}>
