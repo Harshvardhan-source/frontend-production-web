@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { surveyApi } from '../api/client';
+import { useAuth } from '../App';
 
 const WARD_BOOTHS = {
   "ALAPE NORTH":        [44,189,191,190,192,197,45],
@@ -46,10 +47,24 @@ const WARD_BOOTHS = {
 const WARD_NAMES = Object.keys(WARD_BOOTHS).sort();
 
 export default function SurveyOpt() {
+  const { user }            = useAuth();
   const [ward,   setWard]   = useState('');
   const [booth,  setBooth]  = useState('');
   const [serial, setSerial] = useState('');
   const navigate            = useNavigate();
+
+  const role        = user?.role || '';
+  const isSuperuser = role === 'mla' || role === 'pa' || !role;
+
+  // Pre-fill ward/booth for restricted roles on mount
+  useEffect(() => {
+    if (role === 'corporator' && user?.ward) {
+      setWard(user.ward.toUpperCase());
+    } else if (role === 'booth_worker' && user?.ward && user?.booth) {
+      setWard(user.ward.toUpperCase());
+      setBooth(String(user.booth));
+    }
+  }, [role, user?.ward, user?.booth]);
 
   useEffect(() => {
     surveyApi.serialNumber().then(r => setSerial(r.data.serialNumber)).catch(() => setSerial(1));
@@ -57,10 +72,21 @@ export default function SurveyOpt() {
 
   const booths = ward ? WARD_BOOTHS[ward] || [] : [];
 
-  // Reset booth when ward changes
-  const handleWardChange = (e) => { setWard(e.target.value); setBooth(''); };
+  // Reset booth when ward changes (only for superusers — others are locked)
+  const handleWardChange = (e) => {
+    if (!isSuperuser) return; // locked for restricted roles
+    setWard(e.target.value); setBooth('');
+  };
 
   const canContinue = ward && booth;
+
+  // Enforce: booth_worker can only survey their booth
+  const isBoothAllowed = (boothNum) => {
+    if (isSuperuser) return true;
+    if (role === 'corporator') return true; // any booth in their ward
+    if (role === 'booth_worker') return String(user?.booth) === String(boothNum);
+    return false;
+  };
 
   return (
     <div className="page">
@@ -86,21 +112,41 @@ export default function SurveyOpt() {
         <div className="card card-pad anim-fade-up">
           {/* Ward select */}
           <div className="field mb-16">
-            <label className="field-label">Select Ward</label>
-            <select className="input" value={ward} onChange={handleWardChange} style={{ marginTop:8 }}>
-              <option value="">— Choose a ward —</option>
-              {WARD_NAMES.map(w => <option key={w} value={w}>{w}</option>)}
-            </select>
+            <label className="field-label">
+              Select Ward
+              {!isSuperuser && <span style={{ marginLeft:8, fontSize:10, color:'rgba(245,158,11,0.7)', fontWeight:600 }}>
+                🔒 {role === 'corporator' ? 'Your ward only' : 'Fixed to your ward'}
+              </span>}
+            </label>
+            {isSuperuser ? (
+              <select className="input" value={ward} onChange={handleWardChange} style={{ marginTop:8 }}>
+                <option value="">— Choose a ward —</option>
+                {WARD_NAMES.map(w => <option key={w} value={w}>{w}</option>)}
+              </select>
+            ) : (
+              <div className="input" style={{ marginTop:8, opacity:0.7, cursor:'not-allowed', background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.25)' }}>
+                🏘 {ward || 'Not assigned'}
+              </div>
+            )}
           </div>
 
           {/* Booth select — appears after ward chosen */}
           {ward && (
             <div className="field mb-20">
-              <label className="field-label">Select Booth</label>
-              <select className="input" value={booth} onChange={e => setBooth(e.target.value)} style={{ marginTop:8 }}>
-                <option value="">— Choose a booth —</option>
-                {booths.map(b => <option key={b} value={b}>Booth {b}</option>)}
-              </select>
+              <label className="field-label">
+                Select Booth
+                {role === 'booth_worker' && <span style={{ marginLeft:8, fontSize:10, color:'rgba(34,211,238,0.7)', fontWeight:600 }}>🔒 Your booth only</span>}
+              </label>
+              {role === 'booth_worker' ? (
+                <div className="input" style={{ marginTop:8, opacity:0.7, cursor:'not-allowed', background:'rgba(34,211,238,0.06)', border:'1px solid rgba(34,211,238,0.25)' }}>
+                  🗳️ Booth {booth || 'Not assigned'}
+                </div>
+              ) : (
+                <select className="input" value={booth} onChange={e => setBooth(e.target.value)} style={{ marginTop:8 }}>
+                  <option value="">— Choose a booth —</option>
+                  {booths.filter(b => isBoothAllowed(b)).map(b => <option key={b} value={b}>Booth {b}</option>)}
+                </select>
+              )}
             </div>
           )}
 
