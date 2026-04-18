@@ -11,16 +11,20 @@ const LINKS = [
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 11l3 3L22 4"/>
-        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 012-2h11"/>
       </svg>
     ), label: 'Check SIR' },
 ];
+
+// Admin-only link — shown only to MLA and PA roles
+const ADMIN_LINK = { to: '/admin', icon: '⚙', label: 'Admin' };
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const location         = useLocation();
   const navigate         = useNavigate();
   const [open, setOpen]  = useState(false);
+  const isAdmin          = ['mla', 'pa'].includes(user?.role);
 
   const isActive = (to) =>
     to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
@@ -52,6 +56,12 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link to={ADMIN_LINK.to} className={`nav-link nav-link-admin ${isActive(ADMIN_LINK.to) ? 'nav-link-active' : ''}`}>
+              <span className="nav-link-icon">{ADMIN_LINK.icon}</span>
+              {ADMIN_LINK.label}
+            </Link>
+          )}
         </div>
 
         {/* Right side */}
@@ -77,6 +87,13 @@ export default function Navbar() {
                 <span>{l.icon}</span> {l.label}
               </Link>
             ))}
+            {isAdmin && (
+              <Link to={ADMIN_LINK.to} className={`drawer-link ${isActive(ADMIN_LINK.to) ? 'drawer-link-active' : ''}`}
+                onClick={() => setOpen(false)}
+                style={{ color: '#f59e0b' }}>
+                <span>{ADMIN_LINK.icon}</span> {ADMIN_LINK.label}
+              </Link>
+            )}
             <button onClick={handleLogout} className="btn btn-danger" style={{ margin: '8px 0 0', textAlign: 'left' }}>⏻ Logout</button>
           </div>
         )}
@@ -90,6 +107,12 @@ export default function Navbar() {
             <span className="bottom-tab-label">{l.label}</span>
           </Link>
         ))}
+        {isAdmin && (
+          <Link to={ADMIN_LINK.to} className={`bottom-tab ${isActive(ADMIN_LINK.to) ? 'bottom-tab-active' : ''}`}>
+            <span className="bottom-tab-icon">{ADMIN_LINK.icon}</span>
+            <span className="bottom-tab-label">{ADMIN_LINK.label}</span>
+          </Link>
+        )}
       </nav>
 
       <style>{`
@@ -150,6 +173,8 @@ export default function Navbar() {
         .drawer-link { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-sm); text-decoration: none; color: var(--text-2); font-size: 15px; font-weight: 500; transition: all var(--dur) var(--ease); }
         .drawer-link:hover       { color: var(--text-1); background: rgba(255,255,255,0.05); }
         .drawer-link-active      { color: var(--gold) !important; background: var(--gold-dim) !important; }
+        .nav-link-admin          { border: 1px solid rgba(245,158,11,0.2); }
+        .nav-link-admin:hover    { border-color: rgba(245,158,11,0.4); }
 
         /* ── Bottom tabs ──────────────────────────────── */
         .nav-bottom {

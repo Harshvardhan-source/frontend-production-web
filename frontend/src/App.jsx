@@ -12,6 +12,7 @@ import SchemeVoters from './pages/SchemeVoters';
 import DataView     from './pages/DataView';
 import VoterSearch  from './pages/VoterSearch';
 import SIR          from './pages/Sir';  // ← ADD THIS LINE: Import SIR component
+import AdminPanel   from './pages/AdminPanel';
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -65,26 +66,10 @@ export default function App() {
           {/* ─── ADD THIS ROUTE: SIR Module ──────────────────────────────────── */}
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
           
+          <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
           <Route path="*"               element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
 }
-
-/**
- * WHAT CHANGED:
- * 
- * 1. Added import at top:
- *    import SIR from './pages/Sir';
- * 
- * 2. Added route in Routes:
- *    <Route path="/sir" element={<Protected><SIR /></Protected>} />
- * 
- * Now when user clicks "Check SIR" in navbar:
- * - Navigates to /sir route
- * - Loads Sir.jsx component
- * - Protected by login requirement
- * - Can fetch SIR data from /api/sir-data/
- * - Can run bulk processing on /api/sir-bulk/
- */
