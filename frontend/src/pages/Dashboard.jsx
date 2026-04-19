@@ -702,7 +702,7 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
   const VOTER_ROLL_METRICS = [
     { label: 'Total Electors', key: 'totalElectors',    color: '#22d3ee', icon: '◉' },
     { label: 'Cutoff Elec',    key: 'cutoffElec',        color: '#f59e0b', icon: '📅' },
-    { label: 'BLO Mapped',     key: 'bloMapped',         color: '#10b981', icon: '◉'Check },
+    { label: 'BLO Mapped',     key: 'bloMapped',         color: '#10b981', icon: '✓' },
     { label: 'Total Mapped',   key: 'totalMapped',       color: '#10b981', icon: '◈' },
     { label: 'Age ≤ Cutoff',   key: 'ageCutoff',         color: '#8b5cf6', icon: '◉' },
     { label: 'Progeny >18',    key: 'progeny18',         color: '#a78bfa', icon: '▲' },
