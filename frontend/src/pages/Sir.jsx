@@ -440,19 +440,16 @@ function LiveCheckPanel() {
   const suggestions2002 = result?.suggestions_2002 || [];
   const rec02           = confirmedRec || result?.record_2002 || {};
   const rec25           = result?.record_2025 || {};
-  // found_2002: true when backend confirmed it OR user manually confirmed a suggestion
   const found_2002      = result?.in_2002 || !!confirmedRec;
   const showSuggestions = !result?.in_2002 && suggestions2002.length > 0 && !confirmedRec;
 
-  // When user confirms a 2002 suggestion, the category upgrades:
-  // NEW_ADDITION → RETAINED (voter now verified in both rolls)
-  // NOT_FOUND    → RETAINED (same logic)
-  // Any other    → category unchanged but found_2002 becomes true
+  // When user confirms a 2002 suggestion, upgrade classification:
+  // NEW_ADDITION or NOT_FOUND → RETAINED (now verified in both rolls)
   const effectivePrimary = confirmedRec
-    ? (primary?.category === 'NEW_ADDITION' || primary?.category === 'NOT_FOUND')
-      ? { ...primary, category:'RETAINED', label:'Long-term Voter',
-          detail:'2002 record confirmed manually — voter verified in both rolls.' }
-      : { ...primary }
+    ? (['NEW_ADDITION','NOT_FOUND'].includes(primary?.category)
+        ? { ...primary, category:'RETAINED', label:'Long-term Voter',
+            detail:'2002 record confirmed manually — voter verified in both rolls.' }
+        : primary)
     : primary;
 
   const catKey  = CAT_STATUS_MAP[effectivePrimary?.category] || 'ALL';
