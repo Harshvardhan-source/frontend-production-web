@@ -832,12 +832,6 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
                   { label: 'Male',          value: boothStats.regMale,                  color: '#22d3ee', pct: boothStats.totalReg ? Math.round(boothStats.regMale / boothStats.totalReg * 100) : 0, icon: '♂' },
                   { label: 'Female',        value: boothStats.regFemale,                color: '#ec4899', pct: boothStats.totalReg ? Math.round(boothStats.regFemale / boothStats.totalReg * 100) : 0, icon: '♀' },
                   { label: 'Coverage',      value: `${boothStats.coveragePct}%`,        color: '#8b5cf6', pct: Math.min(boothStats.coveragePct, 100), icon: '◈', isHighlight: true },
-                  // Predicted religion from 2025 voter roll
-                  ...(boothStats.predictedReligion ? [
-                    { label: 'Hindu (H)',    value: boothStats.predictedReligion.H || 0,  color: '#f97316', pct: boothStats.predictedReligion.total ? Math.round((boothStats.predictedReligion.H || 0) / boothStats.predictedReligion.total * 100) : 0, icon: '🕉' },
-                    { label: 'Muslim (M)',   value: boothStats.predictedReligion.M || 0,  color: '#10b981', pct: boothStats.predictedReligion.total ? Math.round((boothStats.predictedReligion.M || 0) / boothStats.predictedReligion.total * 100) : 0, icon: '☪' },
-                    { label: 'Christian (C)',value: boothStats.predictedReligion.C || 0,  color: '#8b5cf6', pct: boothStats.predictedReligion.total ? Math.round((boothStats.predictedReligion.C || 0) / boothStats.predictedReligion.total * 100) : 0, icon: '✝' },
-                  ] : []),
                 ].map(({ label, value, color, pct, icon, isHighlight }) => (
                   <div key={label} style={{ background: isHighlight ? `${color}12` : 'rgba(255,255,255,0.04)', border: `1px solid ${isHighlight ? color + '35' : 'rgba(255,255,255,0.08)'}`, borderRadius: 14, padding: '18px 16px' }}>
                     <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
@@ -1673,195 +1667,6 @@ function LargeFamiliesModal({ onClose }) {
   return createPortal(modal, document.body);
 }
 
-// ─── Predicted Religion Panel (H / M / C from 2025 voter roll) ───────────────
-// Renders at constituency / ward / booth level depending on what data is passed
-function PredictedReligionPanel({ religionStats, loading, level, wardName, boothNum }) {
-  const REL_CFG = [
-    { key: 'H', label: 'Hindu',     color: '#f97316', icon: '🕉', bg: 'rgba(249,115,22,0.08)',  border: 'rgba(249,115,22,0.22)' },
-    { key: 'M', label: 'Muslim',    color: '#10b981', icon: '☪', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.22)' },
-    { key: 'C', label: 'Christian', color: '#8b5cf6', icon: '✝', bg: 'rgba(139,92,246,0.08)',  border: 'rgba(139,92,246,0.22)' },
-  ];
-
-  // Pick the right data slice from the API response
-  const counts = (() => {
-    if (!religionStats) return null;
-    if (level === 'booth') {
-      // byBooth has one entry for the selected booth
-      const entry = (religionStats.byBooth || [])[0];
-      return entry || null;
-    }
-    if (level === 'ward') {
-      // byWard has one entry for the selected ward
-      const entry = (religionStats.byWard || [])[0];
-      return entry || null;
-    }
-    // constituency
-    return religionStats.constituency || null;
-  })();
-
-  const total = counts ? (counts.total || REL_CFG.reduce((s, r) => s + (counts[r.key] || 0), 0)) : 0;
-
-  // Ward table data (only for constituency & ward views)
-  const byWard  = level !== 'booth' ? (religionStats?.byWard  || []) : [];
-  const byBooth = level === 'ward'  ? (religionStats?.byBooth || []) : [];
-
-  const levelLabel = level === 'booth'
-    ? `Booth ${boothNum}`
-    : level === 'ward'
-    ? `Ward — ${wardName || ''}`
-    : 'Constituency';
-
-  return (
-    <div style={{
-      background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 18, padding: '20px 16px',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
-      marginBottom: 20,
-    }} className="anim-fade-up">
-
-      {/* Header */}
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🛐</div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)' }}>Religion Breakdown</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{levelLabel} · Predicted from 2025 voter roll</div>
-          </div>
-          {total > 0 && !loading && (
-            <div style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
-              {total.toLocaleString()} voters
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* H / M / C big count cards */}
-      {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
-          {[1,2,3].map(i => <Skeleton key={i} h={90} radius={12} />)}
-        </div>
-      ) : counts ? (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
-            {REL_CFG.map(({ key, label, color, icon, bg, border }) => {
-              const count = counts[key] || 0;
-              const pct   = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
-              return (
-                <div key={key} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 14px', position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ position: 'absolute', top: -12, right: -12, width: 50, height: 50, borderRadius: '50%', background: `radial-gradient(circle, ${color}22 0%, transparent 70%)` }} />
-                  <div style={{ fontSize: 20, marginBottom: 6 }}>{icon}</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 4 }}>
-                    {count.toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 700, marginBottom: 8 }}>
-                    <span style={{ fontSize: 14, color, fontWeight: 900 }}>{key}</span> · {label}
-                  </div>
-                  {/* Progress bar */}
-                  <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 2, transition: 'width 0.7s ease' }} />
-                  </div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 5, textAlign: 'right', fontWeight: 600 }}>{pct}%</div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Stacked proportional bar */}
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 12 }}>
-              {REL_CFG.map(({ key, color }) => {
-                const pct = total > 0 ? (((counts[key] || 0) / total) * 100).toFixed(2) : 0;
-                return <div key={key} style={{ width: `${pct}%`, background: color, transition: 'width 0.7s ease' }} title={`${key}: ${pct}%`} />;
-              })}
-              {/* Remainder for 'other' */}
-              {total > 0 && (() => {
-                const othPct = (((counts.other || 0) / total) * 100).toFixed(2);
-                return othPct > 0 ? <div style={{ flex: 1, background: 'rgba(255,255,255,0.08)' }} title={`Other: ${othPct}%`} /> : null;
-              })()}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-              {REL_CFG.map(({ key, label, color }) => (
-                <span key={key} style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 2, background: color, display: 'inline-block' }} />
-                  {key} — {label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </>
-      ) : (
-        <div style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.2)' }}>
-          <div style={{ fontSize: 28, marginBottom: 6 }}>🛐</div>
-          <div style={{ fontSize: 12 }}>No religion data available</div>
-        </div>
-      )}
-
-      {/* Ward-wise table (constituency & ward views) */}
-      {!loading && byWard.length > 0 && level !== 'booth' && (
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
-            {level === 'ward' ? 'Booth-wise Breakdown' : 'Ward-wise Breakdown'}
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                  <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {level === 'ward' ? 'Booth' : 'Ward'}
-                  </th>
-                  {REL_CFG.map(r => (
-                    <th key={r.key} style={{ textAlign: 'right', padding: '6px 8px', color: r.color, fontWeight: 800, fontSize: 11 }}>{r.key}</th>
-                  ))}
-                  <th style={{ textAlign: 'right', padding: '6px 8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 10, textTransform: 'uppercase' }}>Total</th>
-                  <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.25)', fontWeight: 700, fontSize: 10, minWidth: 90 }}>Mix</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(level === 'ward' ? byBooth : byWard).map((row, i) => {
-                  const rowTotal = row.total || (row.H + row.M + row.C + (row.other || 0));
-                  const dominant = REL_CFG.reduce((best, r) => (row[r.key] || 0) > (row[best.key] || 0) ? r : best, REL_CFG[0]);
-                  return (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.12s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <td style={{ padding: '8px 8px', fontWeight: 700, color: 'var(--text-1)' }}>
-                        {level === 'ward' ? (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(34,211,238,0.1)', color: '#22d3ee', borderRadius: 4, padding: '1px 5px' }}>B{row.boothNumber}</span>
-                          </span>
-                        ) : (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', borderRadius: 4, padding: '1px 5px' }}>{row.wardNumber}</span>
-                            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.wardName}</span>
-                          </span>
-                        )}
-                      </td>
-                      {REL_CFG.map(r => (
-                        <td key={r.key} style={{ textAlign: 'right', padding: '8px 8px', fontWeight: 700, color: r.key === dominant.key ? r.color : 'rgba(255,255,255,0.55)', fontSize: 12 }}>
-                          {(row[r.key] || 0).toLocaleString()}
-                        </td>
-                      ))}
-                      <td style={{ textAlign: 'right', padding: '8px 8px', color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{rowTotal.toLocaleString()}</td>
-                      <td style={{ padding: '8px 8px' }}>
-                        <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 5, width: 80 }}>
-                          {REL_CFG.map(r => (
-                            <div key={r.key} style={{ width: `${rowTotal > 0 ? ((row[r.key] || 0) / rowTotal * 100).toFixed(1) : 0}%`, background: r.color }} />
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user }              = useAuth();
@@ -1882,10 +1687,6 @@ export default function Dashboard() {
 
   const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
 
-  // ── Predicted Religion Stats (H/M/C from 2025 voter roll) ──────────────────
-  const [religionStats,        setReligionStats]        = useState(null);
-  const [religionStatsLoading, setReligionStatsLoading] = useState(true);
-
   const [query, setQuery]         = useState('');
   const [searching, setSearching] = useState(false);
   const [searchRes, setSearchRes] = useState(null);
@@ -1903,12 +1704,6 @@ export default function Dashboard() {
     dashboardApi.serialNumber()
       .then(r => setNextSerial(r.data.serialNumber || 1))
       .catch(() => {});
-
-    // Fetch constituency-wide religion breakdown
-    api.get('/api/religion-stats/')
-      .then(r => { if (r.data.success) setReligionStats(r.data); })
-      .catch(() => {})
-      .finally(() => setReligionStatsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -1934,12 +1729,6 @@ export default function Dashboard() {
       .then(r => { if (r.data.success) setWardStats(r.data); else setWardError(r.data.message || 'Failed to load ward data.'); })
       .catch(e => setWardError(e.userMessage || 'Network error loading ward data.'))
       .finally(() => setWardStatsLoading(false));
-    // Also fetch ward-scoped religion stats
-    setReligionStatsLoading(true);
-    api.get(`/api/religion-stats/?ward=${selectedWard}`)
-      .then(r => { if (r.data.success) setReligionStats(r.data); })
-      .catch(() => {})
-      .finally(() => setReligionStatsLoading(false));
   }, [selectedWard]);
 
   useEffect(() => {
@@ -1949,12 +1738,6 @@ export default function Dashboard() {
       .then(r => { if (r.data.success) setBoothStats(r.data); else setBoothError(r.data.message || 'Failed to load booth data.'); })
       .catch(e => setBoothError(e.userMessage || 'Network error loading booth data.'))
       .finally(() => setBoothStatsLoading(false));
-    // Booth-scoped religion stats
-    setReligionStatsLoading(true);
-    api.get(`/api/religion-stats/?ward=${selectedWard}&booth=${selectedBooth}`)
-      .then(r => { if (r.data.success) setReligionStats(r.data); })
-      .catch(() => {})
-      .finally(() => setReligionStatsLoading(false));
   }, [selectedWard, selectedBooth]);
 
   const doSearch = useCallback(async (q) => {
@@ -2446,15 +2229,6 @@ export default function Dashboard() {
               {!activeLoading && <div style={{ height: '100%', width: `${coverage}%`, background: 'linear-gradient(90deg, #8b5cf6, #22d3ee)', borderRadius: 5, transition: 'width 0.8s ease' }} />}
             </div>
           </div>
-
-          {/* ── Predicted Religion Panel ─────────────────────────────── */}
-          <PredictedReligionPanel
-            religionStats={religionStats}
-            loading={religionStatsLoading}
-            level={selectedBooth ? 'booth' : selectedWard ? 'ward' : 'constituency'}
-            wardName={wardStats?.wardName || WARD_NAMES[selectedWard] || ''}
-            boothNum={selectedBooth}
-          />
 
           {/* ── Charts ──────────────────────────────────────────────────── */}
           <div className="db-two-col mb-24">
