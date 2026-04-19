@@ -684,49 +684,51 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
         background: 'linear-gradient(135deg, rgba(34,211,238,0.14) 0%, rgba(10,18,35,0.98) 100%)',
         border: '1px solid rgba(34,211,238,0.3)',
         borderRadius: boothStatsLoading || !boothStats ? 18 : '18px 18px 0 0',
-        padding: '18px 20px',
-        display: 'flex', alignItems: 'center', gap: 16,
+        padding: '14px 16px',
       }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-          background: 'rgba(34,211,238,0.15)', border: '2px solid rgba(34,211,238,0.35)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-        }}>🗳</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#22d3ee', letterSpacing: '-0.3px' }}>
-            Booth {boothNum} — {wardName}
+        {/* Top row: icon + booth name + close button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+            background: 'rgba(34,211,238,0.15)', border: '2px solid rgba(34,211,238,0.35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+          }}>🗳</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 17, fontWeight: 900, color: '#22d3ee', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+              Booth {boothNum}
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(34,211,238,0.7)', fontWeight: 600, marginTop: 1 }}>
+              {wardName} · Ward {wardNum}
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: 'rgba(34,211,238,0.6)', fontWeight: 500 }}>
-              Ward {wardNum} · Booth-level electors data
-            </span>
-            {clsCfg && (
-              <span style={{ fontSize: 11, fontWeight: 700, color: clsCfg.color, background: clsCfg.bg, borderRadius: 6, padding: '3px 9px', border: `1px solid ${clsCfg.color}30` }}>
-                {clsCfg.label}
-              </span>
-            )}
-            {wardSIR && (
-              <span style={{ fontSize: 11, fontWeight: 700, color: wardSIR.margin > 0 ? '#f97316' : '#10b981', background: wardSIR.margin > 0 ? 'rgba(249,115,22,0.12)' : 'rgba(16,185,129,0.12)', borderRadius: 6, padding: '3px 9px' }}>
-                {wardSIR.margin > 0 ? '+' : ''}{wardSIR.margin}% {wardSIR.margin > 0 ? 'BJP' : 'INC'} margin
-              </span>
-            )}
-          </div>
-        </div>
-        {boothStatsLoading && <span className="spinner" style={{ flexShrink: 0 }} />}
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button
-            onClick={onClearBooth}
-            className="touch-btn"
-            style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#22d3ee', display: 'flex', alignItems: 'center', gap: 6, minHeight: 42 }}
-          >
-            ↩ Back to Ward
-          </button>
+          {boothStatsLoading && <span className="spinner" style={{ flexShrink: 0 }} />}
           <button
             onClick={onClearWard}
-            className="touch-btn"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.5)', minHeight: 42 }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.5)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >✕</button>
         </div>
+
+        {/* Badges row */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          {clsCfg && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: clsCfg.color, background: clsCfg.bg, borderRadius: 6, padding: '4px 10px', border: `1px solid ${clsCfg.color}30` }}>
+              {clsCfg.label}
+            </span>
+          )}
+          {wardSIR && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: wardSIR.margin > 0 ? '#f97316' : '#10b981', background: wardSIR.margin > 0 ? 'rgba(249,115,22,0.12)' : 'rgba(16,185,129,0.12)', borderRadius: 6, padding: '4px 10px' }}>
+              {wardSIR.margin > 0 ? '+' : ''}{wardSIR.margin}% {wardSIR.margin > 0 ? 'BJP' : 'INC'} margin
+            </span>
+          )}
+        </div>
+
+        {/* Back to Ward button — full width on mobile */}
+        <button
+          onClick={onClearBooth}
+          style={{ width: '100%', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#22d3ee', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 42 }}
+        >
+          ↩ Back to Ward
+        </button>
       </div>
 
       {boothStatsLoading && (

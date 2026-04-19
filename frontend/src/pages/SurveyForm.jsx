@@ -984,38 +984,45 @@ export default function SurveyForm() {
 
           {/* ── Navigation ── */}
           <div style={{ marginTop:28, paddingTop:20, borderTop:'1px solid var(--border)' }}>
-            <div className="flex justify-between" style={{ alignItems:'center' }}>
-              <button className="btn btn-ghost"
-                onClick={() => step > 0 ? setStep(s => s - 1) : (returnTo ? navigate(returnTo, { state: { returnQuery } }) : navigate('/survey'))}>
-                ← {step === 0 ? 'Back' : 'Previous'}
-              </button>
-              {!isLastStep ? (
+
+            {!isLastStep ? (
+              /* Non-last steps: Previous on left, Next on right */
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10 }}>
+                <button className="btn btn-ghost"
+                  onClick={() => step > 0 ? setStep(s => s - 1) : (returnTo ? navigate(returnTo, { state: { returnQuery } }) : navigate('/survey'))}>
+                  ← {step === 0 ? 'Back' : 'Previous'}
+                </button>
                 <button className="btn btn-primary" onClick={() => setStep(s => s + 1)}>
                   Next: {STEPS[step + 1]} →
                 </button>
-              ) : (
-                <div style={{ display:'flex', gap:10, flexWrap:'wrap', justifyContent:'flex-end' }}>
-                  {/* Check SIR — manual pre-save check */}
+              </div>
+            ) : (
+              /* Last step: stacked mobile-friendly layout */
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+
+                {/* Row 1: Check SIR + View SIR (secondary actions) */}
+                <div style={{ display:'flex', gap:8 }}>
                   <button
                     onClick={handleCheckSir}
                     disabled={sirChecking || busy || (!form.voterid && !form.firstName)}
                     style={{
-                      display:'flex', alignItems:'center', gap:7,
+                      flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
                       background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.4)',
-                      borderRadius:10, padding:'10px 18px',
+                      borderRadius:10, padding:'11px 14px',
                       color:'#fbbf24', fontSize:13, fontWeight:700, cursor:'pointer',
                       opacity: (sirChecking || busy || (!form.voterid && !form.firstName)) ? 0.5 : 1,
+                      minHeight: 46,
                     }}>
                     {sirChecking ? <><span className="spinner" /> Checking…</> : '🔎 Check SIR'}
                   </button>
-                  {/* SIR toggle — shows after a member is saved or manual check */}
                   {sirResult && (
                     <button onClick={() => setShowSir(p => !p)} style={{
-                      display:'flex', alignItems:'center', gap:7,
+                      flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
                       background: showSir ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.08)',
                       border:'1px solid rgba(139,92,246,0.4)',
-                      borderRadius:10, padding:'10px 18px',
+                      borderRadius:10, padding:'11px 14px',
                       color:'#a78bfa', fontSize:13, fontWeight:700, cursor:'pointer',
+                      minHeight: 46,
                     }}>
                       🔍 {showSir ? 'Hide SIR' : 'View SIR'}
                       {sirResult.stored && (
@@ -1024,30 +1031,45 @@ export default function SurveyForm() {
                       )}
                     </button>
                   )}
+                </div>
+
+                {/* Row 2: Previous (left) + Save & Add Next Member (right) */}
+                <div style={{ display:'flex', gap:10 }}>
+                  <button className="btn btn-ghost"
+                    style={{ flexShrink:0 }}
+                    onClick={() => setStep(s => s - 1)}>
+                    ← Previous
+                  </button>
                   <button
                     className="btn btn-ghost"
-                    style={{ border:'1px solid rgba(34,211,238,0.35)', color:'var(--cyan)', display:'flex', alignItems:'center', gap:8, padding:'10px 20px' }}
+                    style={{ flex:1, border:'1px solid rgba(34,211,238,0.35)', color:'var(--cyan)', display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'11px 14px', minHeight:46 }}
                     onClick={() => handleSubmit('next')} disabled={busy}
                   >
-                    {busy && saveMode === 'next' ? <span className="spinner" /> : <><span style={{ fontSize:16 }}>👤</span> Save &amp; Add Next Member</>}
-                  </button>
-                  <button
-                    className="btn btn-primary"
-                    style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px' }}
-                    onClick={() => handleSubmit('done')} disabled={busy}
-                  >
-                    {busy && saveMode === 'done' ? <span className="spinner" /> : <><span style={{ fontSize:15 }}>✓</span> {savedMembers.length > 0 ? 'Save & Done' : 'Save Survey'}</>}
+                    {busy && saveMode === 'next' ? <span className="spinner" /> : <><span style={{ fontSize:16 }}>👤</span> Save &amp; Add Next</>}
                   </button>
                 </div>
-              )}
-            </div>
-            {isLastStep && (
-              <div style={{ marginTop:12, textAlign:'right', fontSize:11, color:'var(--text-3)' }}>
-                <strong style={{ color:'var(--cyan)' }}>Save &amp; Add Next Member</strong> — saves and opens next member form
-                &nbsp;·&nbsp;
-                <strong style={{ color:'var(--green)' }}>Save &amp; Done</strong> — saves and returns to survey list
+
+                {/* Row 3: Save Survey / Save & Done — full width, prominent */}
+                <button
+                  className="btn btn-primary btn-lg btn-full"
+                  style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, minHeight:52 }}
+                  onClick={() => handleSubmit('done')} disabled={busy}
+                >
+                  {busy && saveMode === 'done'
+                    ? <span className="spinner" />
+                    : <><span style={{ fontSize:18 }}>✓</span> {savedMembers.length > 0 ? 'Save & Done' : 'Save Survey'}</>
+                  }
+                </button>
+
+                {/* Helper text */}
+                <div style={{ textAlign:'center', fontSize:11, color:'var(--text-3)', lineHeight:1.6 }}>
+                  <strong style={{ color:'var(--cyan)' }}>Save &amp; Add Next</strong> — saves and opens next member form
+                  &nbsp;·&nbsp;
+                  <strong style={{ color:'var(--green)' }}>Save &amp; Done</strong> — saves and returns to survey list
+                </div>
               </div>
             )}
+
 
             {/* ── SIR Panel — auto-shown after save ── */}
             {showSir && sirResult && (
