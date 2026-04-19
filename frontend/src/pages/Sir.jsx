@@ -180,7 +180,7 @@ const CAT_STATUS_MAP = {
   NEW_ADDITION: 'NEW', DELETION: 'DELETED', MODIFICATION: 'MODIFIED',
   RETAINED: 'RETAINED', NOT_FOUND: 'NOT_FOUND', SUSPICIOUS: 'SUSPICIOUS',
 };
-const TABS = ['ALL','NEW','DELETED','MODIFIED','SUSPICIOUS','RETAINED'];
+const TABS = ['ALL','NEW','DELETED','MODIFIED','SUSPICIOUS','RETAINED','NOT_FOUND'];
 
 // ─── SIRBadge ─────────────────────────────────────────────────────────────────
 function SIRBadge({ category }) {
@@ -440,17 +440,19 @@ function LiveCheckPanel() {
   const suggestions2002 = result?.suggestions_2002 || [];
   const rec02           = confirmedRec || result?.record_2002 || {};
   const rec25           = result?.record_2025 || {};
+  // found_2002: true when backend confirmed it OR user manually confirmed a suggestion
   const found_2002      = result?.in_2002 || !!confirmedRec;
   const showSuggestions = !result?.in_2002 && suggestions2002.length > 0 && !confirmedRec;
 
-  // When user confirms a 2002 suggestion, the category upgrades to RETAINED
-  // because the voter is now verified in BOTH rolls
-  const effectivePrimary = confirmedRec && primary?.category === 'NEW_ADDITION'
-    ? { ...primary, category:'RETAINED', label:'Long-term Voter',
-        detail:'2002 record confirmed manually — voter verified in both rolls.' }
-    : confirmedRec && primary?.category === 'NOT_FOUND'
-    ? { ...primary, category:'RETAINED', label:'Long-term Voter',
-        detail:'2002 record confirmed manually — voter verified in both rolls.' }
+  // When user confirms a 2002 suggestion, the category upgrades:
+  // NEW_ADDITION → RETAINED (voter now verified in both rolls)
+  // NOT_FOUND    → RETAINED (same logic)
+  // Any other    → category unchanged but found_2002 becomes true
+  const effectivePrimary = confirmedRec
+    ? (primary?.category === 'NEW_ADDITION' || primary?.category === 'NOT_FOUND')
+      ? { ...primary, category:'RETAINED', label:'Long-term Voter',
+          detail:'2002 record confirmed manually — voter verified in both rolls.' }
+      : { ...primary }
     : primary;
 
   const catKey  = CAT_STATUS_MAP[effectivePrimary?.category] || 'ALL';
@@ -873,7 +875,7 @@ export default function SIR() {
 
         {/* Summary stat cards */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10, marginBottom:20 }}>
-          {['NEW','DELETED','MODIFIED','SUSPICIOUS','RETAINED'].map(cat => {
+          {['NEW','DELETED','MODIFIED','SUSPICIOUS','RETAINED','NOT_FOUND'].map(cat => {
             const m      = CAT_META[cat];
             const active = activeTab === cat;
             return (
