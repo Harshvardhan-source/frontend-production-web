@@ -5,10 +5,25 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import {
+  Search, X, ChevronDown, ChevronRight, AlertTriangle, AlertCircle,
+  Home, Users, User, FileEdit, ClipboardList, Database, CheckSquare,
+  Map, MapPin, Building2, Landmark, Vote, BarChart2, PieChart as PieChartIcon,
+  TrendingUp, TrendingDown, Shield, Flag, Scale, Activity,
+  UserCheck, UserX, Hash, Percent, Calendar, ListChecks,
+  ArrowLeft, RefreshCw, Info, Star, Zap, Target, Eye,
+  Male, Female, CheckCircle2, Circle, SquareSlash,
+  BookOpen, Grid3x3, SlidersHorizontal, Navigation,
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { dashboardApi } from '../api/client';
 import api from '../api/client';
 import { useAuth } from '../App';
+
+// ─── Icon helper — renders a Lucide icon at a given size/color ───────────────
+function Icon({ icon: IconComp, size = 16, color, style = {} }) {
+  return <IconComp size={size} color={color} strokeWidth={2} style={{ flexShrink: 0, ...style }} />;
+}
 
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
 
@@ -102,22 +117,22 @@ const SIR_BOOTH_DATA = {"21":[{"booth":31,"totalElectors":1496,"cutoffElectors":
 
 // ─── Priority helpers ─────────────────────────────────────────────────────────
 const PRIORITY_CONFIG = {
-  CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: '🔴 CRITICAL', order: 0 },
-  HIGH:     { color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)', label: '🟠 HIGH',     order: 1 },
-  MEDIUM:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', label: '🟡 MEDIUM',   order: 2 },
-  WATCH:    { color: '#22d3ee', bg: 'rgba(34,211,238,0.12)', border: 'rgba(34,211,238,0.3)', label: '🟢 WATCH',    order: 3 },
+  CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: 'CRITICAL', order: 0 },
+  HIGH:     { color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)', label: 'HIGH',     order: 1 },
+  MEDIUM:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', label: 'MEDIUM',   order: 2 },
+  WATCH:    { color: '#22d3ee', bg: 'rgba(34,211,238,0.12)', border: 'rgba(34,211,238,0.3)', label: 'WATCH',    order: 3 },
   NORMAL:   { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', label: '— NORMAL',    order: 4 },
 };
 
 const CLASSIFICATION_CONFIG = {
-  'BJP STRONGHOLD':         { color: '#f97316', bg: 'rgba(249,115,22,0.15)',  label: '🚩 BJP Stronghold' },
-  'BJP STRONG':             { color: '#fb923c', bg: 'rgba(251,146,60,0.12)',  label: '🚩 BJP Strong' },
-  'BJP FAVOURABLE':         { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  label: '📌 BJP Favourable' },
-  'CONTESTED (BJP Lean)':   { color: '#a3a3a3', bg: 'rgba(163,163,163,0.1)', label: '⚖️ Contested (BJP Lean)' },
-  'CONTESTED (Cong Lean)':  { color: '#a3a3a3', bg: 'rgba(163,163,163,0.1)', label: '⚖️ Contested (Cong Lean)' },
-  'CONGRESS FAVOURABLE':    { color: '#34d399', bg: 'rgba(52,211,153,0.1)',   label: '🏳️ Congress Favourable' },
-  'CONGRESS STRONG':        { color: '#10b981', bg: 'rgba(16,185,129,0.12)', label: '🏳️ Congress Strong' },
-  'CONGRESS STRONGHOLD':    { color: '#059669', bg: 'rgba(5,150,105,0.15)',   label: '🏳️ Congress Stronghold' },
+  'BJP STRONGHOLD':         { color: '#f97316', bg: 'rgba(249,115,22,0.15)',  label: 'BJP Stronghold' },
+  'BJP STRONG':             { color: '#fb923c', bg: 'rgba(251,146,60,0.12)',  label: 'BJP Strong' },
+  'BJP FAVOURABLE':         { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  label: 'BJP Favourable' },
+  'CONTESTED (BJP Lean)':   { color: '#a3a3a3', bg: 'rgba(163,163,163,0.1)', label: 'Contested (BJP Lean)' },
+  'CONTESTED (Cong Lean)':  { color: '#a3a3a3', bg: 'rgba(163,163,163,0.1)', label: 'Contested (Cong Lean)' },
+  'CONGRESS FAVOURABLE':    { color: '#34d399', bg: 'rgba(52,211,153,0.1)',   label: 'Congress Favourable' },
+  'CONGRESS STRONG':        { color: '#10b981', bg: 'rgba(16,185,129,0.12)', label: 'Congress Strong' },
+  'CONGRESS STRONGHOLD':    { color: '#059669', bg: 'rgba(5,150,105,0.15)',   label: 'Congress Stronghold' },
 };
 
 // Derived lookups
@@ -206,13 +221,13 @@ function WardSelector({ value, onChange }) {
           >
             {num
               ? <span style={{ fontSize: 10, fontWeight: 700, background: active ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.07)', borderRadius: 4, padding: '2px 6px', color: active ? '#f59e0b' : 'var(--text-3)', minWidth: 26, textAlign: 'center', flexShrink: 0 }}>{num}</span>
-              : <span style={{ fontSize: 14, flexShrink: 0 }}>🗺</span>
+              : <Icon icon={Map} size={14} color="var(--text-3)" />
             }
             <span style={{ flex: 1 }}>{name}</span>
             {pCfg && sirD?.priority !== 'NORMAL' && (
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: pCfg.color, flexShrink: 0, boxShadow: `0 0 4px ${pCfg.color}` }} />
             )}
-            {active && <span style={{ color: '#f59e0b', fontSize: 13, flexShrink: 0 }}>✓</span>}
+            {active && <Icon icon={CheckCircle2} size={13} color="#f59e0b" />}
           </button>
         );
       })}
@@ -231,9 +246,9 @@ function WardSelector({ value, onChange }) {
         color: value ? '#f59e0b' : 'var(--text-2)', transition: 'all 0.18s',
         whiteSpace: 'nowrap',
       }}>
-        <span style={{ fontSize: 16 }}>🏘</span>
+        <Icon icon={MapPin} size={16} color={value ? '#f59e0b' : 'rgba(255,255,255,0.4)'} />
         <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-        <span style={{ fontSize: 10, color: 'var(--text-3)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+        <Icon icon={ChevronDown} size={12} color="var(--text-3)" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
       </button>
       {open && createPortal(panel, document.body)}
     </>
@@ -309,8 +324,8 @@ function WardSIRPanel({ wardNum }) {
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '1px', textTransform: 'uppercase', marginRight: 4 }}>
-          🗳 SIR Political Intelligence
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '1px', textTransform: 'uppercase', marginRight: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon icon={Activity} size={13} color="rgba(255,255,255,0.3)" /> SIR Political Intelligence
         </div>
         {/* Political classification badge */}
         <div style={{ background: clsCfg.bg, border: `1px solid ${clsCfg.color}40`, borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: clsCfg.color, flexShrink: 0 }}>
@@ -392,7 +407,7 @@ function WardSIRPanel({ wardNum }) {
                 <div style={{ fontSize: 14, fontWeight: 900, color: bjpWin ? '#f97316' : '#10b981', fontFamily: 'var(--font-display)' }}>
                   {bjpWin ? '+' : ''}{d.margin}%
                 </div>
-                {isTight && <div style={{ fontSize: 8, color: '#f59e0b', fontWeight: 700 }}>⚠ TIGHT RACE</div>}
+                {isTight && <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}><Icon icon={AlertTriangle} size={10} color="#f59e0b" /> TIGHT RACE</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 12, color: '#34d399', fontWeight: 700 }}>INC {d.congProj}%</span>
@@ -440,7 +455,9 @@ function WardSIRPanel({ wardNum }) {
                 <div key={label} style={{ background: ok ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.05)', border: `1px solid ${ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: 8, padding: '8px 10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ fontSize: 11, fontWeight: 900, color: ok ? color : '#f87171' }}>{val.toFixed(1)}%</span>
-                    <span style={{ fontSize: 8, color: ok ? '#10b981' : '#f87171' }}>{ok ? '✓' : '⚠'}</span>
+                    <span style={{ fontSize: 11, color: ok ? '#10b981' : '#f87171' }}>
+                    <Icon icon={ok ? CheckCircle2 : AlertTriangle} size={11} color={ok ? '#10b981' : '#f87171'} />
+                  </span>
                   </div>
                   <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginBottom: 4 }}>
                     <div style={{ width: `${Math.min(val, 100)}%`, height: '100%', background: ok ? `linear-gradient(90deg,${color}80,${color})` : 'linear-gradient(90deg,#ef444480,#ef4444)', borderRadius: 2 }} />
@@ -487,7 +504,9 @@ function RiskWardsOverview({ onSelectWard }) {
         display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚠</div>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon icon={AlertTriangle} size={18} color="#f87171" />
+          </div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#f87171' }}>SIR Risk Wards — Immediate Action Required</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
@@ -648,7 +667,7 @@ function AllWardsHeatmap({ onSelectWard }) {
                     </span>
                   </div>
                 </div>
-                <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 18, paddingLeft: 12, flexShrink: 0 }}>›</span>
+                <Icon icon={ChevronRight} size={18} color="rgba(255,255,255,0.25)" style={{ paddingLeft: 0, flexShrink: 0 }} />
               </div>
             </button>
           );
@@ -662,48 +681,57 @@ function AllWardsHeatmap({ onSelectWard }) {
           borderTop: '1px solid rgba(255,255,255,0.06)', color: '#22d3ee',
           fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
-          {showAll ? '▲ Show less' : `▼ Show all ${wards.length} wards`}
+          {showAll ? 'Show less ▲' : `Show all ${wards.length} wards ▼`}
         </button>
       )}
     </div>
   );
 }
 
-// ─── Booth Detail Card — shown full-width at top when booth is selected ────────
+// ─── Booth Detail Card — full-width, shown at TOP when booth selected ─────────
 function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsLoading, boothError, onClearBooth, onClearWard }) {
-  const boothSIRData = (SIR_BOOTH_DATA[String(wardNum)] || []).find(b => String(b.booth) === String(boothNum));
-  const wardName     = wardStats?.wardName || WARD_NAMES[wardNum] || `Ward ${wardNum}`;
-  const wardSIR      = SIR_WARD_DATA[Number(wardNum)];
-  const clsCfg       = wardSIR ? (CLASSIFICATION_CONFIG[wardSIR.classification] || { color: '#8899bb', bg: 'rgba(255,255,255,0.05)', label: wardSIR.classification }) : null;
+  const boothSIR = (SIR_BOOTH_DATA[String(wardNum)] || []).find(b => String(b.booth) === String(boothNum));
+  const wardName = wardStats?.wardName || WARD_NAMES[wardNum] || `Ward ${wardNum}`;
+  const wardSIR  = SIR_WARD_DATA[Number(wardNum)];
+  const clsCfg   = wardSIR ? (CLASSIFICATION_CONFIG[wardSIR.classification] || { color: '#8899bb', bg: 'rgba(255,255,255,0.05)', label: wardSIR.classification }) : null;
+
+  const VOTER_ROLL_METRICS = [
+    { label: 'Total Electors', key: 'totalElectors',    color: '#22d3ee', icon: Users },
+    { label: 'Cutoff Elec',    key: 'cutoffElec',        color: '#f59e0b', icon: Calendar },
+    { label: 'BLO Mapped',     key: 'bloMapped',         color: '#10b981', icon: UserCheck },
+    { label: 'Total Mapped',   key: 'totalMapped',       color: '#10b981', icon: ListChecks },
+    { label: 'Age ≤ Cutoff',   key: 'ageCutoff',         color: '#8b5cf6', icon: Users },
+    { label: 'Progeny >18',    key: 'progeny18',         color: '#a78bfa', icon: TrendingUp },
+    { label: 'Elec Mapped',    key: 'electorsMapped',    color: '#f97316', icon: Target },
+  ];
+  const PCT_METRICS = [
+    { label: '% BLO Mapped',   key: 'pctBloMapped',       color: '#10b981', thresh: 60 },
+    { label: '% Progeny',      key: 'pctProgeny',         color: '#a78bfa', thresh: 80 },
+    { label: '% Elec Mapped',  key: 'pctElectorsMapped',  color: '#f97316', thresh: 60 },
+    { label: '% Completed',    key: 'pctTotalCompleted',  color: '#22d3ee', thresh: 65 },
+  ];
 
   return (
     <div className="anim-fade-up" style={{ marginBottom: 24 }}>
 
-      {/* ── Booth Hero Header ── */}
+      {/* Hero header */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(34,211,238,0.14) 0%, rgba(10,18,35,0.98) 100%)',
+        background: 'linear-gradient(135deg,rgba(34,211,238,0.14) 0%,rgba(10,18,35,0.98) 100%)',
         border: '1px solid rgba(34,211,238,0.3)',
         borderRadius: boothStatsLoading || !boothStats ? 18 : '18px 18px 0 0',
-        padding: '18px 20px',
-        display: 'flex', alignItems: 'center', gap: 16,
+        padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16,
       }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-          background: 'rgba(34,211,238,0.15)', border: '2px solid rgba(34,211,238,0.35)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-        }}>🗳</div>
+        <div style={{ width: 52, height: 52, borderRadius: 14, flexShrink: 0, background: 'rgba(34,211,238,0.15)', border: '2px solid rgba(34,211,238,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon icon={Landmark} size={26} color="#22d3ee" />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: '#22d3ee', letterSpacing: '-0.3px' }}>
             Booth {boothNum} — {wardName}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: 'rgba(34,211,238,0.6)', fontWeight: 500 }}>
-              Ward {wardNum} · Booth-level electors data
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'rgba(34,211,238,0.6)', fontWeight: 500 }}>Ward {wardNum} · Booth-level data</span>
             {clsCfg && (
-              <span style={{ fontSize: 11, fontWeight: 700, color: clsCfg.color, background: clsCfg.bg, borderRadius: 6, padding: '3px 9px', border: `1px solid ${clsCfg.color}30` }}>
-                {clsCfg.label}
-              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: clsCfg.color, background: clsCfg.bg, borderRadius: 6, padding: '3px 9px', border: `1px solid ${clsCfg.color}30` }}>{clsCfg.label}</span>
             )}
             {wardSIR && (
               <span style={{ fontSize: 11, fontWeight: 700, color: wardSIR.margin > 0 ? '#f97316' : '#10b981', background: wardSIR.margin > 0 ? 'rgba(249,115,22,0.12)' : 'rgba(16,185,129,0.12)', borderRadius: 6, padding: '3px 9px' }}>
@@ -714,44 +742,38 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
         </div>
         {boothStatsLoading && <span className="spinner" style={{ flexShrink: 0 }} />}
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button
-            onClick={onClearBooth}
-            className="touch-btn"
-            style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#22d3ee', display: 'flex', alignItems: 'center', gap: 6, minHeight: 42 }}
-          >
-            ↩ Back to Ward
+          <button onClick={onClearBooth} className="touch-btn" style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#22d3ee', display: 'flex', alignItems: 'center', gap: 6, minHeight: 42 }}>
+            <Icon icon={ArrowLeft} size={14} color="#22d3ee" /> Back to Ward
           </button>
-          <button
-            onClick={onClearWard}
-            className="touch-btn"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.5)', minHeight: 42 }}
-          >✕</button>
+          <button onClick={onClearWard} className="touch-btn" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0 14px', cursor: 'pointer', minHeight: 42, display: 'flex', alignItems: 'center' }}>
+            <Icon icon={X} size={15} color="rgba(255,255,255,0.5)" />
+          </button>
         </div>
       </div>
 
       {boothStatsLoading && (
-        <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(34,211,238,0.2)', borderTop: 'none', borderRadius: '0 0 18px 18px', padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>
-          <span className="spinner" style={{ marginBottom: 12, display: 'block', margin: '0 auto 12px' }} />
-          Loading booth data…
+        <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(34,211,238,0.2)', borderTop: 'none', borderRadius: '0 0 18px 18px', padding: '40px', textAlign: 'center' }}>
+          <span className="spinner" style={{ display: 'block', margin: '0 auto 14px' }} />
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Loading booth data…</span>
         </div>
       )}
 
       {!boothStatsLoading && boothStats && (
         <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(34,211,238,0.2)', borderTop: 'none', borderRadius: '0 0 18px 18px', overflow: 'hidden' }}>
 
-          {/* ── SIR Booth Intelligence Banner ── */}
-          {boothSIRData && (
-            <div style={{ background: 'rgba(34,211,238,0.04)', borderBottom: '1px solid rgba(34,211,238,0.1)', padding: '14px 20px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>SIR Status</span>
+          {/* SIR Status banner */}
+          {boothSIR && (
+            <div style={{ background: 'rgba(34,211,238,0.04)', borderBottom: '1px solid rgba(34,211,238,0.1)', padding: '14px 20px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>SIR Status</span>
               {[
-                { label: 'BLO Map', val: boothSIRData.bloMappedPct + '%', ok: boothSIRData.bloMappedPct >= 60, color: '#22d3ee' },
-                { label: 'Progeny', val: boothSIRData.progenyPct + '%', ok: boothSIRData.progenyPct >= 80, color: '#a78bfa' },
-                { label: 'Mapped',  val: boothSIRData.totalMappedPct + '%', ok: boothSIRData.totalMappedPct >= 65, color: '#f59e0b' },
+                { label: 'BLO Map',  val: boothSIR.bloMappedPct,   ok: boothSIR.bloMappedPct >= 60,  color: '#22d3ee' },
+                { label: 'Progeny',  val: boothSIR.progenyPct,     ok: boothSIR.progenyPct >= 80,    color: '#a78bfa' },
+                { label: 'Mapped',   val: boothSIR.totalMappedPct, ok: boothSIR.totalMappedPct >= 65, color: '#f59e0b' },
               ].map(({ label, val, ok, color }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, background: ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 8, padding: '6px 12px' }}>
-                  <span style={{ fontSize: 13, fontWeight: 900, color: ok ? color : '#f87171' }}>{val}</span>
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, background: ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 8, padding: '7px 12px' }}>
+                  <Icon icon={ok ? CheckCircle2 : AlertTriangle} size={13} color={ok ? color : '#f87171'} />
+                  <span style={{ fontSize: 13, fontWeight: 900, color: ok ? color : '#f87171' }}>{val}%</span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-                  <span style={{ fontSize: 12, color: ok ? '#10b981' : '#ef4444' }}>{ok ? '✓' : '⚠'}</span>
                 </div>
               ))}
             </div>
@@ -759,100 +781,92 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
 
           <div style={{ padding: '20px' }}>
 
-            {/* ── 2026 Voter Roll Data — BIG metric cards ── */}
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 16 }}>
-                2026 Voter Roll · Booth {boothNum} Data
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
-                {[
-                  { label: 'Total Electors', value: boothStats.totalElectors,    color: '#22d3ee', icon: '👥' },
-                  { label: 'Cutoff Elec',    value: boothStats.cutoffElec,        color: '#f59e0b', icon: '📅' },
-                  { label: 'BLO Mapped',     value: boothStats.bloMapped,         color: '#10b981', icon: '✔' },
-                  { label: 'Total Mapped',   value: boothStats.totalMapped,       color: '#10b981', icon: '📋' },
-                  { label: 'Age ≤ Cutoff',   value: boothStats.ageCutoff,         color: '#8b5cf6', icon: '🎂' },
-                  { label: 'Progeny >18',    value: boothStats.progeny18,         color: '#a78bfa', icon: '🌱' },
-                  { label: 'Elec Mapped',    value: boothStats.electorsMapped,    color: '#f97316', icon: '🗺' },
-                ].filter(x => x.value !== undefined && x.value !== '' && x.value !== 0).map(({ label, value, color, icon }) => {
-                  const totalE = boothStats.totalElectors || 1;
-                  const pct    = typeof value === 'number' ? Math.round(value / totalE * 100) : null;
-                  return (
-                    <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 14, padding: '16px 14px', position: 'relative', overflow: 'hidden' }}>
-                      <div style={{ position: 'absolute', top: -12, right: -12, width: 50, height: 50, borderRadius: '50%', background: `radial-gradient(circle, ${color}18 0%, transparent 70%)` }} />
-                      <div style={{ fontSize: 18, marginBottom: 8 }}>{icon}</div>
-                      <div style={{ fontSize: 24, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', marginBottom: 4 }}>
-                        {typeof value === 'number' ? value.toLocaleString() : value}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: pct !== null ? 8 : 0 }}>{label}</div>
-                      {pct !== null && (
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
-                          <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 2, transition: 'width 0.6s ease' }} />
-                        </div>
-                      )}
+            {/* Voter Roll metric cards */}
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 14 }}>
+              2026 Voter Roll · Booth {boothNum} Data
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
+              {VOTER_ROLL_METRICS.map(({ label, key, color, icon: MetricIcon }) => {
+                const value = boothStats[key];
+                if (value === undefined || value === '' || value === 0) return null;
+                const totalE = boothStats.totalElectors || 1;
+                const pct    = Math.round(value / totalE * 100);
+                return (
+                  <div key={key} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 14, padding: '16px 14px', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', top: -14, right: -14, width: 52, height: 52, borderRadius: '50%', background: `radial-gradient(circle, ${color}18 0%, transparent 70%)` }} />
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}18`, border: `1px solid ${color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                      <Icon icon={MetricIcon} size={15} color={color} />
                     </div>
-                  );
-                })}
+                    <div style={{ fontSize: 26, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', marginBottom: 4, lineHeight: 1 }}>
+                      {value.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 8 }}>{label}</div>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                      <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 2, transition: 'width 0.6s ease' }} />
+                    </div>
+                  </div>
+                );
+              })}
 
-                {/* Percentage tiles */}
-                {[
-                  { label: '% BLO Mapped',  value: boothStats.pctBloMapped,      color: '#10b981' },
-                  { label: '% Progeny',      value: boothStats.pctProgeny,        color: '#a78bfa' },
-                  { label: '% Elec Mapped',  value: boothStats.pctElectorsMapped, color: '#f97316' },
-                  { label: '% Completed',    value: boothStats.pctTotalCompleted, color: '#22d3ee' },
-                ].filter(x => x.value !== undefined && x.value !== '' && x.value !== 0).map(({ label, value, color }) => {
-                  const pctVal = typeof value === 'number' ? value : parseFloat(String(value).replace('%', ''));
-                  const display = typeof value === 'number' ? value.toFixed(2) + '%' : String(value).replace('%','') + '%';
-                  const isLow  = pctVal < 60;
-                  return (
-                    <div key={label} style={{ background: isLow ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isLow ? 'rgba(239,68,68,0.2)' : color + '22'}`, borderRadius: 14, padding: '16px 14px' }}>
-                      <div style={{ fontSize: 26, fontWeight: 900, color: isLow ? '#f87171' : color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', marginBottom: 4 }}>
-                        {display}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 8 }}>{label}</div>
-                      <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3 }}>
-                        <div style={{ width: `${Math.min(pctVal, 100)}%`, height: '100%', background: isLow ? '#ef4444' : `linear-gradient(90deg,${color}80,${color})`, borderRadius: 3 }} />
-                      </div>
+              {/* Percentage tiles */}
+              {PCT_METRICS.map(({ label, key, color, thresh }) => {
+                const raw = boothStats[key];
+                if (raw === undefined || raw === '' || raw === 0) return null;
+                const pctVal = typeof raw === 'number' ? raw : parseFloat(String(raw).replace('%',''));
+                const display = pctVal.toFixed(2) + '%';
+                const isLow  = pctVal < thresh;
+                return (
+                  <div key={key} style={{ background: isLow ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isLow ? 'rgba(239,68,68,0.2)' : color + '22'}`, borderRadius: 14, padding: '16px 14px' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: isLow ? 'rgba(239,68,68,0.12)' : `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                      <Icon icon={isLow ? AlertTriangle : CheckCircle2} size={15} color={isLow ? '#f87171' : color} />
                     </div>
-                  );
-                })}
-              </div>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: isLow ? '#f87171' : color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', marginBottom: 4, lineHeight: 1 }}>{display}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 8 }}>{label}</div>
+                    <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3 }}>
+                      <div style={{ width: `${Math.min(pctVal, 100)}%`, height: '100%', background: isLow ? '#ef4444' : `linear-gradient(90deg,${color}80,${color})`, borderRadius: 3 }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* ── Survey Coverage ── */}
+            {/* Survey Coverage */}
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 14 }}>
                 Survey Coverage · Booth {boothNum}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 {[
-                  { label: 'Surveys Done', value: boothStats.totalReg,                 color: '#f59e0b', pct: boothStats.totalElectors ? Math.round(boothStats.totalReg / boothStats.totalElectors * 100) : 0, icon: '📝' },
-                  { label: 'Houses',        value: boothStats.houseCount,               color: '#10b981', pct: 100, icon: '🏠' },
-                  { label: 'Male',          value: boothStats.regMale,                  color: '#22d3ee', pct: boothStats.totalReg ? Math.round(boothStats.regMale / boothStats.totalReg * 100) : 0, icon: '♂' },
-                  { label: 'Female',        value: boothStats.regFemale,                color: '#ec4899', pct: boothStats.totalReg ? Math.round(boothStats.regFemale / boothStats.totalReg * 100) : 0, icon: '♀' },
-                  { label: 'Coverage',      value: `${boothStats.coveragePct}%`,        color: '#8b5cf6', pct: Math.min(boothStats.coveragePct, 100), icon: '◈', isHighlight: true },
-                ].map(({ label, value, color, pct, icon, isHighlight }) => (
-                  <div key={label} style={{ background: isHighlight ? `${color}12` : 'rgba(255,255,255,0.04)', border: `1px solid ${isHighlight ? color + '35' : 'rgba(255,255,255,0.08)'}`, borderRadius: 14, padding: '18px 16px' }}>
-                    <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
-                    <div style={{ fontSize: isHighlight ? 30 : 26, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', marginBottom: 4, lineHeight: 1 }}>
-                      {typeof value === 'number' ? value.toLocaleString() : value}
+                  { label: 'Surveys Done', key: 'totalReg',   icon: FileEdit,   color: '#f59e0b', pct: boothStats.totalElectors ? Math.round(boothStats.totalReg / boothStats.totalElectors * 100) : 0 },
+                  { label: 'Houses',       key: 'houseCount', icon: Home,       color: '#10b981', pct: 100 },
+                  { label: 'Male',         key: 'regMale',    icon: Users,      color: '#22d3ee', pct: boothStats.totalReg ? Math.round(boothStats.regMale / boothStats.totalReg * 100) : 0 },
+                  { label: 'Female',       key: 'regFemale',  icon: Users,      color: '#ec4899', pct: boothStats.totalReg ? Math.round(boothStats.regFemale / boothStats.totalReg * 100) : 0 },
+                  { label: 'Coverage',     key: 'coveragePct',icon: Target,     color: '#8b5cf6', pct: Math.min(boothStats.coveragePct, 100), isHighlight: true, formatted: `${boothStats.coveragePct}%` },
+                ].map(({ label, key, icon: CardIcon, color, pct, isHighlight, formatted }) => {
+                  const raw = boothStats[key];
+                  const display = formatted || (typeof raw === 'number' ? raw.toLocaleString() : raw);
+                  return (
+                    <div key={key} style={{ background: isHighlight ? `${color}12` : 'rgba(255,255,255,0.04)', border: `1px solid ${isHighlight ? color+'35' : 'rgba(255,255,255,0.08)'}`, borderRadius: 14, padding: '18px 16px' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}18`, border: `1px solid ${color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                        <Icon icon={CardIcon} size={17} color={color} />
+                      </div>
+                      <div style={{ fontSize: isHighlight ? 30 : 26, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', marginBottom: 4, lineHeight: 1 }}>{display}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 10 }}>{label}</div>
+                      <div style={{ height: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}70,${color})`, borderRadius: 3, transition: 'width 0.6s ease' }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 6, textAlign: 'right', fontWeight: 600 }}>{pct}%</div>
                     </div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 10 }}>{label}</div>
-                    <div style={{ height: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
-                      <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}70,${color})`, borderRadius: 3, transition: 'width 0.6s ease' }} />
-                    </div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 6, textAlign: 'right', fontWeight: 600 }}>{pct}%</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
-          </div>
 
+          </div>
         </div>
       )}
 
-      {boothError && (
-        <div className="alert alert-error" style={{ marginTop: 8, borderRadius: 12 }}>⚠ {boothError}</div>
-      )}
+      {boothError && <div className="alert alert-error" style={{ marginTop: 8, borderRadius: 12 }}>⚠ {boothError}</div>}
     </div>
   );
 }
@@ -882,7 +896,9 @@ function WardBoothDrillDown({ wardNum }) {
         padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>📋</div>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon icon={ListChecks} size={16} color="#22d3ee" />
+          </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#22d3ee' }}>Booth-Level SIR Drill-Down</div>
             <div style={{ fontSize: 10, color: 'rgba(34,211,238,0.5)', marginTop: 1 }}>{booths.length} booths · {wardTotal.toLocaleString()} total electors</div>
@@ -906,7 +922,7 @@ function WardBoothDrillDown({ wardNum }) {
       {/* Weak booths alert */}
       {weakBooths.length > 0 && (
         <div style={{ background: 'rgba(239,68,68,0.07)', borderBottom: '1px solid rgba(239,68,68,0.12)', padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14 }}>⚠</span>
+          <Icon icon={AlertTriangle} size={14} color="#f87171" />
           <span style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}>
             {weakBooths.length} booth{weakBooths.length > 1 ? 's' : ''} below 60% SIR mapping: Booths {weakBooths.map(b => b.booth).join(', ')}
           </span>
@@ -945,9 +961,10 @@ function WardBoothDrillDown({ wardNum }) {
               </div>
             </div>
             <div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b', background: weak ? 'rgba(239,68,68,0.12)' : good ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', borderRadius: 6, padding: '4px 8px', display: 'inline-block' }}>
-                {weak ? '⚠ LOW' : good ? '✓ GOOD' : '~ OK'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b', background: weak ? 'rgba(239,68,68,0.12)' : good ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', borderRadius: 6, padding: '4px 8px', display: 'inline-flex' }}>
+                <Icon icon={weak ? AlertTriangle : good ? CheckCircle2 : Activity} size={11} color={weak ? '#f87171' : good ? '#10b981' : '#f59e0b'} />
+                {weak ? 'LOW' : good ? 'GOOD' : 'OK'}
+              </div>
             </div>
           </div>
         );
@@ -1017,7 +1034,7 @@ function WardPoliticalSnapshot({ wardNum }) {
           <span style={{ fontSize: 12, fontWeight: 700, color: '#f97316' }}>BJP {d.bjpProj}%</span>
           <div style={{ background: isTight ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isTight ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 7, padding: '4px 10px', textAlign: 'center' }}>
             <div style={{ fontSize: 15, fontWeight: 900, color: bjpWin ? '#f97316' : '#10b981' }}>{bjpWin ? '+' : ''}{d.margin}%</div>
-            {isTight && <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>⚠ TIGHT</div>}
+            {isTight && <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}><Icon icon={AlertTriangle} size={10} color="#f59e0b" /> TIGHT</div>}
           </div>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>INC {d.congProj}%</span>
         </div>
@@ -1036,7 +1053,10 @@ function WardPoliticalSnapshot({ wardNum }) {
             <div key={label} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: ok ? color : '#f87171' }}>{val.toFixed(1)}% {ok ? '✓' : '⚠'}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 800, color: ok ? color : '#f87171' }}>
+                  {val.toFixed(1)}%
+                  <Icon icon={ok ? CheckCircle2 : AlertTriangle} size={13} color={ok ? color : '#f87171'} />
+                </span>
               </div>
               <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                 <div style={{ width: `${Math.min(val, 100)}%`, height: '100%', background: ok ? color : '#ef4444', borderRadius: 2 }} />
@@ -1045,7 +1065,10 @@ function WardPoliticalSnapshot({ wardNum }) {
           );
         })}
         {weakCount > 0 && (
-          <div style={{ marginTop: 8, fontSize: 12, color: '#f87171', fontWeight: 600 }}>⚠ {weakCount} booth{weakCount > 1 ? 's' : ''} below 60%</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: '#f87171', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Icon icon={AlertTriangle} size={13} color="#f87171" />
+            {weakCount} booth{weakCount > 1 ? 's' : ''} below 60%
+          </div>
         )}
       </div>
 
@@ -1201,7 +1224,9 @@ function ConstituencySIRSummary() {
     }} className="anim-fade-up">
       {/* Header */}
       <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'linear-gradient(135deg,rgba(139,92,246,0.1),transparent)' }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#a78bfa' }}>📊 Constituency SIR Intelligence</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon icon={BarChart2} size={18} color="#a78bfa" /> Constituency SIR Intelligence
+        </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Mangaluru City South · {total} wards · {totalElect.toLocaleString()} total electors</div>
       </div>
 
@@ -1209,15 +1234,17 @@ function ConstituencySIRSummary() {
         {/* Top KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 18 }}>
           {[
-            { label: 'BJP Wards',    val: bjpWards,           color: '#f97316', sub: 'BJP leading', icon: '🚩' },
-            { label: 'INC Wards',    val: congWards,          color: '#10b981', sub: 'Congress leading', icon: '🏳️' },
-            { label: 'Tight Races',  val: tightWards,         color: '#f59e0b', sub: 'Margin < 10%', icon: '⚖️' },
-            { label: 'Avg Turnout',  val: avgPoll+'%',        color: '#22d3ee', sub: 'Across all wards', icon: '🗳' },
-            { label: 'Avg BLO Map',  val: avgBLO+'%',         color: '#f59e0b', sub: 'SIR survey', icon: '📋' },
-            { label: 'Avg Mapped',   val: avgMapped+'%',      color: '#10b981', sub: 'Total completion', icon: '◈' },
+            { label: 'BJP Wards',    val: bjpWards,           color: '#f97316', sub: 'BJP leading',        icon: Flag },
+            { label: 'INC Wards',    val: congWards,          color: '#10b981', sub: 'Congress leading',   icon: Flag },
+            { label: 'Tight Races',  val: tightWards,         color: '#f59e0b', sub: 'Margin < 10%',       icon: Scale },
+            { label: 'Avg Turnout',  val: avgPoll+'%',        color: '#22d3ee', sub: 'Across all wards',   icon: TrendingUp },
+            { label: 'Avg BLO Map',  val: avgBLO+'%',         color: '#f59e0b', sub: 'SIR survey',         icon: ListChecks },
+            { label: 'Avg Mapped',   val: avgMapped+'%',      color: '#10b981', sub: 'Total completion',   icon: Target },
           ].map(({ label, val, color, sub, icon }) => (
             <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 12, padding: '14px 12px' }}>
-              <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <Icon icon={icon} size={16} color={color} />
+              </div>
               <div style={{ fontSize: 20, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{val}</div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{label}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{sub}</div>
@@ -1347,25 +1374,23 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
         background: member.surveyed ? 'rgba(16,185,129,0.18)' : 'rgba(245,158,11,0.12)',
         border: `1px solid ${member.surveyed ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.2)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 15, fontWeight: 800,
-        color: member.surveyed ? '#10b981' : '#f59e0b',
       }}>
-        {(member.name || '?')[0].toUpperCase()}
+        <Icon icon={User} size={18} color={member.surveyed ? '#10b981' : '#f59e0b'} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {member.name || '—'}
           {member.relation && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>{member.relation}</span>}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
-          {member.voterid && <span style={{ marginRight: 10 }}>🪪 {member.voterid}</span>}
-          {member.gender  && <span style={{ marginRight: 10 }}>{member.gender === 'M' ? '♂' : member.gender === 'F' ? '♀' : '⚧'} {member.gender}</span>}
+        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {member.voterid && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Icon icon={Hash} size={11} color="rgba(255,255,255,0.35)" />{member.voterid}</span>}
+          {member.gender  && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Icon icon={member.gender === 'M' ? Users : User} size={11} color="rgba(255,255,255,0.35)" />{member.gender}</span>}
           {member.age     && <span>Age {member.age}</span>}
         </div>
       </div>
       {member.surveyed ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: '#10b981', flexShrink: 0, minHeight: 40 }}>
-          ✓ Done
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: '#10b981', flexShrink: 0, minHeight: 40 }}>
+          <Icon icon={CheckCircle2} size={14} color="#10b981" /> Done
         </div>
       ) : canSurvey ? (
         <button onClick={handleStartSurvey} style={{
@@ -1373,11 +1398,13 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
           padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#090e1c',
           cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
           boxShadow: '0 2px 10px rgba(245,158,11,0.35)', minHeight: 40,
-        }}>✎ Survey</button>
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <Icon icon={FileEdit} size={13} color="#090e1c" /> Survey
+        </button>
       ) : (
-        <div title={user?.role === 'corporator' ? `Ward ${user.ward} only` : user?.role === 'booth_worker' ? `Booth ${user.booth} only` : 'No access'}
-          style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'6px 12px', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.22)', flexShrink:0, cursor:'not-allowed', minHeight: 40, display: 'flex', alignItems: 'center' }}>
-          🔒 No Access
+        <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'6px 12px', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.22)', flexShrink:0, cursor:'not-allowed', minHeight: 40, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Icon icon={Shield} size={13} color="rgba(255,255,255,0.22)" /> Locked
         </div>
       )}
     </div>
@@ -1403,7 +1430,9 @@ function HouseCard({ house, serialCounter, query, user }) {
         borderBottom: expanded ? '1px solid rgba(255,255,255,0.07)' : 'none',
         minHeight: 72,
       }}>
-        <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⌂</div>
+        <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon icon={Home} size={22} color="#f59e0b" />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--text-1)' }}>
             House No: {house.house_no}
@@ -1418,11 +1447,11 @@ function HouseCard({ house, serialCounter, query, user }) {
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           {pct === 100 ? (
-            <span style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>✓ Complete</span>
+            <span style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }} style={{ display:"flex", alignItems:"center", gap:4 }}><CheckCircle2 size={12} color="#10b981" strokeWidth={2} /> Complete</span>
           ) : house.remaining > 0 ? (
             <span style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>{house.remaining} pending</span>
           ) : null}
-          <span style={{ color: 'var(--text-3)', fontSize: 16, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>⌄</span>
+          <Icon icon={ChevronDown} size={18} color="var(--text-3)" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
         </div>
       </div>
       {expanded && (
@@ -1497,13 +1526,13 @@ function HouseMembersPanel({ house, onBack }) {
         {error && <div style={{ color: '#f87171', textAlign: 'center', padding: '24px 0', fontSize: 14 }}>⚠ {error}</div>}
         {!loading && !error && members.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>👤</div>
+            <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}><User size={32} color="rgba(255,255,255,0.2)" /></div>
             <div>No member records found</div>
           </div>
         )}
         {!loading && members.map((m, i) => {
           const genderColor = m.gender === 'M' ? '#22d3ee' : m.gender === 'F' ? '#ec4899' : '#a78bfa';
-          const genderIcon  = m.gender === 'M' ? '♂' : m.gender === 'F' ? '♀' : '⚧';
+          const genderIcon  = null; // replaced by Lucide icons
           return (
             <div key={`${m.voterid || 'noid'}-${i}`} style={{
               display: 'flex', alignItems: 'center', gap: 12,
@@ -1526,7 +1555,7 @@ function HouseMembersPanel({ house, onBack }) {
                 </div>
               </div>
               {m.surveyed ? (
-                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>✓ Done</div>
+                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#10b981', flexShrink: 0 }} style={{ display:"flex", alignItems:"center", gap:4 }}><CheckCircle2 size={12} color="#10b981" strokeWidth={2} /> Done</div>
               ) : (
                 <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 600, color: '#f87171', flexShrink: 0 }}>Pending</div>
               )}
@@ -1586,7 +1615,7 @@ function LargeFamiliesModal({ onClose }) {
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>{selectedHouse ? 'Member records' : 'Ward-wise breakdown · click any house to view members'}</div>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 15, color: 'rgba(255,255,255,0.45)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} color="rgba(255,255,255,0.5)" strokeWidth={2} /></button>
         </div>
 
         {selectedHouse ? (
@@ -1597,16 +1626,16 @@ function LargeFamiliesModal({ onClose }) {
           <>
             <div style={{ padding: '12px 24px 0', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, padding: '7px 12px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 14 }}>⌕</span>
+                <Search size={14} color="rgba(255,255,255,0.28)" strokeWidth={2} />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter by ward, house number or booth…" style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 13, color: '#fff' }} />
-                {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0 }}>✕</button>}
+                {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', display:'flex', alignItems:'center', padding: 0 }}><X size={13} color="rgba(255,255,255,0.35)" strokeWidth={2} /></button>}
               </div>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 24px 24px' }}>
               {loading && <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[1,2,3].map(i => <div key={i} style={{ height: 64, borderRadius: 12, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.6s ease-in-out infinite' }} />)}</div>}
               {error && <div style={{ padding: '20px 0', color: '#f87171', textAlign: 'center', fontSize: 14 }}>⚠ {error}</div>}
               {!loading && !error && filtered.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}><div style={{ fontSize: 34, marginBottom: 8 }}>🔍</div><div style={{ fontWeight: 600 }}>No results found</div></div>
+                <div style={{ textAlign:"center", padding:"48px 0", color:"rgba(255,255,255,0.25)", display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}><Search size={34} color="rgba(255,255,255,0.18)" /><div style={{ fontWeight:600 }}>No results found</div></div>
               )}
               {!loading && filtered.map(ward => {
                 const isOpen = expandedWard === ward.wardNumber;
@@ -1629,7 +1658,7 @@ function LargeFamiliesModal({ onClose }) {
                           <div style={{ height: '100%', width: `${Math.round((ward.count / barMax) * 100)}%`, background: isOpen ? `linear-gradient(90deg, ${ACCENT}, #67e8f9)` : 'rgba(34,211,238,0.35)', borderRadius: 2, transition: 'width 0.5s ease' }} />
                         </div>
                       </div>
-                      <span style={{ color: isOpen ? ACCENT : 'rgba(255,255,255,0.2)', fontSize: 15, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>⌄</span>
+                      <span style={{ color: isOpen ? ACCENT : 'rgba(255,255,255,0.2)', fontSize: 15, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, fontSize: 0 }}><ChevronDown size={16} color={isOpen ? ACCENT : 'rgba(255,255,255,0.2)'} strokeWidth={2} /></span>
                     </div>
                     {isOpen && (
                       <div style={{ border: '1px solid rgba(34,211,238,0.14)', borderTop: 'none', borderRadius: '0 0 12px 12px', background: 'rgba(34,211,238,0.02)', padding: '10px 12px 12px' }}>
@@ -1639,14 +1668,14 @@ function LargeFamiliesModal({ onClose }) {
                             <div key={`${house.houseNo}-${hi}`} onClick={() => setSelectedHouse(house)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', marginBottom: 6, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9, cursor: 'pointer', transition: 'all 0.15s' }}
                               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(34,211,238,0.06)'; e.currentTarget.style.borderColor = 'rgba(34,211,238,0.2)'; }}
                               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
-                              <span style={{ fontSize: 16, flexShrink: 0 }}>⌂</span>
+                              <Home size={16} color="rgba(255,255,255,0.5)" strokeWidth={2} style={{ flexShrink:0 }} />
                               <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>House No: {house.houseNo}</span>
                               {house.booth && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', borderRadius: 5, padding: '2px 7px', flexShrink: 0 }}>Booth {house.booth}</span>}
                               <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: big ? 'rgba(239,68,68,0.1)' : 'rgba(34,211,238,0.1)', border: `1px solid ${big ? 'rgba(239,68,68,0.25)' : 'rgba(34,211,238,0.25)'}`, borderRadius: 16, padding: '3px 10px', flexShrink: 0 }}>
-                                <span style={{ fontSize: 10 }}>👥</span>
+                                <Users size={12} color="inherit" strokeWidth={2} />
                                 <span style={{ fontSize: 12, fontWeight: 700, color: big ? '#f87171' : ACCENT }}>{house.memberCount}</span>
                               </div>
-                              <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14, flexShrink: 0 }}>›</span>
+                              <ChevronRight size={14} color="rgba(255,255,255,0.2)" strokeWidth={2} style={{ flexShrink:0 }} />
                             </div>
                           );
                         })}
@@ -1773,19 +1802,19 @@ export default function Dashboard() {
     .filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
 
   const STAT_CARDS = [
-    { label: 'Total Surveys',  value: s.totalReg?.toLocaleString() || null, icon: '✎', color: '#f59e0b', sub: 'Registered entries' },
+    { label: 'Total Surveys',  value: s.totalReg?.toLocaleString() || null, icon: FileEdit, color: '#f59e0b', sub: 'Registered entries' },
     {
       label: 'Total Voters',
       value: (selectedBooth ? boothStats?.totalElectors : selectedWard ? (wardStats?.totalElectors || wardStats?.totalVoters) : s.totalVoters)?.toLocaleString() || null,
-      icon: '◉', color: '#22d3ee',
+      icon: Users, color: '#22d3ee',
       sub: selectedBooth ? `Booth ${selectedBooth} Electors` : selectedWard ? '2026 Total Electors' : 'Voter list records',
     },
-    { label: 'Houses Covered', value: s.houseCount?.toLocaleString() || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
-    { label: 'Large Families', value: s.largeFamilyCount?.toLocaleString() ?? null, icon: '👨‍👩‍👧‍👦', color: '#f97316', sub: 'Houses with 15+ members' },
+    { label: 'Houses Covered', value: s.houseCount?.toLocaleString() || null, icon: Home, color: '#10b981', sub: 'Unique households' },
+    { label: 'Large Families', value: s.largeFamilyCount?.toLocaleString() ?? null, icon: Users, color: '#f97316', sub: 'Houses with 15+ members' },
     {
       label: 'Coverage',
       value: (selectedBooth ? boothStats : selectedWard ? wardStats : stats) ? `${coverage}%` : null,
-      icon: '◈', color: '#8b5cf6',
+      icon: Target, color: '#8b5cf6',
       sub: selectedBooth ? `Booth ${selectedBooth} completion`
         : selectedWard ? `${wardStats?.ward2026?.pctTotal || ''}` || 'Survey completion'
         : 'Survey completion',
@@ -1793,7 +1822,7 @@ export default function Dashboard() {
     {
       label: 'Risk Wards',
       value: RISK_WARD_NUMS.length.toString(),
-      icon: '⚠', color: '#ef4444', sub: 'SIR action required',
+      icon: AlertTriangle, color: '#ef4444', sub: 'SIR action required',
       isRisk: true,
     },
   ];
@@ -1890,7 +1919,7 @@ export default function Dashboard() {
             display: 'flex', alignItems: 'center', gap: 10,
             boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
           }}>
-            <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>⌕</span>
+            <Icon icon={Search} size={20} color="rgba(255,255,255,0.4)" style={{ flexShrink: 0 }} />
             <input
               value={query} onChange={handleQueryChange}
               placeholder="Search name, Voter ID or House No…"
@@ -1898,7 +1927,9 @@ export default function Dashboard() {
             />
             {searching && <span className="spinner" style={{ flexShrink: 0 }} />}
             {query && !searching && (
-              <button onClick={clearSearch} className="touch-btn" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0', cursor: 'pointer', fontSize: 16, color: 'var(--text-2)', flexShrink: 0, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={clearSearch} className="touch-btn" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0', cursor: 'pointer', color: 'var(--text-2)', flexShrink: 0, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon icon={X} size={16} color="rgba(255,255,255,0.6)" />
+              </button>
             )}
           </div>
           {!query && (
@@ -1924,7 +1955,7 @@ export default function Dashboard() {
             {searching && <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '20px 0', color: 'var(--text-3)', fontSize: 14 }}><span className="spinner" /> Searching…</div>}
             {!searching && searchRes && searchRes.total_houses === 0 && (
               <div style={{ textAlign: 'center', padding: '36px 16px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 14, color: 'var(--text-3)' }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
+                <div style={{ display:"flex",justifyContent:"center",marginBottom:10 }}><Search size={32} color="rgba(255,255,255,0.2)" /></div>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>No results found</div>
                 <div style={{ fontSize: 13 }}>Try a different name, voter ID or house number</div>
               </div>
@@ -1945,7 +1976,7 @@ export default function Dashboard() {
                 <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', marginBottom: 6 }}>{greeting}, {user?.username} 👋</h1>
                 <p style={{ fontSize: 14, lineHeight: 1.5 }}>{
                 selectedBooth
-                  ? <>Viewing <strong style={{ color: '#22d3ee' }}>Booth {selectedBooth}</strong> in <strong style={{ color: '#f59e0b' }}>Ward {selectedWard} — {WARD_NAMES[selectedWard]}</strong></>
+                  ? <>Viewing <strong style={{ color: '#22d3ee' }}>Ward {selectedWard} · Booth {selectedBooth}</strong></>
                   : selectedWard
                   ? <>Viewing <strong style={{ color: '#f59e0b' }}>Ward {selectedWard} — {WARD_NAMES[selectedWard]}</strong></>
                   : 'Your constituency intelligence overview'
@@ -1966,7 +1997,7 @@ export default function Dashboard() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 14 }}>🗳</span>
+                        <Icon icon={Vote} size={14} color="rgba(34,211,238,0.7)" />
                         <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(34,211,238,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                           Select Booth
                         </span>
@@ -1980,10 +2011,10 @@ export default function Dashboard() {
                         <button
                           onClick={() => { setSelectedBooth(''); setBoothStats(null); }}
                           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}
-                        >✕ Clear</button>
+                         style={{ display:"flex", alignItems:"center", gap:4 }}><X size={11} color="rgba(255,255,255,0.45)" strokeWidth={2} /> Clear</button>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                       {(WARD_NUM_TO_BOOTHS[selectedWard] || []).map(b => {
                         const isActive = selectedBooth === String(b);
                         const boothSIR = (SIR_BOOTH_DATA[String(selectedWard)] || []).find(bd => bd.booth === b);
@@ -1993,27 +2024,26 @@ export default function Dashboard() {
                             key={b}
                             onClick={() => setSelectedBooth(isActive ? '' : String(b))}
                             title={boothSIR ? `Mapped: ${boothSIR.totalMappedPct}% · BLO: ${boothSIR.bloMappedPct}%` : `Booth ${b}`}
-                            className="touch-btn"
                             style={{
-                              padding: '7px 12px', borderRadius: 9, fontSize: 13, fontWeight: 700,
-                              cursor: 'pointer', transition: 'all 0.13s', minWidth: 40, minHeight: 36,
-                              background: isActive ? '#22d3ee' : isWeak ? 'rgba(239,68,68,0.14)' : 'rgba(255,255,255,0.07)',
-                              border: isActive ? '1px solid #22d3ee' : isWeak ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.12)',
+                              padding: '4px 9px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                              cursor: 'pointer', transition: 'all 0.13s', minWidth: 34, minHeight: 30,
+                              background: isActive ? '#22d3ee' : isWeak ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)',
+                              border: isActive ? '1px solid #22d3ee' : isWeak ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(255,255,255,0.1)',
                               color: isActive ? '#090e1c' : isWeak ? '#f87171' : 'var(--text-2)',
                               position: 'relative',
                             }}
                           >
                             {b}
                             {isWeak && !isActive && (
-                              <span style={{ position: 'absolute', top: -3, right: -3, width: 7, height: 7, borderRadius: '50%', background: '#ef4444', border: '1px solid #090e1c' }} />
+                              <span style={{ position: 'absolute', top: -3, right: -3, width: 6, height: 6, borderRadius: '50%', background: '#ef4444', border: '1px solid #090e1c' }} />
                             )}
                           </button>
                         );
                       })}
                     </div>
                     {selectedBooth && (
-                      <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(34,211,238,0.6)', fontWeight: 600 }}>
-                        ✓ Booth {selectedBooth} detail view shown above
+                      <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(34,211,238,0.5)', fontWeight: 500 }}>
+                        Booth {selectedBooth} selected · stats shown below
                       </div>
                     )}
                   </div>
@@ -2022,7 +2052,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ── Ward Info Card — ONLY shown when NO booth is selected ──── */}
+          {/* ── Ward Info Card — hidden when booth selected ─────────────── */}
           {selectedWard && !selectedBooth && (
             <div className="anim-fade-up" style={{ marginBottom: 20 }}>
               <div style={{
@@ -2032,7 +2062,9 @@ export default function Dashboard() {
                 padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>🏘</div>
+                  <div style={{ width: 40, height: 40, borderRadius: 11, flexShrink: 0, background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon icon={Building2} size={20} color="#f59e0b" />
+                  </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       Ward {selectedWard} — {wardStats?.wardName || WARD_NAMES[selectedWard]}
@@ -2041,7 +2073,9 @@ export default function Dashboard() {
                   </div>
                   {wardStatsLoading && <span className="spinner" />}
                 </div>
-                <button onClick={() => setSelectedWard('')} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.28)', borderRadius: 8, padding: '0', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#f59e0b', width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                <button onClick={() => setSelectedWard('')} className="touch-btn" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.28)', borderRadius: 10, cursor: 'pointer', color: '#f59e0b', width: 44, height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon icon={X} size={16} color="#f59e0b" />
+                </button>
               </div>
 
               {!wardStatsLoading && wardStats && (
@@ -2152,7 +2186,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* ── Booth Detail Card — shown full-width at TOP when booth is selected ── */}
+          {/* ── Booth Detail Card — shown at TOP when booth selected ─────── */}
           {selectedWard && selectedBooth && (
             <BoothDetailCard
               wardNum={selectedWard}
@@ -2168,7 +2202,7 @@ export default function Dashboard() {
 
           {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
 
-          {/* ── Stat cards (now 6: added Risk Wards) ─────────────────────── */}
+          {/* ── Stat cards ────────────────────────────────────────────────── */}
           <div className="db-stat-grid stagger mb-24">
             {STAT_CARDS.map(c => (
               activeLoading && c.label !== 'Risk Wards' ? (
@@ -2189,7 +2223,9 @@ export default function Dashboard() {
                   <div style={{ position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}20 0%, transparent 70%)`, pointerEvents: 'none' }} />
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.4, maxWidth: '65%' }}>{c.label}</div>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${c.color}18`, border: `1px solid ${c.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{c.icon}</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${c.color}18`, border: `1px solid ${c.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon icon={c.icon} size={15} color={c.color} />
+                    </div>
                   </div>
                   <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 7 }}>{c.value ?? '—'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2240,7 +2276,7 @@ export default function Dashboard() {
                   {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={20} radius={4} style={{ width: `${80 - i * 8}%` }} />)}
                 </div>
               ) : wardData.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 28, marginBottom: 6 }}>📊</div><div style={{ fontSize: 12 }}>No ward data yet</div></div>
+                <div style={{ textAlign:"center", padding:"30px 0", color:"rgba(255,255,255,0.2)", display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}><BarChart2 size={32} color="rgba(255,255,255,0.18)" /><div style={{ fontSize:12 }}>No ward data yet</div></div>
               ) : (
                 <ResponsiveContainer width="100%" height={210}>
                   <BarChart data={wardData} layout="vertical" margin={{ left: 0, right: 14 }}>
@@ -2262,7 +2298,7 @@ export default function Dashboard() {
               {activeLoading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 210 }}><Skeleton w={140} h={140} radius={70} /></div>
               ) : religionPie.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 28, marginBottom: 6 }}>🥧</div><div style={{ fontSize: 12 }}>No data yet</div></div>
+                <div style={{ textAlign:"center", padding:"30px 0", color:"rgba(255,255,255,0.2)", display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}><PieChartIcon size={32} color="rgba(255,255,255,0.18)" /><div style={{ fontSize:12 }}>No data yet</div></div>
               ) : (
                 <ResponsiveContainer width="100%" height={210}>
                   <PieChart>
@@ -2346,10 +2382,10 @@ export default function Dashboard() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  { to: '/survey',  label: 'Start New Survey',        desc: 'Record constituency data', icon: '✎', color: '#f59e0b' },
-                  { to: '/schemes', label: 'Check Scheme Eligibility', desc: 'Find schemes for voters',  icon: '◈', color: '#10b981' },
-                  { to: '/voters',  label: 'Search Voters',            desc: 'Browse voter registry',    icon: '◉', color: '#22d3ee' },
-                  { to: '/data',    label: 'View All Data',            desc: 'Survey & voter datasets',  icon: '⊟', color: '#8b5cf6' },
+                  { to: '/survey',  label: 'Start New Survey',        desc: 'Record constituency data', icon: FileEdit,     color: '#f59e0b' },
+                  { to: '/schemes', label: 'Check Scheme Eligibility', desc: 'Find schemes for voters',  icon: ClipboardList, color: '#10b981' },
+                  { to: '/voters',  label: 'Search Voters',            desc: 'Browse voter registry',    icon: Users,        color: '#22d3ee' },
+                  { to: '/data',    label: 'View All Data',            desc: 'Survey & voter datasets',  icon: Database,     color: '#8b5cf6' },
                 ].map(item => (
                   <Link key={item.to} to={item.to} style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '15px 14px',
@@ -2358,12 +2394,14 @@ export default function Dashboard() {
                     textDecoration: 'none', minHeight: 64,
                     transition: 'background 0.15s',
                   }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${item.color}18`, border: `1px solid ${item.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{item.icon}</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${item.color}18`, border: `1px solid ${item.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon icon={item.icon} size={20} color={item.color} />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', marginBottom: 3 }}>{item.label}</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{item.desc}</div>
                     </div>
-                    <span style={{ color: `${item.color}70`, fontSize: 22, flexShrink: 0 }}>›</span>
+                    <Icon icon={ChevronRight} size={18} color={`${item.color}70`} />
                   </Link>
                 ))}
               </div>
