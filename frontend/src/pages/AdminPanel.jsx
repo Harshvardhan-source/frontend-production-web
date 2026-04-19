@@ -20,6 +20,7 @@ const STATUS_COLORS = {
   pending:  '#f59e0b',
   approved: '#10b981',
   rejected: '#ef4444',
+  disabled: '#6b7280',
 };
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ const TABS = [
   { key: 'pending',  label: 'Pending',  icon: '⏳' },
   { key: 'approved', label: 'Approved', icon: '✅' },
   { key: 'rejected', label: 'Rejected', icon: '❌' },
+  { key: 'disabled', label: 'Disabled', icon: '🚫' },
 ];
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
@@ -44,10 +46,29 @@ function Badge({ color, children }) {
 function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
   const isApprove = action === 'approve';
   const isReject  = action === 'reject';
+  const isDisable = action === 'disable';
+  const isEnable  = action === 'enable';
   const [reason, setReason] = useState('');
   const [role,   setRole]   = useState(user?.role || 'booth_worker');
   const [ward,   setWard]   = useState(user?.ward || '');
   const [booth,  setBooth]  = useState(user?.booth || '');
+
+  const title = isApprove ? '✅ Approve User'
+              : isReject  ? '❌ Reject User'
+              : isDisable ? '🚫 Disable Access'
+              : isEnable  ? '✅ Re-enable Access'
+              :              '✏️ Edit Role';
+
+  const confirmBg = isReject  ? '#ef4444'
+                  : isDisable ? '#6b7280'
+                  : '#10b981';
+
+  const confirmLabel = loading  ? '...'
+                     : isApprove ? 'Approve'
+                     : isReject  ? 'Reject'
+                     : isDisable ? 'Disable'
+                     : isEnable  ? 'Re-enable'
+                     :              'Save';
 
   return (
     <div style={{
@@ -59,7 +80,7 @@ function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
         borderRadius: 16, padding: 28, maxWidth: 440, width: '90%',
       }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)', marginBottom: 6 }}>
-          {isApprove ? '✅ Approve User' : isReject ? '❌ Reject User' : '✏️ Edit Role'}
+          {title}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>
           <strong style={{ color: '#f59e0b' }}>{user?.username}</strong> — {user?.email}
@@ -91,11 +112,52 @@ function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
           </>
         )}
 
-        {isReject && (
+        {(isApprove || action === 'edit') && (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Role</label>
+              <select value={role} onChange={e => { setRole(e.target.value); setWard(''); setBooth(''); }}
+                style={{ width: '100%', marginTop: 6, background: 'var(--bg-3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13 }}>
+                {Object.entries(ROLE_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+            {role === 'corporator' && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ward Name</label>
+                <input value={ward} onChange={e => setWard(e.target.value)} placeholder="e.g. PADAVU"
+                  style={{ width: '100%', marginTop: 6, boxSizing: 'border-box', background: 'var(--bg-3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13 }} />
+              </div>
+            )}
+            {role === 'booth_worker' && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Booth Number</label>
+                <input value={booth} onChange={e => setBooth(e.target.value)} placeholder="e.g. 31"
+                  style={{ width: '100%', marginTop: 6, boxSizing: 'border-box', background: 'var(--bg-3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13 }} />
+              </div>
+            )}
+          </>
+        )}
+
+        {(isReject || isDisable) && (
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Reason (optional)</label>
-            <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason for rejection..."
+            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {isDisable ? 'Reason for disabling (optional)' : 'Reason (optional)'}
+            </label>
+            <input value={reason} onChange={e => setReason(e.target.value)}
+              placeholder={isDisable ? 'e.g. Misuse of access, temporary suspension…' : 'Reason for rejection...'}
               style={{ width: '100%', marginTop: 6, boxSizing: 'border-box', background: 'var(--bg-3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13 }} />
+          </div>
+        )}
+
+        {isDisable && (
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(107,114,128,0.12)', border: '1px solid rgba(107,114,128,0.3)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+            ⚠ This user will immediately lose all access. They cannot log in until re-enabled by an admin.
+          </div>
+        )}
+
+        {isEnable && (
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, fontSize: 12, color: 'rgba(16,185,129,0.8)', lineHeight: 1.6 }}>
+            ✓ This user will regain access with their existing role and permissions.
           </div>
         )}
 
@@ -108,10 +170,10 @@ function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
             onClick={() => onConfirm({ role, ward, booth, reason })}
             style={{
               flex: 1, padding: '10px 0', borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: 'pointer', border: 'none',
-              background: isReject ? '#ef4444' : '#10b981', color: '#fff',
+              background: confirmBg, color: '#fff',
               opacity: loading ? 0.6 : 1,
             }}>
-            {loading ? '...' : isApprove ? 'Approve' : isReject ? 'Reject' : 'Save'}
+            {confirmLabel}
           </button>
         </div>
       </div>
@@ -120,9 +182,10 @@ function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
 }
 
 // ── User card ──────────────────────────────────────────────────────────────────
-function UserCard({ user, onApprove, onReject, onEdit, tab }) {
+function UserCard({ user, onApprove, onReject, onEdit, onDisable, onEnable, tab }) {
   const roleColor  = ROLE_COLORS[user.role]  || '#8b5cf6';
   const statColor  = STATUS_COLORS[user.status] || '#8b5cf6';
+  const isDisabled = user.status === 'disabled';
 
   const formattedDate = (iso) => {
     if (!iso) return '—';
@@ -132,14 +195,18 @@ function UserCard({ user, onApprove, onReject, onEdit, tab }) {
 
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+      background: isDisabled ? 'rgba(107,114,128,0.06)' : 'rgba(255,255,255,0.02)',
+      border: isDisabled ? '1px solid rgba(107,114,128,0.2)' : '1px solid rgba(255,255,255,0.07)',
       borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+      opacity: isDisabled ? 0.75 : 1,
     }}>
       {/* Avatar */}
       <div style={{
         width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex',
         alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800,
-        background: `${roleColor}22`, color: roleColor, border: `1px solid ${roleColor}44`,
+        background: isDisabled ? 'rgba(107,114,128,0.15)' : `${roleColor}22`,
+        color: isDisabled ? '#6b7280' : roleColor,
+        border: isDisabled ? '1px solid rgba(107,114,128,0.3)' : `1px solid ${roleColor}44`,
       }}>
         {user.username?.[0]?.toUpperCase() || '?'}
       </div>
@@ -147,9 +214,10 @@ function UserCard({ user, onApprove, onReject, onEdit, tab }) {
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-          <span style={{ fontWeight: 700, color: 'var(--text-1)', fontSize: 14 }}>{user.username}</span>
+          <span style={{ fontWeight: 700, color: isDisabled ? 'var(--text-3)' : 'var(--text-1)', fontSize: 14 }}>{user.username}</span>
           <Badge color={roleColor}>{ROLE_LABELS[user.role] || user.role}</Badge>
           <Badge color={statColor}>{user.status}</Badge>
+          {isDisabled && <span style={{ fontSize: 10, color: '#6b7280' }}>🚫 Access suspended</span>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 3 }}>{user.email}</div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
@@ -157,11 +225,12 @@ function UserCard({ user, onApprove, onReject, onEdit, tab }) {
           {user.booth && <span>Booth: <strong style={{ color: '#10b981' }}>{user.booth}</strong></span>}
           <span>Registered: {formattedDate(user.requestedAt)}</span>
           {user.approvedBy && <span>By: {user.approvedBy}</span>}
+          {user.disabledBy && <span style={{ color: '#6b7280' }}>Disabled by: {user.disabledBy}</span>}
         </div>
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
         {tab === 'pending' && (
           <>
             <button onClick={() => onApprove(user)}
@@ -174,7 +243,25 @@ function UserCard({ user, onApprove, onReject, onEdit, tab }) {
             </button>
           </>
         )}
-        {tab !== 'pending' && (
+        {tab === 'approved' && (
+          <>
+            <button onClick={() => onEdit(user)}
+              style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'var(--text-2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+              Edit Role
+            </button>
+            <button onClick={() => onDisable(user)}
+              style={{ padding: '7px 14px', background: 'rgba(107,114,128,0.15)', border: '1px solid rgba(107,114,128,0.35)', borderRadius: 8, color: '#9ca3af', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+              🚫 Disable
+            </button>
+          </>
+        )}
+        {tab === 'disabled' && (
+          <button onClick={() => onEnable(user)}
+            style={{ padding: '7px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)', borderRadius: 8, color: '#10b981', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+            ✓ Re-enable
+          </button>
+        )}
+        {tab === 'rejected' && (
           <button onClick={() => onEdit(user)}
             style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'var(--text-2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
             Edit Role
@@ -309,7 +396,7 @@ function AdminReAuthGate({ onVerified }) {
 export default function AdminPanel() {
   const { user: authUser } = useAuth();
   const [verified, setVerified] = useState(false);       // re-auth gate
-  const [data,    setData]    = useState({ pending: [], approved: [], rejected: [] });
+  const [data,    setData]    = useState({ pending: [], approved: [], rejected: [], disabled: [] });
   const [tab,     setTab]     = useState('pending');
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
@@ -357,6 +444,10 @@ export default function AdminPanel() {
         r = await api.post('/api/admin/approve/', { email: user.email, role, ward, booth });
       } else if (action === 'reject') {
         r = await api.post('/api/admin/reject/',  { email: user.email, reason });
+      } else if (action === 'disable') {
+        r = await api.post('/api/admin/disable/', { email: user.email, reason });
+      } else if (action === 'enable') {
+        r = await api.post('/api/admin/enable/',  { email: user.email });
       } else {
         r = await api.post('/api/admin/update-role/', { email: user.email, role, ward, booth });
       }
@@ -433,11 +524,12 @@ export default function AdminPanel() {
         </div>
 
         {/* Summary cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
           {[
             { label: 'Pending',  count: data.pending?.length  || 0, color: '#f59e0b' },
             { label: 'Approved', count: data.approved?.length || 0, color: '#10b981' },
             { label: 'Rejected', count: data.rejected?.length || 0, color: '#ef4444' },
+            { label: 'Disabled', count: data.disabled?.length || 0, color: '#6b7280' },
           ].map(({ label, count, color }) => (
             <div key={label} style={{
               background: `${color}11`, border: `1px solid ${color}33`,
@@ -490,7 +582,7 @@ export default function AdminPanel() {
               {tab === 'pending' ? '✅' : tab === 'approved' ? '👥' : '📋'}
             </div>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>
-              {tab === 'pending' ? 'No pending requests' : tab === 'approved' ? 'No approved users' : 'No rejected users'}
+              {tab === 'pending' ? 'No pending requests' : tab === 'approved' ? 'No approved users' : tab === 'disabled' ? 'No disabled users' : 'No rejected users'}
             </div>
           </div>
         ) : (
@@ -503,6 +595,8 @@ export default function AdminPanel() {
                 onApprove={user => setModal({ action: 'approve', user })}
                 onReject={user  => setModal({ action: 'reject',  user })}
                 onEdit={user    => setModal({ action: 'edit',    user })}
+                onDisable={user => setModal({ action: 'disable', user })}
+                onEnable={user  => setModal({ action: 'enable',  user })}
               />
             ))}
           </div>
