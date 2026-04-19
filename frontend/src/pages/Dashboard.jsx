@@ -429,15 +429,15 @@ function WardSIRPanel({ wardNum }) {
           <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 8 }}>
             SIR Survey Completion
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
               { label: 'BLO Mapped',    val: d.bloMapped,   color: '#22d3ee', threshold: 60 },
               { label: 'Progeny 18+',   val: d.progeny,     color: '#a78bfa', threshold: 80 },
               { label: 'Total Mapped',  val: d.totalMapped, color: '#f59e0b', threshold: 65 },
-            ].map(({ label, val, color, threshold }) => {
+            ].map(({ label, val, color, threshold }, idx) => {
               const ok = val >= threshold;
               return (
-                <div key={label} style={{ background: ok ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.05)', border: `1px solid ${ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: 8, padding: '8px 10px' }}>
+                <div key={label} style={{ background: ok ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.05)', border: `1px solid ${ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: 8, padding: '10px 12px', gridColumn: idx === 2 ? '1 / -1' : undefined }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ fontSize: 11, fontWeight: 900, color: ok ? color : '#f87171' }}>{val.toFixed(1)}%</span>
                     <span style={{ fontSize: 8, color: ok ? '#10b981' : '#f87171' }}>{ok ? '✓' : '⚠'}</span>
@@ -1955,7 +1955,7 @@ export default function Dashboard() {
               </div>
 
               {/* ── Ward + Booth selectors stacked ── */}
-              <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {/* Ward selector */}
                 <WardSelector value={selectedWard} onChange={(w) => { setSelectedWard(w); setSelectedBooth(''); setBoothStats(null); }} />
 
@@ -2061,7 +2061,7 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8, marginBottom: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 10px', marginBottom: 18 }}>
                     {[
                       { label: 'Total Electors', value: wardStats.ward2026?.totalElectors,  color: '#22d3ee' },
                       { label: 'Cutoff Elec',    value: wardStats.ward2026?.cutoffElec,      color: '#f59e0b' },
@@ -2080,14 +2080,12 @@ export default function Dashboard() {
                       const totalE  = wardStats.ward2026?.totalElectors || 1;
                       const pct     = (!isPct && typeof value === 'number') ? Math.round(value / totalE * 100) : null;
                       return (
-                        <div key={label}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                            <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color }}>{display ?? '—'}</span>
-                          </div>
+                        <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px' }}>
+                          <div style={{ fontSize: 18, fontWeight: 800, color, marginBottom: 3, lineHeight: 1 }}>{display ?? '—'}</div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 600, marginBottom: pct !== null ? 7 : 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
                           {pct !== null && (
-                            <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
-                              <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
+                            <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                              <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: color, borderRadius: 2 }} />
                             </div>
                           )}
                         </div>
@@ -2103,7 +2101,7 @@ export default function Dashboard() {
                   )}
 
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>Voter Roll Demographics</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 10px' }}>
                     {[
                       { label: 'Total', value: wardStats.totalVoters, color: '#22d3ee', pct: 100 },
                       { label: 'Male',  value: wardStats.totalMale,   color: '#22d3ee', pct: wardStats.totalVoters ? Math.round(wardStats.totalMale / wardStats.totalVoters * 100) : 0 },
@@ -2112,13 +2110,11 @@ export default function Dashboard() {
                       { label: 'Muslim',value: wardStats.totalMuslim, color: '#10b981', pct: wardStats.totalVoters ? Math.round(wardStats.totalMuslim / wardStats.totalVoters * 100) : 0 },
                       { label: 'Chrstn',value: wardStats.totalChristian, color: '#8b5cf6', pct: wardStats.totalVoters ? Math.round(wardStats.totalChristian / wardStats.totalVoters * 100) : 0 },
                     ].map(({ label, value, color, pct }) => (
-                      <div key={label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                          <span style={{ fontSize: 14, fontWeight: 800, color }}>{value?.toLocaleString() ?? '—'}</span>
-                        </div>
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
+                      <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color, marginBottom: 3, lineHeight: 1 }}>{value?.toLocaleString() ?? '—'}</div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 600, marginBottom: 7 }}>{label}</div>
+                        <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 2 }} />
                         </div>
                       </div>
                     ))}
