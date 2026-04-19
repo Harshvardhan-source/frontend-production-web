@@ -2141,81 +2141,230 @@ export default function Dashboard() {
               </div>
 
               {!wardStatsLoading && wardStats && (
-                <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none', borderRadius: '0 0 0 0', padding: '12px 12px 14px' }}>
+                <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none', padding: '0 0 4px' }}>
 
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 8 }}>
-                    2026 Voter Roll · Electors Data
-                  </div>
-
+                  {/* ── Booth chips row ── */}
                   {(wardStats.ward2026?.boothCount > 0 || wardStats.ward2026?.boothList) && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 10px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', flexShrink: 0 }}>Booths</span>
-                      {wardStats.ward2026?.boothCount > 0 && <span style={{ fontSize: 11, fontWeight: 800, color: '#22d3ee', flexShrink: 0 }}>{wardStats.ward2026.boothCount} booths</span>}
-                      {wardStats.ward2026?.boothList && <span style={{ fontSize: 10, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {wardStats.ward2026.boothList}</span>}
+                    <div style={{ padding: '10px 14px 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', flexShrink: 0 }}>Booths</span>
+                      {wardStats.ward2026?.boothCount > 0 && (
+                        <span style={{ fontSize: 12, fontWeight: 800, color: '#22d3ee', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)', borderRadius: 20, padding: '2px 10px', flexShrink: 0 }}>
+                          {wardStats.ward2026.boothCount} booths
+                        </span>
+                      )}
+                      {wardStats.ward2026?.boothList && (
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {wardStats.ward2026.boothList}
+                        </span>
+                      )}
                     </div>
                   )}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
-                    {[
-                      { label: 'Total Electors', value: wardStats.ward2026?.totalElectors,  color: '#22d3ee' },
-                      { label: 'Cutoff Elec',    value: wardStats.ward2026?.cutoffElec,      color: '#f59e0b' },
-                      { label: 'BLO Mapped',     value: wardStats.ward2026?.bloMapped,       color: '#10b981' },
-                      { label: 'Total Mapped',   value: wardStats.ward2026?.totalMapped,     color: '#10b981' },
-                      { label: '% BLO Mapped',   value: wardStats.ward2026?.pctBloMapped,    color: '#10b981', isPct: true },
-                      { label: 'Age≤Cutoff',     value: wardStats.ward2026?.ageCutoff,       color: '#8b5cf6' },
-                      { label: 'Progeny >18',    value: wardStats.ward2026?.progeny18,       color: '#a78bfa' },
-                      { label: '% Progeny',      value: wardStats.ward2026?.pctProgeny,      color: '#a78bfa', isPct: true },
-                      { label: 'Electors Mapped',value: wardStats.ward2026?.electorsMapped,  color: '#f97316' },
-                      { label: '% Total',        value: wardStats.ward2026?.pctTotal,        color: '#f97316', isPct: true },
-                    ].filter(x => x.value !== undefined && x.value !== '' && x.value !== 0).map(({ label, value, color, isPct }) => {
-                      const display = isPct
-                        ? (typeof value === 'number' ? value.toFixed(2) + '%' : String(value).replace('%','') + '%')
-                        : (typeof value === 'number' ? value.toLocaleString() : value);
-                      const totalE  = wardStats.ward2026?.totalElectors || 1;
-                      const pct     = (!isPct && typeof value === 'number') ? Math.round(value / totalE * 100) : null;
-                      return (
-                        <div key={label}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
-                            <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                            <span style={{ fontSize: 12, fontWeight: 800, color }}>{display ?? '—'}</span>
+                  {/* ══ SECTION 1: ELECTORS AT A GLANCE ══ */}
+                  <div style={{ padding: '14px 14px 0' }}>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 10 }}>
+                      📋 2026 Voter Roll — Electors at a Glance
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 10 }}>
+                      {/* Total Electors — hero number */}
+                      <div style={{
+                        gridColumn: '1 / -1',
+                        background: 'linear-gradient(135deg, rgba(34,211,238,0.08), rgba(34,211,238,0.03))',
+                        border: '1px solid rgba(34,211,238,0.2)', borderRadius: 12, padding: '14px 16px',
+                        display: 'flex', alignItems: 'center', gap: 16,
+                      }}>
+                        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🗳️</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, color: 'rgba(34,211,238,0.6)', fontWeight: 700, marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Registered Electors</div>
+                          <div style={{ fontSize: 30, fontWeight: 900, color: '#22d3ee', fontFamily: 'var(--font-display)', letterSpacing: '-1px', lineHeight: 1 }}>
+                            {(wardStats.ward2026?.totalElectors || wardStats.totalVoters || 0).toLocaleString()}
                           </div>
-                          {pct !== null && (
-                            <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
-                              <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
+                        </div>
+                        {wardStats.ward2026?.cutoffElec != null && (
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>Cutoff eligible</div>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: '#f59e0b' }}>{wardStats.ward2026.cutoffElec.toLocaleString()}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Age ≤ Cutoff */}
+                      {wardStats.ward2026?.ageCutoff != null && (
+                        <div style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 12, padding: '12px 14px' }}>
+                          <div style={{ fontSize: 10, color: 'rgba(139,92,246,0.7)', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span>👶</span> Age ≤ Cutoff
+                          </div>
+                          <div style={{ fontSize: 22, fontWeight: 900, color: '#a78bfa', fontFamily: 'var(--font-display)', marginBottom: 2 }}>
+                            {wardStats.ward2026.ageCutoff.toLocaleString()}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Young voters in roll</div>
+                        </div>
+                      )}
+
+                      {/* Progeny 18+ */}
+                      {wardStats.ward2026?.progeny18 != null && (
+                        <div style={{ background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 12, padding: '12px 14px' }}>
+                          <div style={{ fontSize: 10, color: 'rgba(167,139,250,0.7)', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span>🌱</span> Progeny 18+
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
+                            <div style={{ fontSize: 22, fontWeight: 900, color: '#c4b5fd', fontFamily: 'var(--font-display)' }}>
+                              {wardStats.ward2026.progeny18.toLocaleString()}
                             </div>
+                            {wardStats.ward2026?.pctProgeny != null && (
+                              <div style={{ fontSize: 13, fontWeight: 800, color: wardStats.ward2026.pctProgeny >= 80 ? '#a78bfa' : '#f59e0b' }}>
+                                {wardStats.ward2026.pctProgeny.toFixed(1)}%
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>New-age additions</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ══ SECTION 2: MAPPING STATUS — visual progress cards ══ */}
+                  <div style={{ padding: '0 14px 0' }}>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 10 }}>
+                      📍 Mapping Coverage Status
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10 }}>
+                      {[
+                        {
+                          label: 'BLO Officer Mapped',
+                          desc: 'Voters mapped by Booth Level Officer',
+                          count: wardStats.ward2026?.bloMapped,
+                          total: wardStats.ward2026?.totalElectors || wardStats.totalVoters,
+                          pct: wardStats.ward2026?.pctBloMapped,
+                          threshold: 60, color: '#22d3ee', icon: '👮',
+                        },
+                        {
+                          label: 'Total Electors Mapped',
+                          desc: 'All mapping methods combined',
+                          count: wardStats.ward2026?.electorsMapped ?? wardStats.ward2026?.totalMapped,
+                          total: wardStats.ward2026?.totalElectors || wardStats.totalVoters,
+                          pct: wardStats.ward2026?.pctTotal,
+                          threshold: 65, color: '#f59e0b', icon: '🗺️',
+                        },
+                      ].filter(m => m.count != null).map(({ label, desc, count, total, pct, threshold, color, icon }) => {
+                        const computedPct = pct ?? (total ? Math.round(count / total * 100) : 0);
+                        const isGood = computedPct >= threshold;
+                        const isGreat = computedPct >= threshold + 15;
+                        const statusColor = isGreat ? '#10b981' : isGood ? color : '#f87171';
+                        const statusLabel = isGreat ? '✓ EXCELLENT' : isGood ? '✓ ON TRACK' : '⚠ BELOW TARGET';
+                        const statusBg    = isGreat ? 'rgba(16,185,129,0.12)' : isGood ? `${color}15` : 'rgba(239,68,68,0.1)';
+                        const statusBorder= isGreat ? 'rgba(16,185,129,0.3)' : isGood ? `${color}30` : 'rgba(239,68,68,0.25)';
+                        return (
+                          <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)', marginBottom: 1 }}>{label}</div>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{desc}</div>
+                              </div>
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontSize: 22, fontWeight: 900, color: statusColor, fontFamily: 'var(--font-display)', lineHeight: 1 }}>
+                                  {typeof computedPct === 'number' ? `${computedPct.toFixed(1)}%` : '—'}
+                                </div>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
+                                  {count?.toLocaleString()} / {total?.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                            {/* Progress bar with threshold marker */}
+                            <div style={{ position: 'relative', height: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 4, overflow: 'visible' }}>
+                              {/* Target line */}
+                              <div style={{ position: 'absolute', left: `${threshold}%`, top: -3, bottom: -3, width: 2, background: 'rgba(255,255,255,0.25)', borderRadius: 1, zIndex: 2 }} title={`Target: ${threshold}%`} />
+                              <div style={{ height: '100%', width: `${Math.min(computedPct, 100)}%`, background: `linear-gradient(90deg, ${statusColor}80, ${statusColor})`, borderRadius: 4, transition: 'width 0.8s ease', overflow: 'hidden' }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>Target: {threshold}%</span>
+                              <span style={{ fontSize: 10, fontWeight: 800, color: statusColor, background: statusBg, border: `1px solid ${statusBorder}`, borderRadius: 6, padding: '2px 8px' }}>
+                                {statusLabel}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* ══ SECTION 3: DEMOGRAPHICS — big visual cards ══ */}
+                  <div style={{ padding: '0 14px 14px' }}>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 10 }}>
+                      👥 Voter Demographics
+                    </div>
+
+                    {/* Gender cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
+                      {[
+                        { label: 'Total Voters', value: wardStats.totalVoters, color: '#22d3ee', icon: '🗳️', pct: 100 },
+                        { label: 'Male',         value: wardStats.totalMale,   color: '#60a5fa', icon: '♂',  pct: wardStats.totalVoters ? Math.round(wardStats.totalMale   / wardStats.totalVoters * 100) : 0 },
+                        { label: 'Female',       value: wardStats.totalFemale, color: '#f472b6', icon: '♀',  pct: wardStats.totalVoters ? Math.round(wardStats.totalFemale / wardStats.totalVoters * 100) : 0 },
+                      ].map(({ label, value, color, icon, pct }) => (
+                        <div key={label} style={{ background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
+                          <div style={{ fontSize: 10, color: `${color}99`, fontWeight: 700, marginBottom: 4, letterSpacing: '0.3px' }}>{label}</div>
+                          <div style={{ fontSize: 18, fontWeight: 900, color, fontFamily: 'var(--font-display)', lineHeight: 1, marginBottom: 4 }}>
+                            {value?.toLocaleString() ?? '—'}
+                          </div>
+                          {label !== 'Total Voters' && (
+                            <>
+                              <div style={{ fontSize: 11, fontWeight: 800, color, marginBottom: 4 }}>{pct}%</div>
+                              <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 2, transition: 'width 0.6s ease' }} />
+                              </div>
+                            </>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-
-                  {wardStats.ward2026?.supervisors && (
-                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '8px 10px', marginBottom: 14 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Supervisors · </span>
-                      <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>{wardStats.ward2026.supervisors}</span>
+                      ))}
                     </div>
-                  )}
 
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 8 }}>Voter Roll Demographics</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                    {[
-                      { label: 'Total', value: wardStats.totalVoters, color: '#22d3ee', pct: 100 },
-                      { label: 'Male',  value: wardStats.totalMale,   color: '#22d3ee', pct: wardStats.totalVoters ? Math.round(wardStats.totalMale / wardStats.totalVoters * 100) : 0 },
-                      { label: 'Female',value: wardStats.totalFemale, color: '#ec4899', pct: wardStats.totalVoters ? Math.round(wardStats.totalFemale / wardStats.totalVoters * 100) : 0 },
-                      { label: 'Hindu', value: wardStats.totalHindu,  color: '#f97316', pct: wardStats.totalVoters ? Math.round(wardStats.totalHindu / wardStats.totalVoters * 100) : 0 },
-                      { label: 'Muslim',value: wardStats.totalMuslim, color: '#10b981', pct: wardStats.totalVoters ? Math.round(wardStats.totalMuslim / wardStats.totalVoters * 100) : 0 },
-                      { label: 'Chrstn',value: wardStats.totalChristian, color: '#8b5cf6', pct: wardStats.totalVoters ? Math.round(wardStats.totalChristian / wardStats.totalVoters * 100) : 0 },
-                    ].map(({ label, value, color, pct }) => (
-                      <div key={label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
-                          <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                          <span style={{ fontSize: 12, fontWeight: 800, color }}>{value?.toLocaleString() ?? '—'}</span>
-                        </div>
-                        <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
+                    {/* Religion breakdown — stacked bars with clear labels */}
+                    <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>Community Composition</div>
+                      {/* Stacked visual bar */}
+                      <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', marginBottom: 12, gap: 1 }}>
+                        {[
+                          { value: wardStats.totalHindu,    color: '#f97316' },
+                          { value: wardStats.totalMuslim,   color: '#10b981' },
+                          { value: wardStats.totalChristian,color: '#8b5cf6' },
+                        ].map((seg, i) => {
+                          const pct = wardStats.totalVoters ? (seg.value / wardStats.totalVoters * 100) : 0;
+                          return <div key={i} style={{ width: `${pct}%`, background: seg.color, minWidth: pct > 0 ? 3 : 0, transition: 'width 0.6s ease' }} />;
+                        })}
+                      </div>
+                      {/* Religion rows */}
+                      {[
+                        { label: 'Hindu',     value: wardStats.totalHindu,     color: '#f97316', emoji: '🪔' },
+                        { label: 'Muslim',    value: wardStats.totalMuslim,     color: '#10b981', emoji: '☪️' },
+                        { label: 'Christian', value: wardStats.totalChristian,  color: '#8b5cf6', emoji: '✝️' },
+                      ].map(({ label, value, color, emoji }) => {
+                        const pct = wardStats.totalVoters && value ? Math.round(value / wardStats.totalVoters * 100) : 0;
+                        return (
+                          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                            <span style={{ fontSize: 14, flexShrink: 0, width: 20, textAlign: 'center' }}>{emoji}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', minWidth: 64 }}>{label}</span>
+                            <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 3, transition: 'width 0.6s ease' }} />
+                            </div>
+                            <span style={{ fontSize: 12, fontWeight: 800, color, minWidth: 36, textAlign: 'right', flexShrink: 0 }}>{pct}%</span>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', minWidth: 44, textAlign: 'right', flexShrink: 0 }}>{value?.toLocaleString() ?? '—'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Supervisors row */}
+                    {wardStats.ward2026?.supervisors && (
+                      <div style={{ marginTop: 10, background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 10, padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>🧑‍💼</span>
+                        <div>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(245,158,11,0.5)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 3 }}>Ward Supervisors</div>
+                          <div style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, lineHeight: 1.5 }}>{wardStats.ward2026.supervisors}</div>
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}
