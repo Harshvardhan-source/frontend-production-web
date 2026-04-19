@@ -476,6 +476,18 @@ export default function SurveyForm() {
 
   return (
     <div className="page">
+      <style>{`
+        /* Compact inputs for mobile */
+        .page-inner .input { padding: 9px 12px !important; font-size: 14px !important; min-height: 44px; }
+        .page-inner select.input { min-height: 44px; }
+        .page-inner textarea.input { min-height: 80px; }
+        .page-inner .field { margin-bottom: 0; }
+        .page-inner .field-label { font-size: 11px; margin-bottom: 4px; }
+        /* Prevent nav buttons from overflowing */
+        .page-inner .btn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 44px; }
+        .page-inner .btn-primary { font-size: 14px; }
+        .page-inner .btn-ghost { font-size: 13px; }
+      `}</style>
       <Navbar />
       <div className="page-inner" style={{ maxWidth: 900 }}>
 
@@ -987,85 +999,88 @@ export default function SurveyForm() {
 
             {!isLastStep ? (
               /* Non-last steps: Previous on left, Next on right */
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10 }}>
+              <div style={{ display:'flex', gap:8, alignItems:'stretch' }}>
                 <button className="btn btn-ghost"
+                  style={{ flex:'0 0 auto', minWidth:80, padding:'10px 12px', fontSize:13 }}
                   onClick={() => step > 0 ? setStep(s => s - 1) : (returnTo ? navigate(returnTo, { state: { returnQuery } }) : navigate('/survey'))}>
-                  ← {step === 0 ? 'Back' : 'Previous'}
+                  ← {step === 0 ? 'Back' : 'Prev'}
                 </button>
-                <button className="btn btn-primary" onClick={() => setStep(s => s + 1)}>
-                  Next: {STEPS[step + 1]} →
+                <button className="btn btn-primary"
+                  style={{ flex:1, minWidth:0, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'10px 12px', fontSize:13, overflow:'hidden' }}
+                  onClick={() => setStep(s => s + 1)}>
+                  <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>Next: {STEPS[step + 1]}</span> →
                 </button>
               </div>
             ) : (
               /* Last step: stacked mobile-friendly layout */
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
 
-                {/* Row 1: Check SIR + View SIR (secondary actions) */}
+                {/* Row 1: Save Survey — full width primary */}
+                <button
+                  className="btn btn-primary btn-lg btn-full"
+                  style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, minHeight:50, fontSize:15 }}
+                  onClick={() => handleSubmit('done')} disabled={busy}
+                >
+                  {busy && saveMode === 'done'
+                    ? <span className="spinner" />
+                    : <><span style={{ fontSize:17 }}>✓</span> {savedMembers.length > 0 ? 'Save & Done' : 'Save Survey'}</>
+                  }
+                </button>
+
+                {/* Row 2: Previous + Save & Add Next — equal halves */}
+                <div style={{ display:'flex', gap:8 }}>
+                  <button className="btn btn-ghost"
+                    style={{ flex:'0 0 auto', minWidth:90, padding:'10px 12px', fontSize:13 }}
+                    onClick={() => setStep(s => s - 1)}>
+                    ← Prev
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ flex:1, minWidth:0, border:'1px solid rgba(34,211,238,0.35)', color:'var(--cyan)', display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'10px 10px', fontSize:13, minHeight:44, overflow:'hidden' }}
+                    onClick={() => handleSubmit('next')} disabled={busy}
+                  >
+                    {busy && saveMode === 'next' ? <span className="spinner" /> : <><span style={{ fontSize:15, flexShrink:0 }}>👤</span><span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>Save &amp; Add Next</span></>}
+                  </button>
+                </div>
+
+                {/* Row 3: Check SIR + View SIR */}
                 <div style={{ display:'flex', gap:8 }}>
                   <button
                     onClick={handleCheckSir}
                     disabled={sirChecking || busy || (!form.voterid && !form.firstName)}
                     style={{
-                      flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
-                      background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.4)',
-                      borderRadius:10, padding:'11px 14px',
-                      color:'#fbbf24', fontSize:13, fontWeight:700, cursor:'pointer',
+                      flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                      background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.35)',
+                      borderRadius:10, padding:'9px 10px',
+                      color:'#fbbf24', fontSize:12, fontWeight:700, cursor:'pointer',
                       opacity: (sirChecking || busy || (!form.voterid && !form.firstName)) ? 0.5 : 1,
-                      minHeight: 46,
+                      minHeight: 40,
                     }}>
                     {sirChecking ? <><span className="spinner" /> Checking…</> : '🔎 Check SIR'}
                   </button>
                   {sirResult && (
                     <button onClick={() => setShowSir(p => !p)} style={{
-                      flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                      flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6,
                       background: showSir ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.08)',
-                      border:'1px solid rgba(139,92,246,0.4)',
-                      borderRadius:10, padding:'11px 14px',
-                      color:'#a78bfa', fontSize:13, fontWeight:700, cursor:'pointer',
-                      minHeight: 46,
+                      border:'1px solid rgba(139,92,246,0.35)',
+                      borderRadius:10, padding:'9px 10px',
+                      color:'#a78bfa', fontSize:12, fontWeight:700, cursor:'pointer',
+                      minHeight: 40,
                     }}>
                       🔍 {showSir ? 'Hide SIR' : 'View SIR'}
                       {sirResult.stored && (
                         <span style={{ fontSize:10, background:'rgba(16,185,129,0.2)',
-                          color:'#10b981', borderRadius:4, padding:'1px 6px' }}>Stored</span>
+                          color:'#10b981', borderRadius:4, padding:'1px 5px', marginLeft:4 }}>✓</span>
                       )}
                     </button>
                   )}
                 </div>
 
-                {/* Row 2: Previous (left) + Save & Add Next Member (right) */}
-                <div style={{ display:'flex', gap:10 }}>
-                  <button className="btn btn-ghost"
-                    style={{ flexShrink:0 }}
-                    onClick={() => setStep(s => s - 1)}>
-                    ← Previous
-                  </button>
-                  <button
-                    className="btn btn-ghost"
-                    style={{ flex:1, border:'1px solid rgba(34,211,238,0.35)', color:'var(--cyan)', display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'11px 14px', minHeight:46 }}
-                    onClick={() => handleSubmit('next')} disabled={busy}
-                  >
-                    {busy && saveMode === 'next' ? <span className="spinner" /> : <><span style={{ fontSize:16 }}>👤</span> Save &amp; Add Next</>}
-                  </button>
-                </div>
-
-                {/* Row 3: Save Survey / Save & Done — full width, prominent */}
-                <button
-                  className="btn btn-primary btn-lg btn-full"
-                  style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, minHeight:52 }}
-                  onClick={() => handleSubmit('done')} disabled={busy}
-                >
-                  {busy && saveMode === 'done'
-                    ? <span className="spinner" />
-                    : <><span style={{ fontSize:18 }}>✓</span> {savedMembers.length > 0 ? 'Save & Done' : 'Save Survey'}</>
-                  }
-                </button>
-
                 {/* Helper text */}
-                <div style={{ textAlign:'center', fontSize:11, color:'var(--text-3)', lineHeight:1.6 }}>
-                  <strong style={{ color:'var(--cyan)' }}>Save &amp; Add Next</strong> — saves and opens next member form
+                <div style={{ textAlign:'center', fontSize:11, color:'var(--text-3)', lineHeight:1.5 }}>
+                  <strong style={{ color:'var(--cyan)' }}>Save &amp; Add Next</strong> — next member
                   &nbsp;·&nbsp;
-                  <strong style={{ color:'var(--green)' }}>Save &amp; Done</strong> — saves and returns to survey list
+                  <strong style={{ color:'var(--green)' }}>Save Survey</strong> — finish &amp; exit
                 </div>
               </div>
             )}

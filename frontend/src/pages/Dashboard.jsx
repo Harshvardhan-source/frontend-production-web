@@ -787,7 +787,7 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
                       </div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: pct !== null ? 8 : 0 }}>{label}</div>
                       {pct !== null && (
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                        <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                           <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 2, transition: 'width 0.6s ease' }} />
                         </div>
                       )}
@@ -2047,9 +2047,9 @@ export default function Dashboard() {
               </div>
 
               {!wardStatsLoading && wardStats && (
-                <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none', borderRadius: '0 0 0 0', padding: '14px' }}>
+                <div style={{ background: 'rgba(10,18,34,0.97)', border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none', borderRadius: '0 0 0 0', padding: '12px 12px 14px' }}>
 
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 8 }}>
                     2026 Voter Roll · Electors Data
                   </div>
 
@@ -2061,7 +2061,7 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8, marginBottom: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
                     {[
                       { label: 'Total Electors', value: wardStats.ward2026?.totalElectors,  color: '#22d3ee' },
                       { label: 'Cutoff Elec',    value: wardStats.ward2026?.cutoffElec,      color: '#f59e0b' },
@@ -2081,12 +2081,12 @@ export default function Dashboard() {
                       const pct     = (!isPct && typeof value === 'number') ? Math.round(value / totalE * 100) : null;
                       return (
                         <div key={label}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                            <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color }}>{display ?? '—'}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                            <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                            <span style={{ fontSize: 12, fontWeight: 800, color }}>{display ?? '—'}</span>
                           </div>
                           {pct !== null && (
-                            <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                            <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                               <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
                             </div>
                           )}
@@ -2102,8 +2102,8 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>Voter Roll Demographics</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 12 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 8 }}>Voter Roll Demographics</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                     {[
                       { label: 'Total', value: wardStats.totalVoters, color: '#22d3ee', pct: 100 },
                       { label: 'Male',  value: wardStats.totalMale,   color: '#22d3ee', pct: wardStats.totalVoters ? Math.round(wardStats.totalMale / wardStats.totalVoters * 100) : 0 },
@@ -2113,11 +2113,11 @@ export default function Dashboard() {
                       { label: 'Chrstn',value: wardStats.totalChristian, color: '#8b5cf6', pct: wardStats.totalVoters ? Math.round(wardStats.totalChristian / wardStats.totalVoters * 100) : 0 },
                     ].map(({ label, value, color, pct }) => (
                       <div key={label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                          <span style={{ fontSize: 14, fontWeight: 800, color }}>{value?.toLocaleString() ?? '—'}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                          <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color }}>{value?.toLocaleString() ?? '—'}</span>
                         </div>
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                        <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
                         </div>
                       </div>
