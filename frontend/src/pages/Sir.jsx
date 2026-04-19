@@ -805,6 +805,49 @@ function RecordCard({ rec }) {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+// Ward/Booth filter bar for SIR
+function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
+  return (
+    <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'6px 12px', flex:'1 1 140px', maxWidth:200 }}>
+        <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.3)', flexShrink:0 }}>Ward</span>
+        <input
+          value={ward}
+          onChange={e => onWardChange(e.target.value)}
+          placeholder="e.g. 21"
+          style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'var(--text-1)', minWidth:0 }}
+        />
+        {ward && <button onClick={() => onWardChange('')} style={{ background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',fontSize:12,padding:0,flexShrink:0 }}>✕</button>}
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'6px 12px', flex:'1 1 140px', maxWidth:200 }}>
+        <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.3)', flexShrink:0 }}>Booth</span>
+        <input
+          value={booth}
+          onChange={e => onBoothChange(e.target.value)}
+          placeholder="e.g. 31"
+          style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'var(--text-1)', minWidth:0 }}
+        />
+        {booth && <button onClick={() => onBoothChange('')} style={{ background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',fontSize:12,padding:0,flexShrink:0 }}>✕</button>}
+      </div>
+      {(ward || booth) && (
+        <span style={{ fontSize:11, color:'#22d3ee', background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:20, padding:'4px 10px', fontWeight:600 }}>
+          Filtered: {[ward && `Ward ${ward}`, booth && `Booth ${booth}`].filter(Boolean).join(' · ')}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Category info tooltip
+const CAT_INFO = {
+  NEW:        { emoji:'➕', why:'Present in 2025 but absent from 2002 — new generation voter or migrant' },
+  DELETED:    { emoji:'🗑', why:'Was in 2002 but removed from 2025 — death, migration out, or data cleanup' },
+  MODIFIED:   { emoji:'✏️', why:'Present in both rolls but details changed — name spelling, address, age correction' },
+  SUSPICIOUS: { emoji:'⚠️', why:'Inconsistent patterns — duplicate EPIC, out-of-state ID, house overcrowding' },
+  RETAINED:   { emoji:'🛡', why:'Same voter in both 2002 and 2025 rolls — stable, long-term resident' },
+  NOT_FOUND:  { emoji:'❓', why:'Not traced in either roll — unregistered, OCR error, or data gap' },
+};
+
 export default function SIR() {
   const [activeTab,   setActiveTab]   = useState('ALL');
   const [data,        setData]        = useState(null);
@@ -812,20 +855,27 @@ export default function SIR() {
   const [page,        setPage]        = useState(1);
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkMsg,     setBulkMsg]     = useState('');
+  const [filterWard,  setFilterWard]  = useState('');
+  const [filterBooth, setFilterBooth] = useState('');
 
-  const fetchData = useCallback(async (tab, pg) => {
+  const fetchData = useCallback(async (tab, pg, ward, booth) => {
     setLoading(true);
     try {
-      const res  = await fetch(`${API}/sir-data/?category=${tab}&page=${pg}`, { credentials:'include' });
+      const params = new URLSearchParams({ category: tab, page: pg });
+      if (ward)  params.set('ward',  ward);
+      if (booth) params.set('booth', booth);
+      const res  = await fetch(`${API}/sir-data/?${params}`, { credentials:'include' });
       const json = await res.json();
       if (json.success) setData(json);
     } catch { /**/ }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchData(activeTab, page); }, [activeTab, page, fetchData]);
+  useEffect(() => { fetchData(activeTab, page, filterWard, filterBooth); }, [activeTab, page, filterWard, filterBooth, fetchData]);
 
   const handleTab = (tab) => { setActiveTab(tab); setPage(1); };
+  const handleWardFilter  = (v) => { setFilterWard(v);  setPage(1); };
+  const handleBoothFilter = (v) => { setFilterBooth(v); setPage(1); };
 
   const runBulk = async () => {
     if (!window.confirm('Process ALL voters through SIR? This may take several minutes.')) return;
@@ -870,16 +920,33 @@ export default function SIR() {
           <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.06)' }} />
         </div>
 
+        {/* Ward/Booth filter */}
+        <SIRFilterBar
+          ward={filterWard} booth={filterBooth}
+          onWardChange={handleWardFilter} onBoothChange={handleBoothFilter}
+        />
+
         {/* Summary stat cards */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10, marginBottom:20 }}>
           {['NEW','DELETED','MODIFIED','SUSPICIOUS','RETAINED','NOT_FOUND'].map(cat => {
             const m      = CAT_META[cat];
+            const info   = CAT_INFO[cat] || {};
             const active = activeTab === cat;
             return (
-              <div key={cat} onClick={() => handleTab(cat)} style={{ background: active ? m.bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? m.border : 'rgba(255,255,255,0.06)'}`, borderRadius:12, padding:'14px 16px', cursor:'pointer', transition:'all 0.18s' }}>
-                <div style={{ color: m.color, marginBottom:8 }}><m.Icon /></div>
+              <div key={cat} onClick={() => handleTab(cat)}
+                title={info.why}
+                style={{ background: active ? m.bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? m.border : 'rgba(255,255,255,0.06)'}`, borderRadius:12, padding:'14px 16px', cursor:'pointer', transition:'all 0.18s', position:'relative' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                  <div style={{ color: m.color }}><m.Icon /></div>
+                  {info.emoji && <span style={{ fontSize:14, opacity:0.7 }}>{info.emoji}</span>}
+                </div>
                 <div style={{ fontSize:22, fontWeight:800, color:m.color, fontFamily:'var(--font-display)' }}>{(s[cat]||0).toLocaleString()}</div>
                 <div style={{ fontSize:11, color:'var(--text-3)', marginTop:3, fontWeight:500 }}>{m.label}</div>
+                {info.why && (
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.2)', marginTop:4, lineHeight:1.4 }}>
+                    {info.why.split('—')[0].trim()}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -887,6 +954,9 @@ export default function SIR() {
             <div style={{ color:'var(--text-3)', marginBottom:8 }}><Icon.Chart /></div>
             <div style={{ fontSize:22, fontWeight:800, color:'var(--text-1)', fontFamily:'var(--font-display)' }}>{(s.TOTAL||0).toLocaleString()}</div>
             <div style={{ fontSize:11, color:'var(--text-3)', marginTop:3, fontWeight:500 }}>Total Checked</div>
+            {(filterWard || filterBooth) && (
+              <div style={{ fontSize:10, color:'#22d3ee', marginTop:4 }}>Filtered view</div>
+            )}
           </div>
         </div>
 
@@ -926,6 +996,32 @@ export default function SIR() {
           })}
         </div>
 
+        {/* Category legend — expandable */}
+        {activeTab === 'ALL' && (
+          <details style={{ marginBottom:16, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, overflow:'hidden' }}>
+            <summary style={{ padding:'12px 16px', cursor:'pointer', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.5)', listStyle:'none', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:7 }}>
+                <Icon.SIR /> Category Reference Guide
+              </span>
+              <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)' }}>tap to expand</span>
+            </summary>
+            <div style={{ padding:'0 16px 16px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:8 }}>
+              {Object.entries(CAT_INFO).map(([cat, info]) => {
+                const m = CAT_META[cat];
+                return (
+                  <div key={cat} style={{ background:m.bg, border:`1px solid ${m.border}`, borderRadius:10, padding:'12px 14px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                      <span style={{ fontSize:16 }}>{info.emoji}</span>
+                      <span style={{ fontSize:13, fontWeight:700, color:m.color }}>{m.label}</span>
+                    </div>
+                    <div style={{ fontSize:12, color:'rgba(255,255,255,0.5)', lineHeight:1.5 }}>{info.why}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        )}
+
         {/* Records list */}
         {loading ? (
           <div style={{ display:'flex', gap:10, alignItems:'center', padding:'40px 0', color:'var(--text-3)', fontSize:13 }}>
@@ -941,8 +1037,13 @@ export default function SIR() {
           </div>
         ) : (
           <>
-            <div style={{ fontSize:12, color:'var(--text-3)', marginBottom:12 }}>
-              Showing {records.length} of {(data?.total||0).toLocaleString()} records
+            <div style={{ fontSize:12, color:'var(--text-3)', marginBottom:12, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+              <span>Showing {records.length} of {(data?.total||0).toLocaleString()} records</span>
+              {(filterWard || filterBooth) && (
+                <span style={{ color:'#22d3ee', background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:12, padding:'2px 9px', fontSize:11, fontWeight:600 }}>
+                  {[filterWard && `Ward ${filterWard}`, filterBooth && `Booth ${filterBooth}`].filter(Boolean).join(' · ')}
+                </span>
+              )}
             </div>
             {records.map((rec, i) => (
               <RecordCard key={`${rec.voterid||i}-${rec.category}`} rec={rec} />
