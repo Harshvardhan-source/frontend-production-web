@@ -987,74 +987,72 @@ export default function SurveyForm() {
 
             {!isLastStep ? (
               /* Non-last steps: Previous on left, Next on right */
-              <div style={{ display:'flex', gap:10, alignItems:'stretch', width:'100%' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10 }}>
                 <button className="btn btn-ghost"
-                  style={{ flexShrink:0, padding:'0 16px', minWidth:86, whiteSpace:'nowrap' }}
                   onClick={() => step > 0 ? setStep(s => s - 1) : (returnTo ? navigate(returnTo, { state: { returnQuery } }) : navigate('/survey'))}>
-                  ← {step === 0 ? 'Back' : 'Prev'}
+                  ← {step === 0 ? 'Back' : 'Previous'}
                 </button>
-                <button className="btn btn-primary"
-                  style={{ flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
-                  onClick={() => setStep(s => s + 1)}>
-                  {STEPS[step + 1]} →
+                <button className="btn btn-primary" onClick={() => setStep(s => s + 1)}>
+                  Next: {STEPS[step + 1]} →
                 </button>
               </div>
             ) : (
               /* Last step: stacked mobile-friendly layout */
-              <div style={{ display:'flex', flexDirection:'column', gap:10, width:'100%' }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
 
-                {/* Check SIR — full width */}
-                <button
-                  onClick={handleCheckSir}
-                  disabled={sirChecking || busy || (!form.voterid && !form.firstName)}
-                  style={{
-                    width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7,
-                    background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.4)',
-                    borderRadius:10, padding:'12px 14px',
-                    color:'#fbbf24', fontSize:13, fontWeight:700, cursor:'pointer',
-                    opacity: (sirChecking || busy || (!form.voterid && !form.firstName)) ? 0.5 : 1,
-                    minHeight:46,
-                  }}>
-                  {sirChecking ? <><span className="spinner" /> Checking SIR…</> : '🔎 Check SIR'}
-                </button>
-
-                {/* View SIR toggle — only after result */}
-                {sirResult && (
-                  <button onClick={() => setShowSir(p => !p)} style={{
-                    width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7,
-                    background: showSir ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.08)',
-                    border:'1px solid rgba(139,92,246,0.4)',
-                    borderRadius:10, padding:'12px 14px',
-                    color:'#a78bfa', fontSize:13, fontWeight:700, cursor:'pointer',
-                    minHeight:46,
-                  }}>
-                    🔍 {showSir ? 'Hide SIR' : 'View SIR'}
-                    {sirResult.stored && (
-                      <span style={{ fontSize:10, background:'rgba(16,185,129,0.2)', color:'#10b981', borderRadius:4, padding:'1px 6px', marginLeft:4 }}>Stored</span>
-                    )}
+                {/* Row 1: Check SIR + View SIR (secondary actions) */}
+                <div style={{ display:'flex', gap:8 }}>
+                  <button
+                    onClick={handleCheckSir}
+                    disabled={sirChecking || busy || (!form.voterid && !form.firstName)}
+                    style={{
+                      flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                      background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.4)',
+                      borderRadius:10, padding:'11px 14px',
+                      color:'#fbbf24', fontSize:13, fontWeight:700, cursor:'pointer',
+                      opacity: (sirChecking || busy || (!form.voterid && !form.firstName)) ? 0.5 : 1,
+                      minHeight: 46,
+                    }}>
+                    {sirChecking ? <><span className="spinner" /> Checking…</> : '🔎 Check SIR'}
                   </button>
-                )}
+                  {sirResult && (
+                    <button onClick={() => setShowSir(p => !p)} style={{
+                      flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                      background: showSir ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.08)',
+                      border:'1px solid rgba(139,92,246,0.4)',
+                      borderRadius:10, padding:'11px 14px',
+                      color:'#a78bfa', fontSize:13, fontWeight:700, cursor:'pointer',
+                      minHeight: 46,
+                    }}>
+                      🔍 {showSir ? 'Hide SIR' : 'View SIR'}
+                      {sirResult.stored && (
+                        <span style={{ fontSize:10, background:'rgba(16,185,129,0.2)',
+                          color:'#10b981', borderRadius:4, padding:'1px 6px' }}>Stored</span>
+                      )}
+                    </button>
+                  )}
+                </div>
 
-                {/* Previous + Save & Add Next — bounded row */}
-                <div style={{ display:'flex', gap:10, width:'100%' }}>
+                {/* Row 2: Previous (left) + Save & Add Next Member (right) */}
+                <div style={{ display:'flex', gap:10 }}>
                   <button className="btn btn-ghost"
-                    style={{ flexShrink:0, padding:'0 14px', minWidth:86, whiteSpace:'nowrap' }}
+                    style={{ flexShrink:0 }}
                     onClick={() => setStep(s => s - 1)}>
-                    ← Prev
+                    ← Previous
                   </button>
                   <button
                     className="btn btn-ghost"
-                    style={{ flex:1, minWidth:0, border:'1px solid rgba(34,211,238,0.35)', color:'var(--cyan)', display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'11px 10px', minHeight:46, overflow:'hidden', whiteSpace:'nowrap' }}
+                    style={{ flex:1, border:'1px solid rgba(34,211,238,0.35)', color:'var(--cyan)', display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'11px 14px', minHeight:46 }}
                     onClick={() => handleSubmit('next')} disabled={busy}
                   >
-                    {busy && saveMode === 'next' ? <span className="spinner" /> : <><span>👤</span> Add Next</>}
+                    {busy && saveMode === 'next' ? <span className="spinner" /> : <><span style={{ fontSize:16 }}>👤</span> Save &amp; Add Next</>}
                   </button>
                 </div>
 
-                {/* Save Survey — full width, most prominent */}
+                {/* Row 3: Save Survey / Save & Done — full width, prominent */}
                 <button
                   className="btn btn-primary btn-lg btn-full"
-                  style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, minHeight:52, width:'100%' }}
+                  style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, minHeight:52 }}
                   onClick={() => handleSubmit('done')} disabled={busy}
                 >
                   {busy && saveMode === 'done'
@@ -1063,10 +1061,11 @@ export default function SurveyForm() {
                   }
                 </button>
 
-                {/* Hint */}
+                {/* Helper text */}
                 <div style={{ textAlign:'center', fontSize:11, color:'var(--text-3)', lineHeight:1.6 }}>
-                  <strong style={{ color:'var(--cyan)' }}>Add Next</strong> — saves &amp; opens next member ·{' '}
-                  <strong style={{ color:'var(--green)' }}>Save Survey</strong> — finishes
+                  <strong style={{ color:'var(--cyan)' }}>Save &amp; Add Next</strong> — saves and opens next member form
+                  &nbsp;·&nbsp;
+                  <strong style={{ color:'var(--green)' }}>Save &amp; Done</strong> — saves and returns to survey list
                 </div>
               </div>
             )}
