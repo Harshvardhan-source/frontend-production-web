@@ -348,14 +348,14 @@ function WardSIRPanel({ wardNum }) {
                 <div style={{ width: `${d.pollRate}%`, height: '100%', background: pollBelow ? 'linear-gradient(90deg,#ef444499,#ef4444)' : 'linear-gradient(90deg,#10b98199,#10b981)', borderRadius: 3 }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>0%</span>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>Avg 60.7%</span>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>100%</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>0%</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Avg 60.7%</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>100%</span>
               </div>
             </div>
             {pollBelow && (
               <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '6px 10px', textAlign: 'center', flexShrink: 0 }}>
-                <div style={{ fontSize: 9, color: '#f87171', fontWeight: 700, textTransform: 'uppercase' }}>Below Avg</div>
+                <div style={{ fontSize: 11, color: '#f87171', fontWeight: 700, textTransform: 'uppercase' }}>Below Avg</div>
                 <div style={{ fontSize: 10, color: 'rgba(239,68,68,0.6)', marginTop: 1 }}>Action Needed</div>
               </div>
             )}
@@ -388,7 +388,7 @@ function WardSIRPanel({ wardNum }) {
                 border: `1px solid ${Math.abs(d.margin) > 20 ? (bjpWin ? 'rgba(249,115,22,0.3)' : 'rgba(16,185,129,0.3)') : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: 6, padding: '3px 10px', textAlign: 'center',
               }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Margin</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Margin</div>
                 <div style={{ fontSize: 14, fontWeight: 900, color: bjpWin ? '#f97316' : '#10b981', fontFamily: 'var(--font-display)' }}>
                   {bjpWin ? '+' : ''}{d.margin}%
                 </div>
@@ -418,7 +418,7 @@ function WardSIRPanel({ wardNum }) {
                 <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginBottom: 4 }}>
                   <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 2 }} />
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</div>
               </div>
             ))}
           </div>
@@ -445,7 +445,7 @@ function WardSIRPanel({ wardNum }) {
                   <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginBottom: 4 }}>
                     <div style={{ width: `${Math.min(val, 100)}%`, height: '100%', background: ok ? `linear-gradient(90deg,${color}80,${color})` : 'linear-gradient(90deg,#ef444480,#ef4444)', borderRadius: 2 }} />
                   </div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</div>
                 </div>
               );
             })}
@@ -455,7 +455,7 @@ function WardSIRPanel({ wardNum }) {
         {/* ── Supervisors ── */}
         {d.supervisors && (
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '8px 10px' }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>BLO Supervisors · </span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>BLO Supervisors · </span>
             <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>{d.supervisors}</span>
           </div>
         )}
@@ -503,7 +503,7 @@ function RiskWardsOverview({ onSelectWard }) {
       </div>
 
       {/* Ward grid */}
-      <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+      <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
         {riskWards.map(([wardNum, d]) => {
           const pCfg   = PRIORITY_CONFIG[d.priority] || PRIORITY_CONFIG.NORMAL;
           const clsCfg = CLASSIFICATION_CONFIG[d.classification] || { color: '#8899bb', bg: 'rgba(255,255,255,0.05)' };
@@ -513,19 +513,21 @@ function RiskWardsOverview({ onSelectWard }) {
             <button
               key={wardNum}
               onClick={() => onSelectWard(String(wardNum))}
+              className="risk-ward-btn"
               style={{
-                display: 'flex', flexDirection: 'column', gap: 6,
-                background: 'rgba(255,255,255,0.025)',
+                display: 'flex', flexDirection: 'column', gap: 8,
+                background: 'rgba(255,255,255,0.03)',
                 border: `1px solid ${pCfg.border}`,
-                borderRadius: 10, padding: '10px 12px', cursor: 'pointer',
+                borderRadius: 12, padding: '14px', cursor: 'pointer',
                 textAlign: 'left', transition: 'all 0.15s',
+                minHeight: 100,
               }}
               onMouseEnter={e => { e.currentTarget.style.background = pCfg.bg; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(255,255,255,0.07)', borderRadius: 4, padding: '2px 5px', color: 'rgba(255,255,255,0.4)' }}>{wardNum}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.07)', borderRadius: 4, padding: '2px 5px', color: 'rgba(255,255,255,0.4)' }}>{wardNum}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>{wName}</span>
                 </div>
                 <span style={{ fontSize: 10, fontWeight: 700, color: pCfg.color }}>{pCfg.label.split(' ')[0]}</span>
@@ -534,7 +536,7 @@ function RiskWardsOverview({ onSelectWard }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Poll:</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: d.pollRate < 60.7 ? '#f87171' : '#10b981' }}>{d.pollRate}%</span>
-                {d.pollRate < 60.7 && <span style={{ fontSize: 9, color: '#f87171' }}>▼ below avg</span>}
+                {d.pollRate < 60.7 && <span style={{ fontSize: 11, color: '#f87171' }}>▼ below avg</span>}
               </div>
               {/* Projection mini-bar */}
               <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 5 }}>
@@ -542,11 +544,11 @@ function RiskWardsOverview({ onSelectWard }) {
                 <div style={{ width: `${d.congProj}%`, background: '#10b981' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 9, color: '#f97316', fontWeight: 700 }}>BJP {d.bjpProj}%</span>
-                <span style={{ fontSize: 9, color: bjpWin ? '#f97316' : '#10b981', fontWeight: 700, background: 'rgba(255,255,255,0.05)', borderRadius: 3, padding: '1px 4px' }}>
+                <span style={{ fontSize: 11, color: '#f97316', fontWeight: 700 }}>BJP {d.bjpProj}%</span>
+                <span style={{ fontSize: 11, color: bjpWin ? '#f97316' : '#10b981', fontWeight: 700, background: 'rgba(255,255,255,0.05)', borderRadius: 3, padding: '1px 4px' }}>
                   {bjpWin ? '+' : ''}{d.margin}%
                 </span>
-                <span style={{ fontSize: 9, color: '#10b981', fontWeight: 700 }}>INC {d.congProj}%</span>
+                <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>INC {d.congProj}%</span>
               </div>
             </button>
           );
@@ -565,38 +567,40 @@ function AllWardsHeatmap({ onSelectWard }) {
 
   return (
     <div style={{
-      background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))',
-      border: '1px solid rgba(255,255,255,0.07)',
-      borderRadius: 16, overflow: 'hidden', marginBottom: 18,
+      background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 18, overflow: 'hidden', marginBottom: 20,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
     }} className="anim-fade-up">
-      <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+      {/* Header */}
+      <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>All Wards — SIR Heatmap</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>38 wards · Click any ward to drill down</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 4 }}>All Wards — SIR Heatmap</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>38 wards · Tap any ward to drill down</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0, paddingTop: 2 }}>
           {[
             { label: 'BJP', color: '#f97316' },
-            { label: 'Contested', color: '#a3a3a3' },
-            { label: 'Congress', color: '#10b981' },
+            { label: 'Cont.', color: '#a3a3a3' },
+            { label: 'INC', color: '#10b981' },
           ].map(({ label, color }) => (
-            <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: 'inline-block' }} />
+            <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 3, background: color, display: 'inline-block', flexShrink: 0 }} />
               {label}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Table header */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr 1fr 1fr', gap: 0, padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        {['Ward', 'Classification', 'Poll%', 'BJP%', 'INC%', 'SIR Total%', 'Priority'].map(h => (
-          <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
-        ))}
+      {/* Column headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 0, padding: '8px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Ward &amp; Classification</div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'right' }}>Poll / BJP / INC / SIR%</div>
       </div>
 
-      {/* Table rows */}
-      <div style={{ maxHeight: showAll ? 'none' : 420, overflow: showAll ? 'visible' : 'hidden' }}>
+      {/* Ward rows - mobile-friendly 2-line cards */}
+      <div style={{ maxHeight: showAll ? 'none' : 500, overflow: showAll ? 'visible' : 'hidden' }}>
         {displayed.map(([wardNum, d]) => {
           const pCfg   = PRIORITY_CONFIG[d.priority] || PRIORITY_CONFIG.NORMAL;
           const clsCfg = CLASSIFICATION_CONFIG[d.classification] || { color: '#8899bb', bg: 'rgba(255,255,255,0.05)' };
@@ -604,54 +608,61 @@ function AllWardsHeatmap({ onSelectWard }) {
           const bjpWin = d.margin > 0;
           const isRisk = d.priority !== 'NORMAL';
           return (
-            <button key={wardNum} onClick={() => onSelectWard(String(wardNum))} style={{
-              display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr 1fr 1fr',
-              gap: 0, width: '100%', padding: '8px 14px',
-              background: isRisk ? `${pCfg.bg}` : 'transparent',
-              border: 'none', borderBottom: '1px solid rgba(255,255,255,0.035)',
-              cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s',
-              alignItems: 'center',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = isRisk ? pCfg.bg : 'transparent'; }}
+            <button
+              key={wardNum}
+              onClick={() => onSelectWard(String(wardNum))}
+              className="ward-heatmap-row heatmap-mobile-card"
+              style={{
+                width: '100%', border: 'none', textAlign: 'left',
+                background: isRisk ? pCfg.bg : 'transparent',
+              }}
             >
-              {/* Ward */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(255,255,255,0.06)', borderRadius: 3, padding: '1px 5px', color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{wardNum}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wName}</span>
-              </div>
-              {/* Classification */}
-              <div>
-                <span style={{ fontSize: 9, fontWeight: 700, color: clsCfg.color, background: clsCfg.bg, borderRadius: 4, padding: '2px 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: '95%' }}>
-                  {d.classification.replace('(BJP Lean)', '').replace('(Cong Lean)', '').trim()}
+              {/* Row 1: Ward number, name, classification, priority */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: 5, padding: '3px 7px', color: 'rgba(255,255,255,0.45)', flexShrink: 0, minWidth: 28, textAlign: 'center' }}>{wardNum}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wName}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: clsCfg.color, background: clsCfg.bg, borderRadius: 5, padding: '3px 8px', flexShrink: 0, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {d.classification.replace('STRONGHOLD','STRGHLD').replace('FAVOURABLE','FAV').replace('CONGRESS','INC').replace('CONTESTED','CONT')}
                 </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: pCfg.color, flexShrink: 0 }}>{pCfg.label.split(' ')[0]}</span>
               </div>
-              {/* Poll rate */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: d.pollRate < 60.7 ? '#f87171' : '#10b981' }}>{d.pollRate}%</div>
-              {/* BJP */}
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#f97316' }}>{d.bjpProj}%</div>
-              {/* Congress */}
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>{d.congProj}%</div>
-              {/* SIR Total */}
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: d.totalMapped >= 65 ? '#10b981' : '#f87171' }}>{d.totalMapped.toFixed(1)}%</span>
-              </div>
-              {/* Priority */}
-              <div>
-                <span style={{ fontSize: 10, fontWeight: 700, color: pCfg.color, background: pCfg.bg, border: `1px solid ${pCfg.border}`, borderRadius: 5, padding: '2px 6px', whiteSpace: 'nowrap' }}>{pCfg.label}</span>
+              {/* Row 2: Stats bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                {/* Projection mini bar */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 4 }}>
+                    <div style={{ width: `${d.bjpProj}%`, background: '#f97316' }} />
+                    <div style={{ width: `${d.congProj}%`, background: '#10b981' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                      Poll: <span style={{ color: d.pollRate < 60.7 ? '#f87171' : '#10b981', fontWeight: 700 }}>{d.pollRate}%</span>
+                    </span>
+                    <span style={{ fontSize: 11, color: '#f97316', fontWeight: 700 }}>BJP {d.bjpProj}%</span>
+                    <span style={{ fontSize: 11, color: bjpWin ? '#f97316' : '#10b981', fontWeight: 800, background: 'rgba(255,255,255,0.06)', borderRadius: 4, padding: '0 5px' }}>
+                      {bjpWin ? '+' : ''}{d.margin}%
+                    </span>
+                    <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>INC {d.congProj}%</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                      SIR: <span style={{ color: d.totalMapped >= 65 ? '#10b981' : '#f59e0b', fontWeight: 700 }}>{d.totalMapped.toFixed(1)}%</span>
+                    </span>
+                  </div>
+                </div>
+                <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 18, paddingLeft: 12, flexShrink: 0 }}>›</span>
               </div>
             </button>
           );
         })}
       </div>
 
+      {/* Show more toggle */}
       {wards.length > 20 && (
-        <button onClick={() => setShowAll(v => !v)} style={{
-          width: '100%', padding: '10px', background: 'rgba(255,255,255,0.03)',
-          border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)',
-          cursor: 'pointer', color: '#22d3ee', fontSize: 12, fontWeight: 600,
+        <button onClick={() => setShowAll(s => !s)} className="touch-btn" style={{
+          width: '100%', padding: '16px', border: 'none', background: 'rgba(255,255,255,0.03)',
+          borderTop: '1px solid rgba(255,255,255,0.06)', color: '#22d3ee',
+          fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
-          {showAll ? '▲ Show Less' : `▼ Show All ${wards.length} Wards`}
+          {showAll ? '▲ Show less' : `▼ Show all ${wards.length} wards`}
         </button>
       )}
     </div>
@@ -698,7 +709,7 @@ function WardBoothDrillDown({ wardNum }) {
           ].map(({ label, val, ok, color }) => (
             <div key={label} style={{ background: ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 8, padding: '4px 10px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 800, color }}>{val}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</div>
             </div>
           ))}
         </div>
@@ -706,18 +717,18 @@ function WardBoothDrillDown({ wardNum }) {
 
       {/* Weak booths alert */}
       {weakBooths.length > 0 && (
-        <div style={{ background: 'rgba(239,68,68,0.06)', borderBottom: '1px solid rgba(239,68,68,0.12)', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12 }}>⚠</span>
-          <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600 }}>
+        <div style={{ background: 'rgba(239,68,68,0.07)', borderBottom: '1px solid rgba(239,68,68,0.12)', padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14 }}>⚠</span>
+          <span style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}>
             {weakBooths.length} booth{weakBooths.length > 1 ? 's' : ''} below 60% SIR mapping: Booths {weakBooths.map(b => b.booth).join(', ')}
           </span>
         </div>
       )}
 
-      {/* Table header */}
-      <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1fr 1fr 1fr 1fr', gap: 4, padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.2)' }}>
-        {['Booth', 'Electors', 'BLO Map%', 'Progeny%', 'Mapped%', 'Status'].map(h => (
-          <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
+      {/* Column headers */}
+      <div className="booth-table-row" style={{ cursor: 'default', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        {['#', 'Electors', 'BLO%', 'Prg%', 'Map%', 'Status'].map(h => (
+          <div key={h} style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
         ))}
       </div>
 
@@ -725,32 +736,28 @@ function WardBoothDrillDown({ wardNum }) {
       {booths.map(b => {
         const weak = b.totalMappedPct < 60;
         const good = b.totalMappedPct >= 75;
-        const rowColor = weak ? 'rgba(239,68,68,0.04)' : good ? 'rgba(16,185,129,0.03)' : 'transparent';
+        const rowColor = weak ? 'rgba(239,68,68,0.05)' : good ? 'rgba(16,185,129,0.04)' : 'transparent';
         return (
-          <div key={b.booth} style={{
-            display: 'grid', gridTemplateColumns: '50px 1fr 1fr 1fr 1fr 1fr',
-            gap: 4, padding: '7px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)',
-            background: rowColor, alignItems: 'center',
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#22d3ee' }}>{b.booth}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-2)' }}>{b.totalElectors.toLocaleString()}</div>
+          <div key={b.booth} className="booth-table-row" style={{ background: rowColor }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#22d3ee' }}>{b.booth}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 600 }}>{b.totalElectors.toLocaleString()}</div>
             <div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: b.bloMappedPct >= 60 ? '#10b981' : '#f87171' }}>{b.bloMappedPct}%</span>
-              <div style={{ marginTop: 2, height: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 1 }}>
-                <div style={{ width: `${Math.min(b.bloMappedPct, 100)}%`, height: '100%', background: b.bloMappedPct >= 60 ? '#10b981' : '#ef4444', borderRadius: 1 }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: b.bloMappedPct >= 60 ? '#10b981' : '#f87171' }}>{b.bloMappedPct}%</span>
+              <div style={{ marginTop: 3, height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                <div style={{ width: `${Math.min(b.bloMappedPct, 100)}%`, height: '100%', background: b.bloMappedPct >= 60 ? '#10b981' : '#ef4444', borderRadius: 2 }} />
               </div>
             </div>
             <div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: b.progenyPct >= 80 ? '#a78bfa' : '#f59e0b' }}>{b.progenyPct}%</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: b.progenyPct >= 80 ? '#a78bfa' : '#f59e0b' }}>{b.progenyPct}%</span>
             </div>
             <div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b' }}>{b.totalMappedPct}%</span>
-              <div style={{ marginTop: 2, height: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 1 }}>
-                <div style={{ width: `${Math.min(b.totalMappedPct, 100)}%`, height: '100%', background: weak ? '#ef4444' : good ? '#10b981' : '#f59e0b', borderRadius: 1 }} />
+              <span style={{ fontSize: 13, fontWeight: 800, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b' }}>{b.totalMappedPct}%</span>
+              <div style={{ marginTop: 3, height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+                <div style={{ width: `${Math.min(b.totalMappedPct, 100)}%`, height: '100%', background: weak ? '#ef4444' : good ? '#10b981' : '#f59e0b', borderRadius: 2 }} />
               </div>
             </div>
             <div>
-              <span style={{ fontSize: 9, fontWeight: 700, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b', background: weak ? 'rgba(239,68,68,0.1)' : good ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', borderRadius: 4, padding: '2px 5px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b', background: weak ? 'rgba(239,68,68,0.12)' : good ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', borderRadius: 6, padding: '4px 8px', display: 'inline-block' }}>
                 {weak ? '⚠ LOW' : good ? '✓ GOOD' : '~ OK'}
               </span>
             </div>
@@ -758,18 +765,17 @@ function WardBoothDrillDown({ wardNum }) {
         );
       })}
 
-      {/* Ward-level bar chart summary */}
-      <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Booth Mapping Distribution</div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 44 }}>
+      {/* Bar chart summary */}
+      <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.1)' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>Booth Mapping Distribution</div>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 52 }}>
           {booths.map(b => {
-            const h = Math.round((b.totalMappedPct / 120) * 44);
+            const h = Math.round((b.totalMappedPct / 120) * 52);
             const color = b.totalMappedPct < 60 ? '#ef4444' : b.totalMappedPct >= 75 ? '#10b981' : '#f59e0b';
             return (
-              <div key={b.booth} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <div style={{ width: '100%', height: h, background: `${color}cc`, borderRadius: '2px 2px 0 0', minHeight: 4, position: 'relative' }}
-                  title={`Booth ${b.booth}: ${b.totalMappedPct}%`} />
-                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', transform: 'rotate(-45deg)', transformOrigin: 'center', whiteSpace: 'nowrap' }}>{b.booth}</div>
+              <div key={b.booth} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                <div style={{ width: '100%', height: h, background: `${color}cc`, borderRadius: '3px 3px 0 0', minHeight: 4 }} title={`Booth ${b.booth}: ${b.totalMappedPct}%`} />
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', transform: 'rotate(-45deg)', transformOrigin: 'center', whiteSpace: 'nowrap' }}>{b.booth}</div>
               </div>
             );
           })}
@@ -792,46 +798,46 @@ function WardPoliticalSnapshot({ wardNum }) {
   const weakCount = booths.filter(b => b.totalMappedPct < 60).length;
 
   return (
-    <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }} className="anim-fade-up">
+    <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }} className="anim-fade-up">
 
       {/* Poll rate card */}
-      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: `1px solid ${pollBelow ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.2)'}`, borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Voter Turnout</div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-          <span style={{ fontSize: 26, fontWeight: 900, color: pollBelow ? '#f87171' : '#10b981', fontFamily: 'var(--font-display)' }}>{d.pollRate}%</span>
-          <span style={{ fontSize: 11, color: pollBelow ? '#f87171' : '#10b981', fontWeight: 700 }}>{pollBelow ? '▼' : '▲'} {Math.abs((d.pollRate-60.7).toFixed(1))}% vs avg</span>
+      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))', border: `1px solid ${pollBelow ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.25)'}`, borderRadius: 14, padding: '16px' }}>
+        <div className="section-label" style={{ marginBottom: 10 }}>Voter Turnout</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 28, fontWeight: 900, color: pollBelow ? '#f87171' : '#10b981', fontFamily: 'var(--font-display)' }}>{d.pollRate}%</span>
+          <span style={{ fontSize: 12, color: pollBelow ? '#f87171' : '#10b981', fontWeight: 700 }}>{pollBelow ? '▼' : '▲'} {Math.abs((d.pollRate-60.7).toFixed(1))}% vs avg</span>
         </div>
-        <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
-          <div style={{ position: 'absolute', left: '60.7%', top: 0, bottom: 0, width: 1.5, background: 'rgba(255,255,255,0.3)', zIndex: 2 }} />
+        <div style={{ height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ position: 'absolute', left: '60.7%', top: 0, bottom: 0, width: 2, background: 'rgba(255,255,255,0.35)', zIndex: 2 }} />
           <div style={{ width: `${d.pollRate}%`, height: '100%', background: pollBelow ? 'linear-gradient(90deg,#ef444480,#ef4444)' : 'linear-gradient(90deg,#10b98180,#10b981)', borderRadius: 3 }} />
         </div>
-        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginTop: 4, textAlign: 'right' }}>Constituency avg: 60.7%</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 6, textAlign: 'right' }}>Constituency avg: 60.7%</div>
       </div>
 
       {/* BJP vs INC card */}
-      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Political Projection</div>
-        <div style={{ display: 'flex', borderRadius: 5, overflow: 'hidden', height: 20, marginBottom: 8 }}>
+      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '16px' }}>
+        <div className="section-label" style={{ marginBottom: 10 }}>Political Projection</div>
+        <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 24, marginBottom: 10 }}>
           <div style={{ width: `${d.bjpProj}%`, background: 'linear-gradient(90deg,#f97316,#fb923c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {d.bjpProj > 20 && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{d.bjpProj}%</span>}
+            {d.bjpProj > 20 && <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>{d.bjpProj}%</span>}
           </div>
           <div style={{ flex: 1, background: 'linear-gradient(90deg,#10b981,#34d399)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {d.congProj > 20 && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{d.congProj}%</span>}
+            {d.congProj > 20 && <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>{d.congProj}%</span>}
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#f97316' }}>BJP {d.bjpProj}%</span>
-          <div style={{ background: isTight ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isTight ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 5, padding: '2px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 900, color: bjpWin ? '#f97316' : '#10b981' }}>{bjpWin ? '+' : ''}{d.margin}%</div>
-            {isTight && <div style={{ fontSize: 8, color: '#f59e0b', fontWeight: 700 }}>⚠ TIGHT</div>}
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#f97316' }}>BJP {d.bjpProj}%</span>
+          <div style={{ background: isTight ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isTight ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 7, padding: '4px 10px', textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: bjpWin ? '#f97316' : '#10b981' }}>{bjpWin ? '+' : ''}{d.margin}%</div>
+            {isTight && <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>⚠ TIGHT</div>}
           </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>INC {d.congProj}%</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>INC {d.congProj}%</span>
         </div>
       </div>
 
       {/* SIR survey card */}
-      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>SIR Survey Status</div>
+      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '16px' }}>
+        <div className="section-label" style={{ marginBottom: 12 }}>SIR Survey Status</div>
         {[
           { label: 'BLO Mapped', val: d.bloMapped, threshold: 60, color: '#22d3ee' },
           { label: 'Progeny 18+', val: d.progeny, threshold: 80, color: '#a78bfa' },
@@ -839,43 +845,43 @@ function WardPoliticalSnapshot({ wardNum }) {
         ].map(({ label, val, threshold, color }) => {
           const ok = val >= threshold;
           return (
-            <div key={label} style={{ marginBottom: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: ok ? color : '#f87171' }}>{val.toFixed(1)}% {ok ? '✓' : '⚠'}</span>
+            <div key={label} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: ok ? color : '#f87171' }}>{val.toFixed(1)}% {ok ? '✓' : '⚠'}</span>
               </div>
-              <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+              <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                 <div style={{ width: `${Math.min(val, 100)}%`, height: '100%', background: ok ? color : '#ef4444', borderRadius: 2 }} />
               </div>
             </div>
           );
         })}
         {weakCount > 0 && (
-          <div style={{ marginTop: 6, fontSize: 10, color: '#f87171', fontWeight: 600 }}>⚠ {weakCount} booth{weakCount > 1 ? 's' : ''} below 60% threshold</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: '#f87171', fontWeight: 600 }}>⚠ {weakCount} booth{weakCount > 1 ? 's' : ''} below 60%</div>
         )}
       </div>
 
       {/* Community card */}
-      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Community Composition</div>
+      <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '16px' }}>
+        <div className="section-label" style={{ marginBottom: 12 }}>Community Composition</div>
         {[
           { label: 'Hindu', pct: d.hindu, color: '#f97316' },
           { label: 'Muslim', pct: d.muslim, color: '#10b981' },
           { label: 'Christian', pct: d.christian, color: '#8b5cf6' },
         ].map(({ label, pct, color }) => (
-          <div key={label} style={{ marginBottom: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-              <span style={{ fontSize: 11, fontWeight: 800, color }}>{pct}%</span>
+          <div key={label} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color }}>{pct}%</span>
             </div>
-            <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
               <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 2 }} />
             </div>
           </div>
         ))}
-        <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          <span style={{ fontSize: 9, background: clsCfg.bg, color: clsCfg.color, borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>{clsCfg.label}</span>
-          <span style={{ fontSize: 9, background: pCfg.bg, color: pCfg.color, borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>{pCfg.label}</span>
+        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <span style={{ fontSize: 11, background: clsCfg.bg, color: clsCfg.color, borderRadius: 6, padding: '4px 9px', fontWeight: 700 }}>{clsCfg.label}</span>
+          <span style={{ fontSize: 11, background: pCfg.bg, color: pCfg.color, borderRadius: 6, padding: '4px 9px', fontWeight: 700 }}>{pCfg.label}</span>
         </div>
       </div>
 
@@ -931,21 +937,21 @@ function WardVsConstituency({ wardNum }) {
           return (
             <div key={label}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{label}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{label}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.04)', borderRadius: 4, padding: '1px 6px' }}>Avg {avg}{unit}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: aboveThreshold ? color : '#f87171' }}>{ward}{unit}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.04)', borderRadius: 4, padding: '1px 5px' }}>#{rank}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', borderRadius: 5, padding: '2px 7px' }}>Avg {avg}{unit}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: aboveThreshold ? color : '#f87171' }}>{ward}{unit}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.05)', borderRadius: 5, padding: '2px 7px' }}>#{rank}</span>
                 </div>
               </div>
               {/* Dual bar: ward vs avg */}
-              <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', left: `${avgW}%`, top: 0, bottom: 0, width: 2, background: 'rgba(255,255,255,0.3)', zIndex: 2 }} />
-                <div style={{ width: `${wardW}%`, height: '100%', background: aboveThreshold ? `linear-gradient(90deg,${color}80,${color})` : 'linear-gradient(90deg,#ef444480,#ef4444)', borderRadius: 3, transition: 'width 0.6s ease' }} />
+              <div style={{ position: 'relative', height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', left: `${avgW}%`, top: 0, bottom: 0, width: 2, background: 'rgba(255,255,255,0.35)', zIndex: 2 }} />
+                <div style={{ width: `${wardW}%`, height: '100%', background: aboveThreshold ? `linear-gradient(90deg,${color}80,${color})` : 'linear-gradient(90deg,#ef444480,#ef4444)', borderRadius: 4, transition: 'width 0.6s ease' }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{aboveAvg ? `▲ ${(ward - avg).toFixed(1)}${unit} above avg` : `▼ ${(avg - ward).toFixed(1)}${unit} below avg`}</span>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Rank {rank} / {total38}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{aboveAvg ? `▲ ${(ward - avg).toFixed(1)}${unit} above avg` : `▼ ${(avg - ward).toFixed(1)}${unit} below avg`}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Rank {rank} / {total38}</span>
               </div>
             </div>
           );
@@ -953,15 +959,15 @@ function WardVsConstituency({ wardNum }) {
       </div>
 
       {/* Electors info */}
-      <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+      <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         {[
           { label: 'This Ward', val: d.totalElectors.toLocaleString(), color: '#f59e0b', sub: 'Total Electors' },
           { label: 'Avg Ward',  val: avgElectors.toLocaleString(), color: '#22d3ee', sub: 'Avg Electors' },
           { label: 'Margin',    val: `${d.bjpWin || d.margin > 0 ? '+' : ''}${d.margin}%`, color: d.margin > 0 ? '#f97316' : '#10b981', sub: d.margin > 0 ? 'BJP leads' : 'INC leads' },
         ].map(({ label, val, color, sub }) => (
-          <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color }}>{val}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{sub}</div>
+          <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color }}>{val}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>{sub}</div>
           </div>
         ))}
       </div>
@@ -1000,19 +1006,20 @@ function ConstituencySIRSummary() {
 
   return (
     <div style={{
-      background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))',
-      border: '1px solid rgba(139,92,246,0.2)',
-      borderRadius: 16, overflow: 'hidden', marginBottom: 18,
+      background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))',
+      border: '1px solid rgba(139,92,246,0.22)',
+      borderRadius: 18, overflow: 'hidden', marginBottom: 20,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
     }} className="anim-fade-up">
       {/* Header */}
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'linear-gradient(135deg,rgba(139,92,246,0.08),transparent)' }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: '#a78bfa' }}>📊 Constituency SIR Intelligence Summary</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Mangaluru City South · {total} wards · {totalElect.toLocaleString()} total electors</div>
+      <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'linear-gradient(135deg,rgba(139,92,246,0.1),transparent)' }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#a78bfa' }}>📊 Constituency SIR Intelligence</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Mangaluru City South · {total} wards · {totalElect.toLocaleString()} total electors</div>
       </div>
 
-      <div style={{ padding: '14px 16px' }}>
+      <div style={{ padding: '16px 18px' }}>
         {/* Top KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 18 }}>
           {[
             { label: 'BJP Wards',    val: bjpWards,           color: '#f97316', sub: 'BJP leading', icon: '🚩' },
             { label: 'INC Wards',    val: congWards,          color: '#10b981', sub: 'Congress leading', icon: '🏳️' },
@@ -1021,35 +1028,35 @@ function ConstituencySIRSummary() {
             { label: 'Avg BLO Map',  val: avgBLO+'%',         color: '#f59e0b', sub: 'SIR survey', icon: '📋' },
             { label: 'Avg Mapped',   val: avgMapped+'%',      color: '#10b981', sub: 'Total completion', icon: '◈' },
           ].map(({ label, val, color, sub, icon }) => (
-            <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${color}18`, borderRadius: 10, padding: '10px 12px' }}>
-              <div style={{ fontSize: 16, marginBottom: 4 }}>{icon}</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{typeof val === 'number' ? val : val}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{label}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{sub}</div>
+            <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 12, padding: '14px 12px' }}>
+              <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{val}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{label}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{sub}</div>
             </div>
           ))}
         </div>
 
         {/* Priority Distribution */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Priority Distribution</div>
-          <div style={{ display: 'flex', height: 28, borderRadius: 6, overflow: 'hidden', gap: 1 }}>
+        <div style={{ marginBottom: 18 }}>
+          <div className="section-label">Priority Distribution</div>
+          <div style={{ display: 'flex', height: 32, borderRadius: 8, overflow: 'hidden', gap: 1 }}>
             {Object.entries(priCounts).filter(([,v]) => v > 0).map(([p, cnt]) => {
               const cfg = PRIORITY_CONFIG[p];
               const w   = (cnt / total * 100).toFixed(1);
               return (
-                <div key={p} style={{ width: `${w}%`, background: cfg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: cnt > 0 ? 24 : 0, position: 'relative' }} title={`${p}: ${cnt} wards`}>
-                  {cnt >= 2 && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{cnt}</span>}
+                <div key={p} style={{ width: `${w}%`, background: cfg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: cnt > 0 ? 24 : 0 }} title={`${p}: ${cnt} wards`}>
+                  {cnt >= 2 && <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>{cnt}</span>}
                 </div>
               );
             })}
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
             {Object.entries(priCounts).filter(([,v]) => v > 0).map(([p, cnt]) => {
               const cfg = PRIORITY_CONFIG[p];
               return (
-                <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: cfg.color }} />
+                <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                  <div style={{ width: 9, height: 9, borderRadius: 3, background: cfg.color }} />
                   {cfg.label.split(' ').slice(1).join(' ')}: {cnt}
                 </div>
               );
@@ -1059,19 +1066,19 @@ function ConstituencySIRSummary() {
 
         {/* Weakest wards */}
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>⚠ Weakest Wards by SIR Mapping</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="section-label">⚠ Weakest Wards by SIR Mapping</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {weakest5.map(([wNum, wd]) => {
               const pCfg = PRIORITY_CONFIG[wd.priority] || PRIORITY_CONFIG.NORMAL;
               const wName = WARD_NAMES[wNum] || wNum;
               return (
-                <div key={wNum} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.1)', borderRadius: 8 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(255,255,255,0.06)', borderRadius: 3, padding: '2px 5px', color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{wNum}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-1)', flex: 1 }}>{wName}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: pCfg.color }}>{pCfg.label.split(' ')[0]}</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#f87171' }}>{wd.totalMapped.toFixed(1)}%</div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>mapped</div>
+                <div key={wNum} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.12)', borderRadius: 10, minHeight: 52 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.07)', borderRadius: 5, padding: '3px 7px', color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>{wNum}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', flex: 1 }}>{wName}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: pCfg.color, flexShrink: 0 }}>{pCfg.label.split(' ')[0]}</span>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#f87171' }}>{wd.totalMapped.toFixed(1)}%</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>mapped</div>
                   </div>
                   <div style={{ width: 50, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, flexShrink: 0 }}>
                     <div style={{ width: `${Math.min(wd.totalMapped, 100)}%`, height: '100%', background: '#ef4444', borderRadius: 2 }} />
@@ -1141,46 +1148,47 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
-      background: member.surveyed ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.02)',
-      border: `1px solid ${member.surveyed ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'}`,
-      borderRadius: 10, marginBottom: 6, transition: 'all 0.2s',
+      display: 'flex', alignItems: 'center', gap: 13, padding: '13px 14px',
+      background: member.surveyed ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.025)',
+      border: `1px solid ${member.surveyed ? 'rgba(16,185,129,0.22)' : 'rgba(255,255,255,0.07)'}`,
+      borderRadius: 12, marginBottom: 8, transition: 'all 0.2s',
+      minHeight: 64,
     }}>
       <div style={{
-        width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
         background: member.surveyed ? 'rgba(16,185,129,0.18)' : 'rgba(245,158,11,0.12)',
         border: `1px solid ${member.surveyed ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.2)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 13, fontWeight: 800,
+        fontSize: 15, fontWeight: 800,
         color: member.surveyed ? '#10b981' : '#f59e0b',
       }}>
         {(member.name || '?')[0].toUpperCase()}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {member.name || '—'}
-          {member.relation && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-3)', fontWeight: 400 }}>{member.relation}</span>}
+          {member.relation && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>{member.relation}</span>}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
-          {member.voterid && <span style={{ marginRight: 8 }}>🪪 {member.voterid}</span>}
-          {member.gender  && <span style={{ marginRight: 8 }}>{member.gender === 'M' ? '♂' : member.gender === 'F' ? '♀' : '⚧'} {member.gender}</span>}
+        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
+          {member.voterid && <span style={{ marginRight: 10 }}>🪪 {member.voterid}</span>}
+          {member.gender  && <span style={{ marginRight: 10 }}>{member.gender === 'M' ? '♂' : member.gender === 'F' ? '♀' : '⚧'} {member.gender}</span>}
           {member.age     && <span>Age {member.age}</span>}
         </div>
       </div>
       {member.surveyed ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: '#10b981', flexShrink: 0, minHeight: 40 }}>
           ✓ Done
         </div>
       ) : canSurvey ? (
         <button onClick={handleStartSurvey} style={{
-          background: 'linear-gradient(135deg,#f59e0b,#d97706)', border: 'none', borderRadius: 8,
-          padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#090e1c',
+          background: 'linear-gradient(135deg,#f59e0b,#d97706)', border: 'none', borderRadius: 10,
+          padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#090e1c',
           cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
-          boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
+          boxShadow: '0 2px 10px rgba(245,158,11,0.35)', minHeight: 40,
         }}>✎ Survey</button>
       ) : (
         <div title={user?.role === 'corporator' ? `Ward ${user.ward} only` : user?.role === 'booth_worker' ? `Booth ${user.booth} only` : 'No access'}
-          style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'5px 10px', fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.2)', flexShrink:0, cursor:'not-allowed' }}>
+          style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'6px 12px', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.22)', flexShrink:0, cursor:'not-allowed', minHeight: 40, display: 'flex', alignItems: 'center' }}>
           🔒 No Access
         </div>
       )}
@@ -1196,27 +1204,28 @@ function HouseCard({ house, serialCounter, query, user }) {
 
   return (
     <div style={{
-      background: 'rgba(17,28,52,0.7)',
-      border: `1px solid ${pct === 100 ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
-      borderRadius: 14, marginBottom: 16, overflow: 'hidden',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+      background: 'rgba(17,28,52,0.75)',
+      border: `1px solid ${pct === 100 ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.09)'}`,
+      borderRadius: 16, marginBottom: 18, overflow: 'hidden',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
     }}>
       <div onClick={() => setExpanded(p => !p)} style={{
-        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
-        cursor: 'pointer', background: 'rgba(255,255,255,0.02)',
-        borderBottom: expanded ? '1px solid rgba(255,255,255,0.06)' : 'none',
+        display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px',
+        cursor: 'pointer', background: 'rgba(255,255,255,0.025)',
+        borderBottom: expanded ? '1px solid rgba(255,255,255,0.07)' : 'none',
+        minHeight: 72,
       }}>
-        <div style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>⌂</div>
+        <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⌂</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--text-1)' }}>
             House No: {house.house_no}
-            {house.ward && <span style={{ marginLeft: 10, fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>Ward {house.ward} {house.booth ? `· Booth ${house.booth}` : ''}</span>}
+            {house.ward && <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--text-3)', fontWeight: 400 }}>Ward {house.ward} {house.booth ? `· Booth ${house.booth}` : ''}</span>}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-            <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+            <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
               <div style={{ width: `${pct}%`, height: '100%', background: statusColor, borderRadius: 3, transition: 'width 0.4s' }} />
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, flexShrink: 0 }}>{house.surveyed}/{house.total_members}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: statusColor, flexShrink: 0 }}>{house.surveyed}/{house.total_members}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
@@ -1607,12 +1616,13 @@ export default function Dashboard() {
   return (
     <>
     <style>{`
+      * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
       .db-stat-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+        gap: 12px;
       }
-      @media (min-width: 500px) {
+      @media (min-width: 480px) {
         .db-stat-grid { grid-template-columns: repeat(3, 1fr); }
       }
       @media (min-width: 820px) {
@@ -1621,7 +1631,7 @@ export default function Dashboard() {
       .db-two-col {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 16px;
       }
       @media (min-width: 700px) {
         .db-two-col { grid-template-columns: 1fr 1fr; }
@@ -1629,13 +1639,54 @@ export default function Dashboard() {
       .db-header-row {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 14px;
       }
       @media (min-width: 600px) {
         .db-header-row { flex-direction: row; align-items: flex-start; justify-content: space-between; }
       }
-      .ward-heatmap-row:hover {
-        background: rgba(255,255,255,0.04) !important;
+      .ward-heatmap-row:active { background: rgba(255,255,255,0.06) !important; }
+      .ward-heatmap-row:hover { background: rgba(255,255,255,0.04) !important; }
+      .risk-ward-btn:active { transform: scale(0.97); }
+      .touch-btn:active { opacity: 0.8; transform: scale(0.98); }
+      .heatmap-mobile-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 14px 16px;
+        cursor: pointer;
+        transition: background 0.12s;
+      }
+      .heatmap-mobile-card:active { background: rgba(255,255,255,0.05) !important; }
+      .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: rgba(255,255,255,0.25);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 10px;
+      }
+      .stat-mini-label {
+        font-size: 10px;
+        color: rgba(255,255,255,0.35);
+        font-weight: 500;
+      }
+      .booth-table-row {
+        display: grid;
+        grid-template-columns: 42px 1fr 72px 72px 72px 80px;
+        gap: 0;
+        padding: 13px 16px;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        cursor: pointer;
+        transition: background 0.12s;
+      }
+      .booth-table-row:active { background: rgba(255,255,255,0.06) !important; }
+      @media (max-width: 430px) {
+        .booth-table-row {
+          grid-template-columns: 36px 1fr 60px 60px 60px 70px;
+          padding: 12px 12px;
+        }
       }
     `}</style>
 
@@ -1644,28 +1695,28 @@ export default function Dashboard() {
       <div className="page-inner">
 
         {/* ── Search Bar ─────────────────────────────────────────────────── */}
-        <div className="anim-fade-up" style={{ marginBottom: 20 }}>
+        <div className="anim-fade-up" style={{ marginBottom: 24 }}>
           <div style={{
-            background: 'rgba(17,28,52,0.9)', border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 14, padding: '4px 8px 4px 14px',
-            display: 'flex', alignItems: 'center', gap: 8,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+            background: 'rgba(17,28,52,0.95)', border: '1px solid rgba(255,255,255,0.14)',
+            borderRadius: 16, padding: '4px 10px 4px 16px',
+            display: 'flex', alignItems: 'center', gap: 10,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
           }}>
-            <span style={{ fontSize: 18, color: 'var(--text-3)', flexShrink: 0 }}>⌕</span>
+            <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>⌕</span>
             <input
               value={query} onChange={handleQueryChange}
               placeholder="Search name, Voter ID or House No…"
-              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 16, color: 'var(--text-1)', padding: '12px 0' }}
+              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 16, color: 'var(--text-1)', padding: '14px 0', caretColor: '#f59e0b' }}
             />
             {searching && <span className="spinner" style={{ flexShrink: 0 }} />}
             {query && !searching && (
-              <button onClick={clearSearch} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '0', cursor: 'pointer', fontSize: 16, color: 'var(--text-2)', flexShrink: 0, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={clearSearch} className="touch-btn" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0', cursor: 'pointer', fontSize: 16, color: 'var(--text-2)', flexShrink: 0, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             )}
           </div>
           {!query && (
             <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               {['By name', 'By Voter ID', 'By House No'].map(hint => (
-                <span key={hint} style={{ fontSize: 12, color: 'var(--text-3)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '5px 12px' }}>{hint}</span>
+                <span key={hint} style={{ fontSize: 12, color: 'var(--text-3)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '6px 14px' }}>{hint}</span>
               ))}
             </div>
           )}
@@ -1703,8 +1754,8 @@ export default function Dashboard() {
             <div className="db-header-row">
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span className="badge badge-cyan mb-8">Dashboard</span>
-                <h1 style={{ fontSize: 'clamp(20px, 5vw, 30px)', marginBottom: 4 }}>{greeting}, {user?.username} 👋</h1>
-                <p style={{ fontSize: 13 }}>{
+                <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', marginBottom: 6 }}>{greeting}, {user?.username} 👋</h1>
+                <p style={{ fontSize: 14, lineHeight: 1.5 }}>{
                 selectedBooth
                   ? <>Viewing <strong style={{ color: '#22d3ee' }}>Ward {selectedWard} · Booth {selectedBooth}</strong></>
                   : selectedWard
@@ -1786,10 +1837,10 @@ export default function Dashboard() {
           {selectedWard && (
             <div className="anim-fade-up" style={{ marginBottom: 20 }}>
               <div style={{
-                background: 'linear-gradient(135deg,rgba(245,158,11,0.13) 0%,rgba(245,158,11,0.04) 100%)',
-                border: '1px solid rgba(245,158,11,0.28)',
-                borderRadius: wardStatsLoading || !wardStats ? 14 : '14px 14px 0 0',
-                padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8,
+                background: 'linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(245,158,11,0.04) 100%)',
+                border: '1px solid rgba(245,158,11,0.32)',
+                borderRadius: wardStatsLoading || !wardStats ? 16 : '16px 16px 0 0',
+                padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>🏘</div>
@@ -1813,7 +1864,7 @@ export default function Dashboard() {
 
                   {(wardStats.ward2026?.boothCount > 0 || wardStats.ward2026?.boothList) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 10px' }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', flexShrink: 0 }}>Booths</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', flexShrink: 0 }}>Booths</span>
                       {wardStats.ward2026?.boothCount > 0 && <span style={{ fontSize: 11, fontWeight: 800, color: '#22d3ee', flexShrink: 0 }}>{wardStats.ward2026.boothCount} booths</span>}
                       {wardStats.ward2026?.boothList && <span style={{ fontSize: 10, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {wardStats.ward2026.boothList}</span>}
                     </div>
@@ -1839,12 +1890,12 @@ export default function Dashboard() {
                       const pct     = (!isPct && typeof value === 'number') ? Math.round(value / totalE * 100) : null;
                       return (
                         <div key={label}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                            <span style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                            <span style={{ fontSize: 12, fontWeight: 800, color }}>{display ?? '—'}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                            <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color }}>{display ?? '—'}</span>
                           </div>
                           {pct !== null && (
-                            <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                            <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                               <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
                             </div>
                           )}
@@ -1855,13 +1906,13 @@ export default function Dashboard() {
 
                   {wardStats.ward2026?.supervisors && (
                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '8px 10px', marginBottom: 14 }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Supervisors · </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Supervisors · </span>
                       <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>{wardStats.ward2026.supervisors}</span>
                     </div>
                   )}
 
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>Voter Roll Demographics</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>Voter Roll Demographics</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 12 }}>
                     {[
                       { label: 'Total', value: wardStats.totalVoters, color: '#22d3ee', pct: 100 },
                       { label: 'Male',  value: wardStats.totalMale,   color: '#22d3ee', pct: wardStats.totalVoters ? Math.round(wardStats.totalMale / wardStats.totalVoters * 100) : 0 },
@@ -1871,11 +1922,11 @@ export default function Dashboard() {
                       { label: 'Chrstn',value: wardStats.totalChristian, color: '#8b5cf6', pct: wardStats.totalVoters ? Math.round(wardStats.totalChristian / wardStats.totalVoters * 100) : 0 },
                     ].map(({ label, value, color, pct }) => (
                       <div key={label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                          <span style={{ fontSize: 13, fontWeight: 800, color }}>{value?.toLocaleString() ?? '—'}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                          <span style={{ fontSize: 14, fontWeight: 800, color }}>{value?.toLocaleString() ?? '—'}</span>
                         </div>
-                        <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                        <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
                         </div>
                       </div>
@@ -1929,8 +1980,8 @@ export default function Dashboard() {
 
                   {!boothStatsLoading && boothStats && (
                     <div style={{ background: 'rgba(10,18,34,0.97)', padding: '14px' }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>2026 Voter Roll · Booth {selectedBooth} Data</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8, marginBottom: 14 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>2026 Voter Roll · Booth {selectedBooth} Data</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10, marginBottom: 16 }}>
                         {[
                           { label: 'Total Electors', value: boothStats.totalElectors,     color: '#22d3ee' },
                           { label: 'Cutoff Elec',    value: boothStats.cutoffElec,         color: '#f59e0b' },
@@ -1951,12 +2002,12 @@ export default function Dashboard() {
                           const pct    = (!isPct && typeof value === 'number') ? Math.round(value / totalE * 100) : null;
                           return (
                             <div key={label}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                                <span style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                                <span style={{ fontSize: 12, fontWeight: 800, color }}>{display ?? '—'}</span>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                                <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                                <span style={{ fontSize: 13, fontWeight: 800, color }}>{display ?? '—'}</span>
                               </div>
                               {pct !== null && (
-                                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                                <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                                   <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
                                 </div>
                               )}
@@ -1965,8 +2016,8 @@ export default function Dashboard() {
                         })}
                       </div>
 
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>Survey Coverage · Booth {selectedBooth}</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>Survey Coverage · Booth {selectedBooth}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12 }}>
                         {[
                           { label: 'Surveys Done', value: boothStats.totalReg,   color: '#f59e0b', pct: boothStats.totalElectors ? Math.round(boothStats.totalReg / boothStats.totalElectors * 100) : 0 },
                           { label: 'Houses',        value: boothStats.houseCount, color: '#10b981', pct: 100 },
@@ -1975,11 +2026,11 @@ export default function Dashboard() {
                           { label: 'Coverage',      value: `${boothStats.coveragePct}%`, color: '#8b5cf6', pct: Math.min(boothStats.coveragePct, 100) },
                         ].map(({ label, value, color, pct }) => (
                           <div key={label}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                              <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                              <span style={{ fontSize: 13, fontWeight: 800, color }}>{typeof value === 'number' ? value.toLocaleString() : value}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                              <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                              <span style={{ fontSize: 14, fontWeight: 800, color }}>{typeof value === 'number' ? value.toLocaleString() : value}</span>
                             </div>
-                            <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                            <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                               <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${color}99,${color})`, borderRadius: 2 }} />
                             </div>
                           </div>
@@ -2003,24 +2054,26 @@ export default function Dashboard() {
               ) : (
                 <div key={c.label}
                   onClick={c.label === 'Large Families' ? () => setLargeFamiliesOpen(true) : undefined}
+                  className="touch-btn"
                   style={{
-                    background: 'linear-gradient(145deg, rgba(17,28,52,0.9) 0%, rgba(10,18,35,0.95) 100%)',
-                    border: `1px solid ${c.color}22`, borderRadius: 14, padding: '14px 12px',
+                    background: 'linear-gradient(145deg, rgba(17,28,52,0.95) 0%, rgba(10,18,35,0.98) 100%)',
+                    border: `1px solid ${c.color}28`, borderRadius: 16, padding: '16px 14px',
                     position: 'relative', overflow: 'hidden',
-                    boxShadow: `0 4px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`,
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)`,
                     cursor: (c.label === 'Large Families' || c.label === 'Risk Wards') ? 'pointer' : 'default',
+                    minHeight: 100,
                   }}
                 >
-                  <div style={{ position: 'absolute', top: -18, right: -18, width: 60, height: 60, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}18 0%, transparent 70%)`, pointerEvents: 'none' }} />
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1.4, maxWidth: '65%' }}>{c.label}</div>
-                    <div style={{ width: 28, height: 28, borderRadius: 7, background: `${c.color}15`, border: `1px solid ${c.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>{c.icon}</div>
+                  <div style={{ position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}20 0%, transparent 70%)`, pointerEvents: 'none' }} />
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.4, maxWidth: '65%' }}>{c.label}</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${c.color}18`, border: `1px solid ${c.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{c.icon}</div>
                   </div>
-                  <div style={{ fontSize: 'clamp(20px, 4vw, 26px)', fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 5 }}>{c.value ?? '—'}</div>
+                  <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 7 }}>{c.value ?? '—'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 500, lineHeight: 1.3 }}>{c.sub}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', fontWeight: 500, lineHeight: 1.3 }}>{c.sub}</div>
                     {(c.label === 'Large Families' || c.label === 'Risk Wards') && (
-                      <span style={{ fontSize: 9, color: `${c.color}90`, background: `${c.color}12`, border: `1px solid ${c.color}25`, borderRadius: 5, padding: '2px 5px', fontWeight: 700 }}>View ›</span>
+                      <span style={{ fontSize: 10, color: `${c.color}95`, background: `${c.color}15`, border: `1px solid ${c.color}28`, borderRadius: 6, padding: '3px 7px', fontWeight: 700, flexShrink: 0 }}>View ›</span>
                     )}
                   </div>
                 </div>
@@ -2030,35 +2083,35 @@ export default function Dashboard() {
 
           {/* ── Coverage bar ──────────────────────────────────────────────── */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))',
-            border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 16px',
-            marginBottom: 18, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+            background: 'linear-gradient(135deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
+            border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '20px 18px',
+            marginBottom: 20, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
             position: 'relative', overflow: 'hidden',
           }} className="anim-fade-up">
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, #8b5cf6 0%, #22d3ee ${coverage}%, rgba(255,255,255,0.06) ${coverage}%)`, borderRadius: '16px 16px 0 0' }} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, #8b5cf6 0%, #22d3ee ${coverage}%, rgba(255,255,255,0.06) ${coverage}%)`, borderRadius: '18px 18px 0 0' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Survey Coverage</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{selectedBooth ? `Booth ${selectedBooth}` : selectedWard ? `Ward ${selectedWard}` : 'All wards'}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginBottom: 3 }}>Survey Coverage</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{selectedBooth ? `Booth ${selectedBooth}` : selectedWard ? `Ward ${selectedWard}` : 'All wards'}</div>
               </div>
-              {activeLoading ? <Skeleton w={70} h={36} radius={9} /> : (
+              {activeLoading ? <Skeleton w={70} h={38} radius={9} /> : (
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 900, color: '#8b5cf6', letterSpacing: '-1px', lineHeight: 1 }}>{coverage}%</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{s.totalReg?.toLocaleString() || 0} / {(selectedBooth ? boothStats?.totalElectors : s.totalVoters)?.toLocaleString() || 0}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 900, color: '#8b5cf6', letterSpacing: '-1px', lineHeight: 1 }}>{coverage}%</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', marginTop: 3 }}>{s.totalReg?.toLocaleString() || 0} / {(selectedBooth ? boothStats?.totalElectors : s.totalVoters)?.toLocaleString() || 0}</div>
                 </div>
               )}
             </div>
-            <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-              {!activeLoading && <div style={{ height: '100%', width: `${coverage}%`, background: 'linear-gradient(90deg, #8b5cf6, #22d3ee)', borderRadius: 4, transition: 'width 0.8s ease' }} />}
+            <div style={{ height: 10, background: 'rgba(255,255,255,0.07)', borderRadius: 5, overflow: 'hidden' }}>
+              {!activeLoading && <div style={{ height: '100%', width: `${coverage}%`, background: 'linear-gradient(90deg, #8b5cf6, #22d3ee)', borderRadius: 5, transition: 'width 0.8s ease' }} />}
             </div>
           </div>
 
           {/* ── Charts ──────────────────────────────────────────────────── */}
           <div className="db-two-col mb-24">
-            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Ward Coverage</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Top 10 wards by completion %</div>
+            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '20px 16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 4 }}>Ward Coverage</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Top 10 wards by completion %</div>
               </div>
               {activeLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -2079,10 +2132,10 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               )}
             </div>
-            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Voter Demographics</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Religion-wise distribution</div>
+            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '20px 16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 4 }}>Voter Demographics</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Religion-wise distribution</div>
               </div>
               {activeLoading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 210 }}><Skeleton w={140} h={140} radius={70} /></div>
@@ -2118,11 +2171,11 @@ export default function Dashboard() {
           )}
 
           {/* ── Gender + Quick Actions ────────────────────────────────────── */}
-          <div className="db-two-col" style={{ marginBottom: 24 }}>
-            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Gender Breakdown</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Voter & survey distribution</div>
+          <div className="db-two-col" style={{ marginBottom: 28 }}>
+            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '20px 16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 4 }}>Gender Breakdown</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Voter &amp; survey distribution</div>
               </div>
               {activeLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -2164,12 +2217,12 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.9), rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>Quick Actions</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Jump to key features</div>
+            <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '20px 16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 4 }}>Quick Actions</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Jump to key features</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
                   { to: '/survey',  label: 'Start New Survey',        desc: 'Record constituency data', icon: '✎', color: '#f59e0b' },
                   { to: '/schemes', label: 'Check Scheme Eligibility', desc: 'Find schemes for voters',  icon: '◈', color: '#10b981' },
@@ -2177,17 +2230,18 @@ export default function Dashboard() {
                   { to: '/data',    label: 'View All Data',            desc: 'Survey & voter datasets',  icon: '⊟', color: '#8b5cf6' },
                 ].map(item => (
                   <Link key={item.to} to={item.to} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: '13px 12px',
-                    borderRadius: 12, background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    textDecoration: 'none', minHeight: 58,
+                    display: 'flex', alignItems: 'center', gap: 14, padding: '15px 14px',
+                    borderRadius: 14, background: 'rgba(255,255,255,0.025)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    textDecoration: 'none', minHeight: 64,
+                    transition: 'background 0.15s',
                   }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: `${item.color}15`, border: `1px solid ${item.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{item.icon}</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${item.color}18`, border: `1px solid ${item.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{item.icon}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-1)', marginBottom: 2 }}>{item.label}</div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{item.desc}</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', marginBottom: 3 }}>{item.label}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{item.desc}</div>
                     </div>
-                    <span style={{ color: `${item.color}60`, fontSize: 20, flexShrink: 0 }}>›</span>
+                    <span style={{ color: `${item.color}70`, fontSize: 22, flexShrink: 0 }}>›</span>
                   </Link>
                 ))}
               </div>
