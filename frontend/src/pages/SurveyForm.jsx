@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import { surveyApi, wardsApi } from '../api/client';
 import api from '../api/client';
 import DeceasedRow from '../components/DeceasedRow';
+import { useAuth } from '../App';
 
 const RELIGIONS   = ['Hindu','Muslim','Christian','Jain','Buddhist','Sikh'];
 const COMMUNITIES = { Hindu:['General','OBC','SC','ST'], Muslim:['General','OBC'], Christian:['General','OBC','SC','ST'], Jain:['General'], Buddhist:['SC','ST','General'], Sikh:['General','OBC'] };
@@ -235,8 +236,25 @@ function FutureVoterRow({ voter, index, onChange, onRemove, defaultHouseNumber, 
 export default function SurveyForm() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { wardNumber = '', serialNo = 1, wardName = '', boothNo = '',
           prefill = {}, returnTo = '', returnQuery = '' } = location.state || {};
+
+  // ── RBAC: derive role constraints ────────────────────────────────────────
+  const role        = user?.role || '';
+  const isSuperuser = role === 'mla' || role === 'pa' || !role;
+  const isCorporator   = role === 'corporator';
+  const isBoothWorker  = role === 'booth_worker';
+
+  // The ward a corporator is locked to (upper-cased for consistent comparison)
+  const lockedWard  = isCorporator  ? String(user?.ward  || '').toUpperCase() : null;
+  // The booth a booth_worker is locked to
+  const lockedBooth = isBoothWorker ? String(user?.booth || '') : null;
+
+  // Can the user change the ward field?
+  const wardEditable = isSuperuser;
+  // Can the user change the booth field?
+  const boothEditable = isSuperuser || isCorporator;
 
   const [step,          setStep]          = useState(0);
   const [busy,          setBusy]          = useState(false);
@@ -267,10 +285,11 @@ export default function SurveyForm() {
   const [sirMember,    setSirMember]   = useState('');     // name of checked member
   const [sirChecking,  setSirChecking] = useState(false);  // manual check in progress
 
-  // Resolve booth: explicit boothNo from nav state > prefill.boothNo
-  const resolvedBooth = boothNo ? String(boothNo) : (prefill.boothNo ? String(prefill.boothNo) : '');
-  // Resolve ward: explicit wardNumber > wardName > derive from booth
-  const resolvedWard  = wardNumber || wardName
+  // Resolve booth: explicit boothNo from nav state > locked booth (booth_worker) > prefill.boothNo
+  const resolvedBooth = boothNo ? String(boothNo)
+    : (lockedBooth || (prefill.boothNo ? String(prefill.boothNo) : ''));
+  // Resolve ward: explicit wardNumber > locked ward (corporator/booth_worker) > wardName > derive from booth
+  const resolvedWard  = wardNumber || lockedWard || wardName
     || (resolvedBooth ? getWardByBooth(resolvedBooth) : '')
     || prefill.wardNumber || '';
 
@@ -568,18 +587,62 @@ export default function SurveyForm() {
                   value={form.houseNumber} onChange={set('houseNumber')} />
               </Field>
               <Field label="Ward">
-                <select className="input" value={form.wardNumber}
-                  onChange={e => setForm(p => ({ ...p, wardNumber: e.target.value, boothNo: '' }))}>
-                  <option value="">— Select Ward —</option>
-                  {WARD_NAMES.map(w => <option key={w} value={w}>{w}</option>)}
-                </select>
+                {wardEditable ? (
+                  <select className="input" value={form.wardNumber}
+                    onChange={e => setForm(p => ({ ...p, wardNumber: e.target.value, boothNo: '' }))}>
+                    <option value="">— Select Ward —</option>
+                    {WARD_NAMES.map(w => <option key={w} value={w}>{w}</option>)}
+                  </select>
+                ) : (
+                  <div style={{
+                    display:'flex', alignItems:'center', gap:8, marginTop:4,
+                    padding:'9px 12px', borderRadius:8, cursor:'not-allowed',
+                    background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.28)',
+                  }}>
+                    <span style={{ fontSize:15 }}>🏘</span>
+                    <span style={{ fontWeight:700, color:'#f59e0b', fontSize:13, flex:1 }}>
+                      {form.wardNumber || lockedWard || 'Ward not assigned'}
+                    </span>
+                    <span style={{ fontSize:9, fontWeight:700, color:'rgba(245,158,11,0.55)',
+                      background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.2)',
+                      borderRadius:4, padding:'1px 5px', letterSpacing:'0.05em' }}>LOCKED</span>
+                  </div>
+                )}
               </Field>
               <Field label="Booth No">
-                <input className="input" type="text" inputMode="numeric" placeholder="e.g. 44"
-                  value={form.boothNo} onChange={e => setForm(p => ({ ...p, boothNo: e.target.value.replace(/\D/g,'') }))} />
-                {form.boothNo && (
-                  <div style={{ fontSize:11, color:'var(--gold)', marginTop:4 }}>
-                    ✓ Booth {form.boothNo} — pre-filled, editable
+                {boothEditable ? (
+                  <>
+                    {isCorporator && form.wardNumber && (WARD_BOOTHS[form.wardNumber] || []).length > 0 ? (
+                      <select className="input" value={form.boothNo}
+                        onChange={e => setForm(p => ({ ...p, boothNo: e.target.value }))}>
+                        <option value="">— Select Booth —</option>
+                        {(WARD_BOOTHS[form.wardNumber] || []).map(b => (
+                          <option key={b} value={b}>Booth {b}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input className="input" type="text" inputMode="numeric" placeholder="e.g. 44"
+                        value={form.boothNo} onChange={e => setForm(p => ({ ...p, boothNo: e.target.value.replace(/\D/g,'') }))} />
+                    )}
+                    {form.boothNo && (
+                      <div style={{ fontSize:11, color:'var(--gold)', marginTop:4 }}>
+                        ✓ Booth {form.boothNo}{isCorporator ? '' : ' — pre-filled, editable'}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{
+                    display:'flex', alignItems:'center', gap:8, marginTop:4,
+                    padding:'9px 12px', borderRadius:8, cursor:'not-allowed',
+                    background:'rgba(34,211,238,0.06)', border:'1px solid rgba(34,211,238,0.28)',
+                  }}>
+                    <span style={{ fontSize:15 }}>🗳️</span>
+                    <span style={{ fontWeight:700, color:'#22d3ee', fontSize:13, flex:1 }}>
+                      Booth {form.boothNo || lockedBooth || 'Not assigned'}
+                    </span>
+                    <span style={{ fontSize:9, fontWeight:700, color:'rgba(34,211,238,0.55)',
+                      background:'rgba(34,211,238,0.1)', border:'1px solid rgba(34,211,238,0.2)',
+                      borderRadius:4, padding:'1px 5px', letterSpacing:'0.05em' }}>LOCKED</span>
                   </div>
                 )}
               </Field>

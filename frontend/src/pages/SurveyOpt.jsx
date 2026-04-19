@@ -110,22 +110,57 @@ export default function SurveyOpt() {
         )}
 
         <div className="card card-pad anim-fade-up">
+
+          {/* ── Role scope banner for restricted users ── */}
+          {!isSuperuser && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18,
+              padding: '10px 14px', borderRadius: 10,
+              background: role === 'corporator' ? 'rgba(34,211,238,0.06)' : 'rgba(16,185,129,0.06)',
+              border: `1px solid ${role === 'corporator' ? 'rgba(34,211,238,0.25)' : 'rgba(16,185,129,0.25)'}`,
+            }}>
+              <span style={{ fontSize: 18 }}>{role === 'corporator' ? '🏘' : '🗳️'}</span>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: role === 'corporator' ? '#22d3ee' : '#10b981' }}>
+                  {role === 'corporator'
+                    ? `Surveys locked to Ward: ${ward || 'Not assigned'}`
+                    : `Surveys locked to Booth: ${booth || 'Not assigned'} (Ward: ${ward || 'Not assigned'})`}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                  {role === 'corporator'
+                    ? 'You can survey any booth within your ward. Other wards are read-only.'
+                    : 'You can only survey your assigned booth. Other booths are read-only.'}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Ward select */}
           <div className="field mb-16">
             <label className="field-label">
               Select Ward
-              {!isSuperuser && <span style={{ marginLeft:8, fontSize:10, color:'rgba(245,158,11,0.7)', fontWeight:600 }}>
-                🔒 {role === 'corporator' ? 'Your ward only' : 'Fixed to your ward'}
-              </span>}
+              {!isSuperuser && (
+                <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                  background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}>
+                  🔒 LOCKED
+                </span>
+              )}
             </label>
             {isSuperuser ? (
-              <select className="input" value={ward} onChange={handleWardChange} style={{ marginTop:8 }}>
+              <select className="input" value={ward} onChange={handleWardChange} style={{ marginTop: 8 }}>
                 <option value="">— Choose a ward —</option>
                 {WARD_NAMES.map(w => <option key={w} value={w}>{w}</option>)}
               </select>
             ) : (
-              <div className="input" style={{ marginTop:8, opacity:0.7, cursor:'not-allowed', background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.25)' }}>
-                🏘 {ward || 'Not assigned'}
+              /* Corporator / booth_worker — show locked ward pill */
+              <div style={{
+                marginTop: 8, padding: '10px 14px', borderRadius: 8,
+                background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.3)',
+                display: 'flex', alignItems: 'center', gap: 10, cursor: 'not-allowed',
+              }}>
+                <span style={{ fontSize: 16 }}>🏘</span>
+                <span style={{ fontWeight: 700, color: '#f59e0b', fontSize: 14 }}>{ward || 'Ward not assigned'}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(245,158,11,0.5)', fontWeight: 600 }}>LOCKED</span>
               </div>
             )}
           </div>
@@ -135,16 +170,31 @@ export default function SurveyOpt() {
             <div className="field mb-20">
               <label className="field-label">
                 Select Booth
-                {role === 'booth_worker' && <span style={{ marginLeft:8, fontSize:10, color:'rgba(34,211,238,0.7)', fontWeight:600 }}>🔒 Your booth only</span>}
+                {role === 'booth_worker' && (
+                  <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                    background: 'rgba(34,211,238,0.12)', color: '#22d3ee', border: '1px solid rgba(34,211,238,0.25)' }}>
+                    🔒 LOCKED
+                  </span>
+                )}
               </label>
               {role === 'booth_worker' ? (
-                <div className="input" style={{ marginTop:8, opacity:0.7, cursor:'not-allowed', background:'rgba(34,211,238,0.06)', border:'1px solid rgba(34,211,238,0.25)' }}>
-                  🗳️ Booth {booth || 'Not assigned'}
+                /* Booth worker — show locked booth pill */
+                <div style={{
+                  marginTop: 8, padding: '10px 14px', borderRadius: 8,
+                  background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.3)',
+                  display: 'flex', alignItems: 'center', gap: 10, cursor: 'not-allowed',
+                }}>
+                  <span style={{ fontSize: 16 }}>🗳️</span>
+                  <span style={{ fontWeight: 700, color: '#22d3ee', fontSize: 14 }}>Booth {booth || 'Not assigned'}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(34,211,238,0.5)', fontWeight: 600 }}>LOCKED</span>
                 </div>
               ) : (
-                <select className="input" value={booth} onChange={e => setBooth(e.target.value)} style={{ marginTop:8 }}>
+                /* Superuser or corporator — dropdown, corporator sees only their ward's booths */
+                <select className="input" value={booth} onChange={e => setBooth(e.target.value)} style={{ marginTop: 8 }}>
                   <option value="">— Choose a booth —</option>
-                  {booths.filter(b => isBoothAllowed(b)).map(b => <option key={b} value={b}>Booth {b}</option>)}
+                  {booths.map(b => (
+                    <option key={b} value={b}>Booth {b}</option>
+                  ))}
                 </select>
               )}
             </div>
