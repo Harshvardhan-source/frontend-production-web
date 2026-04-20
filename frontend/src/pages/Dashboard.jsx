@@ -1644,7 +1644,7 @@ function HouseMembersPanel({ house, onBack }) {
   }, [house.houseNo]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div style={{
         padding: '18px 22px 14px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -1772,7 +1772,7 @@ function LargeFamiliesModal({ onClose }) {
         </div>
 
         {selectedHouse ? (
-          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <HouseMembersPanel house={selectedHouse} onBack={() => setSelectedHouse(null)} />
           </div>
         ) : (
