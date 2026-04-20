@@ -2666,7 +2666,9 @@ export default function Dashboard() {
             <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '20px 16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 4 }}>Gender Breakdown</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Voter &amp; survey distribution</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+                  {selectedBooth ? `Booth ${selectedBooth} voter roll` : selectedWard ? `Ward ${selectedWard} voter roll` : 'Constituency voter roll'} &amp; survey
+                </div>
               </div>
               {activeLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -2677,35 +2679,89 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[
-                    { label: 'Male Voters',       val: selectedWard ? s.totalMale   : s.voterMale,   total: s.totalVoters, color: '#22d3ee' },
-                    { label: 'Female Voters',     val: selectedWard ? s.totalFemale : s.voterFemale, total: s.totalVoters, color: '#ec4899' },
-                    ...(((selectedWard ? s.totalTrans : s.voterTrans) || 0) > 0
-                      ? [{ label: 'Trans Voters', val: selectedWard ? s.totalTrans : s.voterTrans, total: s.totalVoters, color: '#a78bfa' }]
-                      : []),
-                    { label: 'Male Registered',   val: s.regMale,   total: s.totalReg, color: '#22d3ee' },
-                    { label: 'Female Registered', val: s.regFemale, total: s.totalReg, color: '#ec4899' },
-                  ].map(item => {
-                    const pct = item.total ? ((item.val || 0) / item.total * 100).toFixed(0) : 0;
-                    return (
-                      <div key={item.label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>{item.label}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: item.color }}>{(item.val || 0).toLocaleString()}</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: `${item.color}12`, borderRadius: 4, padding: '1px 5px' }}>{pct}%</span>
+              ) : (() => {
+                // ── Resolve voter gender at all 3 drill-down levels ──────────────
+                // HMC level:   voterMale / voterFemale / voterTrans  (2025 pipeline — now fixed: "Male"/"Female")
+                // Ward level:  totalMale / totalFemale / totalTrans  (from WardReference)
+                // Booth level: totalMale / totalFemale / totalTrans  (from 2025 via booth pipeline — now added)
+                const vMale   = s.totalMale   ?? s.voterMale   ?? 0;
+                const vFemale = s.totalFemale ?? s.voterFemale ?? 0;
+                const vTrans  = s.totalTrans  ?? s.voterTrans  ?? 0;
+                const vTotal  = s.totalVoters ?? (vMale + vFemale + vTrans) || 0;
+                const rMale   = s.regMale   ?? 0;
+                const rFemale = s.regFemale ?? 0;
+                const rTotal  = s.totalReg  ?? 0;
+                const hasData = vMale > 0 || vFemale > 0;
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+                    {/* ── Summary badge row ── */}
+                    {hasData && (
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {[
+                          { icon: '♂', label: 'Male',   val: vMale,   color: '#22d3ee' },
+                          { icon: '♀', label: 'Female', val: vFemale, color: '#ec4899' },
+                          ...(vTrans > 0 ? [{ icon: '⚧', label: 'Other', val: vTrans, color: '#a78bfa' }] : []),
+                        ].map(g => (
+                          <div key={g.label} style={{
+                            flex: 1, textAlign: 'center', padding: '10px 4px',
+                            background: `${g.color}10`, border: `1px solid ${g.color}28`, borderRadius: 12,
+                          }}>
+                            <div style={{ fontSize: 18, marginBottom: 3 }}>{g.icon}</div>
+                            <div style={{ fontSize: 14, fontWeight: 900, color: g.color, lineHeight: 1 }}>
+                              {(g.val || 0).toLocaleString()}
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: g.color, marginTop: 2, opacity: 0.8 }}>
+                              {vTotal ? ((g.val / vTotal) * 100).toFixed(1) : 0}%
+                            </div>
+                            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>{g.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* ── Bar rows ── */}
+                    {[
+                      { label: '♂  Male Voters',    val: vMale,   total: vTotal, color: '#22d3ee', dim: false },
+                      { label: '♀  Female Voters',   val: vFemale, total: vTotal, color: '#ec4899', dim: false },
+                      ...(vTrans > 0 ? [{ label: '⚧  Trans/Other', val: vTrans, total: vTotal, color: '#a78bfa', dim: false }] : []),
+                      { label: '♂  Male Surveyed',   val: rMale,   total: rTotal, color: '#22d3ee', dim: true },
+                      { label: '♀  Female Surveyed', val: rFemale, total: rTotal, color: '#ec4899', dim: true },
+                    ].map(item => {
+                      const pct = item.total ? Math.min(100, ((item.val || 0) / item.total * 100)).toFixed(1) : 0;
+                      return (
+                        <div key={item.label}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                            <span style={{ fontSize: 11, color: item.dim ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.55)', fontWeight: 500 }}>{item.label}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: item.dim ? `${item.color}88` : item.color }}>
+                                {(item.val || 0).toLocaleString()}
+                              </span>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', background: `${item.color}12`, borderRadius: 4, padding: '1px 5px' }}>{pct}%</span>
+                            </div>
+                          </div>
+                          <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%', width: `${pct}%`,
+                              background: item.dim
+                                ? `linear-gradient(90deg, ${item.color}40, ${item.color}66)`
+                                : `linear-gradient(90deg, ${item.color}99, ${item.color})`,
+                              borderRadius: 2, transition: 'width 0.6s ease',
+                            }} />
                           </div>
                         </div>
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${item.color}99, ${item.color})`, borderRadius: 2, transition: 'width 0.6s ease' }} />
-                        </div>
+                      );
+                    })}
+
+                    {!hasData && (
+                      <div style={{ textAlign: 'center', padding: '16px 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
+                        No voter gender data available
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '20px 16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
