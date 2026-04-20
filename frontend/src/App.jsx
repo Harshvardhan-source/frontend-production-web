@@ -129,7 +129,7 @@ export default function App() {
           <Route path="/voters"         element={<Protected><VoterSearch /></Protected>} />
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
           <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
-          <Route path="/swot"           element={<ProtectedRoute><Swot /></ProtectedRoute>} />
+          
           <Route path="*"               element={<Navigate to="/" replace />} />
 
         </Routes>
