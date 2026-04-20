@@ -1686,6 +1686,10 @@ function HouseMembersPanel({ house, onBack }) {
         {!loading && members.map((m, i) => {
           const genderColor = m.gender === 'M' ? '#22d3ee' : m.gender === 'F' ? '#ec4899' : '#a78bfa';
           const genderIcon  = m.gender === 'M' ? '♂' : m.gender === 'F' ? '♀' : '⚧';
+          const relCfg = m.religion === 'H' ? { color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)',  label: 'H' }
+                       : m.religion === 'M' ? { color: '#10b981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  label: 'M' }
+                       : m.religion === 'C' ? { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)',  border: 'rgba(139,92,246,0.3)',  label: 'C' }
+                       : null;
           return (
             <div key={`${m.voterid || 'noid'}-${i}`} style={{
               display: 'flex', alignItems: 'center', gap: 12,
@@ -1701,10 +1705,15 @@ function HouseMembersPanel({ house, onBack }) {
                   {m.name || '—'}
                   {m.relation && <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{m.relation}</span>}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   {m.voterid && <span>🪪 {m.voterid}</span>}
                   <span style={{ color: genderColor }}>{genderIcon} {m.gender}</span>
                   {m.age && <span>Age {m.age}</span>}
+                  {relCfg && (
+                    <span style={{ fontWeight: 800, fontSize: 10, color: relCfg.color, background: relCfg.bg, border: `1px solid ${relCfg.border}`, borderRadius: 5, padding: '1px 6px', letterSpacing: '0.04em' }}>
+                      {relCfg.label}
+                    </span>
+                  )}
                 </div>
               </div>
               {m.surveyed ? (
