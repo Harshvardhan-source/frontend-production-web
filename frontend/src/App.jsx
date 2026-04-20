@@ -13,6 +13,9 @@ import DataView     from './pages/DataView';
 import VoterSearch  from './pages/VoterSearch';
 import SIR          from './pages/Sir';
 import AdminPanel   from './pages/AdminPanel';
+import Swot from './pages/Swot';
+
+// inside your <Routes>:
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -126,7 +129,9 @@ export default function App() {
           <Route path="/voters"         element={<Protected><VoterSearch /></Protected>} />
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
           <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
+          <Route path="/swot"           element={<ProtectedRoute><Swot /></ProtectedRoute>} />
           <Route path="*"               element={<Navigate to="/" replace />} />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>
