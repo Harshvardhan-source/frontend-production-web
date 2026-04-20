@@ -5,14 +5,12 @@ const API = (process.env.REACT_APP_API_URL || 'https://production-web-conn.onren
 
 // ─── SVG Icon library — no emoji, no AI-generated icons ──────────────────────
 const Icon = {
-  // User silhouette
   User: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="8" cy="5" r="3"/>
       <path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
     </svg>
   ),
-  // ID card
   ID: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="1" y="3" width="14" height="10" rx="2"/>
@@ -20,14 +18,12 @@ const Icon = {
       <path d="M9 6.5h3.5M9 9.5h2"/>
     </svg>
   ),
-  // House
   House: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 7.5L8 2l6 5.5"/>
       <path d="M3.5 6.5V14h3.5v-3.5h2V14H13V6.5"/>
     </svg>
   ),
-  // Family / relation
   Family: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="5" cy="4.5" r="2"/>
@@ -36,106 +32,90 @@ const Icon = {
       <path d="M8 13c0-2.209 1.791-4 4-4s4 1.791 4 4"/>
     </svg>
   ),
-  // Search / magnifier
   Search: () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <circle cx="7" cy="7" r="4.5"/>
       <path d="M10.5 10.5L14 14"/>
     </svg>
   ),
-  // Check mark circle
   Check: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="8" cy="8" r="6.5"/>
       <path d="M5 8.5l2 2 4-4"/>
     </svg>
   ),
-  // X circle
   XCircle: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
       <circle cx="8" cy="8" r="6.5"/>
       <path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/>
     </svg>
   ),
-  // Plus / new
   Plus: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
       <circle cx="8" cy="8" r="6.5"/>
       <path d="M8 5v6M5 8h6"/>
     </svg>
   ),
-  // Trash / delete
   Trash: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2.5 4h11M6 4V2.5h4V4M5.5 4l.5 9.5h4l.5-9.5"/>
     </svg>
   ),
-  // Edit / pen
   Edit: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10.5 2.5l3 3L5 14H2v-3L10.5 2.5z"/>
     </svg>
   ),
-  // Warning triangle
   Warning: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M8 1.5L1 14.5h14L8 1.5z"/>
       <path d="M8 6v4M8 11.5v.5"/>
     </svg>
   ),
-  // Shield / retained
   Shield: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M8 1.5L2 4v4.5c0 3 2.5 5.5 6 6 3.5-.5 6-3 6-6V4L8 1.5z"/>
       <path d="M5.5 8.5l2 2 3-3.5"/>
     </svg>
   ),
-  // List / all
   List: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <path d="M3 4h10M3 8h10M3 12h7"/>
     </svg>
   ),
-  // Bar chart
   Chart: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 13V7h3v6M7 13V4h3v9M12 13V9h2v4"/>
       <path d="M1 13h14"/>
     </svg>
   ),
-  // Lightning / run bulk
   Lightning: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9.5 1.5L4 9h4.5L6.5 14.5 13 7H8.5L9.5 1.5z"/>
     </svg>
   ),
-  // Clock
   Clock: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <circle cx="8" cy="8" r="6.5"/>
       <path d="M8 4.5V8l2.5 2"/>
     </svg>
   ),
-  // Arrow right
   ArrowRight: () => (
     <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 8h10M9 4l4 4-4 4"/>
     </svg>
   ),
-  // Chevron down
   ChevronDown: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 6l4 4 4-4"/>
     </svg>
   ),
-  // SIR module badge
   SIR: () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 2h8a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/>
       <path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/>
     </svg>
   ),
-  // Comparison / diff
   Diff: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="1" y="2" width="5.5" height="12" rx="1"/>
@@ -143,29 +123,41 @@ const Icon = {
       <path d="M7 8h2"/>
     </svg>
   ),
-  // Flag
   Flag: () => (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 1.5v13"/>
       <path d="M3 2.5h9l-2.5 4 2.5 4H3"/>
     </svg>
   ),
-  // X (close)
   X: () => (
     <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <path d="M3 3l10 10M13 3L3 13"/>
     </svg>
   ),
-  // Undo
   Undo: () => (
     <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 7V3.5L1 5.5"/>
       <path d="M3 3.5C5 1 9 1 11.5 3.5s2.5 6.5 0 9"/>
     </svg>
   ),
+  // Info circle — new
+  Info: () => (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="6.5"/>
+      <path d="M8 7v4"/>
+      <circle cx="8" cy="5" r="0.6" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
+  // Booth / location pin — new
+  Booth: () => (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1.5C5.515 1.5 3.5 3.515 3.5 6c0 3.75 4.5 8.5 4.5 8.5S12.5 9.75 12.5 6c0-2.485-2.015-4.5-4.5-4.5z"/>
+      <circle cx="8" cy="6" r="1.5"/>
+    </svg>
+  ),
 };
 
-// ─── Category meta — SVG icons only ──────────────────────────────────────────
+// ─── Category meta ─────────────────────────────────────────────────────────────
 const CAT_META = {
   ALL:        { color:'#94a3b8', bg:'rgba(148,163,184,0.08)', border:'rgba(148,163,184,0.2)',  Icon: Icon.List,    label:'All Records'       },
   NEW:        { color:'#22d3ee', bg:'rgba(34,211,238,0.08)',  border:'rgba(34,211,238,0.25)',  Icon: Icon.Plus,    label:'New Addition'      },
@@ -261,9 +253,121 @@ function RollBadge({ label, found }) {
   );
 }
 
+// ─── VOTER INFO MODAL ─────────────────────────────────────────────────────────
+function VoterInfoModal({ record, roll, onClose }) {
+  if (!record) return null;
+
+  const accentColor = roll === '2025' ? '#22d3ee' : '#f59e0b';
+  const accentBg    = roll === '2025' ? 'rgba(34,211,238,0.08)'  : 'rgba(245,158,11,0.08)';
+  const accentBdr   = roll === '2025' ? 'rgba(34,211,238,0.25)'  : 'rgba(245,158,11,0.25)';
+
+  const fields = [
+    { label: 'Name',          value: record.name,                    mono: false },
+    { label: 'Relation',      value: record.relation,                mono: false },
+    { label: 'House / Flat',  value: record.house,                   mono: true  },
+    { label: 'Voter ID/EPIC', value: record.voterid,                 mono: true  },
+    { label: 'Gender',        value: record.gender,                  mono: false },
+    { label: 'Age',           value: record.age,                     mono: false },
+    { label: 'Booth No',      value: record.booth || record.part,    mono: false },
+    ...(record.serial ? [{ label: 'Serial No', value: record.serial, mono: false }] : []),
+    ...(record.score  ? [{ label: 'Match Score', value: `${record.score}%`, mono: false }] : []),
+  ].filter(f => f.value);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position:'fixed', inset:0, zIndex:9999,
+        background:'rgba(0,0,0,0.72)', backdropFilter:'blur(4px)',
+        display:'flex', alignItems:'center', justifyContent:'center', padding:16,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background:'linear-gradient(145deg,rgba(17,28,52,0.99),rgba(10,18,35,0.99))',
+          border:`1px solid ${accentBdr}`,
+          borderRadius:18, padding:'22px 24px',
+          width:'100%', maxWidth:420,
+          boxShadow:'0 28px 64px rgba(0,0,0,0.65)',
+          animation:'fadeIn 0.2s ease',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
+          <div>
+            <div style={{ fontSize:15, fontWeight:800, color:'#e2e8f0', marginBottom:5 }}>
+              Voter Details
+            </div>
+            <span style={{
+              fontSize:11, fontWeight:700, color:accentColor,
+              background:accentBg, border:`1px solid ${accentBdr}`,
+              borderRadius:20, padding:'2px 10px',
+            }}>
+              {roll} ROLL
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)',
+              borderRadius:8, color:'rgba(255,255,255,0.5)', width:32, height:32,
+              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+            }}
+          >
+            <Icon.X />
+          </button>
+        </div>
+
+        {/* Fields */}
+        <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+          {fields.map(({ label, value, mono }) => (
+            <div
+              key={label}
+              style={{
+                display:'flex', justifyContent:'space-between', alignItems:'center',
+                padding:'8px 12px',
+                background:'rgba(255,255,255,0.03)',
+                borderRadius:8, border:'1px solid rgba(255,255,255,0.06)',
+                gap:12,
+              }}
+            >
+              <span style={{ fontSize:10, color:'rgba(255,255,255,0.35)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', flexShrink:0 }}>
+                {label}
+              </span>
+              <span style={{
+                fontSize:13, fontWeight:600, color:'#e2e8f0',
+                textAlign:'right', wordBreak:'break-all',
+                fontFamily: mono ? 'ui-monospace,monospace' : 'inherit',
+              }}>
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ marginTop:18, textAlign:'center' }}>
+          <button
+            onClick={onClose}
+            style={{
+              background:`${accentBg}`, border:`1px solid ${accentBdr}`,
+              borderRadius:10, color:accentColor, padding:'9px 32px',
+              cursor:'pointer', fontSize:13, fontWeight:700,
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
-// Shows House No · Name · Relation from both rolls whenever input is entered
 function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002 }) {
+  const [infoRecord, setInfoRecord] = useState(null); // { record, roll }
+
   // Merge: confirmed matched record goes first, then other suggestions
   const rows25 = [];
   if (in2025 && record2025?.name) {
@@ -284,61 +388,94 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   if (!rows25.length && !rows02.length) return null;
 
   const ColHeader = ({ children }) => (
-    <th style={{ padding:'6px 10px', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)',
+    <th style={{
+      padding:'6px 10px', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)',
       textAlign:'left', textTransform:'uppercase', letterSpacing:'0.6px',
-      borderBottom:'1px solid rgba(255,255,255,0.06)', whiteSpace:'nowrap' }}>
+      borderBottom:'1px solid rgba(255,255,255,0.06)', whiteSpace:'nowrap',
+    }}>
       {children}
     </th>
   );
 
   const RollTable = ({ rows, year, accentColor, borderColor }) => (
-    <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10,
-      border:`1px solid ${borderColor}`, overflow:'hidden' }}>
+    <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden' }}>
       {/* Roll header */}
-      <div style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px',
-        borderBottom:'1px solid rgba(255,255,255,0.05)', background:'rgba(0,0,0,0.15)' }}>
-        <span style={{ fontSize:10, fontWeight:800, color:accentColor, letterSpacing:'0.8px',
-          textTransform:'uppercase' }}>{year} Roll</span>
-        <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)',
-          borderRadius:8, padding:'1px 7px', fontWeight:600 }}>{rows.length} record{rows.length!==1?'s':''}</span>
+      <div style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom:'1px solid rgba(255,255,255,0.05)', background:'rgba(0,0,0,0.15)' }}>
+        <span style={{ fontSize:10, fontWeight:800, color:accentColor, letterSpacing:'0.8px', textTransform:'uppercase' }}>{year} Roll</span>
+        <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', borderRadius:8, padding:'1px 7px', fontWeight:600 }}>
+          {rows.length} record{rows.length !== 1 ? 's' : ''}
+        </span>
       </div>
       <div style={{ overflowX:'auto' }}>
-        <table style={{ width:'100%', borderCollapse:'collapse', minWidth:320 }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', minWidth:380 }}>
           <thead>
             <tr>
               <ColHeader>House No</ColHeader>
               <ColHeader>Name</ColHeader>
               <ColHeader>Relation</ColHeader>
+              {/* ── NEW: Booth column ── */}
+              <ColHeader>Booth</ColHeader>
               <ColHeader>EPIC</ColHeader>
+              {/* ── NEW: Info column ── */}
+              <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:36 }} />
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i} style={{
-                background: r._matched
-                  ? `${accentColor}12`
-                  : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
-                borderBottom:'1px solid rgba(255,255,255,0.03)',
-              }}>
-                <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : '#94a3b8',
-                  fontWeight: r._matched ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
-                  {r._matched && (
-                    <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>
-                  )}
+              <tr
+                key={i}
+                style={{
+                  background: r._matched
+                    ? `${accentColor}12`
+                    : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
+                  borderBottom:'1px solid rgba(255,255,255,0.03)',
+                }}
+              >
+                {/* House */}
+                <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : '#94a3b8', fontWeight: r._matched ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                  {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
                   {r.house || '—'}
                 </td>
-                <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : '#cbd5e1',
-                  fontWeight: r._matched ? 600 : 400, maxWidth:160, overflow:'hidden',
-                  textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {/* Name */}
+                <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : '#cbd5e1', fontWeight: r._matched ? 600 : 400, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                   {r.name || '—'}
                 </td>
-                <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.45)',
-                  maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {/* Relation */}
+                <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.45)', maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                   {r.relation || '—'}
                 </td>
-                <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.3)',
-                  fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                {/* ── NEW: Booth cell ── */}
+                <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
+                  {r.booth ? (
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:4, color:accentColor, fontWeight:700, background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, padding:'2px 7px' }}>
+                      <Icon.Booth />
+                      {r.booth}
+                    </span>
+                  ) : (
+                    <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>
+                  )}
+                </td>
+                {/* EPIC */}
+                <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.3)', fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
                   {r.voterid || '—'}
+                </td>
+                {/* ── NEW: Info button ── */}
+                <td style={{ padding:'7px 8px', textAlign:'center' }}>
+                  <button
+                    onClick={() => setInfoRecord({ record: r, roll: year })}
+                    title="View full voter details"
+                    style={{
+                      background:`${accentColor}12`, border:`1px solid ${accentColor}28`,
+                      borderRadius:6, color:accentColor,
+                      width:26, height:26, cursor:'pointer',
+                      display:'inline-flex', alignItems:'center', justifyContent:'center',
+                      transition:'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = `${accentColor}25`}
+                    onMouseLeave={e => e.currentTarget.style.background = `${accentColor}12`}
+                  >
+                    <Icon.Info />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -349,23 +486,33 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   );
 
   return (
-    <div style={{ marginTop:14, animation:'fadeIn 0.25s ease' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-        <span style={{ color:'rgba(255,255,255,0.2)' }}><Icon.Family /></span>
-        <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.3)',
-          textTransform:'uppercase', letterSpacing:'0.6px' }}>
-          Similar Records Found
-        </span>
+    <>
+      <div style={{ marginTop:14, animation:'fadeIn 0.25s ease' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+          <span style={{ color:'rgba(255,255,255,0.2)' }}><Icon.Family /></span>
+          <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.6px' }}>
+            Similar Records Found
+          </span>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(380px,1fr))', gap:10 }}>
+          {rows25.length > 0 && (
+            <RollTable rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />
+          )}
+          {rows02.length > 0 && (
+            <RollTable rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />
+          )}
+        </div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:10 }}>
-        {rows25.length > 0 && (
-          <RollTable rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />
-        )}
-        {rows02.length > 0 && (
-          <RollTable rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />
-        )}
-      </div>
-    </div>
+
+      {/* Voter info modal — rendered via portal-style at top level */}
+      {infoRecord && (
+        <VoterInfoModal
+          record={infoRecord.record}
+          roll={infoRecord.roll}
+          onClose={() => setInfoRecord(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -391,7 +538,6 @@ function LiveCheckPanel() {
     abortRef.current = new AbortController();
     setState('checking');
 
-    // 55s timeout — covers Render free-tier cold start (~30-50s)
     const timeoutId = setTimeout(() => abortRef.current?.abort(), 55000);
 
     try {
@@ -406,8 +552,6 @@ function LiveCheckPanel() {
       else setState('error');
     } catch (err) {
       if (err.name === 'AbortError') {
-        // Could be user-initiated clear OR our 55s timeout
-        // Only show error if input still has values (i.e. not a user clear)
         if (name || epic || house) setState('error');
       } else {
         setState('error');
@@ -443,8 +587,6 @@ function LiveCheckPanel() {
   const found_2002      = result?.in_2002 || !!confirmedRec;
   const showSuggestions = !result?.in_2002 && suggestions2002.length > 0 && !confirmedRec;
 
-  // When user confirms a 2002 suggestion, upgrade classification:
-  // NEW_ADDITION or NOT_FOUND → RETAINED (now verified in both rolls)
   const effectivePrimary = confirmedRec
     ? (['NEW_ADDITION','NOT_FOUND'].includes(primary?.category)
         ? { ...primary, category:'RETAINED', label:'Long-term Voter',
@@ -490,13 +632,13 @@ function LiveCheckPanel() {
 
       {/* Input grid */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:14 }}>
-        <InputBox label="Voter Name"    placeholder="Enter full name…"       value={form.name}     onChange={handleChange('name')}     IconComp={Icon.User}   autoFocus />
-        <InputBox label="EPIC / Voter ID" placeholder="e.g. NUX4001234"     value={form.epic}     onChange={handleChange('epic')}     IconComp={Icon.ID}     mono />
-        <InputBox label="House / Flat No" placeholder="e.g. 7-1-42"         value={form.house}    onChange={handleChange('house')}    IconComp={Icon.House}  mono note="Narrows search to exact house" />
-        <InputBox label="Relative Name"   placeholder="Father / Husband name" value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Fallback if name unmatched" />
+        <InputBox label="Voter Name"      placeholder="Enter full name…"         value={form.name}     onChange={handleChange('name')}     IconComp={Icon.User}   autoFocus />
+        <InputBox label="EPIC / Voter ID" placeholder="e.g. NUX4001234"         value={form.epic}     onChange={handleChange('epic')}     IconComp={Icon.ID}     mono />
+        <InputBox label="House / Flat No" placeholder="e.g. 7-1-42 or 2-14-1223" value={form.house}  onChange={handleChange('house')}    IconComp={Icon.House}  mono note="Narrows search — partial match supported" />
+        <InputBox label="Relative Name"   placeholder="Father / Husband name"   value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Fallback if name unmatched" />
       </div>
 
-      {/* Similar records — shown as soon as any result arrives */}
+      {/* Similar records panel — shown as soon as any result arrives */}
       {state === 'result' && (
         <SimilarRecordsPanel
           similar2025={result?.similar_2025 || []}
@@ -561,10 +703,18 @@ function LiveCheckPanel() {
                   </div>
                   {found ? (
                     <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-                      {[['Name',rec.name],['Relation',rec.relation],['House',rec.house],['Gender',rec.gender],['Age',rec.age],['EPIC',rec.voterid],...(year==='2025'?[['Ward',rec.ward],['Booth',rec.booth]]:[])].map(([lbl,val]) => val ? (
+                      {[
+                        ['Name',     rec.name],
+                        ['Relation', rec.relation],
+                        ['House',    rec.house],
+                        ['Gender',   rec.gender],
+                        ['Age',      rec.age],
+                        ['EPIC',     rec.voterid],
+                        ...(year === '2025' ? [['Ward', rec.ward], ['Booth', rec.booth]] : []),
+                      ].map(([lbl,val]) => val ? (
                         <div key={lbl} style={{ display:'flex', gap:8, alignItems:'baseline' }}>
                           <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)', minWidth:52, fontWeight:600 }}>{lbl}</span>
-                          <span style={{ fontSize:12, color:'#e2e8f0', fontFamily: lbl==='EPIC' ? 'ui-monospace,monospace' : 'inherit' }}>{val}</span>
+                          <span style={{ fontSize:12, color:'#e2e8f0', fontFamily: lbl === 'EPIC' ? 'ui-monospace,monospace' : 'inherit' }}>{val}</span>
                         </div>
                       ) : null)}
                     </div>
@@ -600,18 +750,31 @@ function LiveCheckPanel() {
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0', marginBottom:5, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                         {s.name || '—'}
-                        {i===0 && <span style={{ fontSize:10, background:'rgba(245,158,11,0.18)', color:'#f59e0b', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>Best match</span>}
+                        {i === 0 && <span style={{ fontSize:10, background:'rgba(245,158,11,0.18)', color:'#f59e0b', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>Best match</span>}
                       </div>
+                      {/* ── Fields row — now includes Booth ── */}
                       <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
-                        {[['House',s.house],['Relation',s.relation],['Gender',s.gender],['Age',s.age],['EPIC',s.voterid]].map(([lbl,val]) => val ? (
+                        {[
+                          ['House',    s.house],
+                          ['Relation', s.relation],
+                          ['Booth',    s.booth],
+                          ['Gender',   s.gender],
+                          ['Age',      s.age],
+                          ['EPIC',     s.voterid],
+                        ].map(([lbl, val]) => val ? (
                           <div key={lbl} style={{ fontSize:11 }}>
                             <span style={{ color:'rgba(255,255,255,0.3)', marginRight:4 }}>{lbl}</span>
-                            <span style={{ color:'#e2e8f0', fontFamily:lbl==='EPIC'?'ui-monospace,monospace':'inherit' }}>{val}</span>
+                            <span style={{
+                              color: lbl === 'Booth' ? '#f59e0b' : '#e2e8f0',
+                              fontWeight: lbl === 'Booth' ? 700 : 400,
+                              fontFamily: lbl === 'EPIC' ? 'ui-monospace,monospace' : 'inherit',
+                            }}>{val}</span>
                           </div>
                         ) : null)}
                       </div>
+                      {/* Match score bars */}
                       <div style={{ display:'flex', gap:8, marginTop:7, flexWrap:'wrap' }}>
-                        {Object.entries(s.field_scores||{}).map(([field,score]) => (
+                        {Object.entries(s.field_scores || {}).map(([field, score]) => (
                           <div key={field} style={{ display:'flex', alignItems:'center', gap:4 }}>
                             <span style={{ fontSize:9, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'0.5px' }}>{field.replace('Voter ','')}</span>
                             <div style={{ width:36, height:3, background:'rgba(255,255,255,0.07)', borderRadius:2, overflow:'hidden' }}>
@@ -622,9 +785,15 @@ function LiveCheckPanel() {
                         ))}
                       </div>
                     </div>
-                    <button onClick={() => setConfirmedRec({ name:s.name, relation:s.relation, house:s.house, gender:s.gender, age:s.age, voterid:s.voterid })} style={{ flexShrink:0, padding:'7px 13px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.35)', borderRadius:8, cursor:'pointer', color:'#10b981', fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:5, whiteSpace:'nowrap' }}>
-                      <Icon.Check /> Confirm
-                    </button>
+                    {/* Action buttons — Confirm + Info */}
+                    <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+                      <button
+                        onClick={() => setConfirmedRec({ name:s.name, relation:s.relation, house:s.house, gender:s.gender, age:s.age, voterid:s.voterid, booth:s.booth })}
+                        style={{ padding:'7px 13px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.35)', borderRadius:8, cursor:'pointer', color:'#10b981', fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:5, whiteSpace:'nowrap' }}
+                      >
+                        <Icon.Check /> Confirm
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -637,6 +806,7 @@ function LiveCheckPanel() {
               <span style={{ color:'#10b981', flexShrink:0 }}><Icon.Check /></span>
               <div style={{ flex:1, fontSize:12, color:'#10b981', fontWeight:600 }}>
                 2002 record confirmed: <span style={{ fontFamily:'ui-monospace,monospace', marginLeft:4 }}>{confirmedRec.name}</span>
+                {confirmedRec.booth && <span style={{ marginLeft:8, opacity:0.7 }}>· Booth {confirmedRec.booth}</span>}
               </div>
               <button onClick={() => setConfirmedRec(null)} style={{ background:'none', border:'1px solid rgba(16,185,129,0.25)', borderRadius:6, color:'#10b981', fontSize:11, padding:'3px 9px', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
                 <Icon.Undo /> Undo
@@ -752,10 +922,10 @@ function RecordCard({ rec }) {
             )}
           </div>
           <div style={{ fontSize:11, color:'var(--text-3)', marginTop:3, display:'flex', gap:12, flexWrap:'wrap' }}>
-            {rec.voterid    && <span style={{ display:'flex', alignItems:'center', gap:4 }}><Icon.ID />{rec.voterid}</span>}
-            {rec.house_no   && <span style={{ display:'flex', alignItems:'center', gap:4 }}><Icon.House />House {rec.house_no}</span>}
+            {rec.voterid     && <span style={{ display:'flex', alignItems:'center', gap:4 }}><Icon.ID />{rec.voterid}</span>}
+            {rec.house_no    && <span style={{ display:'flex', alignItems:'center', gap:4 }}><Icon.House />House {rec.house_no}</span>}
             {rec.ward_number && <span>Ward {rec.ward_number}</span>}
-            {rec.booth_no   && <span>Booth {rec.booth_no}</span>}
+            {rec.booth_no    && <span style={{ display:'flex', alignItems:'center', gap:4 }}><Icon.Booth />Booth {rec.booth_no}</span>}
           </div>
         </div>
         <span style={{ color:'var(--text-3)', transition:'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink:0 }}>
@@ -805,28 +975,17 @@ function RecordCard({ rec }) {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-// Ward/Booth filter bar for SIR
 function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   return (
     <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
       <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'6px 12px', flex:'1 1 140px', maxWidth:200 }}>
         <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.3)', flexShrink:0 }}>Ward</span>
-        <input
-          value={ward}
-          onChange={e => onWardChange(e.target.value)}
-          placeholder="e.g. 21"
-          style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'var(--text-1)', minWidth:0 }}
-        />
+        <input value={ward} onChange={e => onWardChange(e.target.value)} placeholder="e.g. 21" style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'var(--text-1)', minWidth:0 }} />
         {ward && <button onClick={() => onWardChange('')} style={{ background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',fontSize:12,padding:0,flexShrink:0 }}>✕</button>}
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'6px 12px', flex:'1 1 140px', maxWidth:200 }}>
         <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.3)', flexShrink:0 }}>Booth</span>
-        <input
-          value={booth}
-          onChange={e => onBoothChange(e.target.value)}
-          placeholder="e.g. 31"
-          style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'var(--text-1)', minWidth:0 }}
-        />
+        <input value={booth} onChange={e => onBoothChange(e.target.value)} placeholder="e.g. 31" style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'var(--text-1)', minWidth:0 }} />
         {booth && <button onClick={() => onBoothChange('')} style={{ background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',fontSize:12,padding:0,flexShrink:0 }}>✕</button>}
       </div>
       {(ward || booth) && (
@@ -838,7 +997,6 @@ function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   );
 }
 
-// Category info tooltip
 const CAT_INFO = {
   NEW:        { emoji:'➕', why:'Present in 2025 but absent from 2002 — new generation voter or migrant' },
   DELETED:    { emoji:'🗑', why:'Was in 2002 but removed from 2025 — death, migration out, or data cleanup' },
@@ -873,9 +1031,9 @@ export default function SIR() {
 
   useEffect(() => { fetchData(activeTab, page, filterWard, filterBooth); }, [activeTab, page, filterWard, filterBooth, fetchData]);
 
-  const handleTab = (tab) => { setActiveTab(tab); setPage(1); };
-  const handleWardFilter  = (v) => { setFilterWard(v);  setPage(1); };
-  const handleBoothFilter = (v) => { setFilterBooth(v); setPage(1); };
+  const handleTab         = (tab) => { setActiveTab(tab); setPage(1); };
+  const handleWardFilter  = (v)   => { setFilterWard(v);  setPage(1); };
+  const handleBoothFilter = (v)   => { setFilterBooth(v); setPage(1); };
 
   const runBulk = async () => {
     if (!window.confirm('Process ALL voters through SIR? This may take several minutes.')) return;
@@ -933,8 +1091,7 @@ export default function SIR() {
             const info   = CAT_INFO[cat] || {};
             const active = activeTab === cat;
             return (
-              <div key={cat} onClick={() => handleTab(cat)}
-                title={info.why}
+              <div key={cat} onClick={() => handleTab(cat)} title={info.why}
                 style={{ background: active ? m.bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? m.border : 'rgba(255,255,255,0.06)'}`, borderRadius:12, padding:'14px 16px', cursor:'pointer', transition:'all 0.18s', position:'relative' }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
                   <div style={{ color: m.color }}><m.Icon /></div>
