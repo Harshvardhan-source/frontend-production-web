@@ -283,69 +283,46 @@ const ChartTip = ({ active, payload, label }) => {
 
 // ─── NEW: Ward SIR Political Intelligence Panel ───────────────────────────────
 // ─── HMC Religion Breakdown Widget ───────────────────────────────────────────
-// Displays H (Hindu) / M (Muslim) / C (Christian) counts from 2025 voter roll
-// Works for constituency-level, ward-level, and booth-level views.
-function HMCWidget({ hmc, totalVoters, loading, label = 'Constituency' }) {
+function HMCWidget({ hmc, loading, label = 'Constituency' }) {
   if (loading) {
     return (
       <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
-        <div style={{ marginBottom:12 }}>
-          <Skeleton w="50%" h={12} />
-        </div>
+        <Skeleton w="50%" h={12} style={{ marginBottom:12 }} />
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
           {[0,1,2].map(i => <Skeleton key={i} h={72} radius={10} />)}
         </div>
       </div>
     );
   }
-
   if (!hmc) return null;
 
-  const H = hmc.H || 0;
-  const M = hmc.M || 0;
-  const C = hmc.C || 0;
+  const H = hmc.H || 0, M = hmc.M || 0, C = hmc.C || 0;
   const total = H + M + C || 1;
-
   const bars = [
     { key:'H', label:'Hindu',     count:H, color:'#f97316', bg:'rgba(249,115,22,0.1)',  border:'rgba(249,115,22,0.25)' },
-    { key:'M', label:'Muslim',    count:M, color:'#10b981', bg:'rgba(16,185,129,0.1)',   border:'rgba(16,185,129,0.25)' },
-    { key:'C', label:'Christian', count:C, color:'#8b5cf6', bg:'rgba(139,92,246,0.1)',   border:'rgba(139,92,246,0.25)' },
+    { key:'M', label:'Muslim',    count:M, color:'#10b981', bg:'rgba(16,185,129,0.1)',  border:'rgba(16,185,129,0.25)' },
+    { key:'C', label:'Christian', count:C, color:'#8b5cf6', bg:'rgba(139,92,246,0.1)',  border:'rgba(139,92,246,0.25)' },
   ];
 
   return (
-    <div style={{
-      background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))',
-      border:'1px solid rgba(255,255,255,0.07)',
-      borderRadius:14, padding:'16px 14px',
-      boxShadow:'inset 0 1px 0 rgba(255,255,255,0.05)',
-    }}>
-      {/* Header */}
+    <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
         <div>
-          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-1)', marginBottom:2 }}>
-            H · M · C Breakdown
-          </div>
-          <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>
-            {label} · 2025 Voter Roll
-          </div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-1)', marginBottom:2 }}>H · M · C Breakdown</div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{label} · 2025 Voter Roll</div>
         </div>
         <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.25)', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:6, padding:'3px 8px' }}>
           {total.toLocaleString()} total
         </div>
       </div>
-
-      {/* 3 cards */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:14 }}>
-        {bars.map(({ key, label: lbl, count, color, bg, border }) => {
-          const pct = ((count / total) * 100).toFixed(1);
+        {bars.map(({ key, label:lbl, count, color, bg, border }) => {
+          const pct = ((count/total)*100).toFixed(1);
           return (
             <div key={key} style={{ background:bg, border:`1px solid ${border}`, borderRadius:10, padding:'12px 10px', textAlign:'center' }}>
               <div style={{ fontSize:10, fontWeight:800, color, letterSpacing:'0.05em', marginBottom:4 }}>{key}</div>
-              <div style={{ fontSize:20, fontWeight:900, color, fontFamily:'var(--font-display)', letterSpacing:'-0.5px', lineHeight:1, marginBottom:4 }}>
-                {count.toLocaleString()}
-              </div>
+              <div style={{ fontSize:20, fontWeight:900, color, fontFamily:'var(--font-display)', letterSpacing:'-0.5px', lineHeight:1, marginBottom:4 }}>{count.toLocaleString()}</div>
               <div style={{ fontSize:9, color:'rgba(255,255,255,0.4)', fontWeight:600, marginBottom:6 }}>{lbl}</div>
-              {/* Progress bar */}
               <div style={{ height:3, background:'rgba(255,255,255,0.08)', borderRadius:2, overflow:'hidden' }}>
                 <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(90deg,${color}80,${color})`, borderRadius:2, transition:'width 0.6s ease' }} />
               </div>
@@ -354,23 +331,121 @@ function HMCWidget({ hmc, totalVoters, loading, label = 'Constituency' }) {
           );
         })}
       </div>
+      <div style={{ display:'flex', height:7, borderRadius:4, overflow:'hidden', gap:1 }}>
+        {bars.map(({ key, count, color }) => (
+          <div key={key} style={{ width:`${(count/total)*100}%`, background:color, minWidth:count>0?4:0, transition:'width 0.6s ease' }} />
+        ))}
+      </div>
+      <div style={{ display:'flex', gap:12, marginTop:8, justifyContent:'center', flexWrap:'wrap' }}>
+        {bars.map(({ key, label:lbl, count, color }) => (
+          <div key={key} style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'rgba(255,255,255,0.5)' }}>
+            <div style={{ width:8, height:8, borderRadius:2, background:color, flexShrink:0 }} />
+            <span style={{ fontWeight:700, color }}>{key}</span>
+            <span>{count.toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      {/* Combined visual bar */}
-      <div>
-        <div style={{ display:'flex', height:8, borderRadius:4, overflow:'hidden', gap:1 }}>
-          {bars.map(({ key, count, color }) => (
-            <div key={key} style={{ width:`${(count/total)*100}%`, background:color, minWidth: count > 0 ? 4 : 0, transition:'width 0.6s ease' }} />
-          ))}
+// ─── Polled / NotPolled HMC Widget ────────────────────────────────────────────
+// Shows 2023 election data: for each religion, how many Polled vs NotPolled
+function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
+  if (loading) {
+    return (
+      <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
+        <Skeleton w="55%" h={12} style={{ marginBottom:12 }} />
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {[0,1,2].map(i => <Skeleton key={i} h={52} radius={10} />)}
         </div>
-        <div style={{ display:'flex', gap:12, marginTop:8, justifyContent:'center', flexWrap:'wrap' }}>
-          {bars.map(({ key, label: lbl, count, color }) => (
-            <div key={key} style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'rgba(255,255,255,0.5)' }}>
-              <div style={{ width:8, height:8, borderRadius:2, background:color, flexShrink:0 }} />
-              <span style={{ fontWeight:700, color }}>{key}</span>
-              <span>{count.toLocaleString()}</span>
+      </div>
+    );
+  }
+  if (!polledHMC) return null;
+
+  const RELIGIONS = [
+    { key:'H', label:'Hindu',     color:'#f97316' },
+    { key:'M', label:'Muslim',    color:'#10b981' },
+    { key:'C', label:'Christian', color:'#8b5cf6' },
+  ];
+
+  const totals = polledHMC.total || { polled:0, notPolled:0, total:0 };
+  const grandTotal = totals.total || 1;
+  const overallPollPct = grandTotal > 0 ? ((totals.polled / grandTotal) * 100).toFixed(1) : '0.0';
+
+  return (
+    <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+        <div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-1)', marginBottom:2 }}>Polled vs Not Polled (HMC)</div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{label} · 2023 Election Data</div>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize:18, fontWeight:900, color:'#22d3ee', fontFamily:'var(--font-display)' }}>{overallPollPct}%</div>
+          <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:600 }}>Overall Turnout</div>
+        </div>
+      </div>
+
+      {/* Overall combined bar */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:'flex', height:8, borderRadius:4, overflow:'hidden', marginBottom:5 }}>
+          <div style={{ width:`${overallPollPct}%`, background:'linear-gradient(90deg,#22d3ee80,#22d3ee)', transition:'width 0.6s ease' }} />
+          <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,0.3)' }}>
+          <span style={{ color:'#22d3ee', fontWeight:700 }}>✓ Polled {totals.polled?.toLocaleString()}</span>
+          <span style={{ color:'#f87171', fontWeight:700 }}>✗ Not Polled {totals.notPolled?.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Per-religion rows */}
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {RELIGIONS.map(({ key, label:lbl, color }) => {
+          const d = polledHMC[key] || { polled:0, notPolled:0, total:0 };
+          const rowTotal = d.total || 1;
+          const polledPct = ((d.polled / rowTotal) * 100).toFixed(1);
+          const notPct    = ((d.notPolled / rowTotal) * 100).toFixed(1);
+
+          return (
+            <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px' }}>
+              {/* Row header */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                  <div style={{ width:20, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color }}>{key}</div>
+                  <span style={{ fontSize:12, fontWeight:700, color }}>{lbl}</span>
+                </div>
+                <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{d.total?.toLocaleString()} total</span>
+              </div>
+
+              {/* Polled / NotPolled split bar */}
+              <div style={{ display:'flex', height:6, borderRadius:3, overflow:'hidden', marginBottom:6 }}>
+                <div style={{ width:`${polledPct}%`, background:color, transition:'width 0.5s ease' }} />
+                <div style={{ flex:1, background:'rgba(239,68,68,0.25)' }} />
+              </div>
+
+              {/* Stats row */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:7, height:7, borderRadius:2, background:color, flexShrink:0 }} />
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:800, color, lineHeight:1 }}>{d.polled?.toLocaleString()}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Polled · {polledPct}%</div>
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:7, height:7, borderRadius:2, background:'#ef4444', flexShrink:0 }} />
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:800, color:'#f87171', lineHeight:1 }}>{d.notPolled?.toLocaleString()}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Not Polled · {notPct}%</div>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -2527,22 +2602,33 @@ export default function Dashboard() {
             <ConstituencySIRSummary />
           )}
 
-          {/* ── HMC Religion Breakdown (constituency / ward / booth) ──────── */}
+          {/* ── HMC Religion Breakdown + Polled/NotPolled (constituency / ward / booth) ── */}
           <div style={{ marginBottom: 20 }} className="anim-fade-up">
-            <HMCWidget
-              hmc={
-                selectedBooth ? s.boothHMC :
-                selectedWard  ? s.voterHMC || (s.totalHindu || s.totalMuslim || s.totalChristian ? { H: s.totalHindu || 0, M: s.totalMuslim || 0, C: s.totalChristian || 0 } : null) :
-                s.voterHMC
-              }
-              totalVoters={s.totalVoters}
-              loading={activeLoading}
-              label={
-                selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
-                selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
-                'All Wards (Constituency)'
-              }
-            />
+            {/* Two widgets side by side on wider screens, stacked on mobile */}
+            <div className="db-two-col">
+              <HMCWidget
+                hmc={
+                  selectedBooth ? s.boothHMC :
+                  selectedWard  ? s.voterHMC || (s.totalHindu || s.totalMuslim || s.totalChristian ? { H: s.totalHindu || 0, M: s.totalMuslim || 0, C: s.totalChristian || 0 } : null) :
+                  s.voterHMC
+                }
+                loading={activeLoading}
+                label={
+                  selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
+                  selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
+                  'All Wards (Constituency)'
+                }
+              />
+              <PolledHMCWidget
+                polledHMC={s.polledHMC}
+                loading={activeLoading}
+                label={
+                  selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
+                  selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
+                  'All Wards (Constituency)'
+                }
+              />
+            </div>
           </div>
 
           {/* ── NEW: Risk Wards Overview (only on overall view) ───────────── */}
