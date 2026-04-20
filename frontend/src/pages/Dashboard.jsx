@@ -2687,7 +2687,7 @@ export default function Dashboard() {
                 const vMale   = s.totalMale   ?? s.voterMale   ?? 0;
                 const vFemale = s.totalFemale ?? s.voterFemale ?? 0;
                 const vTrans  = s.totalTrans  ?? s.voterTrans  ?? 0;
-                const vTotal  = s.totalVoters ?? (vMale + vFemale + vTrans) || 0;
+                const vTotal  = (s.totalVoters ?? (vMale + vFemale + vTrans)) || 0;
                 const rMale   = s.regMale   ?? 0;
                 const rFemale = s.regFemale ?? 0;
                 const rTotal  = s.totalReg  ?? 0;
