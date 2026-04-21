@@ -1087,10 +1087,14 @@ function StaticDataTable({ dataset }) {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: pg, search: q });
-      const res  = await fetch(`${API}${dataset.endpoint.replace('/api/','')}?${params}`, { credentials:'include' });
+      // dataset.endpoint is '/api/sir-genuine/' — strip leading '/api' so it appends cleanly to API base
+      const path = dataset.endpoint.startsWith('/api')
+        ? dataset.endpoint.slice(4)   // '/sir-genuine/'
+        : dataset.endpoint;
+      const res  = await fetch(`${API}${path}?${params}`, { credentials:'include' });
       const json = await res.json();
       if (json.success) { setRecords(json.records); setTotal(json.total); }
-    } catch { /**/ }
+    } catch (err) { console.error('[SIR table]', err); }
     finally { setLoading(false); }
   }, [dataset.endpoint]);
 
@@ -1115,7 +1119,7 @@ function StaticDataTable({ dataset }) {
           <div style={{ fontSize:13, fontWeight:700, color }}>
             {dataset.label}
             <span style={{ marginLeft:10, fontSize:12, fontWeight:400, color:'rgba(255,255,255,0.4)' }}>
-              {total.toLocaleString()} records
+              {search ? `${total.toLocaleString()} match${total !== 1 ? 'es' : ''}` : `${total.toLocaleString()} records`}
             </span>
           </div>
           <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:2 }}>{dataset.sub}</div>
@@ -1227,18 +1231,20 @@ function StaticDataTable({ dataset }) {
 function StaticSIRSection() {
   const [counts,  setCounts]  = useState({ genuine:null, dead:null, bogus:null });
   const [loading, setLoading] = useState(true);
-  const [active,  setActive]  = useState(null);  // null | 'genuine' | 'dead' | 'bogus'
+  const [active,  setActive]  = useState('genuine');  // auto-open Genuine Voters on load
 
   // Fetch counts from all three endpoints in parallel
   React.useEffect(() => {
     setLoading(true);
     const keys = Object.keys(STATIC_DATASETS);
     Promise.all(
-      keys.map(k =>
-        fetch(`${API}${STATIC_DATASETS[k].endpoint.replace('/api/','')}?page=1`, { credentials:'include' })
+      keys.map(k => {
+        const ep   = STATIC_DATASETS[k].endpoint;
+        const path = ep.startsWith('/api') ? ep.slice(4) : ep;  // '/sir-genuine/'
+        return fetch(`${API}${path}?page=1`, { credentials:'include' })
           .then(r => r.json())
-          .catch(() => null)
-      )
+          .catch(() => null);
+      })
     ).then(results => {
       const c = {};
       results.forEach((r, i) => { c[keys[i]] = r?.count ?? null; });
