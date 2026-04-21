@@ -974,6 +974,315 @@ function RecordCard({ rec }) {
   );
 }
 
+
+// ─── Static SIR Dataset types ────────────────────────────────────────────────
+const STATIC_DATASETS = {
+  genuine: {
+    key:    'genuine',
+    label:  'Genuine Voters',
+    sub:    'Matched in both 2002 & 2025 rolls',
+    color:  '#10b981',
+    bg:     'rgba(16,185,129,0.08)',
+    border: 'rgba(16,185,129,0.25)',
+    endpoint: '/api/sir-genuine/',
+    icon: () => (
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 1.5L2 4v4.5c0 3 2.5 5.5 6 6 3.5-.5 6-3 6-6V4L8 1.5z"/>
+        <path d="M5.5 8.5l2 2 3-3.5"/>
+      </svg>
+    ),
+    columns: ['2025_Serial_No','2025_Epic_NO','2025_Name','2025_Age','2025_Gender',
+              '2025_Booth_No','2002_Name_English','2002_Age','Name_Match_%',
+              'House_Match_%','2025_House_No'],
+    colLabels: { '2025_Serial_No':'Serial','2025_Epic_NO':'EPIC','2025_Name':'Name (2025)',
+                 '2025_Age':'Age','2025_Gender':'Gender','2025_Booth_No':'Booth',
+                 '2002_Name_English':'Name (2002)','2002_Age':'Age 2002',
+                 'Name_Match_%':'Name %','House_Match_%':'House %','2025_House_No':'House No' },
+  },
+  dead: {
+    key:    'dead',
+    label:  'Presumed Dead in 2025',
+    sub:    '2002 voters aged 55+ now likely deceased',
+    color:  '#94a3b8',
+    bg:     'rgba(148,163,184,0.08)',
+    border: 'rgba(148,163,184,0.25)',
+    endpoint: '/api/sir-dead/',
+    icon: () => (
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="6" r="3.5"/>
+        <path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
+        <path d="M6 6h4M8 4v4"/>
+      </svg>
+    ),
+    columns: ['Serial No','Voter ID / EPIC No','Voter Name (English)','Age',
+              'Approx Age in 2026','Gender','Relationship','Relative Name (English)','House / Flat No'],
+    colLabels: { 'Serial No':'Serial','Voter ID / EPIC No':'EPIC',
+                 'Voter Name (English)':'Name','Age':'Age (2002)',
+                 'Approx Age in 2026':'~Age 2026','Gender':'Gender',
+                 'Relationship':'Rel.','Relative Name (English)':'Relative',
+                 'House / Flat No':'House No' },
+  },
+  bogus: {
+    key:    'bogus',
+    label:  'Suspected Bogus Voters',
+    sub:    'Eligible in 2002 but not found in 2025',
+    color:  '#f87171',
+    bg:     'rgba(239,68,68,0.08)',
+    border: 'rgba(239,68,68,0.25)',
+    endpoint: '/api/sir-bogus/',
+    icon: () => (
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 1.5L1 14.5h14L8 1.5z"/>
+        <path d="M8 6v4M8 11.5v.5"/>
+      </svg>
+    ),
+    columns: ['Serial No','Epic NO','Name','Age','Gender','Relation',
+              'Relation Name','House No','Booth No','Part No'],
+    colLabels: { 'Serial No':'Serial','Epic NO':'EPIC','Name':'Name','Age':'Age',
+                 'Gender':'Gender','Relation':'Rel.','Relation Name':'Relative',
+                 'House No':'House No','Booth No':'Booth','Part No':'Part' },
+  },
+};
+
+// ─── Stat card for one static dataset ────────────────────────────────────────
+function StaticDatasetCard({ dataset, count, loading, active, onClick }) {
+  const { label, sub, color, bg, border, icon: DsIcon } = dataset;
+  return (
+    <div onClick={onClick} style={{
+      background: active ? bg : 'rgba(255,255,255,0.025)',
+      border: `1px solid ${active ? border : 'rgba(255,255,255,0.07)'}`,
+      borderRadius:12, padding:'14px 16px', cursor:'pointer',
+      transition:'all 0.18s', position:'relative', overflow:'hidden',
+    }}>
+      {active && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:color, borderRadius:'12px 12px 0 0' }} />}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <div style={{ color, display:'flex', alignItems:'center', gap:5 }}>
+          <DsIcon />
+        </div>
+        {active && <span style={{ fontSize:9, fontWeight:700, color, background:`${color}18`, border:`1px solid ${color}30`, borderRadius:4, padding:'2px 6px', letterSpacing:'0.4px' }}>ACTIVE</span>}
+      </div>
+      {loading
+        ? <div style={{ height:26, background:'rgba(255,255,255,0.05)', borderRadius:6, animation:'pulse 1.4s infinite', marginBottom:6 }} />
+        : <div style={{ fontSize:22, fontWeight:800, color, fontFamily:'var(--font-display)', lineHeight:1, marginBottom:5 }}>
+            {count?.toLocaleString() ?? '—'}
+          </div>
+      }
+      <div style={{ fontSize:12, fontWeight:600, color: active ? color : 'var(--text-2)' }}>{label}</div>
+      <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', marginTop:3, lineHeight:1.4 }}>{sub}</div>
+    </div>
+  );
+}
+
+// ─── Data table for a static dataset ─────────────────────────────────────────
+function StaticDataTable({ dataset }) {
+  const [records,  setRecords]  = useState([]);
+  const [total,    setTotal]    = useState(0);
+  const [page,     setPage]     = useState(1);
+  const [search,   setSearch]   = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [expanded, setExpanded] = useState(null);
+  const debounceRef = React.useRef(null);
+
+  const load = React.useCallback(async (pg, q) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: pg, search: q });
+      const res  = await fetch(`${API}${dataset.endpoint.replace('/api/','')}?${params}`, { credentials:'include' });
+      const json = await res.json();
+      if (json.success) { setRecords(json.records); setTotal(json.total); }
+    } catch { /**/ }
+    finally { setLoading(false); }
+  }, [dataset.endpoint]);
+
+  React.useEffect(() => { load(1, ''); setPage(1); setSearch(''); }, [dataset.key]);
+  React.useEffect(() => { load(page, search); }, [page]);
+
+  const handleSearch = (v) => {
+    setSearch(v);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { setPage(1); load(1, v); }, 350);
+  };
+
+  const cols    = dataset.columns;
+  const colLbls = dataset.colLabels;
+  const { color, border, bg } = dataset;
+
+  return (
+    <div style={{ background:'rgba(10,16,32,0.6)', border:`1px solid ${border}`, borderRadius:14, overflow:'hidden', marginTop:16 }}>
+      {/* Table header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'14px 16px', borderBottom:`1px solid rgba(255,255,255,0.06)`, background:bg, flexWrap:'wrap' }}>
+        <div>
+          <div style={{ fontSize:13, fontWeight:700, color }}>
+            {dataset.label}
+            <span style={{ marginLeft:10, fontSize:12, fontWeight:400, color:'rgba(255,255,255,0.4)' }}>
+              {total.toLocaleString()} records
+            </span>
+          </div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:2 }}>{dataset.sub}</div>
+        </div>
+        {/* Search */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(0,0,0,0.3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'5px 10px', minWidth:200 }}>
+          <span style={{ color:'rgba(255,255,255,0.3)', fontSize:12 }}>⌕</span>
+          <input
+            value={search}
+            onChange={e => handleSearch(e.target.value)}
+            placeholder="Search name, EPIC, house…"
+            style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:12, color:'var(--text-1)', minWidth:0 }}
+          />
+          {search && <button onClick={() => handleSearch('')} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.3)', fontSize:11, padding:0 }}>✕</button>}
+        </div>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'30px 0', color:'var(--text-3)', fontSize:13 }}>
+          <span className="spinner" /> Loading…
+        </div>
+      ) : records.length === 0 ? (
+        <div style={{ padding:'36px 20px', textAlign:'center', color:'rgba(255,255,255,0.25)', fontSize:13 }}>
+          No records found{search ? ` for "${search}"` : ''}
+        </div>
+      ) : (
+        <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:600, fontSize:12 }}>
+            <thead>
+              <tr style={{ background:'rgba(0,0,0,0.25)' }}>
+                {cols.map(c => (
+                  <th key={c} style={{ padding:'8px 10px', textAlign:'left', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'0.6px', whiteSpace:'nowrap', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+                    {colLbls[c] || c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((rec, i) => {
+                const isOpen = expanded === i;
+                return (
+                  <React.Fragment key={i}>
+                    <tr
+                      onClick={() => setExpanded(isOpen ? null : i)}
+                      style={{ borderBottom:'1px solid rgba(255,255,255,0.04)', background: isOpen ? bg : i%2===0 ? 'rgba(255,255,255,0.015)' : 'transparent', cursor:'pointer', transition:'background 0.12s' }}
+                    >
+                      {cols.map(c => {
+                        const val = rec[c];
+                        // Highlight match percentage columns
+                        const isPct = c.includes('Match_%');
+                        const pct   = isPct ? parseFloat(val) : null;
+                        const pctColor = pct >= 90 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#f87171';
+                        return (
+                          <td key={c} style={{ padding:'9px 10px', color: isPct ? pctColor : 'var(--text-2)', whiteSpace:'nowrap', fontWeight: c.includes('Name') || c.includes('EPIC') || c.includes('Epic') ? 500 : 400 }}>
+                            {isPct ? `${val}%` : (val ?? '—')}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    {isOpen && (
+                      <tr style={{ borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+                        <td colSpan={cols.length} style={{ padding:'10px 14px', background:'rgba(0,0,0,0.2)' }}>
+                          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:8 }}>
+                            {Object.entries(rec).filter(([,v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => (
+                              <div key={k} style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                                <span style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'0.6px' }}>{k.replace(/_/g,' ')}</span>
+                                <span style={{ fontSize:11, color:'var(--text-1)', wordBreak:'break-word' }}>{String(v)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {total > 50 && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', borderTop:'1px solid rgba(255,255,255,0.06)', flexWrap:'wrap', gap:8 }}>
+          <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>
+            Showing {((page-1)*50)+1}–{Math.min(page*50,total)} of {total.toLocaleString()}
+          </span>
+          <div style={{ display:'flex', gap:6 }}>
+            <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1}
+              style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:7, padding:'5px 12px', cursor:page===1?'not-allowed':'pointer', color:'var(--text-2)', fontSize:12, opacity:page===1?0.4:1 }}>
+              ← Prev
+            </button>
+            <span style={{ padding:'5px 10px', fontSize:12, color:'var(--text-2)' }}>
+              {page} / {Math.ceil(total/50)}
+            </span>
+            <button onClick={() => setPage(p => p+1)} disabled={records.length < 50}
+              style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:7, padding:'5px 12px', cursor:records.length<50?'not-allowed':'pointer', color:'var(--text-2)', fontSize:12, opacity:records.length<50?0.4:1 }}>
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Full section combining cards + table ─────────────────────────────────────
+function StaticSIRSection() {
+  const [counts,  setCounts]  = useState({ genuine:null, dead:null, bogus:null });
+  const [loading, setLoading] = useState(true);
+  const [active,  setActive]  = useState(null);  // null | 'genuine' | 'dead' | 'bogus'
+
+  // Fetch counts from all three endpoints in parallel
+  React.useEffect(() => {
+    setLoading(true);
+    const keys = Object.keys(STATIC_DATASETS);
+    Promise.all(
+      keys.map(k =>
+        fetch(`${API}${STATIC_DATASETS[k].endpoint.replace('/api/','')}?page=1`, { credentials:'include' })
+          .then(r => r.json())
+          .catch(() => null)
+      )
+    ).then(results => {
+      const c = {};
+      results.forEach((r, i) => { c[keys[i]] = r?.count ?? null; });
+      setCounts(c);
+      setLoading(false);
+    });
+  }, []);
+
+  const handleCardClick = (key) => setActive(prev => prev === key ? null : key);
+
+  return (
+    <div style={{ marginTop:4 }}>
+      {/* Section divider */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, margin:'28px 0 16px' }}>
+        <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.06)' }} />
+        <span style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.2)', letterSpacing:'1.2px', textTransform:'uppercase', display:'flex', alignItems:'center', gap:6 }}>
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M7 1v12M1 7h12"/></svg>
+          Voter Intelligence Reports
+        </span>
+        <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.06)' }} />
+      </div>
+
+      {/* Three stat cards */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:12, marginBottom:4 }}>
+        {Object.values(STATIC_DATASETS).map(ds => (
+          <StaticDatasetCard
+            key={ds.key}
+            dataset={ds}
+            count={counts[ds.key]}
+            loading={loading}
+            active={active === ds.key}
+            onClick={() => handleCardClick(ds.key)}
+          />
+        ))}
+      </div>
+
+      {/* Data table — shown below the active card */}
+      {active && (
+        <StaticDataTable key={active} dataset={STATIC_DATASETS[active]} />
+      )}
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   return (
@@ -1070,6 +1379,9 @@ export default function SIR() {
 
         {/* Live check panel */}
         <LiveCheckPanel />
+
+        {/* ── Static SIR Intelligence Datasets ─────────────── */}
+        <StaticSIRSection />
 
         {/* Divider */}
         <div style={{ display:'flex', alignItems:'center', gap:12, margin:'28px 0 20px' }}>
