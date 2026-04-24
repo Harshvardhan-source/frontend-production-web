@@ -192,6 +192,9 @@ function SIRBadge({ category }) {
 }
 
 // ─── InputBox ─────────────────────────────────────────────────────────────────
+// Detect mobile/Android for conditional behaviour
+const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 function InputBox({ label, placeholder, value, onChange, IconComp, mono, note, autoFocus }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -202,7 +205,7 @@ function InputBox({ label, placeholder, value, onChange, IconComp, mono, note, a
         {note && <span style={{ marginLeft:4, fontSize:10, color:'rgba(255,255,255,0.2)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>{note}</span>}
       </label>
       <input
-        autoFocus={autoFocus}
+        autoFocus={isMobile ? false : autoFocus}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
@@ -212,17 +215,21 @@ function InputBox({ label, placeholder, value, onChange, IconComp, mono, note, a
           background: focused ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.25)',
           border: `1px solid ${focused ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.1)'}`,
           borderRadius: 9,
-          padding: '10px 13px',
-          fontSize: 13,
+          padding: '12px 13px',
+          fontSize: 16, /* 16px prevents iOS/Android zoom-on-focus */
           color: 'var(--text-1)',
           outline: 'none',
           transition: 'border-color 0.2s, background 0.2s',
           width: '100%',
           boxSizing: 'border-box',
           fontFamily: mono ? 'ui-monospace, monospace' : 'inherit',
+          WebkitAppearance: 'none',
+          appearance: 'none',
         }}
         spellCheck={false}
         autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
       />
     </div>
   );
@@ -289,6 +296,7 @@ function VoterInfoModal({ record, roll, onClose }) {
           border:`1px solid ${accentBdr}`,
           borderRadius:18, padding:'22px 24px',
           width:'100%', maxWidth:420,
+          maxHeight:'90dvh', overflowY:'auto',
           boxShadow:'0 28px 64px rgba(0,0,0,0.65)',
           animation:'fadeIn 0.2s ease',
         }}
@@ -485,7 +493,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
 
         {/* Scrollable body — max 460px, thin scrollbar */}
         {open && (
-          <div style={{ overflowY:'auto', maxHeight:460, scrollbarWidth:'thin', scrollbarColor:`${accentColor}50 transparent` }}>
+          <div className="sir-scroll" style={{ overflowY:'auto', maxHeight: isMobile ? 320 : 460, scrollbarWidth:'thin', scrollbarColor:`${accentColor}50 transparent` }}>
             {groups.map((group, gi) => (
               <div key={group.key}>
                 {/* Group label */}
@@ -550,7 +558,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                           {/* Info */}
                           <td style={{ padding:'7px 8px', textAlign:'center' }}>
                             <button onClick={() => setInfoRecord({ record: r, roll: year })} title="View full voter details"
-                              style={{ background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, color:accentColor, width:26, height:26, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'background 0.15s' }}
+                              style={{ background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, color:accentColor, width: isMobile ? 36 : 26, height: isMobile ? 36 : 26, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'background 0.15s', touchAction:'manipulation' }}
                               onMouseEnter={e => e.currentTarget.style.background = `${accentColor}25`}
                               onMouseLeave={e => e.currentTarget.style.background = `${accentColor}12`}
                             >
@@ -587,7 +595,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
             ))}
           </div>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(420px,1fr))', gap:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit,minmax(420px,1fr))', gap:10 }}>
           {rows25.length > 0 && <RollSection rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />}
           {rows02.length > 0 && <RollSection rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />}
         </div>
@@ -688,7 +696,7 @@ function LiveCheckPanel() {
   };
 
   return (
-    <div style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:16, padding:24, marginBottom:8 }}>
+    <div className="sir-live-panel" style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:16, padding: isMobile ? 16 : 24, marginBottom:8 }}>
 
       {/* Header */}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:20, flexWrap:'wrap' }}>
@@ -712,7 +720,7 @@ function LiveCheckPanel() {
       </div>
 
       {/* Input grid */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:14 }}>
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap:14 }}>
         <InputBox label="Voter Name"      placeholder="Enter full name…"         value={form.name}     onChange={handleChange('name')}     IconComp={Icon.User}   autoFocus />
         <InputBox label="EPIC / Voter ID" placeholder="e.g. NUX4001234"         value={form.epic}     onChange={handleChange('epic')}     IconComp={Icon.ID}     mono />
         <InputBox label="House / Flat No" placeholder="e.g. 7-1-42 or 2-14-1223" value={form.house}  onChange={handleChange('house')}    IconComp={Icon.House}  mono note="Narrows search — partial match supported" />
@@ -771,7 +779,7 @@ function LiveCheckPanel() {
 
           {/* 2002 vs 2025 record comparison */}
           {(found_2002 || result.in_2025) && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:10 }}>
               {[
                 { year:'2002', found: found_2002, rec: rec02 },
                 { year:'2025', found: result.in_2025, rec: rec25 },
@@ -989,7 +997,7 @@ function RecordCard({ rec }) {
 
   return (
     <div style={{ background:'rgba(17,28,52,0.65)', border:`1px solid ${m.border}`, borderRadius:12, marginBottom:8, overflow:'hidden', transition:'border-color 0.2s' }}>
-      <div onClick={() => setOpen(p => !p)} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', cursor:'pointer' }}>
+      <div onClick={() => setOpen(p => !p)} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', cursor:'pointer', touchAction:'manipulation', WebkitTapHighlightColor:'transparent' }}>
         <div style={{ width:34, height:34, borderRadius:8, flexShrink:0, background:m.bg, border:`1px solid ${m.border}`, display:'flex', alignItems:'center', justifyContent:'center', color:m.color }}>
           <m.Icon />
         </div>
@@ -1018,7 +1026,7 @@ function RecordCard({ rec }) {
       {open && (
         <div style={{ padding:'12px 16px', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ fontSize:12, color:'var(--text-2)', marginBottom:10 }}>{rec.details}</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:10 }}>
+          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:8, marginBottom:10 }}>
             {[
               { year:'2002', found:rec.found_2002, name:rec.name_2002, age:rec.age_2002, house:rec.house_2002 },
               { year:'2025', found:rec.found_2025, name:rec.name_2025, age:rec.age_2025, house:rec.house_2025 },
@@ -1059,16 +1067,16 @@ function RecordCard({ rec }) {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   return (
-    <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'6px 12px', flex:'1 1 140px', maxWidth:200 }}>
+      <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'8px 12px', flex:'1 1 140px', maxWidth: isMobile ? '100%' : 200 }}>
         <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.3)', flexShrink:0 }}>Ward</span>
-        <input value={ward} onChange={e => onWardChange(e.target.value)} placeholder="e.g. 21" style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'var(--text-1)', minWidth:0 }} />
-        {ward && <button onClick={() => onWardChange('')} style={{ background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',fontSize:12,padding:0,flexShrink:0 }}>✕</button>}
+        <input value={ward} onChange={e => onWardChange(e.target.value)} placeholder="e.g. 21" style={{ flex:1, background:'none', border:'none', outline:'none', fontSize: isMobile ? 16 : 13, color:'var(--text-1)', minWidth:0, WebkitAppearance:'none' }} autoCorrect="off" autoCapitalize="off" />
+        {ward && <button onClick={() => onWardChange('')} style={{ background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',fontSize:16,padding:'4px',flexShrink:0,touchAction:'manipulation' }}>✕</button>}
       </div>
-      <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'6px 12px', flex:'1 1 140px', maxWidth:200 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'8px 12px', flex:'1 1 140px', maxWidth: isMobile ? '100%' : 200 }}>
         <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.3)', flexShrink:0 }}>Booth</span>
-        <input value={booth} onChange={e => onBoothChange(e.target.value)} placeholder="e.g. 31" style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'var(--text-1)', minWidth:0 }} />
-        {booth && <button onClick={() => onBoothChange('')} style={{ background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',fontSize:12,padding:0,flexShrink:0 }}>✕</button>}
+        <input value={booth} onChange={e => onBoothChange(e.target.value)} placeholder="e.g. 31" style={{ flex:1, background:'none', border:'none', outline:'none', fontSize: isMobile ? 16 : 13, color:'var(--text-1)', minWidth:0, WebkitAppearance:'none' }} autoCorrect="off" autoCapitalize="off" />
+        {booth && <button onClick={() => onBoothChange('')} style={{ background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',fontSize:16,padding:'4px',flexShrink:0,touchAction:'manipulation' }}>✕</button>}
       </div>
       {(ward || booth) && (
         <span style={{ fontSize:11, color:'#22d3ee', background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:20, padding:'4px 10px', fontWeight:600 }}>
@@ -1167,14 +1175,14 @@ export default function SIR() {
         />
 
         {/* Summary stat cards */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10, marginBottom:20 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(130px,100%),1fr))', gap:10, marginBottom:20 }}>
           {['NEW','DELETED','MODIFIED','SUSPICIOUS','RETAINED','NOT_FOUND'].map(cat => {
             const m      = CAT_META[cat];
             const info   = CAT_INFO[cat] || {};
             const active = activeTab === cat;
             return (
               <div key={cat} onClick={() => handleTab(cat)} title={info.why}
-                style={{ background: active ? m.bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? m.border : 'rgba(255,255,255,0.06)'}`, borderRadius:12, padding:'14px 16px', cursor:'pointer', transition:'all 0.18s', position:'relative' }}>
+                style={{ background: active ? m.bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? m.border : 'rgba(255,255,255,0.06)'}`, borderRadius:12, padding:'14px 16px', cursor:'pointer', transition:'all 0.18s', position:'relative', touchAction:'manipulation', WebkitTapHighlightColor:'transparent' }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
                   <div style={{ color: m.color }}><m.Icon /></div>
                   {info.emoji && <span style={{ fontSize:14, opacity:0.7 }}>{info.emoji}</span>}
@@ -1200,8 +1208,8 @@ export default function SIR() {
         </div>
 
         {/* Bulk run */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20, flexWrap:'wrap' }}>
-          <button onClick={runBulk} disabled={bulkRunning} style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.35)', borderRadius:10, padding:'10px 18px', cursor:'pointer', color:'#a5b4fc', fontWeight:600, fontSize:13, transition:'all 0.2s' }}>
+        <div style={{ display:'flex', alignItems: isMobile ? 'flex-start' : 'center', gap:12, marginBottom:20, flexWrap:'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
+          <button onClick={runBulk} disabled={bulkRunning} style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.35)', borderRadius:10, padding:'10px 18px', cursor:'pointer', color:'#a5b4fc', fontWeight:600, fontSize:13, transition:'all 0.2s', touchAction:'manipulation', WebkitTapHighlightColor:'transparent', minHeight:44 }}>
             {bulkRunning
               ? <><span className="spinner" /> Running SIR…</>
               : <><Icon.Lightning /> Run Bulk SIR</>
@@ -1224,7 +1232,7 @@ export default function SIR() {
             const m      = CAT_META[tab];
             const active = activeTab === tab;
             return (
-              <button key={tab} onClick={() => handleTab(tab)} style={{ display:'flex', alignItems:'center', gap:6, background: active ? m.bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? m.border : 'rgba(255,255,255,0.06)'}`, borderRadius:8, padding:'6px 13px', cursor:'pointer', color: active ? m.color : 'var(--text-2)', fontWeight: active ? 700 : 400, fontSize:12, transition:'all 0.15s' }}>
+              <button key={tab} onClick={() => handleTab(tab)} style={{ display:'flex', alignItems:'center', gap:6, background: active ? m.bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? m.border : 'rgba(255,255,255,0.06)'}`, borderRadius:8, padding:'8px 13px', cursor:'pointer', color: active ? m.color : 'var(--text-2)', fontWeight: active ? 700 : 400, fontSize:12, transition:'all 0.15s', touchAction:'manipulation', WebkitTapHighlightColor:'transparent', minHeight:40 }}>
                 <m.Icon />
                 {m.label}
                 {tab !== 'ALL' && s[tab] !== undefined && (
@@ -1244,7 +1252,7 @@ export default function SIR() {
               </span>
               <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)' }}>tap to expand</span>
             </summary>
-            <div style={{ padding:'0 16px 16px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:8 }}>
+            <div style={{ padding:'0 16px 16px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(240px,100%),1fr))', gap:8 }}>
               {Object.entries(CAT_INFO).map(([cat, info]) => {
                 const m = CAT_META[cat];
                 return (
@@ -1304,6 +1312,17 @@ export default function SIR() {
         @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
         @keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
         @keyframes shimmer { 0% { background-position:-400px 0; } 100% { background-position:400px 0; } }
+        *, *::before, *::after { box-sizing: border-box; }
+        input, button, select, textarea { -webkit-tap-highlight-color: transparent; }
+        .sir-scroll { -webkit-overflow-scrolling: touch; overflow-scrolling: touch; }
+        @media (max-width: 480px) {
+          .sir-live-panel { padding: 16px !important; }
+          .sir-header-wrap { flex-direction: column !important; align-items: flex-start !important; }
+          .sir-status-line { margin-top: 8px; }
+          .sir-filter-bar { flex-direction: column !important; }
+          .sir-filter-input { max-width: 100% !important; }
+          .sir-bulk-wrap { flex-direction: column !important; align-items: flex-start !important; }
+        }
       `}</style>
     </div>
   );
