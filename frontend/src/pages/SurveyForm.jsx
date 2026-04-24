@@ -6,6 +6,30 @@ import api from '../api/client';
 import DeceasedRow from '../components/DeceasedRow';
 import { useAuth } from '../App';
 
+// ─── Aadhaar photo upload helper ──────────────────────────────────────────────
+// Compresses an image File to ≤ 800px wide / ≤ 300 KB JPEG before upload.
+function compressAadhaarPhoto(file, maxPx = 800, quality = 0.75) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })),
+          'image/jpeg', quality
+        );
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const RELIGIONS   = ['Hindu','Muslim','Christian','Jain','Buddhist','Sikh'];
 const COMMUNITIES = { Hindu:['General','OBC','SC','ST'], Muslim:['General','OBC'], Christian:['General','OBC','SC','ST'], Jain:['General'], Buddhist:['SC','ST','General'], Sikh:['General','OBC'] };
 const SUBCATS     = {
@@ -279,6 +303,13 @@ export default function SurveyForm() {
   const [deceased,      setDeceased]      = useState([]);
   const [showDeceased,  setShowDeceased]  = useState(false);
 
+  // ── Aadhaar photo ───────────────────────────────────────────────────────────
+  const [aadhaarPhoto,    setAadhaarPhoto]    = useState(null);   // File object
+  const [aadhaarPreview,  setAadhaarPreview]  = useState(null);   // data-URL for preview
+  const [aadhaarUploading, setAadhaarUploading] = useState(false);
+  const aadhaarFileRef   = useRef(null);
+  const aadhaarCameraRef = useRef(null);
+
   // ── SIR — manual check + auto-populated from save response ─────────
   const [sirResult,    setSirResult]   = useState(null);   // SIR data from last save / manual check
   const [showSir,      setShowSir]     = useState(false);  // panel visible?
@@ -323,6 +354,26 @@ export default function SurveyForm() {
   );
 
   const flash = (msg) => { setFlashMsg(msg); setTimeout(() => setFlashMsg(''), 2500); };
+
+  // ── Aadhaar photo handler ──────────────────────────────────────────────────
+  const handleAadhaarPhoto = async (file) => {
+    if (!file) return;
+    setAadhaarUploading(true);
+    try {
+      const compressed = await compressAadhaarPhoto(file);
+      setAadhaarPhoto(compressed);
+      const reader = new FileReader();
+      reader.onload = (e) => setAadhaarPreview(e.target.result);
+      reader.readAsDataURL(compressed);
+    } finally {
+      setAadhaarUploading(false);
+    }
+  };
+  const clearAadhaarPhoto = () => {
+    setAadhaarPhoto(null); setAadhaarPreview(null);
+    if (aadhaarFileRef.current)   aadhaarFileRef.current.value   = '';
+    if (aadhaarCameraRef.current) aadhaarCameraRef.current.value = '';
+  };
 
   const currentHouse   = lockedRef.current.houseNumber || form.houseNumber;
   const currentAddr    = lockedRef.current.address     || form.address;
@@ -383,7 +434,18 @@ export default function SurveyForm() {
   const handleSubmit = async (mode) => {
     setBusy(true); setSaveMode(mode); setError('');
     try {
-      const { data } = await surveyApi.save(form);
+      // If an Aadhaar photo is attached, send everything as multipart FormData.
+      // Otherwise keep the original JSON path (no change to existing behaviour).
+      let surveyRes;
+      if (aadhaarPhoto) {
+        const fd = new FormData();
+        fd.append('data', JSON.stringify(form));
+        fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
+        surveyRes = await api.post('/api/save-survey/', fd);
+      } else {
+        surveyRes = await surveyApi.save(form);
+      }
+      const { data } = surveyRes;
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
 
       // ── Update voter-roll status from backend response ─────────────────
@@ -463,6 +525,7 @@ export default function SurveyForm() {
       setDeceased([]);
       setShowDeceased(false);
       setForm(blankForm(nextSerial, lockedRef.current.wardNumber, lockedRef.current));
+      clearAadhaarPhoto();
       flash(`Member ${savedMembers.length + 1} saved — enter next person ✓`);
 
     } catch (e) {
@@ -760,6 +823,61 @@ export default function SurveyForm() {
                 {form.addharNumber && form.addharNumber.length !== 12 && (
                   <div style={{ fontSize:11, color:'#f87171', marginTop:4 }}>
                     ⚠ Aadhar must be exactly 12 digits ({form.addharNumber.length}/12)
+                  </div>
+                )}
+              </Field>
+
+              {/* ── Aadhaar Photo — upload from gallery or capture with camera ── */}
+              <Field label="Aadhaar Card Photo (optional)" full>
+                {/* Hidden inputs */}
+                <input ref={aadhaarFileRef}   type="file" accept="image/*"           style={{ display:'none' }} onChange={e => handleAadhaarPhoto(e.target.files[0])} />
+                <input ref={aadhaarCameraRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={e => handleAadhaarPhoto(e.target.files[0])} />
+
+                {/* Button row */}
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom: aadhaarPreview ? 10 : 0 }}>
+                  <button type="button"
+                    onClick={() => aadhaarCameraRef.current?.click()}
+                    disabled={aadhaarUploading}
+                    style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.3)', borderRadius:8, padding:'8px 14px', color:'#22d3ee', fontSize:13, fontWeight:600, cursor:'pointer', flex:1, justifyContent:'center', minWidth:130 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                    </svg>
+                    Capture Photo
+                  </button>
+                  <button type="button"
+                    onClick={() => aadhaarFileRef.current?.click()}
+                    disabled={aadhaarUploading}
+                    style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(168,139,250,0.08)', border:'1px solid rgba(168,139,250,0.3)', borderRadius:8, padding:'8px 14px', color:'#a78bfa', fontSize:13, fontWeight:600, cursor:'pointer', flex:1, justifyContent:'center', minWidth:130 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Upload from Gallery
+                  </button>
+                  {aadhaarPhoto && (
+                    <button type="button" onClick={clearAadhaarPhoto}
+                      style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.28)', borderRadius:8, padding:'8px 12px', color:'#f87171', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {/* Processing indicator */}
+                {aadhaarUploading && (
+                  <div style={{ fontSize:12, color:'#22d3ee', display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
+                    <span style={{ display:'inline-block', width:10, height:10, border:'2px solid #22d3ee', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                    Compressing image…
+                  </div>
+                )}
+
+                {/* Preview */}
+                {aadhaarPreview && (
+                  <div style={{ marginTop:6, position:'relative', display:'inline-block', maxWidth:'100%' }}>
+                    <img src={aadhaarPreview} alt="Aadhaar preview"
+                      style={{ maxWidth:'100%', maxHeight:180, borderRadius:8, border:'1px solid rgba(34,211,238,0.25)', objectFit:'contain', display:'block' }} />
+                    <div style={{ marginTop:4, fontSize:11, color:'rgba(255,255,255,0.35)' }}>
+                      ✓ {aadhaarPhoto?.name} · {(aadhaarPhoto?.size / 1024).toFixed(0)} KB
+                    </div>
                   </div>
                 )}
               </Field>
