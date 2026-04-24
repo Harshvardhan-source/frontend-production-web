@@ -366,152 +366,209 @@ function VoterInfoModal({ record, roll, onClose }) {
 
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
 function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002 }) {
-  const [infoRecord, setInfoRecord] = useState(null); // { record, roll }
+  const [infoRecord, setInfoRecord] = useState(null);
 
-  // Merge: confirmed matched record goes first, then other suggestions
+  // Build merged rows for each roll
   const rows25 = [];
-  if (in2025 && record2025?.name) {
-    rows25.push({ ...record2025, _matched: true });
-  }
+  if (in2025 && record2025?.name) rows25.push({ ...record2025, _matched: true, matched_by: ['confirmed'] });
   (similar2025 || []).forEach(r => {
     if (!rows25.find(x => x.voterid && x.voterid === r.voterid)) rows25.push(r);
   });
 
   const rows02 = [];
-  if (in2002 && record2002?.name) {
-    rows02.push({ ...record2002, _matched: true });
-  }
+  if (in2002 && record2002?.name) rows02.push({ ...record2002, _matched: true, matched_by: ['confirmed'] });
   (similar2002 || []).forEach(r => {
     if (!rows02.find(x => x.voterid && x.voterid === r.voterid)) rows02.push(r);
   });
 
   if (!rows25.length && !rows02.length) return null;
 
+  // ── Field metadata ───────────────────────────────────────────────────────────
+  const FIELD_META = {
+    voterid:   { label: 'Voter ID',     color: '#10b981' },
+    name:      { label: 'Voter Name',   color: '#22d3ee' },
+    house:     { label: 'House No',     color: '#a78bfa' },
+    relation:  { label: 'Relation',     color: '#f59e0b' },
+    confirmed: { label: '✓ Confirmed',  color: '#10b981' },
+  };
+
+  // ── Group rows by number of matched fields (descending) ──────────────────────
+  const groupRows = (rows) => {
+    const bucket = {};
+    rows.forEach(r => {
+      const mb = r.matched_by || [];
+      let key, label, priority, color;
+
+      if (r._matched) {
+        key = 'confirmed'; label = 'Confirmed Match'; priority = 0; color = '#10b981';
+      } else if (mb.length >= 4) {
+        key = 'all4'; label = 'All 4 fields matched'; priority = 1; color = '#10b981';
+      } else if (mb.length === 3) {
+        const sorted = [...mb].sort();
+        key = 'f3_' + sorted.join('+');
+        label = sorted.map(f => FIELD_META[f]?.label || f).join(' + ') + ' matched';
+        priority = 2; color = '#22d3ee';
+      } else if (mb.length === 2) {
+        const sorted = [...mb].sort();
+        key = 'f2_' + sorted.join('+');
+        label = sorted.map(f => FIELD_META[f]?.label || f).join(' + ') + ' matched';
+        priority = 3; color = '#6366f1';
+      } else if (mb.length === 1) {
+        key = 'f1_' + mb[0];
+        label = (FIELD_META[mb[0]]?.label || mb[0]) + ' matched';
+        priority = 4; color = FIELD_META[mb[0]]?.color || '#94a3b8';
+      } else {
+        key = 'other'; label = 'Other records'; priority = 5; color = '#475569';
+      }
+
+      if (!bucket[key]) bucket[key] = { key, label, priority, color, rows: [] };
+      bucket[key].rows.push(r);
+    });
+    return Object.values(bucket).sort((a, b) => a.priority - b.priority);
+  };
+
+  // ── Shared sub-components ────────────────────────────────────────────────────
   const ColHeader = ({ children }) => (
-    <th style={{
-      padding:'6px 10px', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)',
-      textAlign:'left', textTransform:'uppercase', letterSpacing:'0.6px',
-      borderBottom:'1px solid rgba(255,255,255,0.06)', whiteSpace:'nowrap',
-    }}>
+    <th style={{ padding:'6px 10px', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', textAlign:'left', textTransform:'uppercase', letterSpacing:'0.6px', borderBottom:'1px solid rgba(255,255,255,0.06)', whiteSpace:'nowrap' }}>
       {children}
     </th>
   );
 
-  const RollTable = ({ rows, year, accentColor, borderColor }) => (
-    <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden' }}>
-      {/* Roll header */}
-      <div style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom:'1px solid rgba(255,255,255,0.05)', background:'rgba(0,0,0,0.15)' }}>
-        <span style={{ fontSize:10, fontWeight:800, color:accentColor, letterSpacing:'0.8px', textTransform:'uppercase' }}>{year} Roll</span>
-        <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', borderRadius:8, padding:'1px 7px', fontWeight:600 }}>
-          {rows.length} record{rows.length !== 1 ? 's' : ''}
-        </span>
+  const MatchTag = ({ field }) => {
+    const m = FIELD_META[field] || { label: field, color: '#94a3b8' };
+    return (
+      <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:4, background:`${m.color}18`, color:m.color, border:`1px solid ${m.color}30`, whiteSpace:'nowrap', display:'inline-block' }}>
+        {m.label}
+      </span>
+    );
+  };
+
+  // ── Per-roll section (2025 or 2002) with group headers ────────────────────────
+  const RollSection = ({ rows, year, accentColor, borderColor }) => {
+    const groups = groupRows(rows);
+    const total  = rows.length;
+    const [open, setOpen] = useState(true);
+
+    return (
+      <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden' }}>
+        {/* Roll header */}
+        <div onClick={() => setOpen(o => !o)}
+          style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none', background:'rgba(0,0,0,0.15)', cursor:'pointer', userSelect:'none' }}>
+          <span style={{ fontSize:10, fontWeight:800, color:accentColor, letterSpacing:'0.8px', textTransform:'uppercase' }}>{year} Roll</span>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', borderRadius:8, padding:'1px 7px', fontWeight:600 }}>
+            {total} record{total !== 1 ? 's' : ''}
+          </span>
+          {/* group count chips */}
+          {open && groups.map(g => (
+            <span key={g.key} style={{ fontSize:9, fontWeight:700, color:g.color, background:`${g.color}14`, border:`1px solid ${g.color}28`, borderRadius:6, padding:'1px 6px', display:'inline-flex', alignItems:'center', gap:3 }}>
+              <span style={{ width:5, height:5, borderRadius:'50%', background:g.color, flexShrink:0 }} />
+              {g.rows.length}
+            </span>
+          ))}
+          <span style={{ marginLeft:'auto', color:'rgba(255,255,255,0.2)', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition:'transform 0.2s', display:'inline-flex' }}>
+            <Icon.ChevronDown />
+          </span>
+        </div>
+
+        {open && groups.map((group, gi) => (
+          <div key={group.key}>
+            {/* Group label row */}
+            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px 4px', background:'rgba(0,0,0,0.10)', borderTop: gi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+              <span style={{ width:6, height:6, borderRadius:'50%', background:group.color, flexShrink:0 }} />
+              <span style={{ fontSize:10, fontWeight:700, color:group.color, letterSpacing:'0.3px' }}>{group.label}</span>
+              <span style={{ fontSize:10, color:'rgba(255,255,255,0.15)' }}>({group.rows.length})</span>
+            </div>
+            {/* Scrollable table */}
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', minWidth:420 }}>
+                <thead>
+                  <tr>
+                    <ColHeader>House No</ColHeader>
+                    <ColHeader>Name</ColHeader>
+                    <ColHeader>Relation</ColHeader>
+                    <ColHeader>Matched</ColHeader>
+                    <ColHeader>Booth</ColHeader>
+                    <ColHeader>EPIC</ColHeader>
+                    <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:36 }} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.rows.map((r, i) => (
+                    <tr key={i} style={{ background: r._matched ? `${accentColor}12` : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                      {/* House */}
+                      <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : '#94a3b8', fontWeight: r._matched ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                        {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
+                        {r.house || '—'}
+                      </td>
+                      {/* Name */}
+                      <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : '#cbd5e1', fontWeight: r._matched ? 600 : 400, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {r.name || '—'}
+                      </td>
+                      {/* Relation */}
+                      <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.45)', maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {r.relation || '—'}
+                      </td>
+                      {/* Matched-by tags */}
+                      <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
+                        <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
+                          {(r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
+                        </div>
+                      </td>
+                      {/* Booth */}
+                      <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
+                        {r.booth ? (
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:4, color:accentColor, fontWeight:700, background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, padding:'2px 7px' }}>
+                            <Icon.Booth />{r.booth}
+                          </span>
+                        ) : <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>}
+                      </td>
+                      {/* EPIC */}
+                      <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.3)', fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                        {r.voterid || '—'}
+                      </td>
+                      {/* Info */}
+                      <td style={{ padding:'7px 8px', textAlign:'center' }}>
+                        <button onClick={() => setInfoRecord({ record: r, roll: year })} title="View full voter details"
+                          style={{ background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, color:accentColor, width:26, height:26, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'background 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = `${accentColor}25`}
+                          onMouseLeave={e => e.currentTarget.style.background = `${accentColor}12`}
+                        >
+                          <Icon.Info />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
       </div>
-      <div style={{ overflowX:'auto' }}>
-        <table style={{ width:'100%', borderCollapse:'collapse', minWidth:380 }}>
-          <thead>
-            <tr>
-              <ColHeader>House No</ColHeader>
-              <ColHeader>Name</ColHeader>
-              <ColHeader>Relation</ColHeader>
-              {/* ── NEW: Booth column ── */}
-              <ColHeader>Booth</ColHeader>
-              <ColHeader>EPIC</ColHeader>
-              {/* ── NEW: Info column ── */}
-              <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:36 }} />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr
-                key={i}
-                style={{
-                  background: r._matched
-                    ? `${accentColor}12`
-                    : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
-                  borderBottom:'1px solid rgba(255,255,255,0.03)',
-                }}
-              >
-                {/* House */}
-                <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : '#94a3b8', fontWeight: r._matched ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
-                  {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
-                  {r.house || '—'}
-                </td>
-                {/* Name */}
-                <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : '#cbd5e1', fontWeight: r._matched ? 600 : 400, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                  {r.name || '—'}
-                </td>
-                {/* Relation */}
-                <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.45)', maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                  {r.relation || '—'}
-                </td>
-                {/* ── NEW: Booth cell ── */}
-                <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
-                  {r.booth ? (
-                    <span style={{ display:'inline-flex', alignItems:'center', gap:4, color:accentColor, fontWeight:700, background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, padding:'2px 7px' }}>
-                      <Icon.Booth />
-                      {r.booth}
-                    </span>
-                  ) : (
-                    <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>
-                  )}
-                </td>
-                {/* EPIC */}
-                <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.3)', fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
-                  {r.voterid || '—'}
-                </td>
-                {/* ── NEW: Info button ── */}
-                <td style={{ padding:'7px 8px', textAlign:'center' }}>
-                  <button
-                    onClick={() => setInfoRecord({ record: r, roll: year })}
-                    title="View full voter details"
-                    style={{
-                      background:`${accentColor}12`, border:`1px solid ${accentColor}28`,
-                      borderRadius:6, color:accentColor,
-                      width:26, height:26, cursor:'pointer',
-                      display:'inline-flex', alignItems:'center', justifyContent:'center',
-                      transition:'background 0.15s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = `${accentColor}25`}
-                    onMouseLeave={e => e.currentTarget.style.background = `${accentColor}12`}
-                  >
-                    <Icon.Info />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
       <div style={{ marginTop:14, animation:'fadeIn 0.25s ease' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, flexWrap:'wrap' }}>
           <span style={{ color:'rgba(255,255,255,0.2)' }}><Icon.Family /></span>
           <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.6px' }}>
             Similar Records Found
           </span>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,0.15)' }}>grouped by matching fields</span>
+          {/* Legend */}
+          <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap' }}>
+            {[['voterid','Voter ID'],['name','Voter Name'],['house','House No'],['relation','Relation']].map(([f, lbl]) => (
+              <span key={f} style={{ fontSize:9, color:FIELD_META[f].color, background:`${FIELD_META[f].color}14`, border:`1px solid ${FIELD_META[f].color}28`, borderRadius:4, padding:'1px 6px', fontWeight:700 }}>{lbl}</span>
+            ))}
+          </div>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(380px,1fr))', gap:10 }}>
-          {rows25.length > 0 && (
-            <RollTable rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />
-          )}
-          {rows02.length > 0 && (
-            <RollTable rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />
-          )}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(420px,1fr))', gap:10 }}>
+          {rows25.length > 0 && <RollSection rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />}
+          {rows02.length > 0 && <RollSection rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />}
         </div>
       </div>
-
-      {/* Voter info modal — rendered via portal-style at top level */}
-      {infoRecord && (
-        <VoterInfoModal
-          record={infoRecord.record}
-          roll={infoRecord.roll}
-          onClose={() => setInfoRecord(null)}
-        />
-      )}
+      {infoRecord && <VoterInfoModal record={infoRecord.record} roll={infoRecord.roll} onClose={() => setInfoRecord(null)} />}
     </>
   );
 }
@@ -1226,4 +1283,3 @@ export default function SIR() {
     </div>
   );
 }
-
