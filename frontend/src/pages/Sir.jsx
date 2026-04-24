@@ -728,77 +728,197 @@ function LiveCheckPanel() {
             </div>
           )}
 
-          {/* 2002 fuzzy suggestions */}
-          {showSuggestions && (
-            <div style={{ background:'rgba(245,158,11,0.05)', border:'1px solid rgba(245,158,11,0.2)', borderRadius:12, padding:16 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                <span style={{ color:'#f59e0b' }}><Icon.Search /></span>
-                <div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'#f59e0b' }}>2002 Record Not Found Automatically</div>
-                  <div style={{ fontSize:11, color:'rgba(245,158,11,0.5)', marginTop:2 }}>
-                    {suggestions2002.length} similar record{suggestions2002.length > 1 ? 's' : ''} found — select the correct one
+          {/* 2002 fuzzy suggestions — grouped by match type */}
+          {showSuggestions && (() => {
+            // Group suggestions by bucket
+            const BUCKET_META = {
+              'name+house+relation+voterid': { label:'All 4 fields matched',       color:'#10b981', icon:'🎯' },
+              'name+house+relation':         { label:'Name · House · Relation',    color:'#10b981', icon:'✅' },
+              'name+house+voterid':          { label:'Name · House · EPIC',        color:'#22d3ee', icon:'🔷' },
+              'name+relation+voterid':       { label:'Name · Relation · EPIC',     color:'#22d3ee', icon:'🔷' },
+              'house+relation+voterid':      { label:'House · Relation · EPIC',    color:'#a78bfa', icon:'🔹' },
+              'name+house':                  { label:'Name + House matched',        color:'#f59e0b', icon:'🏠' },
+              'name+relation':               { label:'Name + Relation matched',     color:'#f59e0b', icon:'👤' },
+              'name+voterid':                { label:'Name + EPIC matched',         color:'#f59e0b', icon:'🆔' },
+              'house+relation':              { label:'House + Relation matched',    color:'#fb923c', icon:'🏠' },
+              'house+voterid':               { label:'House + EPIC matched',        color:'#fb923c', icon:'🏠' },
+              'relation+voterid':            { label:'Relation + EPIC matched',     color:'#fb923c', icon:'👤' },
+              'name':                        { label:'Voter Name matched',          color:'#94a3b8', icon:'🔍' },
+              'house':                       { label:'House Number matched',        color:'#94a3b8', icon:'🔍' },
+              'relation':                    { label:'Relation Name matched',       color:'#94a3b8', icon:'🔍' },
+              'voterid':                     { label:'EPIC / Voter ID matched',     color:'#94a3b8', icon:'🔍' },
+            };
+
+            // Priority order for buckets
+            const BUCKET_ORDER = [
+              'name+house+relation+voterid',
+              'name+house+relation','name+house+voterid','name+relation+voterid','house+relation+voterid',
+              'name+house','name+relation','name+voterid','house+relation','house+voterid','relation+voterid',
+              'name','house','relation','voterid',
+            ];
+
+            // Group by bucket
+            const grouped = {};
+            suggestions2002.forEach(s => {
+              const bkt = s.bucket || 'name';
+              if (!grouped[bkt]) grouped[bkt] = [];
+              grouped[bkt].push(s);
+            });
+
+            const orderedBuckets = BUCKET_ORDER.filter(b => grouped[b]);
+
+            const FieldBadge = ({ label, score, matched }) => {
+              const c = matched
+                ? (score >= 85 ? '#10b981' : score >= 65 ? '#f59e0b' : '#f87171')
+                : 'rgba(255,255,255,0.15)';
+              return (
+                <span style={{
+                  display:'inline-flex', alignItems:'center', gap:3,
+                  fontSize:10, fontWeight:700,
+                  color: matched ? c : 'rgba(255,255,255,0.25)',
+                  background: matched ? `${c}14` : 'rgba(255,255,255,0.04)',
+                  border:`1px solid ${matched ? c+'40' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius:5, padding:'2px 7px',
+                }}>
+                  {matched ? '✓' : '·'} {label}
+                  {matched && score > 0 && (
+                    <span style={{ opacity:0.6, fontWeight:400 }}>{score}</span>
+                  )}
+                </span>
+              );
+            };
+
+            return (
+              <div style={{ background:'rgba(245,158,11,0.04)', border:'1px solid rgba(245,158,11,0.18)', borderRadius:14, padding:18 }}>
+                {/* Header */}
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+                  <span style={{ color:'#f59e0b' }}><Icon.Search /></span>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:'#f59e0b' }}>
+                      2002 Record Not Found — {suggestions2002.length} Similar Record{suggestions2002.length !== 1 ? 's' : ''} Found
+                    </div>
+                    <div style={{ fontSize:11, color:'rgba(245,158,11,0.5)', marginTop:2 }}>
+                      Grouped by matching fields · Select the correct one to confirm
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {suggestions2002.map((s, i) => (
-                  <div key={i} style={{ background:'rgba(0,0,0,0.25)', borderRadius:10, border:`1px solid ${i===0 ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.06)'}`, padding:'12px 14px', display:'flex', alignItems:'flex-start', gap:12 }}>
-                    {/* Score ring */}
-                    <div style={{ width:42, height:42, borderRadius:'50%', flexShrink:0, background: s.score>=85?'rgba(16,185,129,0.12)':s.score>=65?'rgba(245,158,11,0.12)':'rgba(239,68,68,0.08)', border:`2px solid ${s.score>=85?'#10b981':s.score>=65?'#f59e0b':'#ef4444'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color: s.score>=85?'#10b981':s.score>=65?'#f59e0b':'#ef4444' }}>
-                      {s.score}
-                    </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0', marginBottom:5, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                        {s.name || '—'}
-                        {i === 0 && <span style={{ fontSize:10, background:'rgba(245,158,11,0.18)', color:'#f59e0b', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>Best match</span>}
-                      </div>
-                      {/* ── Fields row — now includes Booth ── */}
-                      <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
-                        {[
-                          ['House',    s.house],
-                          ['Relation', s.relation],
-                          ['Booth',    s.booth],
-                          ['Gender',   s.gender],
-                          ['Age',      s.age],
-                          ['EPIC',     s.voterid],
-                        ].map(([lbl, val]) => val ? (
-                          <div key={lbl} style={{ fontSize:11 }}>
-                            <span style={{ color:'rgba(255,255,255,0.3)', marginRight:4 }}>{lbl}</span>
-                            <span style={{
-                              color: lbl === 'Booth' ? '#f59e0b' : '#e2e8f0',
-                              fontWeight: lbl === 'Booth' ? 700 : 400,
-                              fontFamily: lbl === 'EPIC' ? 'ui-monospace,monospace' : 'inherit',
-                            }}>{val}</span>
-                          </div>
-                        ) : null)}
-                      </div>
-                      {/* Match score bars */}
-                      <div style={{ display:'flex', gap:8, marginTop:7, flexWrap:'wrap' }}>
-                        {Object.entries(s.field_scores || {}).map(([field, score]) => (
-                          <div key={field} style={{ display:'flex', alignItems:'center', gap:4 }}>
-                            <span style={{ fontSize:9, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'0.5px' }}>{field.replace('Voter ','')}</span>
-                            <div style={{ width:36, height:3, background:'rgba(255,255,255,0.07)', borderRadius:2, overflow:'hidden' }}>
-                              <div style={{ width:`${score}%`, height:'100%', background: score>=85?'#10b981':score>=60?'#f59e0b':'#ef4444' }} />
+
+                {/* Groups */}
+                <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                  {orderedBuckets.map(bucket => {
+                    const meta   = BUCKET_META[bucket] || { label: bucket, color:'#94a3b8', icon:'🔍' };
+                    const recs   = grouped[bucket];
+                    const is4    = bucket.split('+').length === 4;
+                    const is3    = bucket.split('+').length === 3;
+                    return (
+                      <div key={bucket}>
+                        {/* Bucket header */}
+                        <div style={{
+                          display:'flex', alignItems:'center', gap:7,
+                          marginBottom:7, paddingBottom:6,
+                          borderBottom:`1px solid ${meta.color}20`,
+                        }}>
+                          <span style={{ fontSize:13 }}>{meta.icon}</span>
+                          <span style={{ fontSize:11, fontWeight:700, color: meta.color, letterSpacing:'0.3px' }}>
+                            {meta.label}
+                          </span>
+                          <span style={{
+                            fontSize:10, background:`${meta.color}14`,
+                            color:meta.color, border:`1px solid ${meta.color}30`,
+                            borderRadius:8, padding:'1px 7px', fontWeight:700,
+                          }}>
+                            {recs.length}
+                          </span>
+                          {(is4 || is3) && (
+                            <span style={{ fontSize:10, color:'#10b981', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:8, padding:'1px 7px', fontWeight:700 }}>
+                              {is4 ? 'Strong match' : 'Good match'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Records in this bucket */}
+                        <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+                          {recs.map((s, i) => (
+                            <div key={i} style={{
+                              background: i === 0 && (is4 || is3) ? `${meta.color}08` : 'rgba(0,0,0,0.22)',
+                              borderRadius:10,
+                              border:`1px solid ${i === 0 ? meta.color+'35' : 'rgba(255,255,255,0.05)'}`,
+                              padding:'11px 13px',
+                              display:'flex', alignItems:'flex-start', gap:12,
+                            }}>
+                              {/* Score ring */}
+                              <div style={{
+                                width:40, height:40, borderRadius:'50%', flexShrink:0,
+                                background: s.score>=85 ? 'rgba(16,185,129,0.12)' : s.score>=65 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.08)',
+                                border:`2px solid ${s.score>=85 ? '#10b981' : s.score>=65 ? '#f59e0b' : '#ef4444'}`,
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                fontSize:11, fontWeight:800,
+                                color: s.score>=85 ? '#10b981' : s.score>=65 ? '#f59e0b' : '#ef4444',
+                              }}>
+                                {s.score}
+                              </div>
+
+                              <div style={{ flex:1, minWidth:0 }}>
+                                {/* Name + best-match badge */}
+                                <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0', marginBottom:6, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                                  {s.name || '—'}
+                                  {i === 0 && is4 && <span style={{ fontSize:10, background:'rgba(16,185,129,0.18)', color:'#10b981', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>Best match</span>}
+                                  {s.source === 'excel' && <span style={{ fontSize:9, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', padding:'1px 5px', borderRadius:5 }}>xlsx</span>}
+                                </div>
+
+                                {/* Voter info row */}
+                                <div style={{ display:'flex', gap:12, flexWrap:'wrap', marginBottom:7 }}>
+                                  {[
+                                    ['House',    s.house],
+                                    ['Relation', s.relation],
+                                    ['Booth',    s.booth],
+                                    ['Gender',   s.gender],
+                                    ['Age',      s.age],
+                                    ['EPIC',     s.voterid],
+                                  ].map(([lbl, val]) => val ? (
+                                    <div key={lbl} style={{ fontSize:11 }}>
+                                      <span style={{ color:'rgba(255,255,255,0.3)', marginRight:3 }}>{lbl}</span>
+                                      <span style={{
+                                        color: lbl==='Booth' ? meta.color : lbl==='EPIC' ? '#a5b4fc' : '#e2e8f0',
+                                        fontWeight: lbl==='Booth' ? 700 : 400,
+                                        fontFamily: lbl==='EPIC' ? 'ui-monospace,monospace' : 'inherit',
+                                      }}>{val}</span>
+                                    </div>
+                                  ) : null)}
+                                </div>
+
+                                {/* Per-field match badges */}
+                                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                                  <FieldBadge label="Name"     score={s.field_scores?.name     || 0} matched={s.match_flags?.name     || false} />
+                                  <FieldBadge label="House"    score={s.field_scores?.house    || 0} matched={s.match_flags?.house    || false} />
+                                  <FieldBadge label="Relation" score={s.field_scores?.relation || 0} matched={s.match_flags?.relation || false} />
+                                  <FieldBadge label="EPIC"     score={s.field_scores?.voterid  || 0} matched={s.match_flags?.voterid  || false} />
+                                </div>
+                              </div>
+
+                              {/* Confirm button */}
+                              <button
+                                onClick={() => setConfirmedRec({ name:s.name, relation:s.relation, house:s.house, gender:s.gender, age:s.age, voterid:s.voterid, booth:s.booth })}
+                                style={{
+                                  padding:'7px 12px',
+                                  background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.35)',
+                                  borderRadius:8, cursor:'pointer', color:'#10b981',
+                                  fontSize:12, fontWeight:700,
+                                  display:'flex', alignItems:'center', gap:5, whiteSpace:'nowrap', flexShrink:0,
+                                }}
+                              >
+                                <Icon.Check /> Confirm
+                              </button>
                             </div>
-                            <span style={{ fontSize:9, color:'rgba(255,255,255,0.25)' }}>{score}</span>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    {/* Action buttons — Confirm + Info */}
-                    <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
-                      <button
-                        onClick={() => setConfirmedRec({ name:s.name, relation:s.relation, house:s.house, gender:s.gender, age:s.age, voterid:s.voterid, booth:s.booth })}
-                        style={{ padding:'7px 13px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.35)', borderRadius:8, cursor:'pointer', color:'#10b981', fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:5, whiteSpace:'nowrap' }}
-                      >
-                        <Icon.Check /> Confirm
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Confirmed 2002 banner */}
           {confirmedRec && !result?.in_2002 && (
@@ -1226,4 +1346,3 @@ export default function SIR() {
     </div>
   );
 }
-
