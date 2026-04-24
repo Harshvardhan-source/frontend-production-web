@@ -365,7 +365,7 @@ function VoterInfoModal({ record, roll, onClose }) {
 }
 
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
-function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002 }) {
+function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0 }) {
   const [infoRecord, setInfoRecord] = useState(null);
 
   // Build merged rows for each roll
@@ -392,12 +392,13 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     confirmed: { label: '✓ Confirmed',  color: '#10b981' },
   };
 
-  // ── Group rows by number of matched fields (descending) ──────────────────────
+  // ── Group rows by match strength + "Almost matched" labelling ────────────────
+  // "Almost matched" = user entered N fields and this record matched exactly N-1
   const groupRows = (rows) => {
     const bucket = {};
     rows.forEach(r => {
       const mb = r.matched_by || [];
-      let key, label, priority, color;
+      let key, label, priority, color, isAlmost = false;
 
       if (r._matched) {
         key = 'confirmed'; label = 'Confirmed Match'; priority = 0; color = '#10b981';
@@ -406,22 +407,34 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
       } else if (mb.length === 3) {
         const sorted = [...mb].sort();
         key = 'f3_' + sorted.join('+');
-        label = sorted.map(f => FIELD_META[f]?.label || f).join(' + ') + ' matched';
-        priority = 2; color = '#22d3ee';
+        // "Almost matched" when 3/4 fields filled and these 3 match
+        isAlmost = inputFieldCount === 4;
+        label = isAlmost
+          ? 'Almost matched — ' + sorted.map(f => FIELD_META[f]?.label || f).join(' + ')
+          : sorted.map(f => FIELD_META[f]?.label || f).join(' + ') + ' matched';
+        priority = 2; color = isAlmost ? '#f59e0b' : '#22d3ee';
       } else if (mb.length === 2) {
         const sorted = [...mb].sort();
         key = 'f2_' + sorted.join('+');
-        label = sorted.map(f => FIELD_META[f]?.label || f).join(' + ') + ' matched';
-        priority = 3; color = '#6366f1';
+        // "Almost matched" when 3 fields filled and 2 match, OR 2 fields filled and 2 match (perfect)
+        isAlmost = inputFieldCount === 3;
+        label = isAlmost
+          ? 'Almost matched — ' + sorted.map(f => FIELD_META[f]?.label || f).join(' + ')
+          : sorted.map(f => FIELD_META[f]?.label || f).join(' + ') + ' matched';
+        priority = 3; color = isAlmost ? '#f59e0b' : '#6366f1';
       } else if (mb.length === 1) {
+        const fieldLabels = { name: 'Voter Name', house: 'House No', relation: 'Relation', voterid: 'Voter ID' };
         key = 'f1_' + mb[0];
-        label = (FIELD_META[mb[0]]?.label || mb[0]) + ' matched';
-        priority = 4; color = FIELD_META[mb[0]]?.color || '#94a3b8';
+        isAlmost = inputFieldCount === 2;
+        label = isAlmost
+          ? 'Almost matched — ' + (fieldLabels[mb[0]] || mb[0])
+          : (fieldLabels[mb[0]] || mb[0]) + ' matched';
+        priority = 4; color = isAlmost ? '#f59e0b' : (FIELD_META[mb[0]]?.color || '#94a3b8');
       } else {
         key = 'other'; label = 'Other records'; priority = 5; color = '#475569';
       }
 
-      if (!bucket[key]) bucket[key] = { key, label, priority, color, rows: [] };
+      if (!bucket[key]) bucket[key] = { key, label, priority, color, isAlmost, rows: [] };
       bucket[key].rows.push(r);
     });
     return Object.values(bucket).sort((a, b) => a.priority - b.priority);
@@ -443,25 +456,25 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     );
   };
 
-  // ── Per-roll section (2025 or 2002) with group headers ────────────────────────
+  // ── Per-roll section — collapsible header + scrollable body ──────────────────
   const RollSection = ({ rows, year, accentColor, borderColor }) => {
     const groups = groupRows(rows);
     const total  = rows.length;
     const [open, setOpen] = useState(true);
 
     return (
-      <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden' }}>
-        {/* Roll header */}
+      <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+        {/* Collapsible roll header */}
         <div onClick={() => setOpen(o => !o)}
-          style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none', background:'rgba(0,0,0,0.15)', cursor:'pointer', userSelect:'none' }}>
+          style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none', background:'rgba(0,0,0,0.15)', cursor:'pointer', userSelect:'none', flexShrink:0 }}>
           <span style={{ fontSize:10, fontWeight:800, color:accentColor, letterSpacing:'0.8px', textTransform:'uppercase' }}>{year} Roll</span>
           <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', borderRadius:8, padding:'1px 7px', fontWeight:600 }}>
             {total} record{total !== 1 ? 's' : ''}
           </span>
-          {/* group count chips */}
           {open && groups.map(g => (
-            <span key={g.key} style={{ fontSize:9, fontWeight:700, color:g.color, background:`${g.color}14`, border:`1px solid ${g.color}28`, borderRadius:6, padding:'1px 6px', display:'inline-flex', alignItems:'center', gap:3 }}>
-              <span style={{ width:5, height:5, borderRadius:'50%', background:g.color, flexShrink:0 }} />
+            <span key={g.key} style={{ fontSize:9, fontWeight:700, color: g.isAlmost ? '#f59e0b' : g.color, background:`${g.isAlmost ? '#f59e0b' : g.color}14`, border:`1px solid ${g.isAlmost ? '#f59e0b' : g.color}28`, borderRadius:6, padding:'1px 6px', display:'inline-flex', alignItems:'center', gap:3 }}>
+              {g.isAlmost && <span style={{ fontSize:8 }}>⚡</span>}
+              <span style={{ width:5, height:5, borderRadius:'50%', background: g.isAlmost ? '#f59e0b' : g.color, flexShrink:0 }} />
               {g.rows.length}
             </span>
           ))}
@@ -470,79 +483,89 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           </span>
         </div>
 
-        {open && groups.map((group, gi) => (
-          <div key={group.key}>
-            {/* Group label row */}
-            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px 4px', background:'rgba(0,0,0,0.10)', borderTop: gi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-              <span style={{ width:6, height:6, borderRadius:'50%', background:group.color, flexShrink:0 }} />
-              <span style={{ fontSize:10, fontWeight:700, color:group.color, letterSpacing:'0.3px' }}>{group.label}</span>
-              <span style={{ fontSize:10, color:'rgba(255,255,255,0.15)' }}>({group.rows.length})</span>
-            </div>
-            {/* Scrollable table */}
-            <div style={{ overflowX:'auto' }}>
-              <table style={{ width:'100%', borderCollapse:'collapse', minWidth:420 }}>
-                <thead>
-                  <tr>
-                    <ColHeader>House No</ColHeader>
-                    <ColHeader>Name</ColHeader>
-                    <ColHeader>Relation</ColHeader>
-                    <ColHeader>Matched</ColHeader>
-                    <ColHeader>Booth</ColHeader>
-                    <ColHeader>EPIC</ColHeader>
-                    <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:36 }} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.rows.map((r, i) => (
-                    <tr key={i} style={{ background: r._matched ? `${accentColor}12` : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
-                      {/* House */}
-                      <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : '#94a3b8', fontWeight: r._matched ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
-                        {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
-                        {r.house || '—'}
-                      </td>
-                      {/* Name */}
-                      <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : '#cbd5e1', fontWeight: r._matched ? 600 : 400, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                        {r.name || '—'}
-                      </td>
-                      {/* Relation */}
-                      <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.45)', maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                        {r.relation || '—'}
-                      </td>
-                      {/* Matched-by tags */}
-                      <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
-                        <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
-                          {(r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
-                        </div>
-                      </td>
-                      {/* Booth */}
-                      <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
-                        {r.booth ? (
-                          <span style={{ display:'inline-flex', alignItems:'center', gap:4, color:accentColor, fontWeight:700, background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, padding:'2px 7px' }}>
-                            <Icon.Booth />{r.booth}
-                          </span>
-                        ) : <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>}
-                      </td>
-                      {/* EPIC */}
-                      <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.3)', fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
-                        {r.voterid || '—'}
-                      </td>
-                      {/* Info */}
-                      <td style={{ padding:'7px 8px', textAlign:'center' }}>
-                        <button onClick={() => setInfoRecord({ record: r, roll: year })} title="View full voter details"
-                          style={{ background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, color:accentColor, width:26, height:26, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'background 0.15s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = `${accentColor}25`}
-                          onMouseLeave={e => e.currentTarget.style.background = `${accentColor}12`}
-                        >
-                          <Icon.Info />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* Scrollable body — max 460px, thin scrollbar */}
+        {open && (
+          <div style={{ overflowY:'auto', maxHeight:460, scrollbarWidth:'thin', scrollbarColor:`${accentColor}50 transparent` }}>
+            {groups.map((group, gi) => (
+              <div key={group.key}>
+                {/* Group label */}
+                <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px 4px', background: group.isAlmost ? 'rgba(245,158,11,0.07)' : 'rgba(0,0,0,0.10)', borderTop: gi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                  {group.isAlmost
+                    ? <span style={{ fontSize:11 }}>⚡</span>
+                    : <span style={{ width:6, height:6, borderRadius:'50%', background:group.color, flexShrink:0 }} />
+                  }
+                  <span style={{ fontSize:10, fontWeight:700, color: group.isAlmost ? '#f59e0b' : group.color, letterSpacing:'0.3px' }}>
+                    {group.label}
+                  </span>
+                  <span style={{ fontSize:10, color:'rgba(255,255,255,0.15)' }}>({group.rows.length})</span>
+                </div>
+                {/* Table */}
+                <div style={{ overflowX:'auto' }}>
+                  <table style={{ width:'100%', borderCollapse:'collapse', minWidth:420 }}>
+                    <thead>
+                      <tr>
+                        <ColHeader>House No</ColHeader>
+                        <ColHeader>Name</ColHeader>
+                        <ColHeader>Relation</ColHeader>
+                        <ColHeader>Matched</ColHeader>
+                        <ColHeader>Booth</ColHeader>
+                        <ColHeader>EPIC</ColHeader>
+                        <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:36 }} />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.rows.map((r, i) => (
+                        <tr key={i} style={{ background: r._matched ? `${accentColor}12` : group.isAlmost ? 'rgba(245,158,11,0.04)' : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                          {/* House */}
+                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: r._matched || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                            {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
+                            {r.house || '—'}
+                          </td>
+                          {/* Name */}
+                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : group.isAlmost ? '#fde68a' : '#cbd5e1', fontWeight: r._matched || group.isAlmost ? 600 : 400, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            {r.name || '—'}
+                          </td>
+                          {/* Relation */}
+                          <td style={{ padding:'7px 10px', fontSize:11, color: group.isAlmost ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.45)', maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            {r.relation || '—'}
+                          </td>
+                          {/* Matched-by tags */}
+                          <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
+                            <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
+                              {(r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
+                            </div>
+                          </td>
+                          {/* Booth */}
+                          <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
+                            {r.booth ? (
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:4, color:accentColor, fontWeight:700, background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, padding:'2px 7px' }}>
+                                <Icon.Booth />{r.booth}
+                              </span>
+                            ) : <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>}
+                          </td>
+                          {/* EPIC */}
+                          <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.3)', fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                            {r.voterid || '—'}
+                          </td>
+                          {/* Info */}
+                          <td style={{ padding:'7px 8px', textAlign:'center' }}>
+                            <button onClick={() => setInfoRecord({ record: r, roll: year })} title="View full voter details"
+                              style={{ background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, color:accentColor, width:26, height:26, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'background 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = `${accentColor}25`}
+                              onMouseLeave={e => e.currentTarget.style.background = `${accentColor}12`}
+                            >
+                              <Icon.Info />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     );
   };
@@ -557,7 +580,8 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           </span>
           <span style={{ fontSize:10, color:'rgba(255,255,255,0.15)' }}>grouped by matching fields</span>
           {/* Legend */}
-          <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap' }}>
+          <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
+            <span style={{ fontSize:9, color:'#f59e0b', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:4, padding:'1px 6px', fontWeight:700 }}>⚡ Almost matched</span>
             {[['voterid','Voter ID'],['name','Voter Name'],['house','House No'],['relation','Relation']].map(([f, lbl]) => (
               <span key={f} style={{ fontSize:9, color:FIELD_META[f].color, background:`${FIELD_META[f].color}14`, border:`1px solid ${FIELD_META[f].color}28`, borderRadius:4, padding:'1px 6px', fontWeight:700 }}>{lbl}</span>
             ))}
@@ -704,6 +728,7 @@ function LiveCheckPanel() {
           record2002={result?.record_2002}
           in2025={result?.in_2025}
           in2002={result?.in_2002}
+          inputFieldCount={[form.name, form.epic, form.house, form.relation].filter(v => v.trim()).length}
         />
       )}
 
