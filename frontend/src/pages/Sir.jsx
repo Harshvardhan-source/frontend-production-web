@@ -192,7 +192,7 @@ function SIRBadge({ category }) {
 }
 
 // ─── InputBox ─────────────────────────────────────────────────────────────────
-function InputBox({ label, placeholder, value, onChange, IconComp, mono, note, autoFocus }) {
+function InputBox({ label, placeholder, value, onChange, onKeyDown, IconComp, mono, note, autoFocus }) {
   const [focused, setFocused] = useState(false);
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
@@ -205,6 +205,7 @@ function InputBox({ label, placeholder, value, onChange, IconComp, mono, note, a
         autoFocus={autoFocus}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
@@ -538,7 +539,7 @@ function LiveCheckPanel() {
     abortRef.current = new AbortController();
     setState('checking');
 
-    const timeoutId = setTimeout(() => abortRef.current?.abort(), 55000);
+    const timeoutId = setTimeout(() => abortRef.current?.abort(), 90000);
 
     try {
       const res  = await fetch(`${API}/sir/check/`, {
@@ -561,12 +562,45 @@ function LiveCheckPanel() {
     }
   }, []);
 
+  // handleChange — live suggestions with smart debounce
+  // Only fires AFTER user stops typing for 1200ms → zero cancelled requests
+  // (Old 500ms debounce caused 8 simultaneous cancels for a 9-letter name)
   const handleChange = (key) => (e) => {
     const val = e.target.value;
-    setForm(p => ({ ...p, [key]: val }));
-    setState('typing');
+    const newForm = { ...form, [key]: val };
+    setForm(newForm);
+
+    // Reset stale result immediately on edit
+    if (state === 'result' || state === 'error') {
+      setState('idle');
+      setResult(null);
+    }
+
+    // Show "typing" indicator right away
+    setState(s => s === 'checking' ? s : 'typing');
+
+    // Debounce: cancel previous timer, fire only after 1200ms pause
+    // 1200ms means: user types "vishwanath" → only 1 request fires, not 9
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doCheck({ ...form, [key]: val }), 500);
+    const hasAny = newForm.name.trim() || newForm.epic.trim() || newForm.house.trim();
+    if (hasAny) {
+      debounceRef.current = setTimeout(() => doCheck(newForm), 1200);
+    } else {
+      setState('idle');
+      setResult(null);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      clearTimeout(debounceRef.current); // cancel pending debounce
+      doCheck({ ...form });              // fire immediately
+    }
+  };
+
+  const handleSearch = () => {
+    clearTimeout(debounceRef.current);
+    doCheck({ ...form });
   };
 
   const handleClear = () => {
@@ -599,9 +633,9 @@ function LiveCheckPanel() {
 
   const statusLine = () => {
     if (state === 'idle')     return null;
-    if (state === 'typing')   return <StatusPill color="#6b7280" dot="pulse">Waiting…</StatusPill>;
+    if (state === 'typing')   return <StatusPill color="#6b7280" dot="pulse">Waiting for you to stop typing…</StatusPill>;
     if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Checking rolls… (may take up to 30s on first load)</StatusPill>;
-    if (state === 'error')    return <StatusPill color="#ef4444" dot="">Error — try again</StatusPill>;
+    if (state === 'error')    return <StatusPill color="#ef4444" dot="">Error — server may be waking up, click Search again</StatusPill>;
     if (state === 'result' && effectivePrimary) return <StatusPill color={catMeta.color} dot="solid">{effectivePrimary.label}</StatusPill>;
     return null;
   };
@@ -632,10 +666,40 @@ function LiveCheckPanel() {
 
       {/* Input grid */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:14 }}>
-        <InputBox label="Voter Name"      placeholder="Enter full name…"         value={form.name}     onChange={handleChange('name')}     IconComp={Icon.User}   autoFocus />
-        <InputBox label="EPIC / Voter ID" placeholder="e.g. NUX4001234"         value={form.epic}     onChange={handleChange('epic')}     IconComp={Icon.ID}     mono />
-        <InputBox label="House / Flat No" placeholder="e.g. 7-1-42 or 2-14-1223" value={form.house}  onChange={handleChange('house')}    IconComp={Icon.House}  mono note="Narrows search — partial match supported" />
-        <InputBox label="Relative Name"   placeholder="Father / Husband name"   value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Fallback if name unmatched" />
+        <InputBox label="Voter Name"      placeholder="Enter full name…"           value={form.name}     onChange={handleChange('name')}     onKeyDown={handleKeyDown} IconComp={Icon.User}   autoFocus />
+        <InputBox label="EPIC / Voter ID" placeholder="e.g. NUX4001234"           value={form.epic}     onChange={handleChange('epic')}     onKeyDown={handleKeyDown} IconComp={Icon.ID}     mono />
+        <InputBox label="House / Flat No" placeholder="e.g. 7-1-42 or 2-14-1223" value={form.house}    onChange={handleChange('house')}    onKeyDown={handleKeyDown} IconComp={Icon.House}  mono note="Narrows search — partial match supported" />
+        <InputBox label="Relative Name"   placeholder="Father / Husband name"     value={form.relation} onChange={handleChange('relation')} onKeyDown={handleKeyDown} IconComp={Icon.Family} note="Fallback if name unmatched" />
+      </div>
+
+      {/* Search button — explicit trigger, prevents multiple cancelled requests */}
+      <div style={{ display:'flex', gap:10, alignItems:'center', marginTop:4 }}>
+        <button
+          onClick={handleSearch}
+          disabled={!hasInput || state === 'checking'}
+          style={{
+            display:'flex', alignItems:'center', gap:8,
+            background: (!hasInput || state === 'checking') ? 'rgba(99,102,241,0.06)' : 'rgba(99,102,241,0.18)',
+            border:`1px solid ${(!hasInput || state === 'checking') ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.5)'}`,
+            borderRadius:10, padding:'10px 22px', cursor: (!hasInput || state === 'checking') ? 'not-allowed' : 'pointer',
+            color: (!hasInput || state === 'checking') ? 'rgba(165,180,252,0.4)' : '#a5b4fc',
+            fontSize:13, fontWeight:700, transition:'all 0.2s',
+          }}
+        >
+          {state === 'checking'
+            ? <><span style={{ width:12, height:12, border:'2px solid rgba(165,180,252,0.3)', borderTopColor:'#a5b4fc', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' }} /> Searching…</>
+            : <><Icon.Search /> Search Voter</>
+          }
+        </button>
+        <span style={{ fontSize:11, color:'rgba(255,255,255,0.2)' }}>or press Enter ↵ · suggestions appear automatically after you stop typing</span>
+        {state === 'error' && hasInput && (
+          <button
+            onClick={handleSearch}
+            style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:8, padding:'7px 14px', cursor:'pointer', color:'#f87171', fontSize:12, fontWeight:600 }}
+          >
+            <Icon.ArrowRight /> Retry
+          </button>
+        )}
       </div>
 
       {/* Similar records panel — shown as soon as any result arrives */}
