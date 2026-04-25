@@ -686,40 +686,22 @@ export default function SurveyForm() {
   const handleSubmit = async (mode) => {
     setBusy(true); setSaveMode(mode); setError('');
     try {
-      // ── Auth token — try localStorage first (JWT stored at login),
-      //    then fall back to the cc_token cookie value if readable.
-      //    The Bearer header works cross-origin unlike cookies.
-      const token = localStorage.getItem('cc_token') || localStorage.getItem('token') || '';
-      const API_BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com';
-
-      let rawRes;
+      // Use the shared axios `api` client — it carries auth headers/cookies
+      // via its interceptors, exactly like save-future-voters and save-deceased.
+      // ⚠️ Do NOT use raw fetch() here — it bypasses auth and causes 401.
+      let surveyRes;
       if (aadhaarPhoto) {
-        // ── Multipart path (Aadhaar photo attached) ───────────────────────
-        // Do NOT set Content-Type — browser auto-sets multipart/form-data + boundary.
+        // Multipart path: pass FormData to axios.
+        // Do NOT set Content-Type — axios sets multipart/form-data + boundary automatically.
         const fd = new FormData();
         fd.append('data', JSON.stringify({ ...form, schemes }));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
-        rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-          body: fd,
-        });
+        surveyRes = await api.post('/api/save-survey/', fd);
       } else {
-        // ── JSON path ────────────────────────────────────────────────────
-        rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ ...form, schemes }),
-        });
+        // JSON path: axios serialises and sets Content-Type: application/json.
+        surveyRes = await api.post('/api/save-survey/', { ...form, schemes });
       }
-
-      const json = await rawRes.json();
-      const { data } = { data: json };
+      const { data } = surveyRes;
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
 
       // ── Update voter-roll status from backend response ─────────────────
