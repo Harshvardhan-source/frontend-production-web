@@ -686,23 +686,40 @@ export default function SurveyForm() {
   const handleSubmit = async (mode) => {
     setBusy(true); setSaveMode(mode); setError('');
     try {
-      // Use the shared axios `api` client for ALL save-survey calls.
-      // This client already carries the correct Authorization / cookie headers
-      // via its interceptors — raw fetch() bypasses those and causes 401s.
-      let surveyRes;
+      // ── Auth token — try localStorage first (JWT stored at login),
+      //    then fall back to the cc_token cookie value if readable.
+      //    The Bearer header works cross-origin unlike cookies.
+      const token = localStorage.getItem('cc_token') || localStorage.getItem('token') || '';
+      const API_BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com';
+
+      let rawRes;
       if (aadhaarPhoto) {
-        // Multipart path — pass FormData directly to axios.
-        // ⚠️ Do NOT set Content-Type manually; axios sets multipart/form-data
-        //    with the correct boundary automatically.
+        // ── Multipart path (Aadhaar photo attached) ───────────────────────
+        // Do NOT set Content-Type — browser auto-sets multipart/form-data + boundary.
         const fd = new FormData();
         fd.append('data', JSON.stringify({ ...form, schemes }));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
-        surveyRes = await api.post('/api/save-survey/', fd);
+        rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          body: fd,
+        });
       } else {
-        // JSON path — axios serialises the object and sets Content-Type: application/json.
-        surveyRes = await api.post('/api/save-survey/', { ...form, schemes });
+        // ── JSON path ────────────────────────────────────────────────────
+        rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ ...form, schemes }),
+        });
       }
-      const { data } = surveyRes;
+
+      const json = await rawRes.json();
+      const { data } = { data: json };
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
 
       // ── Update voter-roll status from backend response ─────────────────
