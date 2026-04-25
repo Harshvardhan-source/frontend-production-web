@@ -686,33 +686,23 @@ export default function SurveyForm() {
   const handleSubmit = async (mode) => {
     setBusy(true); setSaveMode(mode); setError('');
     try {
-      // Always use fetch (never axios) so Content-Type and credentials are set
-      // consistently for both the JSON and multipart paths.
-      const API_BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com';
-      let rawRes;
+      // Use the shared axios `api` client for ALL save-survey calls.
+      // This client already carries the correct Authorization / cookie headers
+      // via its interceptors — raw fetch() bypasses those and causes 401s.
+      let surveyRes;
       if (aadhaarPhoto) {
-        // Multipart path — do NOT set Content-Type manually; browser sets it with
-        // the correct boundary automatically when body is a FormData instance.
+        // Multipart path — pass FormData directly to axios.
+        // ⚠️ Do NOT set Content-Type manually; axios sets multipart/form-data
+        //    with the correct boundary automatically.
         const fd = new FormData();
         fd.append('data', JSON.stringify({ ...form, schemes }));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
-        rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
-          method: 'POST',
-          credentials: 'include',
-          // ⚠️ No 'Content-Type' header here — let the browser set multipart/form-data + boundary
-          body: fd,
-        });
+        surveyRes = await api.post('/api/save-survey/', fd);
       } else {
-        // JSON path — explicitly set Content-Type: application/json
-        rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...form, schemes }),
-        });
+        // JSON path — axios serialises the object and sets Content-Type: application/json.
+        surveyRes = await api.post('/api/save-survey/', { ...form, schemes });
       }
-      const json = await rawRes.json();
-      const { data } = { data: json };
+      const { data } = surveyRes;
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
 
       // ── Update voter-roll status from backend response ─────────────────
