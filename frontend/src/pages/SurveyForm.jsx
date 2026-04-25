@@ -689,18 +689,26 @@ export default function SurveyForm() {
       // Use the shared axios `api` client — it carries auth headers/cookies
       // via its interceptors, exactly like save-future-voters and save-deceased.
       // ⚠️ Do NOT use raw fetch() here — it bypasses auth and causes 401.
+      // ── Build payload — log it so we can verify values are non-empty ────────
+      const payload = { ...form, schemes };
+      console.log('[SurveyForm] submitting payload:', JSON.stringify(payload, null, 2));
+
       let surveyRes;
       if (aadhaarPhoto) {
-        // Multipart path: pass FormData to axios.
-        // Do NOT set Content-Type — axios sets multipart/form-data + boundary automatically.
+        // Multipart path: axios + FormData.
+        // Delete the default Content-Type header so axios can set
+        // multipart/form-data with the correct boundary automatically.
         const fd = new FormData();
-        fd.append('data', JSON.stringify({ ...form, schemes }));
+        fd.append('data', JSON.stringify(payload));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
-        surveyRes = await api.post('/api/save-survey/', fd);
+        surveyRes = await api.post('/api/save-survey/', fd, {
+          headers: { 'Content-Type': undefined },
+        });
       } else {
-        // JSON path: axios serialises and sets Content-Type: application/json.
-        surveyRes = await api.post('/api/save-survey/', { ...form, schemes });
+        // JSON path: send plain object — axios serialises + sets Content-Type: application/json.
+        surveyRes = await api.post('/api/save-survey/', payload);
       }
+      console.log('[SurveyForm] save response:', surveyRes.data);
       const { data } = surveyRes;
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
 
