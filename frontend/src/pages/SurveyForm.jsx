@@ -212,6 +212,7 @@ function blankForm(serialNo, wardNumber, locked = {}, prefill = {}) {
     sourcePdfName:     prefill.sourcePdfName    || '',
     pageNoOfCard:      prefill.pageNoOfCard     || '',
     predictedReligion: prefill.predictedReligion|| '',
+    religion:          prefill.religion         || '',
   };
 }
 
@@ -1018,6 +1019,7 @@ export default function SurveyForm() {
                     {form.relation      && <span>👤 {form.relation}: {form.relationName}</span>}
                     {form.partNo        && <span>📍 Part {form.partNo}</span>}
                     {form.pollingStation&& <span>🏫 {form.pollingStation}</span>}
+                    {form.predictedReligion && <span>🕌 Religion: {({'H':'Hindu','M':'Muslim','C':'Christian'})[form.predictedReligion] || form.predictedReligion}</span>}
                     {form.sectionName   && <span>📌 {form.sectionName}</span>}
                   </div>
                 </div>
