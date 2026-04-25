@@ -691,36 +691,24 @@ export default function SurveyForm() {
       // via its interceptors, exactly like save-future-voters and save-deceased.
       // ⚠️ Do NOT use raw fetch() here — it bypasses auth and causes 401.
       // ── Build payload — log it so we can verify values are non-empty ────────
-      // Include base64 photo in JSON payload as a backend fallback in case
-      // multipart FormData content-type gets clobbered by a proxy or axios config.
-      const payload = {
-        ...form,
-        schemes,
-        ...(aadhaarPreview ? { aadhaarPhotoBase64: aadhaarPreview } : {}),
-      };
+      const payload = { ...form, schemes };
       console.log('[SurveyForm] submitting payload:', JSON.stringify(payload, null, 2));
 
       let surveyRes;
       if (aadhaarPhoto) {
-        // Multipart path: use native fetch so the browser sets the correct
-        // multipart/form-data boundary automatically — axios instances with a
-        // default Content-Type header can silently override "undefined" and
-        // send the request as JSON, causing request.FILES to be empty on Django.
+        // Multipart path — must use axios (not fetch) so auth interceptors run.
+        // To force multipart/form-data with the correct boundary we must:
+        //   1. Pass FormData as the body
+        //   2. Use transformRequest to return it untouched (skip axios JSON serialisation)
+        //   3. Delete Content-Type from the per-request headers so axios doesn't
+        //      override the boundary that the browser sets automatically.
         const fd = new FormData();
         fd.append('data', JSON.stringify(payload));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
-        const BASE = (process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com');
-        const fetchRes = await fetch(`${BASE}/api/save-survey/`, {
-          method: 'POST',
-          credentials: 'include',   // send auth cookies
-          // ⚠️ Do NOT set Content-Type — browser sets it with the correct boundary
-          body: fd,
+        surveyRes = await api.post('/api/save-survey/', fd, {
+          transformRequest: [(data) => data],   // ← bypass JSON serialisation
+          headers: { 'Content-Type': undefined }, // ← let browser set boundary
         });
-        if (!fetchRes.ok) {
-          const errText = await fetchRes.text();
-          throw new Error(`Upload failed (${fetchRes.status}): ${errText.slice(0, 200)}`);
-        }
-        surveyRes = { data: await fetchRes.json() };
       } else {
         // JSON path: send plain object — axios serialises + sets Content-Type: application/json.
         surveyRes = await api.post('/api/save-survey/', payload);
