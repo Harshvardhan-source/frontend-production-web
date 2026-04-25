@@ -691,20 +691,36 @@ export default function SurveyForm() {
       // via its interceptors, exactly like save-future-voters and save-deceased.
       // ⚠️ Do NOT use raw fetch() here — it bypasses auth and causes 401.
       // ── Build payload — log it so we can verify values are non-empty ────────
-      const payload = { ...form, schemes };
+      // Include base64 photo in JSON payload as a backend fallback in case
+      // multipart FormData content-type gets clobbered by a proxy or axios config.
+      const payload = {
+        ...form,
+        schemes,
+        ...(aadhaarPreview ? { aadhaarPhotoBase64: aadhaarPreview } : {}),
+      };
       console.log('[SurveyForm] submitting payload:', JSON.stringify(payload, null, 2));
 
       let surveyRes;
       if (aadhaarPhoto) {
-        // Multipart path: axios + FormData.
-        // Delete the default Content-Type header so axios can set
-        // multipart/form-data with the correct boundary automatically.
+        // Multipart path: use native fetch so the browser sets the correct
+        // multipart/form-data boundary automatically — axios instances with a
+        // default Content-Type header can silently override "undefined" and
+        // send the request as JSON, causing request.FILES to be empty on Django.
         const fd = new FormData();
         fd.append('data', JSON.stringify(payload));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
-        surveyRes = await api.post('/api/save-survey/', fd, {
-          headers: { 'Content-Type': undefined },
+        const BASE = (process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com');
+        const fetchRes = await fetch(`${BASE}/api/save-survey/`, {
+          method: 'POST',
+          credentials: 'include',   // send auth cookies
+          // ⚠️ Do NOT set Content-Type — browser sets it with the correct boundary
+          body: fd,
         });
+        if (!fetchRes.ok) {
+          const errText = await fetchRes.text();
+          throw new Error(`Upload failed (${fetchRes.status}): ${errText.slice(0, 200)}`);
+        }
+        surveyRes = { data: await fetchRes.json() };
       } else {
         // JSON path: send plain object — axios serialises + sets Content-Type: application/json.
         surveyRes = await api.post('/api/save-survey/', payload);
