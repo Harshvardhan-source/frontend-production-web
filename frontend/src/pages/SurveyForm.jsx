@@ -1033,6 +1033,10 @@ export default function SurveyForm() {
               <Field label="Middle Name">{I('middleName','text','Middle name')}</Field>
               <Field label="Last Name">{I('lastName','text','Last name')}</Field>
 
+              {/* ── Relation — pre-filled from 2025 voter roll ── */}
+              <Field label="Relation (e.g. Father, Husband)">{I('relation','text','e.g. Father')}</Field>
+              <Field label="Relation Name">{I('relationName','text','Name of relation')}</Field>
+
               {/* DOB — mandatory; if blank show Age fallback */}
               <Field label="Date of Birth *">
                 <input className="input" type="date" value={form.dob} onChange={set('dob')} />
@@ -1241,6 +1245,14 @@ export default function SurveyForm() {
                   ℹ️ Pre-filled from first member's entry. You may edit if different.
                 </div>
               )}
+
+              {/* ── Polling Station — pre-filled from 2025 voter roll ── */}
+              <SectionDivider title="Polling Station (from 2025 Voter Roll)" subtitle="Pre-filled automatically — verify if needed" />
+              <Field label="Polling Station Name" full>{I('pollingStation','text','Polling station name')}</Field>
+              <Field label="Polling Station Address" full>
+                <textarea className="input" rows={2} placeholder="Polling station address…"
+                  value={form.pollingStationAddr} onChange={set('pollingStationAddr')} style={{ resize:'vertical' }} />
+              </Field>
             </>}
 
             {/* ── Step 3: Demographics ── */}
