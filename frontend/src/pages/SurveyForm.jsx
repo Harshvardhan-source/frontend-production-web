@@ -696,18 +696,18 @@ export default function SurveyForm() {
 
       let surveyRes;
       if (aadhaarPhoto) {
-        // Multipart path — must use axios (not fetch) so auth interceptors run.
-        // To force multipart/form-data with the correct boundary we must:
-        //   1. Pass FormData as the body
-        //   2. Use transformRequest to return it untouched (skip axios JSON serialisation)
-        //   3. Delete Content-Type from the per-request headers so axios doesn't
-        //      override the boundary that the browser sets automatically.
+        // Multipart upload — MUST use transformRequest so axios does NOT
+        // JSON-serialize the FormData (which forces Content-Type: application/json
+        // and empties request.FILES on Django, causing aadhaarPhotoUrl: null).
+        // transformRequest: identity fn  → FormData passes through untouched.
+        // Content-Type: undefined        → browser sets multipart + correct boundary.
+        // Auth interceptors still run    → Authorization header still attached.
         const fd = new FormData();
         fd.append('data', JSON.stringify(payload));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
         surveyRes = await api.post('/api/save-survey/', fd, {
-          transformRequest: [(data) => data],   // ← bypass JSON serialisation
-          headers: { 'Content-Type': undefined }, // ← let browser set boundary
+          transformRequest: [(data) => data],   // bypass axios JSON serialisation
+          headers: { 'Content-Type': undefined }, // let browser set multipart boundary
         });
       } else {
         // JSON path: send plain object — axios serialises + sets Content-Type: application/json.
