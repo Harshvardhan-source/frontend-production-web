@@ -73,6 +73,102 @@ function getWardByBooth(boothNo) {
 
 const STEPS = ['House & Members', 'Personal', 'Address', 'Demographics', 'Employment & Health'];
 
+// ─── Government Schemes — from Excel dataset + widely-known central/state schemes ──
+const SCHEMES = [
+  // ── Central Government ──────────────────────────────────────────────────────
+  { name:'Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)',           type:'Central', category:'Agriculture' },
+  { name:'Pradhan Mantri Fasal Bima Yojana (PMFBY)',               type:'Central', category:'Agriculture' },
+  { name:'Pradhan Mantri Matsya Sampada Yojana (PMMSY)',           type:'Central', category:'Agriculture' },
+  { name:'Kisan Credit Card (KCC)',                                 type:'Central', category:'Agriculture' },
+  { name:'Pradhan Mantri Kisan Maandhan Yojana (PM-KMY)',          type:'Central', category:'Agriculture' },
+  { name:'Students READY (Rural Entrepreneurship Awareness)',       type:'Central', category:'Agriculture' },
+
+  { name:'Pradhan Mantri Awas Yojana - Urban (PMAY-U)',            type:'Central', category:'Housing' },
+  { name:'Pradhan Mantri Awas Yojana - Gramin (PMAY-G)',           type:'Central', category:'Housing' },
+
+  { name:'Atal Pension Yojana (APY)',                               type:'Central', category:'Finance & Insurance' },
+  { name:'Pradhan Mantri Jeevan Jyoti Bima Yojana (PMJJBY)',       type:'Central', category:'Finance & Insurance' },
+  { name:'Pradhan Mantri Suraksha Bima Yojana (PMSBY)',            type:'Central', category:'Finance & Insurance' },
+  { name:'Pradhan Mantri Jan Dhan Yojana (PMJDY)',                 type:'Central', category:'Finance & Insurance' },
+  { name:'Pradhan Mantri Mudra Yojana (PMMY)',                     type:'Central', category:'Finance & Insurance' },
+  { name:'Stand-Up India',                                          type:'Central', category:'Finance & Insurance' },
+  { name:'National Pension Scheme for Traders & Self Employed',    type:'Central', category:'Finance & Insurance' },
+  { name:'Sukanya Samriddhi Yojana',                               type:'Central', category:'Finance & Insurance' },
+
+  { name:'Ayushman Bharat – PM Jan Arogya Yojana (PMJAY)',        type:'Central', category:'Health' },
+  { name:'Niramaya Health Insurance Scheme',                        type:'Central', category:'Health' },
+  { name:'Pradhan Mantri Matru Vandana Yojana (PMMVY)',            type:'Central', category:'Health' },
+  { name:'Indira Gandhi National Widow Pension Scheme',            type:'Central', category:'Social Security' },
+  { name:'Indira Gandhi National Disability Pension Scheme',       type:'Central', category:'Social Security' },
+  { name:'National Family Benefit Scheme (NFBS)',                  type:'Central', category:'Social Security' },
+  { name:'Pradhan Mantri Garib Kalyan Anna Yojana (PM-GKAY)',     type:'Central', category:'Food & PDS' },
+  { name:'Antyodaya Anna Yojana (AAY)',                             type:'Central', category:'Food & PDS' },
+
+  { name:'Pradhan Mantri Ujjwala Yojana (PMUY)',                   type:'Central', category:'Energy' },
+  { name:'PM Surya Ghar: Muft Bijli Yojana',                       type:'Central', category:'Energy' },
+  { name:'Swachh Bharat Mission',                                   type:'Central', category:'Sanitation' },
+  { name:'Pradhan Mantri Shram Yogi Maan-Dhan (PM-SYM)',          type:'Central', category:'Labour' },
+  { name:'Mahatma Gandhi NREGA (MGNREGS)',                          type:'Central', category:'Labour' },
+  { name:'Pradhan Mantri Rozgar Protsahan Yojana (PMRPY)',         type:'Central', category:'Labour' },
+
+  { name:'Prime Minister\'s Employment Generation Programme (PMEGP)',type:'Central', category:'Employment & Skill' },
+  { name:'Pradhan Mantri Kaushal Vikas Yojana (PMKVY)',            type:'Central', category:'Employment & Skill' },
+  { name:'Entrepreneurship & Skill Development Programme (ESDP)',  type:'Central', category:'Employment & Skill' },
+  { name:'PM Vishwakarma',                                          type:'Central', category:'Employment & Skill' },
+  { name:'PM Street Vendors AtmaNirbhar Nidhi (PM SVANidhi)',      type:'Central', category:'Employment & Skill' },
+  { name:'Deen Dayal Disabled Rehabilitation Scheme (DDRS)',       type:'Central', category:'Employment & Skill' },
+
+  { name:'Beti Bachao Beti Padhao',                                 type:'Central', category:'Women & Child' },
+  { name:'One Stop Centre (OSC)',                                   type:'Central', category:'Women & Child' },
+  { name:'Scheme for Adolescent Girls (SAG)',                      type:'Central', category:'Women & Child' },
+  { name:'Coir Vikas Yojana – Mahila Coir Yojana',                type:'Central', category:'Women & Child' },
+
+  { name:'Post-Matric Scholarship for SC Students',                type:'Central', category:'Education & Scholarship' },
+  { name:'Post-Matric Scholarship for OBC Students',               type:'Central', category:'Education & Scholarship' },
+  { name:'Pre-Matric Scholarship for SC/ST Students',              type:'Central', category:'Education & Scholarship' },
+  { name:'Pre-Matric Scholarship for Students with Disabilities',  type:'Central', category:'Education & Scholarship' },
+  { name:'Top Class Education for Students with Disabilities',     type:'Central', category:'Education & Scholarship' },
+  { name:'Rajiv Gandhi National Fellowship for SC Candidates',     type:'Central', category:'Education & Scholarship' },
+  { name:'Post Graduate Indira Gandhi Scholarship – Single Girl',  type:'Central', category:'Education & Scholarship' },
+  { name:'Pragati Scholarship for Girl Students (Diploma)',        type:'Central', category:'Education & Scholarship' },
+  { name:'Padho Pardesh',                                           type:'Central', category:'Education & Scholarship' },
+  { name:'Savitribai Jyotirao Phule Fellowship – Single Girl',     type:'Central', category:'Education & Scholarship' },
+  { name:'Free Coaching Scheme for SC & OBC Students',             type:'Central', category:'Education & Scholarship' },
+  { name:'National Scholarship for Post Graduate Studies',         type:'Central', category:'Education & Scholarship' },
+  { name:'Education Loan Scheme (NBCFDC)',                         type:'Central', category:'Education & Scholarship' },
+  { name:'IASRI Scholarship for M.Sc & Ph.D',                      type:'Central', category:'Education & Scholarship' },
+  { name:'NITI Internship Scheme',                                  type:'Central', category:'Education & Scholarship' },
+  { name:'National Action Plan – Skill Dev. for PwDs',             type:'Central', category:'Education & Scholarship' },
+
+  // ── Karnataka State ──────────────────────────────────────────────────────────
+  { name:'Gruha Jyothi Scheme (200 units free electricity)',        type:'State', category:'Energy' },
+  { name:'Gruha Lakshmi Scheme (₹2000/month)',                      type:'State', category:'Women & Child' },
+  { name:'Anna Bhagya Scheme (free foodgrains)',                    type:'State', category:'Food & PDS' },
+  { name:'Yuva Nidhi Scheme (unemployment allowance)',              type:'State', category:'Employment & Skill' },
+  { name:'Shakti Scheme (free bus travel for women)',               type:'State', category:'Transport' },
+  { name:'Thayi Bhagya Scheme (maternal healthcare)',               type:'State', category:'Health' },
+  { name:'Bhagyalaxmi Scheme (girl child BPL)',                     type:'State', category:'Women & Child' },
+  { name:'Ayushman Bharat – Arogya Karnataka (ABSSK)',              type:'State', category:'Health' },
+  { name:'Vidyasiri Food & Accommodation Scholarship',              type:'State', category:'Education & Scholarship' },
+  { name:'Prabhuddha Overseas Scholarship (SC/ST)',                 type:'State', category:'Education & Scholarship' },
+  { name:'Samruddhi Scheme (SC/ST women entrepreneurs)',            type:'State', category:'Employment & Skill' },
+  { name:'Udyogini Scheme (women self-employment)',                  type:'State', category:'Employment & Skill' },
+  { name:'Unnati Scheme (startup support – minorities)',            type:'State', category:'Employment & Skill' },
+  { name:'Airavata Scheme (SC/ST cab entrepreneurs)',               type:'State', category:'Employment & Skill' },
+  { name:'Prerana Micro Credit Finance Scheme',                     type:'State', category:'Employment & Skill' },
+  { name:'Shrama Shakthi Scheme (minority entrepreneurs)',          type:'State', category:'Employment & Skill' },
+  { name:'Self Employment Scheme (minority communities)',           type:'State', category:'Employment & Skill' },
+  { name:'Ganga Kalyana Scheme (minority farmers)',                 type:'State', category:'Agriculture' },
+  { name:'Krushy Aranya Protsaha Yojane (KAPY)',                    type:'State', category:'Agriculture' },
+  { name:'Nekar Samman Yojana (handloom weavers)',                  type:'State', category:'Employment & Skill' },
+  { name:'Subsidy – Taxi / Goods Vehicle / Autorickshaw',           type:'State', category:'Transport' },
+  { name:'Incentive for SC Widow Remarriage',                       type:'State', category:'Social Security' },
+  { name:'Incentive for Simple Marriage (SC)',                      type:'State', category:'Social Security' },
+  { name:'Direct Loans for Business Enterprise (KMDC)',             type:'State', category:'Finance & Insurance' },
+  { name:'National Overseas Scholarship for ST Students',           type:'State', category:'Education & Scholarship' },
+  { name:'Indira Canteen',                                           type:'State', category:'Food & PDS' },
+];
+
 function blankForm(serialNo, wardNumber, locked = {}, prefill = {}) {
   // Ward: locked > passed wardNumber > resolve from booth > prefill.wardNumber
   const resolvedWard  = locked.wardNumber || wardNumber
@@ -257,6 +353,158 @@ function FutureVoterRow({ voter, index, onChange, onRemove, defaultHouseNumber, 
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+// ─── SchemeSelector — searchable multi-select with custom entry ───────────────
+function SchemeSelector({ selected, onChange }) {
+  const [query,    setQuery]    = useState('');
+  const [custom,   setCustom]   = useState('');
+  const [showList, setShowList] = useState(false);
+  const wrapRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setShowList(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q.length < 1
+    ? SCHEMES
+    : SCHEMES.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.category.toLowerCase().includes(q) ||
+        s.type.toLowerCase().includes(q)
+      );
+
+  // Group filtered results by category
+  const grouped = filtered.reduce((acc, s) => {
+    if (!acc[s.category]) acc[s.category] = [];
+    acc[s.category].push(s);
+    return acc;
+  }, {});
+
+  const toggle = (schemeName) => {
+    onChange(
+      selected.includes(schemeName)
+        ? selected.filter(x => x !== schemeName)
+        : [...selected, schemeName]
+    );
+  };
+
+  const addCustom = () => {
+    const v = custom.trim();
+    if (v && !selected.includes(v)) {
+      onChange([...selected, v]);
+      setCustom('');
+    }
+  };
+
+  const TYPE_COLOR = { Central:'#22d3ee', State:'#a78bfa' };
+
+  return (
+    <div ref={wrapRef} style={{ gridColumn:'1/-1' }}>
+      {/* Search input */}
+      <div style={{ position:'relative', marginBottom:8 }}>
+        <div style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,0.3)', pointerEvents:'none' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </div>
+        <input
+          className="input"
+          placeholder="Search schemes… (e.g. PM-KISAN, health, Karnataka)"
+          value={query}
+          style={{ paddingLeft:34 }}
+          onChange={e => { setQuery(e.target.value); setShowList(true); }}
+          onFocus={() => setShowList(true)}
+        />
+        {query && (
+          <button onClick={() => setQuery('')} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', fontSize:16, lineHeight:1, padding:0 }}>×</button>
+        )}
+      </div>
+
+      {/* Dropdown */}
+      {showList && (
+        <div style={{ maxHeight:280, overflowY:'auto', background:'rgba(10,18,35,0.98)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, marginBottom:10, scrollbarWidth:'thin' }}>
+          {Object.entries(grouped).length === 0 && (
+            <div style={{ padding:'14px 16px', fontSize:12, color:'rgba(255,255,255,0.3)' }}>No schemes found — use the custom entry below</div>
+          )}
+          {Object.entries(grouped).map(([cat, items]) => (
+            <div key={cat}>
+              <div style={{ padding:'6px 14px 4px', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.2)', letterSpacing:'0.6px', textTransform:'uppercase', background:'rgba(0,0,0,0.2)', position:'sticky', top:0 }}>
+                {cat}
+              </div>
+              {items.map(s => {
+                const isSelected = selected.includes(s.name);
+                return (
+                  <div key={s.name}
+                    onClick={() => { toggle(s.name); }}
+                    style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px', cursor:'pointer',
+                      background: isSelected ? 'rgba(16,185,129,0.08)' : 'transparent',
+                      borderLeft: isSelected ? '3px solid #10b981' : '3px solid transparent',
+                      transition:'background 0.1s' }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
+                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background='transparent'; }}
+                  >
+                    {/* Checkbox */}
+                    <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.2)'}`, background: isSelected ? '#10b981' : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
+                      {isSelected && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </div>
+                    <span style={{ flex:1, fontSize:12, color: isSelected ? '#e2e8f0' : '#94a3b8', lineHeight:1.4 }}>{s.name}</span>
+                    <span style={{ fontSize:9, fontWeight:700, color: TYPE_COLOR[s.type] || '#94a3b8', background:`${TYPE_COLOR[s.type] || '#94a3b8'}15`, border:`1px solid ${TYPE_COLOR[s.type] || '#94a3b8'}30`, borderRadius:4, padding:'1px 5px', whiteSpace:'nowrap', flexShrink:0 }}>
+                      {s.type}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Selected chips */}
+      {selected.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+          {selected.map(name => {
+            const meta = SCHEMES.find(s => s.name === name);
+            const col  = meta ? (TYPE_COLOR[meta.type] || '#94a3b8') : '#10b981';
+            return (
+              <div key={name} style={{ display:'inline-flex', alignItems:'center', gap:5, background:`${col}12`, border:`1px solid ${col}30`, borderRadius:16, padding:'4px 10px 4px 10px', fontSize:12, color: col === '#10b981' ? '#6ee7b7' : '#c4b5fd', maxWidth:'100%' }}>
+                <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:220 }}>{name}</span>
+                <button onClick={() => toggle(name)}
+                  style={{ background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', fontSize:14, lineHeight:1, padding:0, flexShrink:0, marginLeft:2 }}>×</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Manual / custom scheme entry */}
+      <div style={{ display:'flex', gap:8 }}>
+        <input
+          className="input"
+          placeholder="Or type a scheme name not listed above…"
+          value={custom}
+          onChange={e => setCustom(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addCustom()}
+          style={{ flex:1 }}
+        />
+        <button type="button" onClick={addCustom} disabled={!custom.trim()}
+          style={{ background:'rgba(168,139,250,0.1)', border:'1px solid rgba(168,139,250,0.3)', borderRadius:8, color:'#a78bfa', padding:'0 16px', fontSize:13, fontWeight:600, cursor: custom.trim() ? 'pointer' : 'not-allowed', whiteSpace:'nowrap', opacity: custom.trim() ? 1 : 0.5 }}>
+          + Add
+        </button>
+      </div>
+
+      {selected.length > 0 && (
+        <div style={{ marginTop:6, fontSize:11, color:'rgba(255,255,255,0.25)' }}>
+          {selected.length} scheme{selected.length !== 1 ? 's' : ''} selected
+          <button onClick={() => onChange([])} style={{ marginLeft:8, background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:11, padding:0, textDecoration:'underline' }}>Clear all</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SurveyForm() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -302,6 +550,10 @@ export default function SurveyForm() {
 
   const [deceased,      setDeceased]      = useState([]);
   const [showDeceased,  setShowDeceased]  = useState(false);
+
+  // ── Government schemes used by this individual ────────────────────────────
+  const [schemes, setSchemes] = useState([]);
+  const [showSchemes, setShowSchemes] = useState(false);
 
   // ── Aadhaar photo ───────────────────────────────────────────────────────────
   const [aadhaarPhoto,    setAadhaarPhoto]    = useState(null);   // File object
@@ -439,11 +691,11 @@ export default function SurveyForm() {
       let surveyRes;
       if (aadhaarPhoto) {
         const fd = new FormData();
-        fd.append('data', JSON.stringify(form));
+        fd.append('data', JSON.stringify({ ...form, schemes }));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
         surveyRes = await api.post('/api/save-survey/', fd);
       } else {
-        surveyRes = await surveyApi.save(form);
+        surveyRes = await surveyApi.save({ ...form, schemes });
       }
       const { data } = surveyRes;
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
@@ -526,6 +778,7 @@ export default function SurveyForm() {
       setShowDeceased(false);
       setForm(blankForm(nextSerial, lockedRef.current.wardNumber, lockedRef.current));
       clearAadhaarPhoto();
+      setSchemes([]);
       flash(`Member ${savedMembers.length + 1} saved — enter next person ✓`);
 
     } catch (e) {
@@ -1107,6 +1360,50 @@ export default function SurveyForm() {
                       color:'#f87171', borderRadius:8, padding:'7px 16px', cursor:'pointer', fontSize:13 }}>
                     + Add another deceased member
                   </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Schemes Section — shown on last step ── */}
+          {isLastStep && (
+            <div style={{ marginTop:16 }}>
+              <button
+                type="button"
+                onClick={() => setShowSchemes(p => !p)}
+                style={{
+                  display:'flex', alignItems:'center', gap:10, width:'100%',
+                  background: showSchemes ? 'rgba(34,211,238,0.06)' : 'rgba(255,255,255,0.03)',
+                  border:`1px solid ${showSchemes ? 'rgba(34,211,238,0.35)' : 'var(--border)'}`,
+                  borderRadius:10, padding:'12px 16px', cursor:'pointer', textAlign:'left',
+                }}
+              >
+                <span style={{ fontSize:18 }}>🏛️</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:13, color: showSchemes ? 'var(--cyan)' : 'var(--text-1)' }}>
+                    Government Schemes Used
+                    {schemes.length > 0 && (
+                      <span style={{ marginLeft:8, fontSize:11, background:'rgba(34,211,238,0.15)', color:'var(--cyan)', padding:'1px 6px', borderRadius:4 }}>
+                        {schemes.length} selected
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--text-3)', marginTop:2 }}>
+                    Select all government schemes this individual currently benefits from
+                  </div>
+                </div>
+                <span style={{ color:'var(--text-3)', fontSize:18 }}>{showSchemes ? '▲' : '▼'}</span>
+              </button>
+
+              {showSchemes && (
+                <div style={{ marginTop:12, padding:'14px 16px', background:'rgba(34,211,238,0.03)', borderRadius:10, border:'1px solid rgba(34,211,238,0.12)' }}>
+                  {/* Category legend */}
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:12 }}>
+                    <span style={{ fontSize:10, fontWeight:700, color:'#22d3ee', background:'rgba(34,211,238,0.1)', border:'1px solid rgba(34,211,238,0.25)', borderRadius:4, padding:'2px 8px' }}>Central</span>
+                    <span style={{ fontSize:10, fontWeight:700, color:'#a78bfa', background:'rgba(168,139,250,0.1)', border:'1px solid rgba(168,139,250,0.25)', borderRadius:4, padding:'2px 8px' }}>State (Karnataka)</span>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)', alignSelf:'center' }}>— {SCHEMES.length} schemes available. Search or scroll to find, or type a custom name.</span>
+                  </div>
+                  <SchemeSelector selected={schemes} onChange={setSchemes} />
                 </div>
               )}
             </div>
