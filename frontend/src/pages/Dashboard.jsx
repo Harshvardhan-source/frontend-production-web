@@ -1511,7 +1511,7 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
           areaType:           hs.areaType     || '',
           homeType:           hs.homeType     || '',
           familyIncome:       hs.familyIncome || '',
-          // ── 2025 voter roll fields ────────────────────────────────────
+          // ── 2025 voter roll fields ─────────────────────────────────────
           relation:           member.relation           || '',
           relationName:       member.relationName       || member.relation || '',
           partNo:             member.partNo             || member.ward     || '',
