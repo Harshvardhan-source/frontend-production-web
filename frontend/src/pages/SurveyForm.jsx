@@ -686,27 +686,33 @@ export default function SurveyForm() {
   const handleSubmit = async (mode) => {
     setBusy(true); setSaveMode(mode); setError('');
     try {
-      // If an Aadhaar photo is attached, send everything as multipart FormData.
-      // Otherwise keep the original JSON path (no change to existing behaviour).
-      let surveyRes;
+      // Always use fetch (never axios) so Content-Type and credentials are set
+      // consistently for both the JSON and multipart paths.
+      const API_BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com';
+      let rawRes;
       if (aadhaarPhoto) {
+        // Multipart path — do NOT set Content-Type manually; browser sets it with
+        // the correct boundary automatically when body is a FormData instance.
         const fd = new FormData();
         fd.append('data', JSON.stringify({ ...form, schemes }));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
-        surveyRes = await api.post('/api/save-survey/', fd);
+        rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
+          method: 'POST',
+          credentials: 'include',
+          // ⚠️ No 'Content-Type' header here — let the browser set multipart/form-data + boundary
+          body: fd,
+        });
       } else {
-        // Explicitly send as JSON with correct Content-Type header
-        const API_BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com';
-        const rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
+        // JSON path — explicitly set Content-Type: application/json
+        rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...form, schemes }),
         });
-        const json = await rawRes.json();
-        surveyRes = { data: json };
       }
-      const { data } = surveyRes;
+      const json = await rawRes.json();
+      const { data } = { data: json };
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
 
       // ── Update voter-roll status from backend response ─────────────────
