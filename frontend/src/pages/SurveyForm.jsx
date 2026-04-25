@@ -695,7 +695,16 @@ export default function SurveyForm() {
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
         surveyRes = await api.post('/api/save-survey/', fd);
       } else {
-        surveyRes = await surveyApi.save({ ...form, schemes });
+        // Explicitly send as JSON with correct Content-Type header
+        const API_BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com';
+        const rawRes = await fetch(`${API_BASE}/api/save-survey/`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...form, schemes }),
+        });
+        const json = await rawRes.json();
+        surveyRes = { data: json };
       }
       const { data } = surveyRes;
       if (!data.success) { setError(data.message || 'Failed to save.'); return; }
