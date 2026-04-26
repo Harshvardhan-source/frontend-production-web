@@ -661,7 +661,7 @@ export default function SurveyForm() {
         boothNo:      form.boothNo            || '',
         serialNumber: form.serialNumber       || '',
       };
-      const SIR_URL = (process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com') + '/api/sir/check/';
+      const SIR_URL = (process.env.REACT_APP_API_URL || 'https://production-web-conn-0tsi.onrender.com') + '/api/sir/check/';
       const res = await fetch(SIR_URL, {
         method: 'POST',
         credentials: 'include',
@@ -710,7 +710,7 @@ export default function SurveyForm() {
         // Auth: replicate the client.js interceptor exactly —
         //   sessionStorage.getItem('cc_token') → Authorization: Bearer <token>
         const ccToken = sessionStorage.getItem('cc_token') || '';
-        const BASE    = process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com';
+        const BASE    = process.env.REACT_APP_API_URL || 'https://production-web-conn-0tsi.onrender.com';
 
         console.log('[SurveyForm] multipart fetch | token:', ccToken ? 'found ✓' : 'MISSING ✗');
 

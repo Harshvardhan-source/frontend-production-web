@@ -4,13 +4,13 @@ import axios from 'axios';
 // baseURL is empty so every path like /api/... goes through CRA proxy.
 // Add  "proxy": "http://localhost:8000"  to package.json and restart npm start.
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com',
+  baseURL: process.env.REACT_APP_API_URL || 'https://production-web-conn-0tsi.onrender.com',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
 const authClient = axios.create({
-  baseURL: process.env.REACT_APP_AUTH_URL || 'https://production-web-conn-1.onrender.com',
+  baseURL: process.env.REACT_APP_AUTH_URL || 'https://production-web-conn-1-qoya.onrender.com',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
