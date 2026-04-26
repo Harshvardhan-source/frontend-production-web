@@ -696,19 +696,41 @@ export default function SurveyForm() {
 
       let surveyRes;
       if (aadhaarPhoto) {
-        // Multipart upload — MUST use transformRequest so axios does NOT
-        // JSON-serialize the FormData (which forces Content-Type: application/json
-        // and empties request.FILES on Django, causing aadhaarPhotoUrl: null).
-        // transformRequest: identity fn  → FormData passes through untouched.
-        // Content-Type: undefined        → browser sets multipart + correct boundary.
-        // Auth interceptors still run    → Authorization header still attached.
+        // ── Multipart upload via native fetch() ───────────────────────────────────────
+        // axios cannot be used here: the api instance has a hard-coded
+        // default  Content-Type: application/json  that survives every
+        // per-request override (undefined / null / transformRequest) due to
+        // axios instance-level header merging. FormData sent via axios becomes
+        // '[object FormData]' with JSON content-type → Django request.FILES
+        // is empty → GCS upload is skipped → aadhaarPhotoUrl stays null.
+        //
+        // fetch() fix: omit Content-Type entirely → browser sets
+        // multipart/form-data with the correct boundary automatically.
+        //
+        // Auth: replicate the client.js interceptor exactly —
+        //   sessionStorage.getItem('cc_token') → Authorization: Bearer <token>
+        const ccToken = sessionStorage.getItem('cc_token') || '';
+        const BASE    = process.env.REACT_APP_API_URL || 'https://production-web-conn.onrender.com';
+
+        console.log('[SurveyForm] multipart fetch | token:', ccToken ? 'found ✓' : 'MISSING ✗');
+
         const fd = new FormData();
         fd.append('data', JSON.stringify(payload));
         fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
-        surveyRes = await api.post('/api/save-survey/', fd, {
-          transformRequest: [(data) => data],   // bypass axios JSON serialisation
-          headers: { 'Content-Type': undefined }, // let browser set multipart boundary
+
+        const rawRes = await fetch(`${BASE}/api/save-survey/`, {
+          method:      'POST',
+          credentials: 'include',
+          headers:     { 'Authorization': `Bearer ${ccToken}` },
+          // ⚠️ NO Content-Type — browser sets multipart/form-data + boundary
+          body: fd,
         });
+
+        if (!rawRes.ok) {
+          const errText = await rawRes.text();
+          throw new Error(`Upload failed (${rawRes.status}): ${errText.slice(0, 300)}`);
+        }
+        surveyRes = { data: await rawRes.json() };
       } else {
         // JSON path: send plain object — axios serialises + sets Content-Type: application/json.
         surveyRes = await api.post('/api/save-survey/', payload);
