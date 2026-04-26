@@ -175,15 +175,15 @@ export default function Navbar() {
           </Link>
         ))}
 
-        {/* Centre gap for FAB — same flex:1 as tabs */}
-        <div className="bottom-tab-spacer" aria-hidden="true" />
-
         {RIGHT_TABS.map(l => (
           <Link key={l.to} to={l.to} className={`bottom-tab ${isActive(l.to) ? 'bottom-tab-active' : ''}`}>
             <span className="bottom-tab-icon">{l.icon}</span>
             <span className="bottom-tab-label">{l.label}</span>
           </Link>
         ))}
+
+        {/* Right-edge gap for FAB */}
+        <div className="bottom-tab-spacer" aria-hidden="true" />
       </nav>
 
       {/* ── AI FAB — floats above centre of bottom bar ─── */}
@@ -326,7 +326,8 @@ export default function Navbar() {
         .ai-fab {
           position: fixed;
           bottom: calc(52px + env(safe-area-inset-bottom, 0px) - 16px);
-          left: 50%; transform: translateX(-50%);
+          left: calc(100vw * 11 / 12 - 26px);
+          transform: none;
           z-index: 902;
           width: 52px; height: 52px; border-radius: 50%;
           background: linear-gradient(140deg, #67e8f9 0%, #38bdf8 50%, #818cf8 100%);
@@ -337,7 +338,7 @@ export default function Navbar() {
           transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
         .ai-fab:active {
-          transform: translateX(-50%) scale(0.91);
+          transform: scale(0.91);
           box-shadow: 0 2px 8px rgba(34,211,238,0.25);
         }
         .ai-fab-active {
