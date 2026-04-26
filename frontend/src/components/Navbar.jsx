@@ -100,6 +100,30 @@ export default function Navbar() {
             </div>
           </div>
           <button onClick={handleLogout} className="btn btn-danger btn-sm desktop-only">⏻ Logout</button>
+
+          {/* SWOT + AI quick-access buttons — mobile top bar only */}
+          <div className="mobile-quicklinks mobile-only">
+            <Link to="/swot" className={`mobile-quickbtn ${isActive('/swot') ? 'mobile-quickbtn-active' : ''}`} title="SWOT">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="8" height="8" rx="1"/>
+                <rect x="13" y="3" width="8" height="8" rx="1"/>
+                <rect x="3" y="13" width="8" height="8" rx="1"/>
+                <rect x="13" y="13" width="8" height="8" rx="1"/>
+              </svg>
+              <span>SWOT</span>
+            </Link>
+            <Link to="/ai" className={`mobile-quickbtn mobile-quickbtn-ai ${isActive('/ai') ? 'mobile-quickbtn-active-ai' : ''}`} title="AI">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3h-1v1a4 4 0 0 1-8 0v-1H7a3 3 0 0 1-3-3v-2a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z"/>
+                <circle cx="9" cy="10" r="1" fill="currentColor"/>
+                <circle cx="15" cy="10" r="1" fill="currentColor"/>
+              </svg>
+              <span>AI</span>
+            </Link>
+          </div>
+
           <button className="hamburger mobile-only" onClick={() => setOpen(p => !p)} aria-label="Menu">
             <span style={{ transform: open ? 'rotate(45deg) translateY(8px)' : 'none' }} />
             <span style={{ opacity: open ? 0 : 1 }} />
@@ -210,6 +234,27 @@ export default function Navbar() {
 
         .hamburger  { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 5px; padding: 4px; }
         .hamburger span { width: 22px; height: 2px; background: var(--text-1); border-radius: 2px; display: block; transition: all 0.28s var(--ease); }
+
+        /* ── Mobile quick-access buttons (SWOT + AI) ─── */
+        .mobile-quicklinks { display: flex; align-items: center; gap: 6px; }
+        .mobile-quickbtn {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 2px; padding: 5px 8px; border-radius: 8px;
+          text-decoration: none; color: var(--text-2);
+          font-size: 9px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+          border: 1px solid var(--border);
+          background: rgba(255,255,255,0.04);
+          transition: all var(--dur) var(--ease);
+          line-height: 1;
+        }
+        .mobile-quickbtn:active { opacity: 0.7; transform: scale(0.94); }
+        .mobile-quickbtn-active { color: var(--gold) !important; border-color: rgba(245,158,11,0.4) !important; background: var(--gold-dim) !important; }
+        .mobile-quickbtn-ai {
+          color: #22d3ee !important;
+          border-color: rgba(34,211,238,0.3) !important;
+          background: rgba(34,211,238,0.07) !important;
+        }
+        .mobile-quickbtn-active-ai { border-color: rgba(34,211,238,0.55) !important; background: rgba(34,211,238,0.16) !important; }
 
         .nav-drawer {
           position: absolute; top: var(--nav-h); left: 0; right: 0;
