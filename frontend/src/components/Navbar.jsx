@@ -18,7 +18,7 @@ const RIGHT_TABS = [
         <path d="M9 11l3 3L22 4"/>
         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 012-2h11"/>
       </svg>
-    ), label: 'Check SIR' },
+    ), label: 'SIR' },
 ];
 
 // All desktop nav links
@@ -120,6 +120,19 @@ export default function Navbar() {
 
           <button onClick={handleLogout} className="btn btn-danger btn-sm desktop-only">⏻ Logout</button>
 
+          {/* Admin icon — mobile top bar only */}
+          {isAdmin && (
+            <Link to="/admin"
+              className={`admin-topbtn mobile-only ${isActive('/admin') ? 'admin-topbtn-active' : ''}`}
+              aria-label="Admin">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </Link>
+          )}
+
           <button className="hamburger mobile-only" onClick={() => setOpen(p => !p)} aria-label="Menu">
             <span style={{ transform: open ? 'rotate(45deg) translateY(7px)' : 'none' }} />
             <span style={{ opacity: open ? 0 : 1 }} />
@@ -153,6 +166,7 @@ export default function Navbar() {
       </nav>
 
       {/* ── Bottom tab bar — mobile only ────────────────── */}
+      {/* Always 2 left + FAB spacer + 2 right = perfectly equal */}
       <nav className="nav-bottom mobile-only">
         {LEFT_TABS.map(l => (
           <Link key={l.to} to={l.to} className={`bottom-tab ${isActive(l.to) ? 'bottom-tab-active' : ''}`}>
@@ -161,7 +175,7 @@ export default function Navbar() {
           </Link>
         ))}
 
-        {/* Centre gap for FAB */}
+        {/* Centre gap for FAB — same flex:1 as tabs */}
         <div className="bottom-tab-spacer" aria-hidden="true" />
 
         {RIGHT_TABS.map(l => (
@@ -170,13 +184,6 @@ export default function Navbar() {
             <span className="bottom-tab-label">{l.label}</span>
           </Link>
         ))}
-
-        {isAdmin && (
-          <Link to={ADMIN_LINK.to} className={`bottom-tab ${isActive(ADMIN_LINK.to) ? 'bottom-tab-active' : ''}`}>
-            <span className="bottom-tab-icon">{ADMIN_LINK.icon}</span>
-            <span className="bottom-tab-label">{ADMIN_LINK.label}</span>
-          </Link>
-        )}
       </nav>
 
       {/* ── AI FAB — floats above centre of bottom bar ─── */}
@@ -297,7 +304,20 @@ export default function Navbar() {
         .bottom-tab-active { color: var(--gold) !important; }
         .bottom-tab-icon   { font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center; }
         .bottom-tab-label  { font-size: 9.5px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-align: center; }
-        .bottom-tab-spacer { flex: 1.4; }   /* gap for FAB */
+        .bottom-tab-spacer { flex: 1; }   /* same as .bottom-tab — equal gap for FAB */
+
+        /* ── Admin icon button — top bar mobile ──────── */
+        .admin-topbtn {
+          display: flex; align-items: center; justify-content: center;
+          width: 32px; height: 32px; border-radius: 8px;
+          color: var(--text-2); text-decoration: none;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border);
+          flex-shrink: 0;
+          transition: all var(--dur) var(--ease);
+        }
+        .admin-topbtn:active { opacity: 0.7; }
+        .admin-topbtn-active { color: #f59e0b !important; border-color: rgba(245,158,11,0.4) !important; background: rgba(245,158,11,0.08) !important; }
 
         /* ── AI Floating Action Button ────────────────── */
         .ai-fab {
