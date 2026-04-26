@@ -522,28 +522,28 @@ function SwotTab() {
   return (
     <div>
       {/* Key Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
+      <div className="grid-4">
         {[
           { label: 'Ward Win Rate', value: '65.8%', sub: '25 of 38 wards', color: '#10b981', Icon: TrendingUp },
           { label: 'BJP Vote Share', value: '56.1%', sub: 'vs INC 42.0%', color: '#fb923c', Icon: Activity },
           { label: 'Majority Margin', value: '+14.1%', sub: 'over Congress', color: '#22d3ee', Icon: MapPin },
           { label: 'Strong Booths', value: '33/38', sub: 'Polling stations', color: '#a78bfa', Icon: CheckSquare },
         ].map((s, i) => (
-          <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+          <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 10px', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
               <s.Icon size={16} color={s.color} strokeWidth={2} />
             </div>
             <div style={{ fontSize: 20, fontWeight: 900, color: s.color, letterSpacing: -0.5, marginBottom: 2, fontFamily: 'Space Mono, monospace' }}>{s.value}</div>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.55)', marginBottom: 1 }}>{s.label}</div>
-            <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.22)' }}>{s.sub}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', marginBottom: 1 }}>{s.label}</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)' }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
       {/* 2028 Strategy */}
-      <div style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 14, padding: '16px 18px', marginBottom: 20 }}>
+      <div style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 14, padding: '14px 16px', marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Zap size={14} color="#f59e0b" strokeWidth={2.5} />
           </div>
           <div>
@@ -551,23 +551,23 @@ function SwotTab() {
             <div style={{ fontSize: 9, fontWeight: 700, color: '#f59e0b', letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.75 }}>Derived from 2023 booth-level data · 38 wards · 246,952 voters</div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+        <div className="grid-2-sm">
           {strategyItems.map((p, i) => (
             <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', padding: '9px 11px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
-              <p.Icon size={13} color="#f59e0b" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+              <p.Icon size={13} color="#f59e0b" strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
               <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{p.text}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginBottom: 14, fontFamily: 'Space Mono, monospace', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginBottom: 12, fontFamily: 'Space Mono, monospace', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
         <ChevronRight size={11} color="rgba(255,255,255,0.2)" />
-        Click any quadrant to expand detailed intelligence
+        Tap any quadrant to expand detailed intelligence
       </div>
 
       {/* 2×2 SWOT Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="grid-2">
         {keys.map((key, idx) => {
           const q = swotPoints[key];
           const isH = hovered === key;
@@ -577,11 +577,12 @@ function SwotTab() {
               onMouseEnter={() => setHovered(key)}
               onMouseLeave={() => setHovered(null)}
               style={{
-                position: 'relative', borderRadius: 14, padding: '16px 15px 14px',
+                position: 'relative', borderRadius: 14, padding: '16px 14px 14px',
                 border: `1px solid ${isH ? q.border : 'rgba(255,255,255,0.07)'}`,
                 background: isH ? `linear-gradient(145deg, ${q.bg}, rgba(10,18,35,0.98))` : 'rgba(15,23,42,0.6)',
                 boxShadow: isH ? `0 8px 30px ${q.glow}` : 'none',
                 transition: 'all 0.22s ease', overflow: 'hidden', cursor: 'pointer',
+                WebkitTapHighlightColor: 'transparent',
               }}>
               {/* watermark letter */}
               <div style={{ position: 'absolute', bottom: -8, right: 10, fontSize: 68, fontWeight: 900, color: q.color, opacity: 0.04, lineHeight: 1, pointerEvents: 'none', userSelect: 'none', fontFamily: 'Sora, sans-serif' }}>{key}</div>
@@ -589,7 +590,7 @@ function SwotTab() {
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 7, background: q.badgeBg, border: `1px solid ${q.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: q.badgeBg, border: `1px solid ${q.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <q.Icon size={14} color={q.color} strokeWidth={2} />
                   </div>
                   <div>
@@ -605,14 +606,14 @@ function SwotTab() {
               {/* Items */}
               <div>
                 {q.items.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 8px', borderRadius: 7, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 500, flex: 1, paddingRight: 7, lineHeight: 1.3 }}>{item.label}</span>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: item.statColor, background: `${item.statColor}10`, border: `1px solid ${item.statColor}1e`, borderRadius: 4, padding: '2px 5px', whiteSpace: 'nowrap', fontFamily: 'Space Mono, monospace' }}>{item.stat}</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 7, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 4, gap: 6 }}>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 500, flex: 1, lineHeight: 1.35 }}>{item.label}</span>
+                    <span style={{ fontSize: 9, fontWeight: 800, color: item.statColor, background: `${item.statColor}10`, border: `1px solid ${item.statColor}1e`, borderRadius: 4, padding: '2px 5px', whiteSpace: 'nowrap', fontFamily: 'Space Mono, monospace', flexShrink: 0 }}>{item.stat}</span>
                   </div>
                 ))}
               </div>
 
-              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, opacity: isH ? 0.65 : 0.2, transition: 'opacity 0.2s' }}>
+              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, opacity: isH ? 0.65 : 0.25, transition: 'opacity 0.2s' }}>
                 <span style={{ fontSize: 9, color: q.color, fontFamily: 'Space Mono, monospace', fontWeight: 700, letterSpacing: 0.3 }}>VIEW DETAILS</span>
                 <ChevronRight size={10} color={q.color} />
               </div>
@@ -623,11 +624,13 @@ function SwotTab() {
 
       {/* Modal */}
       {modalKey && (
-        <div onClick={() => setModalKey(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.88)', backdropFilter: 'blur(12px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'linear-gradient(145deg, #0d1a30, #080d1a)', border: `1px solid ${swotPoints[modalKey].border}`, borderRadius: 18, padding: '22px 20px', maxWidth: 540, width: '100%', boxShadow: `0 20px 70px ${swotPoints[modalKey].glow}`, maxHeight: '85vh', overflowY: 'auto' }}>
+        <div onClick={() => setModalKey(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 0 env(safe-area-inset-bottom, 0px)' }}>
+          <div onClick={e => e.stopPropagation()} className="swot-modal-inner" style={{ background: 'linear-gradient(145deg, #0d1a30, #080d1a)', border: `1px solid ${swotPoints[modalKey].border}`, borderRadius: '18px 18px 0 0', padding: '20px 18px', maxWidth: 600, width: '100%', boxShadow: `0 -16px 60px ${swotPoints[modalKey].glow}`, maxHeight: '88vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            {/* Drag handle */}
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 16px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
               <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-                <div style={{ width: 32, height: 32, borderRadius: 9, background: swotPoints[modalKey].badgeBg, border: `1px solid ${swotPoints[modalKey].border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: swotPoints[modalKey].badgeBg, border: `1px solid ${swotPoints[modalKey].border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {React.createElement(swotPoints[modalKey].Icon, { size: 16, color: swotPoints[modalKey].color, strokeWidth: 2 })}
                 </div>
                 <div>
@@ -635,8 +638,8 @@ function SwotTab() {
                   <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase', color: swotPoints[modalKey].color, opacity: 0.75 }}>{swotPoints[modalKey].subtitle}</div>
                 </div>
               </div>
-              <button onClick={() => setModalKey(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <XIcon size={13} />
+              <button onClick={() => setModalKey(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)', borderRadius: 8, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <XIcon size={14} />
               </button>
             </div>
             <div style={{ height: 1, background: `linear-gradient(90deg, ${swotPoints[modalKey].color}22, transparent)`, marginBottom: 14 }} />
@@ -664,12 +667,15 @@ export default function Swot() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
-        * { box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+        button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
         .swot-page {
-          min-height: 100vh;
+          min-height: 100vh; min-height: 100dvh;
           background: #070c18;
           padding-top: var(--nav-h, 64px);
-          padding-bottom: calc(var(--tab-h, 56px) + var(--safe-bottom, 0px) + 24px);
+          padding-bottom: calc(var(--tab-h, 56px) + env(safe-area-inset-bottom, 0px) + 24px);
           position: relative;
           font-family: 'Sora', sans-serif;
         }
@@ -683,62 +689,97 @@ export default function Swot() {
         .swot-inner {
           position: relative; z-index: 1;
           max-width: 1000px; margin: 0 auto;
-          padding: 24px 16px 32px;
+          padding: 20px 14px 32px;
         }
-        .swot-hero {
-          text-align: center; margin-bottom: 24px;
-          animation: fadeUp 0.45s ease both;
-        }
+        .swot-hero { text-align: center; margin-bottom: 20px; animation: fadeUp 0.45s ease both; }
         .swot-eyebrow {
           display: inline-flex; align-items: center; gap: 6px;
           background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.18);
           border-radius: 999px; padding: 4px 14px;
           font-size: 9.5px; font-weight: 700; color: rgba(245,158,11,0.85);
-          letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 12px;
+          letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 10px;
           font-family: 'Space Mono', monospace;
         }
-        .swot-eyebrow-dot {
-          width: 5px; height: 5px; border-radius: 50%; background: #f59e0b;
-          animation: pulse 2.2s ease-in-out infinite;
-        }
-        .swot-title {
-          font-size: clamp(24px, 4.5vw, 38px); font-weight: 900; color: #eef2ff;
-          letter-spacing: -1.2px; line-height: 1.06; margin-bottom: 8px;
-        }
-        .swot-title-accent {
-          background: linear-gradient(135deg, #f59e0b, #fde68a);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-        }
-        .swot-subtitle {
-          font-size: 12.5px; color: rgba(255,255,255,0.28);
-          max-width: 420px; margin: 0 auto; line-height: 1.6;
-        }
+        .swot-eyebrow-dot { width: 5px; height: 5px; border-radius: 50%; background: #f59e0b; animation: pulse 2.2s ease-in-out infinite; }
+        .swot-title { font-size: clamp(22px, 6vw, 38px); font-weight: 900; color: #eef2ff; letter-spacing: -1px; line-height: 1.08; margin-bottom: 8px; }
+        .swot-title-accent { background: linear-gradient(135deg, #f59e0b, #fde68a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .swot-subtitle { font-size: 12px; color: rgba(255,255,255,0.28); max-width: 420px; margin: 0 auto; line-height: 1.6; }
+
         .tab-nav {
-          display: flex; gap: 5px; margin-bottom: 22px; padding: 4px;
+          display: flex; gap: 4px; margin-bottom: 18px; padding: 4px;
           background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07);
           border-radius: 12px; animation: fadeUp 0.45s ease 0.08s both;
         }
         .tab-btn {
-          flex: 1; padding: 9px 12px; border-radius: 9px; border: 1px solid transparent;
+          flex: 1; padding: 10px 8px; border-radius: 9px; border: 1px solid transparent;
           background: transparent; cursor: pointer; font-family: 'Sora', sans-serif;
-          font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.36);
-          transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+          font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.36);
+          transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+          min-height: 44px;
         }
-        .tab-btn.active {
-          background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.24);
-          color: #f59e0b;
-        }
+        .tab-btn.active { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.24); color: #f59e0b; }
         .tab-btn:not(.active):hover { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.04); }
+
+        /* Responsive grid helpers */
+        .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 18px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .grid-2-sm { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+
+        /* Filter button row — scrollable on mobile */
+        .filter-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+
+        /* Demographic toggle row */
+        .demo-toggle { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
         .swot-source {
           display: flex; align-items: center; justify-content: center; gap: 7px;
-          padding: 9px 14px; border-radius: 8px; margin-top: 22px;
+          padding: 9px 14px; border-radius: 8px; margin-top: 20px;
           background: rgba(255,255,255,0.018); border: 1px solid rgba(255,255,255,0.05);
-          font-size: 9.5px; color: rgba(255,255,255,0.2); font-family: 'Space Mono', monospace;
+          font-size: 9px; color: rgba(255,255,255,0.2); font-family: 'Space Mono', monospace;
+          text-align: center; line-height: 1.5;
         }
-        .source-dot { width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: pulse 2.5s ease-in-out infinite; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .source-dot { width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: pulse 2.5s ease-in-out infinite; flex-shrink: 0; }
+
+        /* Touch-friendly action row (ward search) */
+        .ward-controls { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+        .ward-search { flex: 1; min-width: 120px; padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #f0f4ff; font-size: 12px; outline: none; font-family: 'Sora', sans-serif; min-height: 44px; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.35; transform:scale(0.55); } }
-        @media (max-width: 600px) { .tab-btn .tab-label { display: none; } }
+
+        /* ── Mobile ── */
+        @media (max-width: 600px) {
+          .swot-inner { padding: 14px 12px 24px; }
+          .swot-hero { margin-bottom: 16px; }
+          .tab-btn .tab-label { display: none; }
+          .tab-btn { min-height: 48px; padding: 10px 6px; }
+
+          .grid-4 { grid-template-columns: repeat(2,1fr); gap: 8px; }
+          .grid-2 { grid-template-columns: 1fr; gap: 10px; }
+          .grid-2-sm { grid-template-columns: 1fr; gap: 7px; }
+
+          .filter-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; scrollbar-width: none; }
+          .filter-row::-webkit-scrollbar { display: none; }
+          .filter-row .filter-btn { flex-shrink: 0; }
+
+          .demo-toggle { flex-direction: column; }
+          .demo-toggle button { width: 100%; justify-content: center; min-height: 44px; }
+
+          .ward-controls { gap: 6px; }
+
+          .swot-modal-inner {
+            padding: 16px 14px !important;
+            border-radius: 14px !important;
+            max-height: 88vh !important;
+            margin: 0 4px;
+          }
+          .swot-source { font-size: 8.5px; }
+        }
+
+        /* ── Wider phone landscape / small tablet ── */
+        @media (min-width: 601px) and (max-width: 860px) {
+          .grid-4 { grid-template-columns: repeat(2,1fr); }
+        }
       `}</style>
 
       <div className="swot-page">
