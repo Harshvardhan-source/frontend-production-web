@@ -16,7 +16,7 @@ const RIGHT_TABS = [
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 11l3 3L22 4"/>
-        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 012-2h11"/>
+        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
       </svg>
     ), label: 'SIR' },
 ];
@@ -285,26 +285,29 @@ export default function Navbar() {
         /* ── Bottom tabs ──────────────────────────────── */
         .nav-bottom {
           position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
-          height: calc(var(--tab-h, 52px) + env(safe-area-inset-bottom, 0px));
+          height: calc(52px + env(safe-area-inset-bottom, 0px));
           padding-bottom: env(safe-area-inset-bottom, 0px);
           background: rgba(8,13,26,0.97);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-top: 1px solid var(--border);
-          display: flex; align-items: stretch;
+          /* 6 perfectly equal columns — FAB spacer is col 3 = exact center */
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          align-items: stretch;
         }
         .bottom-tab {
-          flex: 1; display: flex; flex-direction: column; align-items: center;
+          display: flex; flex-direction: column; align-items: center;
           justify-content: center; gap: 2px;
           text-decoration: none; color: var(--text-3);
-          transition: color var(--dur) var(--ease); padding: 4px 2px 2px;
-          min-width: 0;
+          transition: color var(--dur) var(--ease);
+          padding: 5px 2px 3px;
         }
         .bottom-tab:active { opacity: 0.7; }
         .bottom-tab-active { color: var(--gold) !important; }
         .bottom-tab-icon   { font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center; }
-        .bottom-tab-label  { font-size: 9.5px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-align: center; }
-        .bottom-tab-spacer { flex: 1; }   /* same as .bottom-tab — equal gap for FAB */
+        .bottom-tab-label  { font-size: 9px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap; text-align: center; }
+        .bottom-tab-spacer { /* col 3 — empty slot under FAB */ }
 
         /* ── Admin icon button — top bar mobile ──────── */
         .admin-topbtn {
@@ -322,7 +325,7 @@ export default function Navbar() {
         /* ── AI Floating Action Button ────────────────── */
         .ai-fab {
           position: fixed;
-          bottom: calc(var(--tab-h, 52px) + env(safe-area-inset-bottom, 0px) - 16px);
+          bottom: calc(52px + env(safe-area-inset-bottom, 0px) - 16px);
           left: 50%; transform: translateX(-50%);
           z-index: 902;
           width: 52px; height: 52px; border-radius: 50%;
