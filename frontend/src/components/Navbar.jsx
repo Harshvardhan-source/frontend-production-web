@@ -278,8 +278,8 @@ export default function Navbar() {
         /* ── Bottom tabs ──────────────────────────────── */
         .nav-bottom {
           position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
-          height: calc(var(--tab-h, 60px) + var(--safe-bottom, 0px));
-          padding-bottom: var(--safe-bottom, 0px);
+          height: calc(var(--tab-h, 52px) + env(safe-area-inset-bottom, 0px));
+          padding-bottom: env(safe-area-inset-bottom, 0px);
           background: rgba(8,13,26,0.97);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
@@ -288,40 +288,40 @@ export default function Navbar() {
         }
         .bottom-tab {
           flex: 1; display: flex; flex-direction: column; align-items: center;
-          justify-content: center; gap: 3px;
+          justify-content: center; gap: 2px;
           text-decoration: none; color: var(--text-3);
-          transition: color var(--dur) var(--ease); padding: 6px 2px;
+          transition: color var(--dur) var(--ease); padding: 4px 2px 2px;
+          min-width: 0;
         }
         .bottom-tab:active { opacity: 0.7; }
         .bottom-tab-active { color: var(--gold) !important; }
-        .bottom-tab-icon   { font-size: 20px; line-height: 1; }
-        .bottom-tab-label  { font-size: 10px; font-weight: 700; letter-spacing: 0.3px; }
-        .bottom-tab-spacer { flex: 1.2; }   /* gap for FAB */
+        .bottom-tab-icon   { font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+        .bottom-tab-label  { font-size: 9.5px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-align: center; }
+        .bottom-tab-spacer { flex: 1.4; }   /* gap for FAB */
 
         /* ── AI Floating Action Button ────────────────── */
         .ai-fab {
           position: fixed;
-          /* sits above the bottom bar — pokes up by ~20px */
-          bottom: calc(var(--tab-h, 60px) + var(--safe-bottom, 0px) - 20px);
+          bottom: calc(var(--tab-h, 52px) + env(safe-area-inset-bottom, 0px) - 16px);
           left: 50%; transform: translateX(-50%);
           z-index: 902;
-          width: 58px; height: 58px; border-radius: 50%;
-          background: linear-gradient(140deg, #22d3ee 0%, #0ea5e9 55%, #6366f1 100%);
-          box-shadow: 0 6px 24px rgba(34,211,238,0.45), 0 2px 8px rgba(0,0,0,0.45);
-          border: 2.5px solid rgba(255,255,255,0.2);
+          width: 52px; height: 52px; border-radius: 50%;
+          background: linear-gradient(140deg, #67e8f9 0%, #38bdf8 50%, #818cf8 100%);
+          box-shadow: 0 4px 18px rgba(34,211,238,0.3), 0 2px 6px rgba(0,0,0,0.3);
+          border: 2px solid rgba(255,255,255,0.28);
           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-          text-decoration: none; color: #03111a;
+          text-decoration: none; color: #04111e;
           transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
         .ai-fab:active {
           transform: translateX(-50%) scale(0.91);
-          box-shadow: 0 2px 10px rgba(34,211,238,0.3);
+          box-shadow: 0 2px 8px rgba(34,211,238,0.25);
         }
         .ai-fab-active {
-          box-shadow: 0 0 0 4px rgba(34,211,238,0.25), 0 6px 24px rgba(34,211,238,0.55);
+          box-shadow: 0 0 0 3px rgba(34,211,238,0.2), 0 4px 18px rgba(34,211,238,0.4);
         }
         .ai-fab-label {
-          font-size: 9px; font-weight: 900; letter-spacing: 1px;
+          font-size: 8.5px; font-weight: 900; letter-spacing: 1px;
           text-transform: uppercase; line-height: 1;
         }
 
