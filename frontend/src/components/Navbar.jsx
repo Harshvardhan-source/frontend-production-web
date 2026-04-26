@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 
-const LINKS = [
-  { to: '/',               icon: '⊞', label: 'Dashboard' },
-  { to: '/survey',         icon: '✎', label: 'Survey'    },
-  { to: '/schemes',        icon: '◈', label: 'Schemes'   },
-  { to: '/data',           icon: '⊟', label: 'Data'      },
+// Links shown everywhere (top nav + bottom tabs on mobile)
+const BOTTOM_LINKS = [
+  { to: '/',       icon: '⊞', label: 'Dashboard' },
+  { to: '/survey', icon: '✎', label: 'Survey'    },
+  { to: '/schemes',icon: '◈', label: 'Schemes'   },
+  { to: '/data',   icon: '⊟', label: 'Data'      },
   { to: '/sir',    icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -14,6 +15,10 @@ const LINKS = [
         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 012-2h11"/>
       </svg>
     ), label: 'Check SIR' },
+];
+
+// Links shown in top nav + mobile drawer ONLY (not in bottom tab bar)
+const TOP_ONLY_LINKS = [
   { to: '/swot', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -23,7 +28,18 @@ const LINKS = [
         <rect x="13" y="13" width="8" height="8" rx="1"/>
       </svg>
     ), label: 'SWOT' },
+  { to: '/ai', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3h-1v1a4 4 0 0 1-8 0v-1H7a3 3 0 0 1-3-3v-2a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z"/>
+        <circle cx="9" cy="10" r="1" fill="currentColor"/>
+        <circle cx="15" cy="10" r="1" fill="currentColor"/>
+      </svg>
+    ), label: 'AI' },
 ];
+
+// All links combined for top nav
+const ALL_LINKS = [...BOTTOM_LINKS, ...TOP_ONLY_LINKS];
 
 // Admin-only link — shown only to MLA and PA roles
 const ADMIN_LINK = { to: '/admin', icon: '⚙', label: 'Admin' };
@@ -49,7 +65,6 @@ export default function Navbar() {
       <nav className="nav-top">
         {/* Logo */}
         <Link to="/" className="nav-logo">
-          
           <img src="/logo.png" alt="Logo" style={{ width:36, height:36, borderRadius:9, objectFit:'contain' }} />
           <span className="nav-logo-text">
             <span className="nav-logo-name">Constituency</span>
@@ -57,10 +72,10 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop links */}
+        {/* Desktop links — all links */}
         <div className="nav-links desktop-only">
-          {LINKS.map(l => (
-            <Link key={l.to} to={l.to} className={`nav-link ${isActive(l.to) ? 'nav-link-active' : ''}`}>
+          {ALL_LINKS.map(l => (
+            <Link key={l.to} to={l.to} className={`nav-link ${isActive(l.to) ? 'nav-link-active' : ''} ${l.to === '/ai' ? 'nav-link-ai' : ''}`}>
               <span className="nav-link-icon">{l.icon}</span>
               {l.label}
             </Link>
@@ -92,17 +107,20 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile drawer */}
+        {/* Mobile drawer — all links including SWOT and AI */}
         {open && (
           <div className="nav-drawer">
-            {LINKS.map(l => (
-              <Link key={l.to} to={l.to} className={`drawer-link ${isActive(l.to) ? 'drawer-link-active' : ''}`}
+            {ALL_LINKS.map(l => (
+              <Link key={l.to} to={l.to}
+                className={`drawer-link ${isActive(l.to) ? 'drawer-link-active' : ''} ${l.to === '/ai' ? 'drawer-link-ai' : ''}`}
                 onClick={() => setOpen(false)}>
                 <span>{l.icon}</span> {l.label}
+                {l.to === '/ai' && <span className="drawer-ai-badge">NEW</span>}
               </Link>
             ))}
             {isAdmin && (
-              <Link to={ADMIN_LINK.to} className={`drawer-link ${isActive(ADMIN_LINK.to) ? 'drawer-link-active' : ''}`}
+              <Link to={ADMIN_LINK.to}
+                className={`drawer-link ${isActive(ADMIN_LINK.to) ? 'drawer-link-active' : ''}`}
                 onClick={() => setOpen(false)}
                 style={{ color: '#f59e0b' }}>
                 <span>{ADMIN_LINK.icon}</span> {ADMIN_LINK.label}
@@ -113,9 +131,9 @@ export default function Navbar() {
         )}
       </nav>
 
-      {/* ── Bottom tab bar — mobile only ────────────────── */}
+      {/* ── Bottom tab bar — mobile only — SWOT & AI excluded ── */}
       <nav className="nav-bottom mobile-only">
-        {LINKS.map(l => (
+        {BOTTOM_LINKS.map(l => (
           <Link key={l.to} to={l.to} className={`bottom-tab ${isActive(l.to) ? 'bottom-tab-active' : ''}`}>
             <span className="bottom-tab-icon">{l.icon}</span>
             <span className="bottom-tab-label">{l.label}</span>
@@ -169,6 +187,16 @@ export default function Navbar() {
         .nav-link-active     { color: var(--gold) !important; background: var(--gold-dim) !important; }
         .nav-link-icon       { font-size: 15px; }
 
+        /* AI link special styling */
+        .nav-link-ai {
+          border: 1px solid rgba(34,211,238,0.25);
+          color: var(--cyan, #22d3ee) !important;
+          background: rgba(34,211,238,0.06);
+          position: relative;
+        }
+        .nav-link-ai:hover { border-color: rgba(34,211,238,0.45); background: rgba(34,211,238,0.12) !important; }
+        .nav-link-ai.nav-link-active { color: var(--cyan, #22d3ee) !important; background: rgba(34,211,238,0.15) !important; border-color: rgba(34,211,238,0.4); }
+
         .nav-right     { display: flex; align-items: center; gap: 10px; margin-left: auto; }
         .nav-user      { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--r-full); }
         .nav-avatar    { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #090e1c; flex-shrink: 0; }
@@ -195,6 +223,17 @@ export default function Navbar() {
         .drawer-link-active      { color: var(--gold) !important; background: var(--gold-dim) !important; }
         .nav-link-admin          { border: 1px solid rgba(245,158,11,0.2); }
         .nav-link-admin:hover    { border-color: rgba(245,158,11,0.4); }
+
+        /* AI drawer link special styling */
+        .drawer-link-ai { color: var(--cyan, #22d3ee) !important; }
+        .drawer-link-ai:hover { background: rgba(34,211,238,0.08) !important; }
+        .drawer-ai-badge {
+          margin-left: auto;
+          font-size: 9px; font-weight: 800; letter-spacing: 0.8px;
+          background: linear-gradient(135deg, #22d3ee, #0ea5e9);
+          color: #090e1c; padding: 2px 6px; border-radius: 4px;
+          text-transform: uppercase;
+        }
 
         /* ── Bottom tabs ──────────────────────────────── */
         .nav-bottom {
