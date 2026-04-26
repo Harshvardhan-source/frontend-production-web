@@ -13,7 +13,7 @@ import DataView     from './pages/DataView';
 import VoterSearch  from './pages/VoterSearch';
 import SIR          from './pages/Sir';
 import AdminPanel   from './pages/AdminPanel';
-import Swot from './pages/Swot';
+import Swot         from './pages/Swot';
 
 // inside your <Routes>:
 
