@@ -1,14 +1,62 @@
 import React, { useState } from 'react';
-import {
-  ShieldCheck, AlertTriangle, Target, AlertOctagon,
-  LayoutGrid, BarChart2, PieChart,
-  Users, UserCheck,
-  Zap, Minus, AlertCircle, XCircle,
-  ChevronRight, X,
-  TrendingUp, MapPin, Activity, CheckSquare,
-  Crosshair, RefreshCw, Smartphone, Building2,
-} from 'lucide-react';
 import Navbar from '../components/Navbar';
+
+// ─── Inline SVG Icons (no external dependency) ────────────────────────────────
+const Icon = ({ path, size = 14, color = 'currentColor', strokeWidth = 2, fill = 'none', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, ...style }}>
+    {Array.isArray(path) ? path.map((d, i) => <path key={i} d={d} />) : <path d={path} />}
+  </svg>
+);
+
+const PATHS = {
+  ShieldCheck:  ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', 'M9 12l2 2 4-4'],
+  AlertTriangle:['M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', 'M12 9v4', 'M12 17h.01'],
+  Target:       ['M22 12A10 10 0 1 1 12 2', 'M22 12a10 10 0 0 1-10 10', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0', 'M22 12h-4', 'M6 12H2'],
+  AlertOctagon: ['M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z', 'M12 8v4', 'M12 16h.01'],
+  LayoutGrid:   ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'],
+  BarChart2:    ['M18 20V10', 'M12 20V4', 'M6 20v-6'],
+  PieChart:     ['M21.21 15.89A10 10 0 1 1 8 2.83', 'M22 12A10 10 0 0 0 12 2v10z'],
+  Users:        ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', 'M23 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75', 'M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+  UserCheck:    ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M8 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M17 11l2 2 4-4'],
+  Zap:          ['M13 2L3 14h9l-1 8 10-12h-9l1-8z'],
+  Minus:        ['M5 12h14'],
+  AlertCircle:  ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 8v4', 'M12 16h.01'],
+  XCircle:      ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M15 9l-6 6', 'M9 9l6 6'],
+  ChevronRight: ['M9 18l6-6-6-6'],
+  X:            ['M18 6 6 18', 'M6 6l12 12'],
+  TrendingUp:   ['M23 6l-9.5 9.5-5-5L1 18', 'M17 6h6v6'],
+  MapPin:       ['M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z', 'M12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
+  Activity:     ['M22 12h-4l-3 9L9 3l-3 9H2'],
+  CheckSquare:  ['M9 11l3 3L22 4', 'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'],
+  Crosshair:    ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M22 12h-4', 'M6 12H2', 'M12 6V2', 'M12 22v-4'],
+  RefreshCw:    ['M23 4v6h-6', 'M1 20v-6h6', 'M3.51 9a9 9 0 0 1 14.85-3.36L23 10', 'M1 14l4.64 4.36A9 9 0 0 0 20.49 15'],
+  Smartphone:   ['M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z', 'M12 18h.01'],
+  Building2:    ['M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18z', 'M6 12H4a2 2 0 0 0-2 2v8h4', 'M18 9h2a2 2 0 0 1 2 2v11h-4', 'M10 6h4', 'M10 10h4', 'M10 14h4', 'M10 18h4'],
+};
+
+const ShieldCheck   = (p) => <Icon path={PATHS.ShieldCheck}   {...p} />;
+const AlertTriangle = (p) => <Icon path={PATHS.AlertTriangle} {...p} />;
+const Target        = (p) => <Icon path={PATHS.Target}        {...p} />;
+const AlertOctagon  = (p) => <Icon path={PATHS.AlertOctagon}  {...p} />;
+const LayoutGrid    = (p) => <Icon path={PATHS.LayoutGrid}    {...p} />;
+const BarChart2     = (p) => <Icon path={PATHS.BarChart2}     {...p} />;
+const PieChart      = (p) => <Icon path={PATHS.PieChart}      {...p} />;
+const Users         = (p) => <Icon path={PATHS.Users}         {...p} />;
+const UserCheck     = (p) => <Icon path={PATHS.UserCheck}     {...p} />;
+const Zap           = (p) => <Icon path={PATHS.Zap}           {...p} />;
+const Minus         = (p) => <Icon path={PATHS.Minus}         {...p} />;
+const AlertCircle   = (p) => <Icon path={PATHS.AlertCircle}   {...p} />;
+const XCircle       = (p) => <Icon path={PATHS.XCircle}       {...p} />;
+const ChevronRight  = (p) => <Icon path={PATHS.ChevronRight}  {...p} />;
+const XIcon         = (p) => <Icon path={PATHS.X}             {...p} />;
+const TrendingUp    = (p) => <Icon path={PATHS.TrendingUp}    {...p} />;
+const MapPin        = (p) => <Icon path={PATHS.MapPin}        {...p} />;
+const Activity      = (p) => <Icon path={PATHS.Activity}      {...p} />;
+const CheckSquare   = (p) => <Icon path={PATHS.CheckSquare}   {...p} />;
+const Crosshair     = (p) => <Icon path={PATHS.Crosshair}     {...p} />;
+const RefreshCw     = (p) => <Icon path={PATHS.RefreshCw}     {...p} />;
+const Smartphone    = (p) => <Icon path={PATHS.Smartphone}    {...p} />;
+const Building2     = (p) => <Icon path={PATHS.Building2}     {...p} />;
 
 // ─── Ward Data (all 38 wards) ──────────────────────────────────────────────────
 const wardData = [
@@ -588,7 +636,7 @@ function SwotTab() {
                 </div>
               </div>
               <button onClick={() => setModalKey(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <X size={13} />
+                <XIcon size={13} />
               </button>
             </div>
             <div style={{ height: 1, background: `linear-gradient(90deg, ${swotPoints[modalKey].color}22, transparent)`, marginBottom: 14 }} />
