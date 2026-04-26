@@ -1,4 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
+import {
+  ShieldCheck, AlertTriangle, Target, AlertOctagon,
+  LayoutGrid, BarChart2, PieChart,
+  Users, UserCheck,
+  Zap, Minus, AlertCircle, XCircle,
+  ChevronRight, X,
+  TrendingUp, MapPin, Activity, CheckSquare,
+  Crosshair, RefreshCw, Smartphone, Building2,
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 
 // ─── Ward Data (all 38 wards) ──────────────────────────────────────────────────
@@ -87,10 +96,11 @@ const christianBooths = [
   { ward: 'MAROLI', booth: 50, voters: 1135, christianPct: 36.0, bjpPct: 60.7, congPct: 37.3, risk: 'High' },
 ];
 
-// ─── SWOT points (numerically rich, BJP oriented) ─────────────────────────────
+// ─── SWOT points ───────────────────────────────────────────────────────────────
 const swotPoints = {
   S: {
-    title: 'Strengths', subtitle: 'Internal · Positive', icon: '💪',
+    title: 'Strengths', subtitle: 'Internal · Positive',
+    Icon: ShieldCheck,
     color: '#10b981', glow: 'rgba(16,185,129,0.18)', border: 'rgba(16,185,129,0.28)',
     bg: 'rgba(16,185,129,0.05)', badgeBg: 'rgba(16,185,129,0.12)',
     items: [
@@ -104,7 +114,8 @@ const swotPoints = {
     ],
   },
   W: {
-    title: 'Weaknesses', subtitle: 'Internal · Negative', icon: '⚠️',
+    title: 'Weaknesses', subtitle: 'Internal · Negative',
+    Icon: AlertTriangle,
     color: '#f87171', glow: 'rgba(248,113,113,0.18)', border: 'rgba(248,113,113,0.28)',
     bg: 'rgba(248,113,113,0.05)', badgeBg: 'rgba(248,113,113,0.12)',
     items: [
@@ -113,24 +124,26 @@ const swotPoints = {
       { label: 'Christian-Dominant Booths — BJP Below 30%', stat: '4 Booths <30%', statColor: '#f87171', detail: 'Falnir Booth 158 (96% Christian): BJP 12.5% · Jeppinamogar Booth 244 (96% Christian): BJP 14.7% · Bendoor Booth 167 (45% Christian): BJP 24.1% · Valencia Booth 133 (43% Christian): BJP 23.4%. Congress leads by 60–85% in all four booths.' },
       { label: '3 Narrow Wins — High Flip Risk at <10% Lead', stat: 'Flip Risk', statColor: '#f87171', detail: 'Attavara: BJP 54.3% vs INC 44.4% — lead +9.9%, margin only ~415 votes · Mangaladevi: BJP 54.1% vs INC 44.3% — lead +9.8%, margin ~370 votes · Padav East: BJP 52.5% vs INC 45.0% — lead +7.5%, margin ~265 votes. A 5% anti-incumbency swing flips all three.' },
       { label: '5 AVG-Polling Wards — Untapped BJP Votes', stat: '5 Weak Booths', statColor: '#f87171', detail: 'Court: 48.8% turnout (city-lowest), BJP lost by −11.0% (~327 vote deficit). Bendoor: 56.9% turnout, BJP lost −39.4%. Falnir: 58.8% turnout, BJP lost −34.0%. Derebail South: 59.98% turnout (BJP wins but underperforms vs potential). Milagress: AVG status, BJP lost −21.9%.' },
-      { label: 'Congress Raw Vote Surplus — +23,547 Votes Over BJP', stat: '+23.5K Surplus', statColor: '#f87171', detail: 'Congress total: 89,998 votes · BJP: 66,451 votes. Congress holds 35.4% more raw votes. If ward boundaries are reorganised or reservation rearrangements occur, BJP\'s current 25-ward advantage becomes structurally fragile.' },
+      { label: 'Congress Raw Vote Surplus — +23,547 Votes Over BJP', stat: '+23.5K Surplus', statColor: '#f87171', detail: "Congress total: 89,998 votes · BJP: 66,451 votes. Congress holds 35.4% more raw votes. If ward boundaries are reorganised or reservation rearrangements occur, BJP's current 25-ward advantage becomes structurally fragile." },
     ],
   },
   O: {
-    title: 'Opportunities', subtitle: 'External · Positive', icon: '🚀',
+    title: 'Opportunities', subtitle: 'External · Positive',
+    Icon: Target,
     color: '#22d3ee', glow: 'rgba(34,211,238,0.18)', border: 'rgba(34,211,238,0.28)',
     bg: 'rgba(34,211,238,0.05)', badgeBg: 'rgba(34,211,238,0.12)',
     items: [
-      { label: 'Court Ward — Lowest Turnout = +352 Recoverable BJP Votes', stat: '+352 Net Votes', statColor: '#22d3ee', detail: 'Court: 48.8% turnout (city lowest, vs avg 64.3%). BJP lost by only ~327 votes. If turnout rises to 65%, ~800 new voters enter. At BJP\'s 44% share of new votes = +352 net BJP gain → near-certain BJP win. Highest priority flip target.' },
-      { label: 'JDS Alliance — Could Flip Bajal & Jeppu', stat: '2 Wards Flippable', statColor: '#22d3ee', detail: 'Bajal: BJP 44.5% + JDS 1.7% = 46.2% (INC 52.9%, gap narrows to 6.7%) · Jeppu: BJP 44.8% + JDS 0.3% = 45.1% (INC 52.9%, gap 7.8%). JDS alliance alone isn\'t sufficient but combined with Hindu voter mobilisation makes both wards winnable.' },
+      { label: 'Court Ward — Lowest Turnout = +352 Recoverable BJP Votes', stat: '+352 Net Votes', statColor: '#22d3ee', detail: "Court: 48.8% turnout (city lowest, vs avg 64.3%). BJP lost by only ~327 votes. If turnout rises to 65%, ~800 new voters enter. At BJP's 44% share of new votes = +352 net BJP gain → near-certain BJP win. Highest priority flip target." },
+      { label: 'JDS Alliance — Could Flip Bajal & Jeppu', stat: '2 Wards Flippable', statColor: '#22d3ee', detail: "Bajal: BJP 44.5% + JDS 1.7% = 46.2% (INC 52.9%, gap narrows to 6.7%) · Jeppu: BJP 44.8% + JDS 0.3% = 45.1% (INC 52.9%, gap 7.8%). JDS alliance alone isn't sufficient but combined with Hindu voter mobilisation makes both wards winnable." },
       { label: 'Shivabagh — 183-Vote Swing Needed to Flip', stat: '183 Votes Gap', statColor: '#22d3ee', detail: 'Shivabagh: INC 51.6% vs BJP 46.7% — margin just 4.8%, total voters 3,808 → only ~183 vote swing needed. Ward has significant Hindu population. With targeted outreach to 500 uncommitted Hindu voters (65% conversion), BJP flips this seat.' },
-      { label: 'Derebail South Turnout Push — +242 Potential BJP Votes', stat: '+242 Net Votes', statColor: '#22d3ee', detail: 'BJP wins Derebail South at 64.6% but AVG polling = 59.98% turnout vs 64.3% city avg. Ward has 7,504 registered voters. Raising turnout to 65% adds ~375 voters. At BJP\'s 64.6% share → +242 net BJP votes, converting AVG → STRONG polling status.' },
-      { label: 'Youth Voter Drive in 3 Narrow Wards', stat: '+120 Votes/Ward', statColor: '#22d3ee', detail: 'Attavara (BJP +9.9%, 6,626 voters) · Mangaladevi (+9.8%) · Padav East (+7.5%) — all have estimated 15–20% Hindu youth non-participation. Every 1% turnout gain = ~60–70 new voters. At BJP\'s avg Hindu ward share (~65%), 3% increase = +120 net votes per ward — enough to comfortably defend all 3 narrow wins.' },
-      { label: 'Valencia — 465-Vote Gap Closeable via Hindu Mobilisation', stat: '465 Votes Gap', statColor: '#22d3ee', detail: 'Valencia: INC 53.5% vs BJP 44.6% — margin 8.9%, total 5,220 voters → ~465 vote swing needed. Ward has 30%+ Christian population (largely INC-leaning) but 60%+ Hindu voters. BJP currently captures only ~60% of Hindu vote here vs 70%+ citywide. Closing this gap flips Valencia.' },
+      { label: 'Derebail South Turnout Push — +242 Potential BJP Votes', stat: '+242 Net Votes', statColor: '#22d3ee', detail: "BJP wins Derebail South at 64.6% but AVG polling = 59.98% turnout vs 64.3% city avg. Ward has 7,504 registered voters. Raising turnout to 65% adds ~375 voters. At BJP's 64.6% share → +242 net BJP votes, converting AVG → STRONG polling status." },
+      { label: 'Youth Voter Drive in 3 Narrow Wards', stat: '+120 Votes/Ward', statColor: '#22d3ee', detail: "Attavara (BJP +9.9%, 6,626 voters) · Mangaladevi (+9.8%) · Padav East (+7.5%) — all have estimated 15–20% Hindu youth non-participation. Every 1% turnout gain = ~60–70 new voters. At BJP's avg Hindu ward share (~65%), 3% increase = +120 net votes per ward — enough to comfortably defend all 3 narrow wins." },
+      { label: 'Valencia — 465-Vote Gap Closeable via Hindu Mobilisation', stat: '465 Votes Gap', statColor: '#22d3ee', detail: "Valencia: INC 53.5% vs BJP 44.6% — margin 8.9%, total 5,220 voters → ~465 vote swing needed. Ward has 30%+ Christian population (largely INC-leaning) but 60%+ Hindu voters. BJP currently captures only ~60% of Hindu vote here vs 70%+ citywide. Closing this gap flips Valencia." },
     ],
   },
   T: {
-    title: 'Threats', subtitle: 'External · Negative', icon: '🛑',
+    title: 'Threats', subtitle: 'External · Negative',
+    Icon: AlertOctagon,
     color: '#f59e0b', glow: 'rgba(245,158,11,0.18)', border: 'rgba(245,158,11,0.28)',
     bg: 'rgba(245,158,11,0.05)', badgeBg: 'rgba(245,158,11,0.12)',
     items: [
@@ -144,45 +157,11 @@ const swotPoints = {
   },
 };
 
-// ─── Animated Particles ────────────────────────────────────────────────────────
-function Particles() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let raf;
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize();
-    window.addEventListener('resize', resize);
-    const dots = Array.from({ length: 40 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      r: Math.random() * 1.4 + 0.3, vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15,
-      a: Math.random() * 0.3 + 0.05,
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      dots.forEach(d => {
-        d.x += d.vx; d.y += d.vy;
-        if (d.x < 0) d.x = canvas.width; if (d.x > canvas.width) d.x = 0;
-        if (d.y < 0) d.y = canvas.height; if (d.y > canvas.height) d.y = 0;
-        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(245,158,11,${d.a})`;
-        ctx.fill();
-      });
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
-  }, []);
-  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }} />;
-}
-
-// ─── Tab Component ─────────────────────────────────────────────────────────────
+// ─── Tab Config ────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'swot', label: 'Political SWOT', icon: '🏛️' },
-  { id: 'wards', label: 'Ward Strength', icon: '📊' },
-  { id: 'demographic', label: 'Demographic', icon: '🗺️' },
+  { id: 'swot', label: 'Political SWOT', Icon: LayoutGrid },
+  { id: 'wards', label: 'Ward Strength', Icon: BarChart2 },
+  { id: 'demographic', label: 'Demographic', Icon: PieChart },
 ];
 
 // ─── Ward Strength Tab ─────────────────────────────────────────────────────────
@@ -197,18 +176,18 @@ function WardStrengthTab() {
   });
 
   const catMeta = {
-    STRONG: { color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', label: 'STRONG', desc: 'Lead >40%' },
-    MEDIUM: { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', label: 'MEDIUM', desc: 'Lead 15–40%' },
-    NARROW: { color: '#fde68a', bg: 'rgba(253,230,138,0.12)', border: 'rgba(253,230,138,0.3)', label: 'NARROW', desc: 'Lead <15%' },
-    LOST: { color: '#f87171', bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.3)', label: 'LOST', desc: 'Congress Won' },
+    STRONG: { color: '#10b981', bg: 'rgba(16,185,129,0.14)', border: 'rgba(16,185,129,0.28)', desc: 'Lead >40%' },
+    MEDIUM: { color: '#f59e0b', bg: 'rgba(245,158,11,0.14)', border: 'rgba(245,158,11,0.28)', desc: 'Lead 15–40%' },
+    NARROW: { color: '#fde68a', bg: 'rgba(253,230,138,0.11)', border: 'rgba(253,230,138,0.28)', desc: 'Lead <15%' },
+    LOST: { color: '#f87171', bg: 'rgba(248,113,113,0.14)', border: 'rgba(248,113,113,0.28)', desc: 'Congress Won' },
   };
 
   const filterBtns = [
-    { key: 'all', label: 'All (38)', color: '#a0aec0' },
-    { key: 'strong', label: '🔥 Strong (8)', color: '#10b981' },
-    { key: 'medium', label: '🟡 Medium (14)', color: '#f59e0b' },
-    { key: 'narrow', label: '⚠️ Narrow (3)', color: '#fde68a' },
-    { key: 'lost', label: '❌ Congress (13)', color: '#f87171' },
+    { key: 'all', label: 'All (38)', Icon: Activity, color: '#94a3b8' },
+    { key: 'strong', label: 'Strong (8)', Icon: ShieldCheck, color: '#10b981' },
+    { key: 'medium', label: 'Medium (14)', Icon: Minus, color: '#f59e0b' },
+    { key: 'narrow', label: 'Narrow (3)', Icon: AlertCircle, color: '#fde68a' },
+    { key: 'lost', label: 'Congress (13)', Icon: XCircle, color: '#f87171' },
   ];
 
   const whyText = (w) => {
@@ -220,7 +199,6 @@ function WardStrengthTab() {
 
   return (
     <div>
-      {/* Category Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
         {[
           { key: 'STRONG', count: 8, avg: '47.8%', extra: 'All Hindu-belt' },
@@ -231,41 +209,42 @@ function WardStrengthTab() {
           const m = catMeta[c.key];
           return (
             <div key={c.key} style={{ background: m.bg, border: `1px solid ${m.border}`, borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, fontWeight: 700, color: m.color, letterSpacing: 1, marginBottom: 4 }}>{m.label}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>{m.desc}</div>
-              <div style={{ fontSize: 30, fontWeight: 900, color: m.color, lineHeight: 1, marginBottom: 4 }}>{c.count}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: m.color, marginBottom: 2 }}>Avg {c.avg}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{c.extra}</div>
+              <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 10, fontWeight: 700, color: m.color, letterSpacing: 1, marginBottom: 4, textTransform: 'uppercase' }}>{c.key}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginBottom: 6 }}>{m.desc}</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: m.color, lineHeight: 1, marginBottom: 4 }}>{c.count}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: m.color, marginBottom: 2 }}>Avg {c.avg}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{c.extra}</div>
             </div>
           );
         })}
       </div>
 
-      {/* Filter buttons */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
         {filterBtns.map(b => (
           <button key={b.key} onClick={() => setFilter(b.key)} style={{
-            padding: '7px 14px', borderRadius: 20, border: `1.5px solid ${b.color}`,
-            background: filter === b.key ? b.color : 'transparent',
-            color: filter === b.key ? (b.color === '#fde68a' ? '#000' : '#fff') : b.color,
-            fontSize: 11, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
-            transition: 'all 0.2s', fontFamily: 'Sora, sans-serif',
-          }}>{b.label}</button>
+            padding: '6px 13px', borderRadius: 8, border: `1px solid ${b.color}`,
+            background: filter === b.key ? `${b.color}20` : 'transparent',
+            color: b.color, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+            transition: 'all 0.18s', fontFamily: 'Sora, sans-serif',
+            display: 'flex', alignItems: 'center', gap: 5,
+          }}>
+            <b.Icon size={11} />
+            {b.label}
+          </button>
         ))}
         <input
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search ward…"
-          style={{ marginLeft: 'auto', padding: '7px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)', color: '#f0f4ff', fontSize: 11, outline: 'none', fontFamily: 'Sora, sans-serif', minWidth: 140 }}
+          style={{ marginLeft: 'auto', padding: '6px 13px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#f0f4ff', fontSize: 11, outline: 'none', fontFamily: 'Sora, sans-serif', minWidth: 140 }}
         />
       </div>
 
-      {/* Table */}
-      <div style={{ overflowX: 'auto', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr>
-              {['#', 'Ward', 'Voters', 'BJP Votes', 'INC Votes', 'BJP %', 'INC %', 'Lead/Deficit', 'Turnout', 'Category', 'Why Classified', 'PS'].map(h => (
-                <th key={h} style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', fontFamily: 'Space Mono, monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, padding: '11px 12px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' }}>{h}</th>
+              {['#', 'Ward', 'Voters', 'BJP', 'INC', 'BJP %', 'INC %', 'Lead', 'Turnout', 'Category', 'Analysis', 'PS'].map(h => (
+                <th key={h} style={{ background: 'rgba(245,158,11,0.08)', color: 'rgba(245,158,11,0.8)', fontFamily: 'Space Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, padding: '10px 11px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -275,35 +254,37 @@ function WardStrengthTab() {
               const lc = w.lead >= 0 ? '#10b981' : '#f87171';
               const ls = w.lead >= 0 ? `+${w.lead.toFixed(1)}%` : `${w.lead.toFixed(1)}%`;
               return (
-                <tr key={w.ward} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{i + 1}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: 700, color: '#eef2ff', whiteSpace: 'nowrap' }}>{w.ward}</td>
-                  <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.5)', fontFamily: 'Space Mono, monospace' }}>{w.voters.toLocaleString()}</td>
-                  <td style={{ padding: '10px 12px', color: '#fb923c', fontWeight: 700, fontFamily: 'Space Mono, monospace' }}>{w.bjp.toLocaleString()}</td>
-                  <td style={{ padding: '10px 12px', color: '#f87171', fontFamily: 'Space Mono, monospace' }}>{w.cong.toLocaleString()}</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 50, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)' }}>
-                        <div style={{ width: `${w.bjpPct}%`, height: '100%', borderRadius: 3, background: '#f59e0b' }} />
+                <tr key={w.ward} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '9px 11px', color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace', fontSize: 10 }}>{i + 1}</td>
+                  <td style={{ padding: '9px 11px', fontWeight: 700, color: '#eef2ff', whiteSpace: 'nowrap', fontSize: 11.5 }}>{w.ward}</td>
+                  <td style={{ padding: '9px 11px', color: 'rgba(255,255,255,0.45)', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{w.voters.toLocaleString()}</td>
+                  <td style={{ padding: '9px 11px', color: '#fb923c', fontWeight: 700, fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{w.bjp.toLocaleString()}</td>
+                  <td style={{ padding: '9px 11px', color: '#f87171', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{w.cong.toLocaleString()}</td>
+                  <td style={{ padding: '9px 11px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 44, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)' }}>
+                        <div style={{ width: `${Math.min(w.bjpPct, 100)}%`, height: '100%', borderRadius: 2, background: '#f59e0b' }} />
                       </div>
-                      <span style={{ color: '#fb923c', fontWeight: 700, fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{w.bjpPct}%</span>
+                      <span style={{ color: '#fb923c', fontWeight: 700, fontFamily: 'Space Mono, monospace', fontSize: 10.5 }}>{w.bjpPct}%</span>
                     </div>
                   </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 50, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)' }}>
-                        <div style={{ width: `${w.congPct}%`, height: '100%', borderRadius: 3, background: '#ef4444' }} />
+                  <td style={{ padding: '9px 11px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 44, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)' }}>
+                        <div style={{ width: `${Math.min(w.congPct, 100)}%`, height: '100%', borderRadius: 2, background: '#ef4444' }} />
                       </div>
-                      <span style={{ color: '#f87171', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{w.congPct}%</span>
+                      <span style={{ color: '#f87171', fontFamily: 'Space Mono, monospace', fontSize: 10.5 }}>{w.congPct}%</span>
                     </div>
                   </td>
-                  <td style={{ padding: '10px 12px', color: lc, fontWeight: 700, fontFamily: 'Space Mono, monospace', whiteSpace: 'nowrap' }}>{ls}</td>
-                  <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.45)', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{w.turnout}%</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span style={{ background: m.bg, color: m.color, border: `1px solid ${m.border}`, borderRadius: 10, padding: '3px 9px', fontSize: 10, fontWeight: 700, letterSpacing: 0.5, fontFamily: 'Space Mono, monospace' }}>{m.label}</span>
+                  <td style={{ padding: '9px 11px', color: lc, fontWeight: 700, fontFamily: 'Space Mono, monospace', whiteSpace: 'nowrap', fontSize: 11 }}>{ls}</td>
+                  <td style={{ padding: '9px 11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'Space Mono, monospace', fontSize: 10.5 }}>{w.turnout}%</td>
+                  <td style={{ padding: '9px 11px' }}>
+                    <span style={{ background: m.bg, color: m.color, border: `1px solid ${m.border}`, borderRadius: 6, padding: '2px 8px', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, fontFamily: 'Space Mono, monospace' }}>{w.cat}</span>
                   </td>
-                  <td style={{ padding: '10px 12px', fontSize: 10.5, color: 'rgba(255,255,255,0.38)', maxWidth: 220, whiteSpace: 'normal', lineHeight: 1.5 }}>{whyText(w)}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 10, color: w.ps === 'STRONG' ? '#10b981' : '#f59e0b', fontFamily: 'Space Mono, monospace', fontWeight: 700 }}>{w.ps}</td>
+                  <td style={{ padding: '9px 11px', fontSize: 10, color: 'rgba(255,255,255,0.35)', maxWidth: 220, whiteSpace: 'normal', lineHeight: 1.5 }}>{whyText(w)}</td>
+                  <td style={{ padding: '9px 11px', fontSize: 10, color: w.ps === 'STRONG' ? '#10b981' : '#f59e0b', fontFamily: 'Space Mono, monospace', fontWeight: 700 }}>{w.ps}</td>
                 </tr>
               );
             })}
@@ -317,7 +298,6 @@ function WardStrengthTab() {
 // ─── Demographic Tab ───────────────────────────────────────────────────────────
 function DemographicTab() {
   const [demoFilter, setDemoFilter] = useState('muslim');
-
   const riskColor = (r) => r === 'Unwinnable' ? '#f87171' : r === 'Very High' ? '#fb923c' : '#fde68a';
 
   const renderBooth = (b, type) => {
@@ -329,36 +309,34 @@ function DemographicTab() {
     const estBjp = Math.round(b.voters * 0.65 * b.bjpPct / 100);
     const estInc = Math.round(b.voters * 0.65 * b.congPct / 100);
     return (
-      <div key={`${b.ward}-${b.booth}`} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px', marginBottom: 10, transition: 'border-color 0.2s' }}>
+      <div key={`${b.ward}-${b.booth}`} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px', marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <div>
-            <div style={{ fontSize: 9, letterSpacing: 1, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 2 }}>{b.ward}</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#eef2ff', fontFamily: 'Space Mono, monospace' }}>Booth #{b.booth}</div>
+            <div style={{ fontSize: 9, letterSpacing: 0.8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>{b.ward}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#eef2ff', fontFamily: 'Space Mono, monospace' }}>Booth #{b.booth}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 10, color: riskColor(b.risk), fontWeight: 700, marginBottom: 2 }}>{b.risk}</div>
-            <div style={{ fontSize: 11, color: defColor, fontWeight: 700, fontFamily: 'Space Mono, monospace' }}>{defStr} BJP vs INC</div>
+            <div style={{ fontSize: 10.5, color: defColor, fontWeight: 700, fontFamily: 'Space Mono, monospace' }}>{defStr} BJP vs INC</div>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 8 }}>
-          <div style={{ background: type === 'muslim' ? 'rgba(96,165,250,0.12)' : 'rgba(192,132,252,0.12)', borderRadius: 7, padding: '7px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 900, color: pctColor, fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{pct.toFixed(0)}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{type === 'muslim' ? 'MUSLIM' : 'CHRISTIAN'}</div>
-          </div>
-          <div style={{ background: 'rgba(245,158,11,0.12)', borderRadius: 7, padding: '7px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#fb923c', fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{b.bjpPct.toFixed(1)}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>BJP</div>
-          </div>
-          <div style={{ background: 'rgba(239,68,68,0.12)', borderRadius: 7, padding: '7px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#f87171', fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{b.congPct.toFixed(1)}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>INC</div>
-          </div>
+          {[
+            { val: `${pct.toFixed(0)}%`, label: type === 'muslim' ? 'MUSLIM' : 'CHRISTIAN', bg: type === 'muslim' ? 'rgba(96,165,250,0.1)' : 'rgba(192,132,252,0.1)', color: pctColor },
+            { val: `${b.bjpPct.toFixed(1)}%`, label: 'BJP', bg: 'rgba(245,158,11,0.1)', color: '#fb923c' },
+            { val: `${b.congPct.toFixed(1)}%`, label: 'INC', bg: 'rgba(239,68,68,0.1)', color: '#f87171' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: s.bg, borderRadius: 6, padding: '6px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 900, color: s.color, fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{s.val}</div>
+              <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.36)', marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 6, fontFamily: 'Space Mono, monospace' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: 'rgba(255,255,255,0.28)', marginBottom: 5, fontFamily: 'Space Mono, monospace' }}>
           <span>{b.voters.toLocaleString()} voters</span>
           <span>Est. BJP ~{estBjp} · INC ~{estInc}</span>
         </div>
-        <div style={{ height: 5, borderRadius: 3, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', display: 'flex' }}>
+        <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', display: 'flex' }}>
           <div style={{ width: `${b.bjpPct}%`, background: '#f59e0b', height: '100%' }} />
           <div style={{ width: `${b.congPct}%`, background: '#ef4444', height: '100%' }} />
         </div>
@@ -375,38 +353,38 @@ function DemographicTab() {
 
   return (
     <div>
-      {/* Summary row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
         {[
           { val: booths.length, label: demoFilter === 'muslim' ? 'Muslim-Dominant Booths' : 'Christian-Dominant Booths', color: summaryColor },
           { val: `${avgBJP}%`, label: 'Avg BJP % in these booths', color: '#fb923c' },
-          { val: totalUnwinnable, label: 'Unwinnable booths (BJP <20%)', color: '#f87171' },
-          { val: totalVH + totalHigh, label: 'High / Very High Risk booths', color: '#f59e0b' },
+          { val: totalUnwinnable, label: 'Unwinnable (BJP <20%)', color: '#f87171' },
+          { val: totalVH + totalHigh, label: 'High / Very High Risk', color: '#f59e0b' },
         ].map((s, i) => (
-          <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: s.color, fontFamily: 'Space Mono, monospace', lineHeight: 1, marginBottom: 6 }}>{s.val}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{s.label}</div>
+          <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: s.color, fontFamily: 'Space Mono, monospace', lineHeight: 1, marginBottom: 6 }}>{s.val}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.4 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {[
-          { key: 'muslim', label: '🕌 Muslim-Dominant Booths', color: '#60a5fa' },
-          { key: 'christian', label: '✝️ Christian-Dominant Booths', color: '#c084fc' },
+          { key: 'muslim', label: 'Muslim-Dominant Booths', Icon: Users, color: '#60a5fa' },
+          { key: 'christian', label: 'Christian-Dominant Booths', Icon: UserCheck, color: '#c084fc' },
         ].map(b => (
           <button key={b.key} onClick={() => setDemoFilter(b.key)} style={{
-            padding: '9px 18px', borderRadius: 10, border: `1.5px solid ${b.color}`,
-            background: demoFilter === b.key ? `${b.color}20` : 'transparent',
-            color: b.color, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            transition: 'all 0.2s', fontFamily: 'Sora, sans-serif',
-            boxShadow: demoFilter === b.key ? `0 0 12px ${b.color}30` : 'none',
-          }}>{b.label} ({demoFilter === b.key ? booths.length : (b.key === 'muslim' ? muslimBooths.length : christianBooths.length)})</button>
+            padding: '8px 16px', borderRadius: 8, border: `1px solid ${b.color}`,
+            background: demoFilter === b.key ? `${b.color}18` : 'transparent',
+            color: b.color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+            transition: 'all 0.18s', fontFamily: 'Sora, sans-serif',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <b.Icon size={13} />
+            {b.label} ({b.key === 'muslim' ? muslimBooths.length : christianBooths.length})
+          </button>
         ))}
       </div>
 
-      {/* Risk legend */}
       <div style={{ display: 'flex', gap: 14, marginBottom: 14, fontSize: 11, alignItems: 'center', flexWrap: 'wrap' }}>
         {[
           { label: 'Unwinnable', color: '#f87171' },
@@ -414,26 +392,24 @@ function DemographicTab() {
           { label: 'High Risk', color: '#fde68a' },
         ].map(l => (
           <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }} />
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{l.label}</span>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: l.color }} />
+            <span style={{ color: 'rgba(255,255,255,0.38)', fontSize: 10 }}>{l.label}</span>
           </div>
         ))}
       </div>
 
-      {/* Booths grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10, maxHeight: 600, overflowY: 'auto', paddingRight: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 10, maxHeight: 580, overflowY: 'auto', paddingRight: 2 }}>
         {booths.map(b => renderBooth(b, demoFilter))}
       </div>
 
-      {/* Ward-level table */}
       <div style={{ marginTop: 24 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: '#eef2ff', marginBottom: 14, fontFamily: 'Space Mono, monospace', letterSpacing: -0.3 }}>Ward-Level Demographic & BJP Performance</div>
-        <div style={{ overflowX: 'auto', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#eef2ff', marginBottom: 14, letterSpacing: -0.2 }}>Ward-Level Demographic & BJP Performance</div>
+        <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
             <thead>
               <tr>
                 {['Ward', 'Dominant', 'Muslim %', 'Christian %', 'BJP %', 'INC %', 'Lead', 'Winner', 'Viability'].map(h => (
-                  <th key={h} style={{ background: 'rgba(245,158,11,0.10)', color: '#f59e0b', fontFamily: 'Space Mono, monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ background: 'rgba(245,158,11,0.07)', color: 'rgba(245,158,11,0.75)', fontFamily: 'Space Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, padding: '9px 11px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -462,15 +438,15 @@ function DemographicTab() {
                 const dc = w.dominant.includes('MUSLIM') ? '#60a5fa' : w.dominant.includes('CHR') ? '#c084fc' : w.dominant === 'HINDU' ? '#fb923c' : '#a0aec0';
                 return (
                   <tr key={w.ward} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '9px 12px', fontWeight: 700, color: '#eef2ff', whiteSpace: 'nowrap' }}>{w.ward}</td>
-                    <td style={{ padding: '9px 12px' }}><span style={{ color: dc, background: `${dc}18`, border: `1px solid ${dc}30`, borderRadius: 8, padding: '2px 8px', fontSize: 10, fontWeight: 700 }}>{w.dominant}</span></td>
-                    <td style={{ padding: '9px 12px', color: '#60a5fa', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{w.muslim}</td>
-                    <td style={{ padding: '9px 12px', color: '#c084fc', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{w.christian}</td>
-                    <td style={{ padding: '9px 12px', color: '#fb923c', fontWeight: 700, fontFamily: 'Space Mono, monospace' }}>{w.bjp}%</td>
-                    <td style={{ padding: '9px 12px', color: '#f87171', fontFamily: 'Space Mono, monospace' }}>{w.inc}%</td>
-                    <td style={{ padding: '9px 12px', color: lc, fontWeight: 700, fontFamily: 'Space Mono, monospace' }}>{ls}</td>
-                    <td style={{ padding: '9px 12px', fontWeight: 700, color: wc }}>{w.winner}</td>
-                    <td style={{ padding: '9px 12px', color: vc, fontSize: 11, fontWeight: 700 }}>{w.viability}</td>
+                    <td style={{ padding: '8px 11px', fontWeight: 700, color: '#eef2ff', whiteSpace: 'nowrap' }}>{w.ward}</td>
+                    <td style={{ padding: '8px 11px' }}><span style={{ color: dc, background: `${dc}14`, border: `1px solid ${dc}28`, borderRadius: 6, padding: '2px 7px', fontSize: 9.5, fontWeight: 700 }}>{w.dominant}</span></td>
+                    <td style={{ padding: '8px 11px', color: '#60a5fa', fontFamily: 'Space Mono, monospace', fontSize: 10.5 }}>{w.muslim}</td>
+                    <td style={{ padding: '8px 11px', color: '#c084fc', fontFamily: 'Space Mono, monospace', fontSize: 10.5 }}>{w.christian}</td>
+                    <td style={{ padding: '8px 11px', color: '#fb923c', fontWeight: 700, fontFamily: 'Space Mono, monospace', fontSize: 10.5 }}>{w.bjp}%</td>
+                    <td style={{ padding: '8px 11px', color: '#f87171', fontFamily: 'Space Mono, monospace', fontSize: 10.5 }}>{w.inc}%</td>
+                    <td style={{ padding: '8px 11px', color: lc, fontWeight: 700, fontFamily: 'Space Mono, monospace', fontSize: 10.5 }}>{ls}</td>
+                    <td style={{ padding: '8px 11px', fontWeight: 700, color: wc, fontSize: 10.5 }}>{w.winner}</td>
+                    <td style={{ padding: '8px 11px', color: vc, fontSize: 10.5, fontWeight: 700 }}>{w.viability}</td>
                   </tr>
                 );
               })}
@@ -488,50 +464,58 @@ function SwotTab() {
   const [modalKey, setModalKey] = useState(null);
   const keys = ['S', 'W', 'O', 'T'];
 
+  const strategyItems = [
+    { Icon: Crosshair, text: 'Defend Attavara (+9.9%), Mangaladevi (+9.8%), Padav East (+7.5%) — combined margin only ~1,050 votes' },
+    { Icon: RefreshCw, text: 'Priority flips: Shivabagh (183 votes gap), Court (+352 via turnout), Bajal (JDS+Hindu drive)' },
+    { Icon: Smartphone, text: 'Youth mobilisation in 3 narrow wards — 3% turnout gain = +120 net votes each ward' },
+    { Icon: Building2, text: 'Lead 2028 on Smart City deliverables — anchor coastal Hindu voters in Padav, Bolar, Boloor clusters' },
+  ];
+
   return (
     <div>
       {/* Key Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Ward Win Rate', value: '65.8%', sub: '25 of 38 wards', color: '#10b981' },
-          { label: 'BJP Vote Share', value: '56.1%', sub: 'vs INC 42.0%', color: '#fb923c' },
-          { label: 'Majority Margin', value: '+14.1%', sub: 'over Congress', color: '#22d3ee' },
-          { label: 'Strong Booths', value: '33/38', sub: 'Polling stations', color: '#a78bfa' },
+          { label: 'Ward Win Rate', value: '65.8%', sub: '25 of 38 wards', color: '#10b981', Icon: TrendingUp },
+          { label: 'BJP Vote Share', value: '56.1%', sub: 'vs INC 42.0%', color: '#fb923c', Icon: Activity },
+          { label: 'Majority Margin', value: '+14.1%', sub: 'over Congress', color: '#22d3ee', Icon: MapPin },
+          { label: 'Strong Booths', value: '33/38', sub: 'Polling stations', color: '#a78bfa', Icon: CheckSquare },
         ].map((s, i) => (
-          <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '12px 10px', textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: s.color, letterSpacing: -0.5, marginBottom: 3, fontFamily: 'Space Mono, monospace' }}>{s.value}</div>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.62)', marginBottom: 1 }}>{s.label}</div>
-            <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.25)' }}>{s.sub}</div>
+          <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
+              <s.Icon size={16} color={s.color} strokeWidth={2} />
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: s.color, letterSpacing: -0.5, marginBottom: 2, fontFamily: 'Space Mono, monospace' }}>{s.value}</div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.55)', marginBottom: 1 }}>{s.label}</div>
+            <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.22)' }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
       {/* 2028 Strategy */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.06), rgba(34,211,238,0.04))', border: '1px solid rgba(245,158,11,0.18)', borderRadius: 16, padding: '16px 18px', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>⚡</div>
+      <div style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 14, padding: '16px 18px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Zap size={14} color="#f59e0b" strokeWidth={2.5} />
+          </div>
           <div>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#f0f4ff' }}>2028 Election Strategy Priorities</div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: '#f59e0b', letterSpacing: 0.6, textTransform: 'uppercase', opacity: 0.8 }}>Derived from 2023 booth-level data · 38 wards · 246,952 voters</div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#f59e0b', letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.75 }}>Derived from 2023 booth-level data · 38 wards · 246,952 voters</div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {[
-            { icon: '🎯', text: 'Defend Attavara (+9.9%), Mangaladevi (+9.8%), Padav East (+7.5%) — combined margin only ~1,050 votes' },
-            { icon: '🔄', text: 'Priority flips: Shivabagh (183 votes gap), Court (+352 via turnout), Bajal (JDS+Hindu drive)' },
-            { icon: '📱', text: 'Youth mobilisation in 3 narrow wards — 3% turnout gain = +120 net votes each ward' },
-            { icon: '🏗️', text: 'Lead 2028 on Smart City deliverables — anchor coastal Hindu voters in Padav, Bolar, Boloor clusters' },
-          ].map((p, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '9px 11px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9 }}>
-              <span style={{ fontSize: 13, flexShrink: 0 }}>{p.icon}</span>
-              <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{p.text}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+          {strategyItems.map((p, i) => (
+            <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', padding: '9px 11px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
+              <p.Icon size={13} color="#f59e0b" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{p.text}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginBottom: 14, fontFamily: 'Space Mono, monospace', letterSpacing: 0.5 }}>
-        ↗ Click any quadrant to expand detailed intelligence
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginBottom: 14, fontFamily: 'Space Mono, monospace', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+        <ChevronRight size={11} color="rgba(255,255,255,0.2)" />
+        Click any quadrant to expand detailed intelligence
       </div>
 
       {/* 2×2 SWOT Grid */}
@@ -540,45 +524,49 @@ function SwotTab() {
           const q = swotPoints[key];
           const isH = hovered === key;
           return (
-            <div key={key} onClick={() => setModalKey(key)} onMouseEnter={() => setHovered(key)} onMouseLeave={() => setHovered(null)}
+            <div key={key}
+              onClick={() => setModalKey(key)}
+              onMouseEnter={() => setHovered(key)}
+              onMouseLeave={() => setHovered(null)}
               style={{
-                position: 'relative', borderRadius: 18, padding: '18px 16px 16px',
+                position: 'relative', borderRadius: 14, padding: '16px 15px 14px',
                 border: `1px solid ${isH ? q.border : 'rgba(255,255,255,0.07)'}`,
-                background: isH ? `linear-gradient(145deg, ${q.bg}, rgba(10,18,35,0.98))` : 'linear-gradient(145deg, rgba(15,25,50,0.75), rgba(8,13,26,0.95))',
-                boxShadow: isH ? `0 10px 36px ${q.glow}, inset 0 1px 0 rgba(255,255,255,0.07)` : 'inset 0 1px 0 rgba(255,255,255,0.04)',
-                transition: 'all 0.28s cubic-bezier(.4,0,.2,1)', overflow: 'hidden', cursor: 'pointer',
-                animation: `swotFadeUp 0.5s ease ${idx * 0.08}s both`,
+                background: isH ? `linear-gradient(145deg, ${q.bg}, rgba(10,18,35,0.98))` : 'rgba(15,23,42,0.6)',
+                boxShadow: isH ? `0 8px 30px ${q.glow}` : 'none',
+                transition: 'all 0.22s ease', overflow: 'hidden', cursor: 'pointer',
               }}>
-              {/* glow orb */}
-              <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: `radial-gradient(circle, ${q.color}1a, transparent 70%)`, opacity: isH ? 1 : 0.3, transition: 'opacity 0.3s', pointerEvents: 'none' }} />
-              {/* watermark */}
-              <div style={{ position: 'absolute', bottom: -10, right: 8, fontSize: 75, fontWeight: 900, color: q.color, opacity: 0.04, lineHeight: 1, pointerEvents: 'none', userSelect: 'none', fontFamily: 'Sora, sans-serif' }}>{key}</div>
+              {/* watermark letter */}
+              <div style={{ position: 'absolute', bottom: -8, right: 10, fontSize: 68, fontWeight: 900, color: q.color, opacity: 0.04, lineHeight: 1, pointerEvents: 'none', userSelect: 'none', fontFamily: 'Sora, sans-serif' }}>{key}</div>
 
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: 7, background: q.badgeBg, border: `1px solid ${q.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>{q.icon}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: q.badgeBg, border: `1px solid ${q.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <q.Icon size={14} color={q.color} strokeWidth={2} />
+                  </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#eef2ff' }}>{q.title}</div>
-                    <div style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase', color: q.color, opacity: 0.75 }}>{q.subtitle}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: '#eef2ff' }}>{q.title}</div>
+                    <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: q.color, opacity: 0.7 }}>{q.subtitle}</div>
                   </div>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: q.color, opacity: 0.55, fontFamily: 'Sora, sans-serif' }}>{key}</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: q.color, opacity: 0.4, fontFamily: 'Sora, sans-serif' }}>{key}</div>
               </div>
 
-              <div style={{ height: 1, background: `linear-gradient(90deg, ${q.color}22, transparent)`, marginBottom: 10 }} />
+              <div style={{ height: 1, background: `linear-gradient(90deg, ${q.color}20, transparent)`, marginBottom: 10 }} />
 
               {/* Items */}
-              <div style={{ position: 'relative', zIndex: 1 }}>
+              <div>
                 {q.items.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 9px', borderRadius: 8, background: 'rgba(255,255,255,0.022)', border: '1px solid rgba(255,255,255,0.055)', marginBottom: 5 }}>
-                    <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.48)', fontWeight: 500, flex: 1, paddingRight: 7, lineHeight: 1.3 }}>{item.label}</span>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: item.statColor, background: `${item.statColor}12`, border: `1px solid ${item.statColor}22`, borderRadius: 5, padding: '2px 6px', whiteSpace: 'nowrap', fontFamily: 'Space Mono, monospace' }}>{item.stat}</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 8px', borderRadius: 7, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 500, flex: 1, paddingRight: 7, lineHeight: 1.3 }}>{item.label}</span>
+                    <span style={{ fontSize: 9, fontWeight: 800, color: item.statColor, background: `${item.statColor}10`, border: `1px solid ${item.statColor}1e`, borderRadius: 4, padding: '2px 5px', whiteSpace: 'nowrap', fontFamily: 'Space Mono, monospace' }}>{item.stat}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', opacity: isH ? 0.7 : 0.25, transition: 'opacity 0.2s', position: 'relative', zIndex: 1 }}>
-                <span style={{ fontSize: 9, color: q.color, fontFamily: 'Space Mono, monospace', fontWeight: 700, letterSpacing: 0.4 }}>VIEW DETAILS →</span>
+
+              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, opacity: isH ? 0.65 : 0.2, transition: 'opacity 0.2s' }}>
+                <span style={{ fontSize: 9, color: q.color, fontFamily: 'Space Mono, monospace', fontWeight: 700, letterSpacing: 0.3 }}>VIEW DETAILS</span>
+                <ChevronRight size={10} color={q.color} />
               </div>
             </div>
           );
@@ -587,26 +575,30 @@ function SwotTab() {
 
       {/* Modal */}
       {modalKey && (
-        <div onClick={() => setModalKey(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.9)', backdropFilter: 'blur(14px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'modalIn 0.18s ease both' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'linear-gradient(145deg, #0d1a30, #080d1a)', border: `1px solid ${swotPoints[modalKey].border}`, borderRadius: 22, padding: '24px 22px', maxWidth: 560, width: '100%', boxShadow: `0 24px 80px ${swotPoints[modalKey].glow}`, maxHeight: '85vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 9, background: swotPoints[modalKey].badgeBg, border: `1px solid ${swotPoints[modalKey].border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{swotPoints[modalKey].icon}</div>
-                  <span style={{ fontSize: 16, fontWeight: 900, color: '#f0f4ff', fontFamily: 'Sora, sans-serif' }}>{swotPoints[modalKey].title}</span>
+        <div onClick={() => setModalKey(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.88)', backdropFilter: 'blur(12px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'linear-gradient(145deg, #0d1a30, #080d1a)', border: `1px solid ${swotPoints[modalKey].border}`, borderRadius: 18, padding: '22px 20px', maxWidth: 540, width: '100%', boxShadow: `0 20px 70px ${swotPoints[modalKey].glow}`, maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: swotPoints[modalKey].badgeBg, border: `1px solid ${swotPoints[modalKey].border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {React.createElement(swotPoints[modalKey].Icon, { size: 16, color: swotPoints[modalKey].color, strokeWidth: 2 })}
                 </div>
-                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: swotPoints[modalKey].color, opacity: 0.8, marginLeft: 38 }}>{swotPoints[modalKey].subtitle}</div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: '#f0f4ff', fontFamily: 'Sora, sans-serif' }}>{swotPoints[modalKey].title}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase', color: swotPoints[modalKey].color, opacity: 0.75 }}>{swotPoints[modalKey].subtitle}</div>
+                </div>
               </div>
-              <button onClick={() => setModalKey(null)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
+              <button onClick={() => setModalKey(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <X size={13} />
+              </button>
             </div>
-            <div style={{ height: 1, background: `linear-gradient(90deg, ${swotPoints[modalKey].color}28, transparent)`, marginBottom: 16 }} />
+            <div style={{ height: 1, background: `linear-gradient(90deg, ${swotPoints[modalKey].color}22, transparent)`, marginBottom: 14 }} />
             {swotPoints[modalKey].items.map((item, i) => (
-              <div key={i} style={{ marginBottom: 12, padding: '13px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 7, gap: 10 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#e8eeff', lineHeight: 1.3, flex: 1, fontFamily: 'Sora, sans-serif' }}>{item.label}</span>
-                  <span style={{ fontSize: 9.5, fontWeight: 800, color: item.statColor, background: `${item.statColor}14`, border: `1px solid ${item.statColor}28`, borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap', fontFamily: 'Space Mono, monospace' }}>{item.stat}</span>
+              <div key={i} style={{ marginBottom: 10, padding: '12px 13px', borderRadius: 10, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, gap: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#e8eeff', lineHeight: 1.3, flex: 1, fontFamily: 'Sora, sans-serif' }}>{item.label}</span>
+                  <span style={{ fontSize: 9, fontWeight: 800, color: item.statColor, background: `${item.statColor}12`, border: `1px solid ${item.statColor}24`, borderRadius: 4, padding: '2px 7px', whiteSpace: 'nowrap', fontFamily: 'Space Mono, monospace' }}>{item.stat}</span>
                 </div>
-                <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', lineHeight: 1.62, margin: 0 }}>{item.detail}</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.6, margin: 0 }}>{item.detail}</p>
               </div>
             ))}
           </div>
@@ -627,98 +619,104 @@ export default function Swot() {
         * { box-sizing: border-box; }
         .swot-page {
           min-height: 100vh;
-          background: #060c1a;
+          background: #070c18;
           padding-top: var(--nav-h, 64px);
           padding-bottom: calc(var(--tab-h, 56px) + var(--safe-bottom, 0px) + 24px);
           position: relative;
-          overflow: hidden;
           font-family: 'Sora', sans-serif;
         }
-        .swot-bg-mesh {
+        .swot-bg {
           position: absolute; inset: 0; pointer-events: none; z-index: 0;
           background:
-            radial-gradient(ellipse 55% 40% at 15% 20%, rgba(16,185,129,0.06) 0%, transparent 70%),
-            radial-gradient(ellipse 50% 50% at 85% 80%, rgba(34,211,238,0.05) 0%, transparent 70%),
-            radial-gradient(ellipse 40% 55% at 80% 10%, rgba(245,158,11,0.04) 0%, transparent 70%),
-            radial-gradient(ellipse 60% 30% at 5% 90%, rgba(248,113,113,0.04) 0%, transparent 70%);
-        }
-        .swot-grid-lines {
-          position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.022;
-          background-image: linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px);
-          background-size: 60px 60px;
+            radial-gradient(ellipse 50% 35% at 10% 15%, rgba(16,185,129,0.05) 0%, transparent 65%),
+            radial-gradient(ellipse 45% 40% at 90% 85%, rgba(34,211,238,0.04) 0%, transparent 65%),
+            radial-gradient(ellipse 35% 50% at 85% 8%, rgba(245,158,11,0.03) 0%, transparent 65%);
         }
         .swot-inner {
           position: relative; z-index: 1;
           max-width: 1000px; margin: 0 auto;
-          padding: 28px 16px 32px;
+          padding: 24px 16px 32px;
         }
-        .swot-hero { text-align: center; margin-bottom: 28px; animation: swotFadeUp 0.5s ease both; }
-        .swot-badge {
-          display: inline-flex; align-items: center; gap: 7px;
-          background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.22);
-          border-radius: 999px; padding: 5px 16px;
-          font-size: 10px; font-weight: 700; color: #f59e0b;
-          letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 14px;
+        .swot-hero {
+          text-align: center; margin-bottom: 24px;
+          animation: fadeUp 0.45s ease both;
+        }
+        .swot-eyebrow {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.18);
+          border-radius: 999px; padding: 4px 14px;
+          font-size: 9.5px; font-weight: 700; color: rgba(245,158,11,0.85);
+          letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 12px;
           font-family: 'Space Mono', monospace;
         }
-        .swot-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; animation: swotPulse 2s ease-in-out infinite; }
-        .swot-title {
-          font-size: clamp(26px, 5vw, 40px); font-weight: 900; color: #eef2ff;
-          letter-spacing: -1.5px; line-height: 1.05; margin-bottom: 8px;
+        .swot-eyebrow-dot {
+          width: 5px; height: 5px; border-radius: 50%; background: #f59e0b;
+          animation: pulse 2.2s ease-in-out infinite;
         }
-        .swot-title span { background: linear-gradient(135deg, #f59e0b, #fde68a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .swot-subtitle { font-size: 13px; color: rgba(255,255,255,0.32); max-width: 440px; margin: 0 auto; line-height: 1.6; }
+        .swot-title {
+          font-size: clamp(24px, 4.5vw, 38px); font-weight: 900; color: #eef2ff;
+          letter-spacing: -1.2px; line-height: 1.06; margin-bottom: 8px;
+        }
+        .swot-title-accent {
+          background: linear-gradient(135deg, #f59e0b, #fde68a);
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .swot-subtitle {
+          font-size: 12.5px; color: rgba(255,255,255,0.28);
+          max-width: 420px; margin: 0 auto; line-height: 1.6;
+        }
         .tab-nav {
-          display: flex; gap: 6px; margin-bottom: 24px; padding: 5px;
-          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 14px; animation: swotFadeUp 0.5s ease 0.1s both;
+          display: flex; gap: 5px; margin-bottom: 22px; padding: 4px;
+          background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 12px; animation: fadeUp 0.45s ease 0.08s both;
         }
         .tab-btn {
-          flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid transparent;
+          flex: 1; padding: 9px 12px; border-radius: 9px; border: 1px solid transparent;
           background: transparent; cursor: pointer; font-family: 'Sora', sans-serif;
-          font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.4);
-          transition: all 0.22s; letter-spacing: 0.2px; display: flex; align-items: center; justify-content: center; gap: 6px;
+          font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.36);
+          transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
         }
         .tab-btn.active {
-          background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.28);
-          color: #f59e0b; box-shadow: 0 4px 16px rgba(245,158,11,0.12);
+          background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.24);
+          color: #f59e0b;
         }
-        .tab-btn:not(.active):hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
-        .swot-source-strip {
-          display: flex; align-items: center; justify-content: center; gap: 8px;
-          padding: 10px 16px; border-radius: 10px; margin-top: 24px;
-          background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-          font-size: 10px; color: rgba(255,255,255,0.22); font-family: 'Space Mono', monospace;
+        .tab-btn:not(.active):hover { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.04); }
+        .swot-source {
+          display: flex; align-items: center; justify-content: center; gap: 7px;
+          padding: 9px 14px; border-radius: 8px; margin-top: 22px;
+          background: rgba(255,255,255,0.018); border: 1px solid rgba(255,255,255,0.05);
+          font-size: 9.5px; color: rgba(255,255,255,0.2); font-family: 'Space Mono', monospace;
         }
-        .source-dot { width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: swotPulse 2.5s ease-in-out infinite; }
-        @keyframes swotFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes swotPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.6); } }
-        @keyframes modalIn { from { opacity:0; } to { opacity:1; } }
-        @media (max-width: 600px) {
-          .tab-btn span.tab-label { display: none; }
-        }
+        .source-dot { width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: pulse 2.5s ease-in-out infinite; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.35; transform:scale(0.55); } }
+        @media (max-width: 600px) { .tab-btn .tab-label { display: none; } }
       `}</style>
 
       <div className="swot-page">
-        <div className="swot-bg-mesh" />
-        <div className="swot-grid-lines" />
-        <Particles />
+        <div className="swot-bg" />
         <Navbar />
 
         <div className="swot-inner">
           {/* Hero */}
           <div className="swot-hero">
-            <div className="swot-badge"><span className="swot-badge-dot" />Political Intelligence · Mangaluru MCC · 38 Wards</div>
-            <h1 className="swot-title">BJP <span>Political SWOT</span></h1>
+            <div className="swot-eyebrow">
+              <span className="swot-eyebrow-dot" />
+              Political Intelligence · Mangaluru MCC · 38 Wards
+            </div>
+            <h1 className="swot-title">BJP <span className="swot-title-accent">Political SWOT</span></h1>
             <p className="swot-subtitle">Booth-level intelligence for the 2028 cycle — grounded in 2023 election data across all 38 wards · 2,46,952 registered voters.</p>
           </div>
 
           {/* Tab Nav */}
           <div className="tab-nav">
             {TABS.map(t => (
-              <button key={t.id} className={`tab-btn${activeTab === t.id ? ' active' : ''}`} onClick={() => setActiveTab(t.id)}>
-                <span>{t.icon}</span>
+              <button
+                key={t.id}
+                className={`tab-btn${activeTab === t.id ? ' active' : ''}`}
+                onClick={() => setActiveTab(t.id)}
+              >
+                <t.Icon size={13} strokeWidth={2} />
                 <span className="tab-label">{t.label}</span>
               </button>
             ))}
@@ -729,8 +727,8 @@ export default function Swot() {
           {activeTab === 'wards' && <WardStrengthTab />}
           {activeTab === 'demographic' && <DemographicTab />}
 
-          {/* Source */}
-          <div className="swot-source-strip">
+          {/* Source strip */}
+          <div className="swot-source">
             <span className="source-dot" />
             <span>Source: 2023 Karnataka Assembly Elections · Mangaluru City Constituency · 38 Wards · 2,46,952 Registered Voters · Booth-Level Data</span>
           </div>
