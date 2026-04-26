@@ -354,6 +354,8 @@ export default function Navbar() {
         @media (max-width: 768px) {
           .desktop-only { display: none !important; }
           .mobile-only  { display: flex !important; }
+          /* nav-bottom uses grid for equal columns — must not be overridden by mobile-only flex */
+          .nav-bottom.mobile-only { display: grid !important; }
         }
       `}</style>
     </>
