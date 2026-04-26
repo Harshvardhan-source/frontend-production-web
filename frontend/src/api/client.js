@@ -14,6 +14,19 @@ const authClient = axios.create({
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
+// Attach JWT Authorization header to FastAPI (auth service) requests.
+// The cc_token cookie is httpOnly + samesite=none on FastAPI's own domain,
+// so it IS sent automatically via withCredentials on same-origin calls, but
+// on cross-origin (different Render subdomain) the browser may block it.
+// Sending it as a Bearer header is the reliable cross-origin fallback.
+authClient.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('cc_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // ── CSRF token helper ────────────────────────────────────────────────────────
 let csrfReady = false;
 
