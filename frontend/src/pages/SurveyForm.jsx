@@ -691,7 +691,7 @@ export default function SurveyForm() {
       // via its interceptors, exactly like save-future-voters and save-deceased.
       // ⚠️ Do NOT use raw fetch() here — it bypasses auth and causes 401.
       // ── Build payload — log it so we can verify values are non-empty ────────
-      const payload = { ...form, schemes };
+      const payload = { ...form, schemes, serialNo_voterlist: serialNo };
       console.log('[SurveyForm] submitting payload:', JSON.stringify(payload, null, 2));
 
       let surveyRes;
