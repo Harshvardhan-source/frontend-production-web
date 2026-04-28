@@ -769,6 +769,11 @@ export default function SurveyForm() {
       }
 
       // Save deceased with optional file upload
+      // ⚠️ Must use fetch() NOT axios here — the `api` axios instance has a
+      // hardcoded Content-Type: application/json header that overrides multipart/form-data
+      // even when sending FormData, causing Django's request.POST / request.FILES to be
+      // empty and the view to 500.  fetch() omits Content-Type so the browser sets
+      // multipart/form-data with the correct boundary automatically.
       const validDeceased = deceased.filter(d => d.name.trim());
       if (validDeceased.length > 0) {
         const fd = new FormData();
@@ -779,9 +784,22 @@ export default function SurveyForm() {
           return { ...rest, fileIndex: d.certificateFile ? i : null };
         });
         fd.append('deceased', JSON.stringify(deceasedMeta));
-        // ⚠️ Do NOT set Content-Type manually — axios must set it with the correct boundary
-        const deceasedRes  = await api.post('/api/save-deceased/', fd);
-        const uploadedUrls = deceasedRes?.data?.certificateUrls || [];
+
+        const ccToken   = sessionStorage.getItem('cc_token') || '';
+        const BASE      = process.env.REACT_APP_API_URL || 'https://production-web-conn-0tsi.onrender.com';
+        const rawDecRes = await fetch(`${BASE}/api/save-deceased/`, {
+          method:      'POST',
+          credentials: 'include',
+          headers:     { 'Authorization': `Bearer ${ccToken}` },
+          // ⚠️ NO Content-Type — browser sets multipart/form-data + boundary
+          body: fd,
+        });
+        if (!rawDecRes.ok) {
+          const errText = await rawDecRes.text();
+          throw new Error(`save-deceased failed (${rawDecRes.status}): ${errText.slice(0, 300)}`);
+        }
+        const deceasedData = await rawDecRes.json();
+        const uploadedUrls = deceasedData?.certificateUrls || [];
         const withFiles    = validDeceased.filter(d => d.certificateFile).length;
         if (withFiles > 0 && uploadedUrls.length === 0) {
           setError('⚠ Certificate file could not be uploaded to GCS. Check Render env vars: GCS_BUCKET_NAME and GOOGLE_APPLICATION_CREDENTIALS_JSON.');
