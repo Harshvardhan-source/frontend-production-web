@@ -178,6 +178,8 @@ function RecordModal({ record, title, accentColor, onClose }) {
               v.includes('storage.cloud.google.com') ||
               v.includes('firebasestorage.googleapis.com')
             );
+            const isPdf   = isUrl && isPdfUrl(v);
+            const canDl   = isImage || isPdf || isUrl; // allow download for any file URL
             return (
               <div key={k} style={{
                 display:'flex', justifyContent:'space-between', alignItems:'flex-start',
@@ -188,27 +190,67 @@ function RecordModal({ record, title, accentColor, onClose }) {
                 </span>
                 <span style={{ fontSize:13, fontWeight:600, color:'var(--text-1)', textAlign:'right', wordBreak:'break-word' }}>
                   {isImage ? (
-                    <a href={v} target="_blank" rel="noreferrer" style={{ display:'inline-block' }}>
-                      <img
-                        src={v}
-                        alt={k}
-                        style={{
-                          maxWidth: 180, maxHeight: 180,
-                          borderRadius: 8,
-                          border: `1px solid ${accentColor}44`,
-                          objectFit: 'cover',
-                          display: 'block',
-                          cursor: 'zoom-in',
-                        }}
-                        onError={e => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'inline';
-                        }}
-                      />
-                      <span style={{ display:'none', color: accentColor }}>View Photo ↗</span>
-                    </a>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+                      <a href={v} target="_blank" rel="noreferrer" style={{ display:'inline-block' }}>
+                        <img
+                          src={v}
+                          alt={k}
+                          style={{
+                            maxWidth: 180, maxHeight: 180,
+                            borderRadius: 8,
+                            border: `1px solid ${accentColor}44`,
+                            objectFit: 'cover',
+                            display: 'block',
+                            cursor: 'zoom-in',
+                          }}
+                          onError={e => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'inline';
+                          }}
+                        />
+                        <span style={{ display:'none', color: accentColor }}>View Photo ↗</span>
+                      </a>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <button
+                          onClick={() => downloadFile(v, guessFilename(v, k))}
+                          style={{
+                            fontSize:11, fontWeight:600, cursor:'pointer',
+                            padding:'3px 10px', borderRadius:5,
+                            background:'rgba(16,185,129,0.15)', color:'#10b981',
+                            border:'1px solid rgba(16,185,129,0.3)',
+                          }}>⬇ Download</button>
+                        <a href={v} target="_blank" rel="noreferrer" style={{
+                          fontSize:11, fontWeight:600,
+                          padding:'3px 10px', borderRadius:5,
+                          background:`${accentColor}15`, color: accentColor,
+                          border:`1px solid ${accentColor}30`,
+                          textDecoration:'none',
+                        }}>↗ Open</a>
+                      </div>
+                    </div>
                   ) : isUrl ? (
-                    <a href={v} target="_blank" rel="noreferrer" style={{ color: accentColor }}>View File ↗</a>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:5 }}>
+                      <span style={{ fontSize:12, color:'var(--text-3)', fontFamily:'monospace' }}>
+                        {isPdf ? '📄 PDF' : '🔗 File'}
+                      </span>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <button
+                          onClick={() => downloadFile(v, guessFilename(v, k))}
+                          style={{
+                            fontSize:11, fontWeight:600, cursor:'pointer',
+                            padding:'3px 10px', borderRadius:5,
+                            background:'rgba(16,185,129,0.15)', color:'#10b981',
+                            border:'1px solid rgba(16,185,129,0.3)',
+                          }}>⬇ Download</button>
+                        <a href={v} target="_blank" rel="noreferrer" style={{
+                          fontSize:11, fontWeight:600,
+                          padding:'3px 10px', borderRadius:5,
+                          background:`${accentColor}15`, color: accentColor,
+                          border:`1px solid ${accentColor}30`,
+                          textDecoration:'none',
+                        }}>↗ Open</a>
+                      </div>
+                    </div>
                   ) : (
                     String(v)
                   )}
@@ -470,6 +512,45 @@ function isGcpImageUrl(v) {
   );
 }
 
+function isPdfUrl(v) {
+  if (typeof v !== 'string' || !v.startsWith('http')) return false;
+  return /\.pdf(\?|$)/i.test(v) || v.includes('%2F') && v.toLowerCase().includes('pdf');
+}
+
+function isDownloadableUrl(v) {
+  return isGcpImageUrl(v) || isPdfUrl(v);
+}
+
+// Guess a filename from URL + field key, fallback to timestamp
+function guessFilename(url, label) {
+  try {
+    const path = new URL(url).pathname;
+    const seg  = decodeURIComponent(path.split('/').pop()).split('?')[0];
+    if (seg && seg.includes('.')) return seg;
+  } catch (_) {}
+  const ext = /\.(pdf|jpg|jpeg|png|gif|webp|bmp)/i.exec(url)?.[1] || 'file';
+  return `${label || 'download'}.${ext}`;
+}
+
+// Fetch-blob download (works for GCS CORS-enabled URLs; falls back to window.open)
+async function downloadFile(url, filename) {
+  try {
+    const res  = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    const bUrl = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = bUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(bUrl); a.remove(); }, 1500);
+  } catch (_) {
+    // CORS blocked — open in new tab so browser can save it
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PHOTO LIGHTBOX MODAL
 // ─────────────────────────────────────────────────────────────────────────────
@@ -494,6 +575,14 @@ function PhotoLightbox({ url, label, onClose }) {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%' }}>
           <span style={{ color:'#cbd5e1', fontSize:13, fontWeight:600 }}>{label}</span>
           <div style={{ display:'flex', gap:8 }}>
+            <button
+              onClick={() => downloadFile(url, guessFilename(url, label))}
+              title="Download"
+              style={{
+                fontSize:12, color:'#10b981', fontWeight:600,
+                padding:'4px 12px', borderRadius:6, cursor:'pointer',
+                background:'rgba(16,185,129,0.15)', border:'1px solid rgba(16,185,129,0.3)',
+              }}>⬇ Download</button>
             <a href={url} target="_blank" rel="noreferrer" style={{
               fontSize:12, color:'#f59e0b', fontWeight:600,
               padding:'4px 12px', borderRadius:6,
@@ -928,29 +1017,60 @@ export default function DataView() {
                             if (strVal && isGcpImageUrl(strVal)) {
                               return (
                                 <td key={c} title={strVal}>
-                                  <button
-                                    onClick={() => setLightboxPhoto({ url: strVal, label: c })}
-                                    style={{
-                                      background: 'none', border: 'none', padding: 0,
-                                      cursor: 'zoom-in', lineHeight: 0,
-                                    }}
-                                  >
-                                    <img
-                                      src={strVal}
-                                      alt={c}
+                                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                                    <button
+                                      onClick={() => setLightboxPhoto({ url: strVal, label: c })}
                                       style={{
-                                        width: 36, height: 36,
-                                        borderRadius: 6,
-                                        objectFit: 'cover',
-                                        border: '1px solid rgba(245,158,11,0.4)',
-                                        display: 'block',
+                                        background: 'none', border: 'none', padding: 0,
+                                        cursor: 'zoom-in', lineHeight: 0, flexShrink: 0,
                                       }}
-                                      onError={e => {
-                                        e.target.style.display = 'none';
-                                        e.target.parentNode.innerHTML = '<span style="color:#f59e0b;font-size:11px">📷 Photo</span>';
-                                      }}
-                                    />
-                                  </button>
+                                    >
+                                      <img
+                                        src={strVal}
+                                        alt={c}
+                                        style={{
+                                          width: 36, height: 36,
+                                          borderRadius: 6,
+                                          objectFit: 'cover',
+                                          border: '1px solid rgba(245,158,11,0.4)',
+                                          display: 'block',
+                                        }}
+                                        onError={e => {
+                                          e.target.style.display = 'none';
+                                          e.target.parentNode.innerHTML = '<span style="color:#f59e0b;font-size:11px">📷</span>';
+                                        }}
+                                      />
+                                    </button>
+                                    <button
+                                      onClick={() => downloadFile(strVal, guessFilename(strVal, c))}
+                                      title="Download"
+                                      style={{
+                                        background:'rgba(16,185,129,0.15)', border:'1px solid rgba(16,185,129,0.3)',
+                                        borderRadius:5, padding:'2px 5px', cursor:'pointer',
+                                        color:'#10b981', fontSize:12, lineHeight:1, flexShrink:0,
+                                      }}>⬇</button>
+                                  </div>
+                                </td>
+                              );
+                            }
+                            // Plain file/PDF URL in table
+                            if (strVal && strVal.startsWith('http')) {
+                              return (
+                                <td key={c} title={strVal}>
+                                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                                    <a href={strVal} target="_blank" rel="noreferrer"
+                                      style={{ color:'#a78bfa', fontSize:11, whiteSpace:'nowrap' }}>
+                                      {isPdfUrl(strVal) ? '📄 PDF' : '🔗 File'}
+                                    </a>
+                                    <button
+                                      onClick={() => downloadFile(strVal, guessFilename(strVal, c))}
+                                      title="Download"
+                                      style={{
+                                        background:'rgba(16,185,129,0.15)', border:'1px solid rgba(16,185,129,0.3)',
+                                        borderRadius:5, padding:'2px 5px', cursor:'pointer',
+                                        color:'#10b981', fontSize:12, lineHeight:1, flexShrink:0,
+                                      }}>⬇</button>
+                                  </div>
                                 </td>
                               );
                             }
