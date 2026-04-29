@@ -171,8 +171,13 @@ function RecordModal({ record, title, accentColor, onClose }) {
         </div>
         <div style={{ padding:'6px 22px 22px' }}>
           {entries.map(([k, v]) => {
-            // Render certificate URL as a link
-            const isUrl = typeof v === 'string' && v.startsWith('http');
+            const isUrl   = typeof v === 'string' && v.startsWith('http');
+            const isImage = isUrl && (
+              /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(v) ||
+              v.includes('storage.googleapis.com') ||
+              v.includes('storage.cloud.google.com') ||
+              v.includes('firebasestorage.googleapis.com')
+            );
             return (
               <div key={k} style={{
                 display:'flex', justifyContent:'space-between', alignItems:'flex-start',
@@ -182,9 +187,31 @@ function RecordModal({ record, title, accentColor, onClose }) {
                   {k.replace(/([A-Z])/g, ' $1').trim()}
                 </span>
                 <span style={{ fontSize:13, fontWeight:600, color:'var(--text-1)', textAlign:'right', wordBreak:'break-word' }}>
-                  {isUrl
-                    ? <a href={v} target="_blank" rel="noreferrer" style={{ color: accentColor }}>View Certificate ↗</a>
-                    : String(v)}
+                  {isImage ? (
+                    <a href={v} target="_blank" rel="noreferrer" style={{ display:'inline-block' }}>
+                      <img
+                        src={v}
+                        alt={k}
+                        style={{
+                          maxWidth: 180, maxHeight: 180,
+                          borderRadius: 8,
+                          border: `1px solid ${accentColor}44`,
+                          objectFit: 'cover',
+                          display: 'block',
+                          cursor: 'zoom-in',
+                        }}
+                        onError={e => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'inline';
+                        }}
+                      />
+                      <span style={{ display:'none', color: accentColor }}>View Photo ↗</span>
+                    </a>
+                  ) : isUrl ? (
+                    <a href={v} target="_blank" rel="noreferrer" style={{ color: accentColor }}>View File ↗</a>
+                  ) : (
+                    String(v)
+                  )}
                 </span>
               </div>
             );
@@ -431,6 +458,67 @@ function PgBtn({ p, cur, onPage }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function isGcpImageUrl(v) {
+  if (typeof v !== 'string' || !v.startsWith('http')) return false;
+  return (
+    v.includes('storage.googleapis.com') ||
+    v.includes('storage.cloud.google.com') ||
+    v.includes('firebasestorage.googleapis.com') ||
+    /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(v)
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHOTO LIGHTBOX MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+function PhotoLightbox({ url, label, onClose }) {
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, zIndex:2000,
+      background:'rgba(0,0,0,0.82)', backdropFilter:'blur(8px)',
+      display:'flex', flexDirection:'column',
+      alignItems:'center', justifyContent:'center', padding:20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        maxWidth:'90vw', maxHeight:'90vh',
+        display:'flex', flexDirection:'column', alignItems:'center', gap:12,
+      }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%' }}>
+          <span style={{ color:'#cbd5e1', fontSize:13, fontWeight:600 }}>{label}</span>
+          <div style={{ display:'flex', gap:8 }}>
+            <a href={url} target="_blank" rel="noreferrer" style={{
+              fontSize:12, color:'#f59e0b', fontWeight:600,
+              padding:'4px 12px', borderRadius:6,
+              background:'rgba(245,158,11,0.15)', border:'1px solid rgba(245,158,11,0.3)',
+              textDecoration:'none',
+            }}>Open in new tab ↗</a>
+            <button onClick={onClose} style={{
+              background:'rgba(255,255,255,0.1)', border:'none',
+              borderRadius:8, width:32, height:32, cursor:'pointer',
+              color:'#cbd5e1', fontSize:20,
+              display:'flex', alignItems:'center', justifyContent:'center',
+            }}>×</button>
+          </div>
+        </div>
+        <img src={url} alt={label} style={{
+          maxWidth:'85vw', maxHeight:'78vh',
+          borderRadius:12, objectFit:'contain',
+          boxShadow:'0 24px 60px rgba(0,0,0,0.6)',
+        }}/>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN DataView
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DataView() {
@@ -450,6 +538,7 @@ export default function DataView() {
   const [selectedVoter,  setSelectedVoter]  = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [debugInfo,      setDebugInfo]      = useState({});
+  const [lightboxPhoto,  setLightboxPhoto]  = useState(null); // { url, label }
 
   const loadRef   = useRef(0);
   const debouncer = useRef(null);
@@ -573,6 +662,15 @@ export default function DataView() {
         accentColor={tabConfig.color}
         onClose={() => setSelectedRecord(null)}
       />
+
+      {/* Photo lightbox */}
+      {lightboxPhoto && (
+        <PhotoLightbox
+          url={lightboxPhoto.url}
+          label={lightboxPhoto.label}
+          onClose={() => setLightboxPhoto(null)}
+        />
+      )}
 
       <div className="page-inner" style={{ maxWidth: 1400 }}>
 
@@ -824,12 +922,44 @@ export default function DataView() {
                     <tbody>
                       {rows.map((row, i) => (
                         <tr key={i}>
-                          {cols.map(c => (
-                            <td key={c} title={String(row[c] ?? '')}>
-                              {row[c] !== undefined && row[c] !== null && row[c] !== ''
-                                ? String(row[c]) : '—'}
-                            </td>
-                          ))}
+                          {cols.map(c => {
+                            const val = row[c];
+                            const strVal = val !== undefined && val !== null && val !== '' ? String(val) : null;
+                            if (strVal && isGcpImageUrl(strVal)) {
+                              return (
+                                <td key={c} title={strVal}>
+                                  <button
+                                    onClick={() => setLightboxPhoto({ url: strVal, label: c })}
+                                    style={{
+                                      background: 'none', border: 'none', padding: 0,
+                                      cursor: 'zoom-in', lineHeight: 0,
+                                    }}
+                                  >
+                                    <img
+                                      src={strVal}
+                                      alt={c}
+                                      style={{
+                                        width: 36, height: 36,
+                                        borderRadius: 6,
+                                        objectFit: 'cover',
+                                        border: '1px solid rgba(245,158,11,0.4)',
+                                        display: 'block',
+                                      }}
+                                      onError={e => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentNode.innerHTML = '<span style="color:#f59e0b;font-size:11px">📷 Photo</span>';
+                                      }}
+                                    />
+                                  </button>
+                                </td>
+                              );
+                            }
+                            return (
+                              <td key={c} title={strVal || ''}>
+                                {strVal || '—'}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>
