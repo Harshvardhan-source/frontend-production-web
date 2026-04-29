@@ -247,7 +247,7 @@ function WardStrengthTab() {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
+      <div className="grid-4" style={{ marginBottom: 20 }}>
         {[
           { key: 'STRONG', count: 8, avg: '47.8%', extra: 'All Hindu-belt' },
           { key: 'MEDIUM', count: 14, avg: '24.6%', extra: 'Solid BJP base' },
@@ -401,7 +401,7 @@ function DemographicTab() {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
+      <div className="grid-4" style={{ marginBottom: 20 }}>
         {[
           { val: booths.length, label: demoFilter === 'muslim' ? 'Muslim-Dominant Booths' : 'Christian-Dominant Booths', color: summaryColor },
           { val: `${avgBJP}%`, label: 'Avg BJP % in these booths', color: '#fb923c' },
@@ -755,6 +755,7 @@ export default function Swot() {
           .tab-btn { min-height: 48px; padding: 10px 6px; }
 
           .grid-4 { grid-template-columns: repeat(2,1fr); gap: 8px; }
+          .grid-4 > div { padding: 12px 8px !important; }
           .grid-2 { grid-template-columns: 1fr; gap: 10px; }
           .grid-2-sm { grid-template-columns: 1fr; gap: 7px; }
 
