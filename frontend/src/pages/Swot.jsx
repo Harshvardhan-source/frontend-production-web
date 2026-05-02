@@ -842,19 +842,23 @@ function ContextSwotCard({ contextKey, queries, expanded, onToggle }) {
       </div>
 
       <div style={{ display: 'flex', gap: 6, padding: '0 16px 14px', flexWrap: 'wrap' }}>
-        {['S','W','O','T'].map(q => buckets[q].length > 0 && (
+        {['S','W','O','T'].map(q => {
+          const qCfg = SWOT_CONFIG[q];
+          const QIcon = qCfg.Icon;
+          return buckets[q].length > 0 && (
           <div key={q} style={{
             display: 'flex', alignItems: 'center', gap: 4,
-            background: SWOT_CONFIG[q].bg, border: `1px solid ${SWOT_CONFIG[q].border}`,
+            background: qCfg.bg, border: `1px solid ${qCfg.border}`,
             borderRadius: 6, padding: '3px 8px',
           }}>
-            <SWOT_CONFIG[q].Icon size={10} color={SWOT_CONFIG[q].color} strokeWidth={2.5} />
-            <span style={{ fontSize: 10, fontWeight: 700, color: SWOT_CONFIG[q].color, fontFamily: 'Space Mono, monospace' }}>
+            <QIcon size={10} color={qCfg.color} strokeWidth={2.5} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: qCfg.color, fontFamily: 'Space Mono, monospace' }}>
               {buckets[q].length}
             </span>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{SWOT_CONFIG[q].label}</span>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{qCfg.label}</span>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {expanded && (
