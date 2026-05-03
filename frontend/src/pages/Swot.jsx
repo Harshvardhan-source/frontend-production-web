@@ -32,12 +32,6 @@ const PATHS = {
   RefreshCw:    ['M23 4v6h-6', 'M1 20v-6h6', 'M3.51 9a9 9 0 0 1 14.85-3.36L23 10', 'M1 14l4.64 4.36A9 9 0 0 0 20.49 15'],
   Smartphone:   ['M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z', 'M12 18h.01'],
   Building2:    ['M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18z', 'M6 12H4a2 2 0 0 0-2 2v8h4', 'M18 9h2a2 2 0 0 1 2 2v11h-4', 'M10 6h4', 'M10 10h4', 'M10 14h4', 'M10 18h4'],
-  Database:     ['M12 2C8.13 2 5 3.34 5 5v14c0 1.66 3.13 3 7 3s7-1.34 7-3V5c0-1.66-3.13-3-7-3z', 'M5 5c0 1.66 3.13 3 7 3s7-1.34 7-3', 'M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3'],
-  Filter:       ['M22 3H2l8 9.46V19l4 2V12.46L22 3z'],
-  Layers:       ['M12 2L2 7l10 5 10-5-10-5z', 'M2 17l10 5 10-5', 'M2 12l10 5 10-5'],
-  Cpu:          ['M18 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z', 'M9 9h6v6H9z', 'M9 1v3', 'M15 1v3', 'M9 20v3', 'M15 20v3', 'M20 9h3', 'M20 14h3', 'M1 9h3', 'M1 14h3'],
-  ChevronDown:  ['M6 9l6 6 6-6'],
-  Search:       ['M11 17.25a6.25 6.25 0 1 1 0-12.5 6.25 6.25 0 0 1 0 12.5z', 'M16 16l4.5 4.5'],
 };
 
 const ShieldCheck   = (p) => <Icon path={PATHS.ShieldCheck}   {...p} />;
@@ -63,12 +57,6 @@ const Crosshair     = (p) => <Icon path={PATHS.Crosshair}     {...p} />;
 const RefreshCw     = (p) => <Icon path={PATHS.RefreshCw}     {...p} />;
 const Smartphone    = (p) => <Icon path={PATHS.Smartphone}    {...p} />;
 const Building2     = (p) => <Icon path={PATHS.Building2}     {...p} />;
-const Database      = (p) => <Icon path={PATHS.Database}      {...p} />;
-const Filter        = (p) => <Icon path={PATHS.Filter}        {...p} />;
-const Layers        = (p) => <Icon path={PATHS.Layers}        {...p} />;
-const Cpu           = (p) => <Icon path={PATHS.Cpu}           {...p} />;
-const ChevronDown   = (p) => <Icon path={PATHS.ChevronDown}   {...p} />;
-const SearchIcon    = (p) => <Icon path={PATHS.Search}        {...p} />;
 
 // ─── Ward Data (all 38 wards) ──────────────────────────────────────────────────
 const wardData = [
@@ -218,13 +206,13 @@ const swotPoints = {
 };
 
 // ─── Tab Config ────────────────────────────────────────────────────────────────
-const TABS = [
-  { id: 'swot', label: 'Political SWOT', Icon: LayoutGrid },
-  { id: 'wards', label: 'Ward Strength', Icon: BarChart2 },
-  { id: 'demographic', label: 'Demographic', Icon: PieChart },
-  { id: 'queryswot', label: 'Query SWOT', Icon: Database },
-];
 
+const TABS = [
+  { id: 'swot',       label: 'Political SWOT', Icon: LayoutGrid },
+  { id: 'wards',      label: 'Ward Strength',  Icon: BarChart2  },
+  { id: 'demographic',label: 'Demographic',    Icon: PieChart   },
+  { id: 'ml',         label: 'ML Intelligence',Icon: Crosshair  },
+];
 // ─── Ward Strength Tab ─────────────────────────────────────────────────────────
 function WardStrengthTab() {
   const [filter, setFilter] = useState('all');
@@ -673,545 +661,369 @@ function SwotTab() {
 }
 
 
-// ── Context meta — display names, colors, icons, SWOT logic ──────────────────
-const CTX_META = {
-  Economic_context: {
-    label: 'Economic Context', short: 'Economy',
-    icon: '💰', color: '#10b981', glow: 'rgba(16,185,129,0.18)',
-    border: 'rgba(16,185,129,0.3)', bg: 'rgba(16,185,129,0.06)',
-    badge: 'rgba(16,185,129,0.14)',
-    desc: 'APL/BPL distribution, economic vulnerability, household financial standing',
-  },
-  Employment_context: {
-    label: 'Employment Context', short: 'Employment',
-    icon: '🏢', color: '#f59e0b', glow: 'rgba(245,158,11,0.18)',
-    border: 'rgba(245,158,11,0.3)', bg: 'rgba(245,158,11,0.06)',
-    badge: 'rgba(245,158,11,0.14)',
-    desc: 'Employment status, job type, livelihood security',
-  },
-  Health_context: {
-    label: 'Health Context', short: 'Health',
-    icon: '🏥', color: '#f87171', glow: 'rgba(248,113,113,0.18)',
-    border: 'rgba(248,113,113,0.3)', bg: 'rgba(248,113,113,0.06)',
-    badge: 'rgba(248,113,113,0.14)',
-    desc: 'Health status, disease burden, disability profile of voter clusters',
-  },
-  Hometype_context: {
-    label: 'Home Type Context', short: 'Housing',
-    icon: '🏠', color: '#a78bfa', glow: 'rgba(167,139,250,0.18)',
-    border: 'rgba(167,139,250,0.3)', bg: 'rgba(167,139,250,0.06)',
-    badge: 'rgba(167,139,250,0.14)',
-    desc: 'Ownership vs rental, government quarters, housing vulnerability',
-  },
-  Education_context: {
-    label: 'Education Context', short: 'Education',
-    icon: '🎓', color: '#22d3ee', glow: 'rgba(34,211,238,0.18)',
-    border: 'rgba(34,211,238,0.3)', bg: 'rgba(34,211,238,0.06)',
-    badge: 'rgba(34,211,238,0.14)',
-    desc: 'Education levels, literacy, student population engagement',
-  },
-  PL_Religion_context: {
-    label: 'Religion Context', short: 'Religion',
-    icon: '🕌', color: '#fb923c', glow: 'rgba(251,146,60,0.18)',
-    border: 'rgba(251,146,60,0.3)', bg: 'rgba(251,146,60,0.06)',
-    badge: 'rgba(251,146,60,0.14)',
-    desc: 'Religious demographic clustering and political alignment patterns',
-  },
-  PL_Community_context: {
-    label: 'Community Context', short: 'Community',
-    icon: '👥', color: '#60a5fa', glow: 'rgba(96,165,250,0.18)',
-    border: 'rgba(96,165,250,0.3)', bg: 'rgba(96,165,250,0.06)',
-    badge: 'rgba(96,165,250,0.14)',
-    desc: 'GC/OBC/SC/ST community distribution and subcategory breakdown',
-  },
-  PL_Economic_context: {
-    label: 'Political-Economic Context', short: 'Pol-Economy',
-    icon: '📊', color: '#34d399', glow: 'rgba(52,211,153,0.18)',
-    border: 'rgba(52,211,153,0.3)', bg: 'rgba(52,211,153,0.06)',
-    badge: 'rgba(52,211,153,0.14)',
-    desc: 'Economic status intersected with political leanings and area type',
-  },
-  Political_context: {
-    label: 'Political Context', short: 'Political',
-    icon: '🗳️', color: '#f0abfc', glow: 'rgba(240,171,252,0.18)',
-    border: 'rgba(240,171,252,0.3)', bg: 'rgba(240,171,252,0.06)',
-    badge: 'rgba(240,171,252,0.14)',
-    desc: 'Overall political engagement, swing potential and voter bloc strength',
-  },
-  Administrative_context: {
-    label: 'Administrative Context', short: 'Admin',
-    icon: '🏛️', color: '#94a3b8', glow: 'rgba(148,163,184,0.18)',
-    border: 'rgba(148,163,184,0.3)', bg: 'rgba(148,163,184,0.06)',
-    badge: 'rgba(148,163,184,0.14)',
-    desc: 'Ward/booth administrative quality, governance delivery clusters',
-  },
-};
+// ─── ML Intelligence Tab ─────────────────────────────────────────────────────
+const CONTEXT_KEYS = [
+  { key: 'Economic_context',       label: 'Economic',          color: '#10b981', icon: '💰' },
+  { key: 'Employment_context',     label: 'Employment',        color: '#f59e0b', icon: '🏗️' },
+  { key: 'Health_context',         label: 'Health',            color: '#f87171', icon: '🏥' },
+  { key: 'Hometype_context',       label: 'Home Type',         color: '#a78bfa', icon: '🏠' },
+  { key: 'Education_context',      label: 'Education',         color: '#22d3ee', icon: '📚' },
+  { key: 'PL_Religion_context',    label: 'Religion (PL)',     color: '#fb923c', icon: '⛩️' },
+  { key: 'PL_Community_context',   label: 'Community (PL)',    color: '#60a5fa', icon: '👥' },
+  { key: 'PL_Economic_context',    label: 'Economic (PL)',     color: '#34d399', icon: '📊' },
+  { key: 'Political_context',      label: 'Political',         color: '#e879f9', icon: '🗳️' },
+  { key: 'Administrative_context', label: 'Administrative',    color: '#fbbf24', icon: '🏛️' },
+];
 
-const CONTEXT_KEYS = Object.keys(CTX_META);
-
-// Label tier config
-const LABEL_META = {
-  HA: { tier: 'High',   sub: 'A', color: '#10b981', bg: 'rgba(16,185,129,0.14)',  border: 'rgba(16,185,129,0.3)',  swot: 'S' },
-  HB: { tier: 'High',   sub: 'B', color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.28)', swot: 'S' },
-  HC: { tier: 'High',   sub: 'C', color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)',  border: 'rgba(110,231,183,0.25)',swot: 'S' },
-  MA: { tier: 'Medium', sub: 'A', color: '#f59e0b', bg: 'rgba(245,158,11,0.14)',  border: 'rgba(245,158,11,0.3)',  swot: 'O' },
-  MB: { tier: 'Medium', sub: 'B', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.28)', swot: 'O' },
-  MC: { tier: 'Medium', sub: 'C', color: '#fde68a', bg: 'rgba(253,230,138,0.1)',  border: 'rgba(253,230,138,0.25)',swot: 'W' },
-  LA: { tier: 'Low',    sub: 'A', color: '#fb923c', bg: 'rgba(251,146,60,0.12)',  border: 'rgba(251,146,60,0.28)', swot: 'W' },
-  LB: { tier: 'Low',    sub: 'B', color: '#f87171', bg: 'rgba(248,113,113,0.14)', border: 'rgba(248,113,113,0.3)', swot: 'T' },
-  LC: { tier: 'Low',    sub: 'C', color: '#ef4444', bg: 'rgba(239,68,68,0.16)',   border: 'rgba(239,68,68,0.32)',  swot: 'T' },
-};
-
-const SWOT_QUADRANT = {
-  S: { label: 'Strength',     color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.2)' },
-  O: { label: 'Opportunity',  color: '#22d3ee', bg: 'rgba(34,211,238,0.08)',  border: 'rgba(34,211,238,0.2)' },
-  W: { label: 'Weakness',     color: '#fde68a', bg: 'rgba(253,230,138,0.08)', border: 'rgba(253,230,138,0.2)' },
-  T: { label: 'Threat',       color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' },
-};
-
-// Readable label for a query dict
-function queryToLabel(query) {
-  const parts = Object.entries(query)
-    .map(([k, v]) => {
-      const keyLabel = k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
-      return `${keyLabel}: ${v}`;
-    });
-  return parts.join(' · ');
+// Label decode: W=Weakness T=Threat S=Strength O=Opportunity, H=High M=Medium L=Low etc.
+function decodeLabel(raw) {
+  if (!raw || raw === 'None') return { swot: null, band: null };
+  const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const swotMap = { S: 'Strength', W: 'Weakness', O: 'Opportunity', T: 'Threat' };
+  const bandMap = { H: 'High', M: 'Medium', L: 'Low', A: 'Avg' };
+  let swot = [], band = [];
+  for (const p of parts) {
+    if (swotMap[p]) swot.push(swotMap[p]);
+    else if (bandMap[p]) band.push(bandMap[p]);
+  }
+  return { swot, band };
 }
 
-// Summarise query keys nicely
-function queryDescription(query) {
-  const entries = Object.entries(query);
-  if (entries.length === 0) return '—';
-  return entries.map(([k, v]) => {
-    const nice = {
-      gender: 'Gender', economicStatus: 'Economic Status', employmentStatus: 'Employment',
-      employmentType: 'Job Type', religion: 'Religion', community: 'Community',
-      subcategory: 'Sub-Category', homeType: 'Home Type', areaType: 'Area',
-      healthStatus: 'Health', differentlyAbled: 'Differently Abled', maritalStatus: 'Marital',
-      education: 'Education', student: 'Student', educationtype: 'Education Type',
-      diseaseType: 'Disease Type',
-    };
-    return `${nice[k] || k} = ${v}`;
-  }).join(', ');
+function swotColors(swot) {
+  if (!swot || swot.length === 0) return { color: 'rgba(255,255,255,0.2)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)' };
+  const s = swot[0];
+  if (s === 'Strength')    return { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.22)' };
+  if (s === 'Weakness')    return { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.22)' };
+  if (s === 'Opportunity') return { color: '#22d3ee', bg: 'rgba(34,211,238,0.08)', border: 'rgba(34,211,238,0.22)' };
+  if (s === 'Threat')      return { color: '#fb923c', bg: 'rgba(251,146,60,0.08)', border: 'rgba(251,146,60,0.22)' };
+  return { color: 'rgba(255,255,255,0.2)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)' };
 }
 
-// Group queries by SWOT quadrant from their label
-function groupBySwot(queries) {
-  const groups = { S: [], O: [], W: [], T: [] };
-  queries.forEach(q => {
-    const lm = LABEL_META[q.label];
-    if (lm) groups[lm.swot].push(q);
-  });
-  return groups;
-}
-
-// ── Single context SWOT panel ────────────────────────────────────────────────
-function ContextSwotPanel({ ctxKey, queries, scope }) {
-  const [expanded, setExpanded] = React.useState(false);
-  const [quadrant, setQuadrant] = React.useState('S');
-  const [page, setPage] = React.useState(0);
-  const PAGE_SIZE = 6;
-  const meta = CTX_META[ctxKey];
-
-  // Filter queries whose predictedContext contains this context key
-  const relevant = queries.filter(q =>
-    q.predictedContext && q.predictedContext[ctxKey] !== undefined
-  );
-
-  const grouped = groupBySwot(relevant);
-  const qItems  = grouped[quadrant] || [];
-  const totalPages = Math.ceil(qItems.length / PAGE_SIZE);
-  const pageItems  = qItems.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  const swotCounts = { S: grouped.S.length, O: grouped.O.length, W: grouped.W.length, T: grouped.T.length };
-  const total = relevant.length;
-
-  // Label distribution for mini bar
-  const labelCounts = {};
-  relevant.forEach(q => { labelCounts[q.label] = (labelCounts[q.label] || 0) + 1; });
+function QueryCard({ q, ctxKey, ctxColor }) {
+  const [open, setOpen] = React.useState(false);
+  const ctx = q.predictedContext || {};
+  const raw = ctx[ctxKey] || 'None';
+  const { swot, band } = decodeLabel(raw);
+  const sc = swotColors(swot);
+  const pct = q.percentage != null ? parseFloat(q.percentage).toFixed(1) : '—';
+  const count = q.count != null ? q.count.toLocaleString() : '—';
+  const label = q.label || '—';
+  const query = q.query || {};
+  const cols = q.columns || [];
 
   return (
     <div style={{
-      borderRadius: 14, border: `1px solid ${expanded ? meta.border : 'rgba(255,255,255,0.07)'}`,
-      background: expanded ? meta.bg : 'rgba(255,255,255,0.02)',
-      transition: 'all 0.22s ease', overflow: 'hidden', marginBottom: 10,
-    }}>
-      {/* Header — always visible */}
-      <div
-        onClick={() => { setExpanded(e => !e); setPage(0); }}
-        style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}
-      >
-        <div style={{
-          width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-          background: meta.badge, border: `1px solid ${meta.border}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18,
-        }}>{meta.icon}</div>
-
+      background: sc.bg, border: `1px solid ${sc.border}`,
+      borderRadius: 10, padding: '11px 13px', marginBottom: 8,
+      cursor: 'pointer', transition: 'all 0.18s',
+    }} onClick={() => setOpen(o => !o)}>
+      {/* Top row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: '#eef2ff', marginBottom: 2 }}>{meta.label}</div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>{meta.desc}</div>
-        </div>
-
-        {/* Compact SWOT mini-badges */}
-        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-          {['S','O','W','T'].map(k => (
-            <div key={k} style={{
-              width: 28, height: 28, borderRadius: 7,
-              background: SWOT_QUADRANT[k].bg, border: `1px solid ${SWOT_QUADRANT[k].border}`,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span style={{ fontSize: 7.5, fontWeight: 900, color: SWOT_QUADRANT[k].color, lineHeight: 1 }}>{k}</span>
-              <span style={{ fontSize: 8, fontWeight: 700, color: SWOT_QUADRANT[k].color, lineHeight: 1 }}>{swotCounts[k]}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ color: 'rgba(255,255,255,0.3)', transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
-          <ChevronDown size={16} />
-        </div>
-      </div>
-
-      {/* Expanded body */}
-      {expanded && (
-        <div style={{ borderTop: `1px solid ${meta.border}`, padding: '14px 16px' }}>
-
-          {/* Scope + total */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
-            <div style={{ fontSize: 9, fontFamily: 'Space Mono, monospace', color: meta.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-              {scope} · {total} query clusters
-            </div>
-            {/* Label distribution pills */}
-            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              {Object.entries(labelCounts).sort().map(([lbl, cnt]) => {
-                const lm = LABEL_META[lbl] || {};
-                return (
-                  <span key={lbl} style={{
-                    fontSize: 9, fontWeight: 800, color: lm.color,
-                    background: lm.bg, border: `1px solid ${lm.border}`,
-                    borderRadius: 4, padding: '1px 5px',
-                    fontFamily: 'Space Mono, monospace',
-                  }}>{lbl}:{cnt}</span>
-                );
-              })}
-            </div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: '#e8eeff', lineHeight: 1.4, marginBottom: 4, fontFamily: 'Sora, sans-serif' }}>
+            {cols.join(' · ') || q.routeKey || '—'}
           </div>
-
-          {/* SWOT quadrant selector */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-            {['S','O','W','T'].map(k => {
-              const sq = SWOT_QUADRANT[k];
-              const active = quadrant === k;
-              return (
-                <button key={k} onClick={() => { setQuadrant(k); setPage(0); }} style={{
-                  flex: 1, padding: '8px 4px', borderRadius: 9,
-                  border: `1px solid ${active ? sq.border : 'rgba(255,255,255,0.07)'}`,
-                  background: active ? sq.bg : 'transparent',
-                  color: active ? sq.color : 'rgba(255,255,255,0.3)',
-                  cursor: 'pointer', transition: 'all 0.18s',
-                  fontFamily: 'Sora, sans-serif', fontWeight: 700,
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 900, color: active ? sq.color : 'rgba(255,255,255,0.2)' }}>{k}</div>
-                  <div style={{ fontSize: 9, opacity: 0.8 }}>{sq.label}</div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: sq.color }}>{swotCounts[k]}</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Query cluster cards */}
-          {pageItems.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>
-              No clusters in this quadrant
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
-              {pageItems.map((q, i) => {
-                const lm = LABEL_META[q.label] || {};
-                const sq = SWOT_QUADRANT[LABEL_META[q.label]?.swot || 'O'];
-                const ctxVal = q.predictedContext?.[ctxKey];
-                return (
-                  <div key={i} style={{
-                    borderRadius: 10, padding: '11px 13px',
-                    background: 'rgba(255,255,255,0.025)',
-                    border: `1px solid ${lm.border || 'rgba(255,255,255,0.08)'}`,
-                  }}>
-                    {/* Top row: label + %, predicted value */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                        <span style={{
-                          fontSize: 10, fontWeight: 900, color: lm.color,
-                          background: lm.bg, border: `1px solid ${lm.border}`,
-                          borderRadius: 5, padding: '2px 6px', fontFamily: 'Space Mono, monospace',
-                        }}>{q.label}</span>
-                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace' }}>
-                          {q.percentage?.toFixed(1)}%
-                        </span>
-                      </div>
-                      {ctxVal && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, color: meta.color,
-                          background: meta.badge, border: `1px solid ${meta.border}`,
-                          borderRadius: 5, padding: '2px 7px', maxWidth: 110,
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>{ctxVal}</span>
-                      )}
-                    </div>
-
-                    {/* Count bar */}
-                    <div style={{ marginBottom: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: 'Space Mono, monospace' }}>
-                          {q.count?.toLocaleString()} voters
-                        </span>
-                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>
-                          {(q.comparableQueries || []).reduce((a, c) => a + (c.count || 0), q.count || 0).toLocaleString()} total
-                        </span>
-                      </div>
-                      <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
-                        <div style={{
-                          height: '100%', borderRadius: 2,
-                          width: `${Math.min(q.percentage || 0, 100)}%`,
-                          background: `linear-gradient(90deg, ${lm.color}, ${lm.color}88)`,
-                          transition: 'width 0.4s ease',
-                        }} />
-                      </div>
-                    </div>
-
-                    {/* Query description */}
-                    <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
-                      {queryDescription(q.query || {})}
-                    </div>
-
-                    {/* SWOT implication */}
-                    <div style={{
-                      marginTop: 8, padding: '5px 8px', borderRadius: 6,
-                      background: sq.bg, border: `1px solid ${sq.border}`,
-                      fontSize: 9, color: sq.color, fontWeight: 700, lineHeight: 1.4,
-                    }}>
-                      {quadrant === 'S' && `High-concentration cluster (${q.percentage?.toFixed(1)}%) — strong engagement base`}
-                      {quadrant === 'O' && `Mid-range cluster — growth potential with targeted outreach`}
-                      {quadrant === 'W' && `Below-median cluster — needs reinforcement strategy`}
-                      {quadrant === 'T' && `Low-density cluster (${q.percentage?.toFixed(1)}%) — at-risk segment, monitor closely`}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12, alignItems: 'center' }}>
-              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-                style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: page === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', cursor: page === 0 ? 'default' : 'pointer', fontSize: 11, fontFamily: 'Space Mono, monospace' }}>
-                ‹ Prev
-              </button>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace' }}>
-                {page + 1} / {totalPages}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {Object.entries(query).map(([k, v]) => v && v !== 'Unknown' && (
+              <span key={k} style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 4, padding: '1px 6px', fontFamily: 'Space Mono, monospace' }}>
+                {k}: {v}
               </span>
-              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: page >= totalPages - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', cursor: page >= totalPages - 1 ? 'default' : 'pointer', fontSize: 11, fontFamily: 'Space Mono, monospace' }}>
-                Next ›
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── QuerySwotTab — main tab component ────────────────────────────────────────
-function QuerySwotTab() {
-  const [scope, setScope] = React.useState('constituency'); // 'constituency' | wardNumber string
-  const [wardList, setWardList] = React.useState([]);
-  const [queries, setQueries] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState(null);
-  const [search, setSearch] = React.useState('');
-  const [activeCtx, setActiveCtx] = React.useState(null); // null = all
-
-  // Fetch ward list on mount
-  React.useEffect(() => {
-    fetch('/api/query-stack/wards/')
-      .then(r => r.json())
-      .then(d => setWardList(d.wards || []))
-      .catch(() => {});
-  }, []);
-
-  // Fetch queries whenever scope changes
-  React.useEffect(() => {
-    setLoading(true);
-    setError(null);
-    setQueries([]);
-    const url = scope === 'constituency'
-      ? '/api/query-stack/constituency/'
-      : `/api/query-stack/ward/${scope}/`;
-    fetch(url)
-      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
-      .then(d => { setQueries(d.queries || []); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
-  }, [scope]);
-
-  // Visible context keys after search filter
-  const visibleCtx = CONTEXT_KEYS.filter(k =>
-    !search || CTX_META[k].label.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Summary counts
-  const totalQ = queries.length;
-  const hasPredictions = queries.some(q => q.predictedContext);
-  const labelDist = {};
-  queries.forEach(q => { if (q.label) labelDist[q.label] = (labelDist[q.label] || 0) + 1; });
-
-  const scopeLabel = scope === 'constituency'
-    ? 'Mangalore South Constituency'
-    : wardList.find(w => String(w.wardNumber) === scope)?.wardName || `Ward ${scope}`;
-
-  return (
-    <div>
-      {/* Header */}
-      <div style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 14, padding: '14px 16px', marginBottom: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🧬</div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#eef2ff' }}>Query-Based SWOT Intelligence</div>
-            <div style={{ fontSize: 9.5, color: 'rgba(96,165,250,0.75)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>ML-predicted context clusters · 10 dimensions · Live data</div>
+            ))}
           </div>
         </div>
-        <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
-          Each card below shows one contextual dimension. Query clusters are sorted into Strength / Opportunity / Weakness / Threat quadrants based on their ML-predicted label band. Expand any dimension to explore individual voter clusters, their concentrations, and strategic implications.
-        </div>
-      </div>
-
-      {/* Scope selector */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-        <button onClick={() => setScope('constituency')} style={{
-          padding: '7px 14px', borderRadius: 8, fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: 11,
-          border: `1px solid ${scope === 'constituency' ? 'rgba(96,165,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
-          background: scope === 'constituency' ? 'rgba(96,165,250,0.12)' : 'transparent',
-          color: scope === 'constituency' ? '#60a5fa' : 'rgba(255,255,255,0.4)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 5, minHeight: 36,
-        }}>
-          <Layers size={12} /> Constituency
-        </button>
-        <select
-          value={scope !== 'constituency' ? scope : ''}
-          onChange={e => e.target.value && setScope(e.target.value)}
-          style={{
-            padding: '7px 12px', borderRadius: 8, border: `1px solid ${scope !== 'constituency' ? 'rgba(96,165,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
-            background: scope !== 'constituency' ? 'rgba(96,165,250,0.1)' : 'rgba(255,255,255,0.03)',
-            color: scope !== 'constituency' ? '#60a5fa' : 'rgba(255,255,255,0.4)',
-            fontSize: 11, fontFamily: 'Sora, sans-serif', fontWeight: 700, cursor: 'pointer', minHeight: 36,
-            outline: 'none',
-          }}
-        >
-          <option value="">Select Ward…</option>
-          {wardList.map(w => (
-            <option key={w.wardNumber} value={String(w.wardNumber)}>{w.wardName}</option>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+          {swot && swot.length > 0 ? swot.map(s => (
+            <span key={s} style={{ fontSize: 9, fontWeight: 800, color: sc.color, background: `${sc.color}14`, border: `1px solid ${sc.color}28`, borderRadius: 4, padding: '2px 7px', fontFamily: 'Space Mono, monospace', letterSpacing: 0.3 }}>{s}</span>
+          )) : (
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>None</span>
+          )}
+          {band && band.length > 0 && band.map(b => (
+            <span key={b} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: 'Space Mono, monospace' }}>{b}</span>
           ))}
-        </select>
-
-        <div style={{ marginLeft: 'auto', position: 'relative' }}>
-          <SearchIcon size={12} color="rgba(255,255,255,0.25)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Filter context…"
-            style={{ paddingLeft: 28, paddingRight: 10, paddingTop: 7, paddingBottom: 7, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#eef2ff', fontSize: 11, outline: 'none', fontFamily: 'Sora, sans-serif', minHeight: 36, minWidth: 140 }}
-          />
         </div>
       </div>
 
       {/* Stats row */}
-      {!loading && !error && totalQ > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 16 }}>
-          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#60a5fa', fontFamily: 'Space Mono, monospace' }}>{totalQ.toLocaleString()}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Total Clusters</div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#10b981', fontFamily: 'Space Mono, monospace' }}>{(labelDist.HA || 0) + (labelDist.HB || 0) + (labelDist.HC || 0)}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>High Band (S)</div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#f59e0b', fontFamily: 'Space Mono, monospace' }}>{(labelDist.MA || 0) + (labelDist.MB || 0)}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Medium Band (O)</div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#f87171', fontFamily: 'Space Mono, monospace' }}>{(labelDist.LB || 0) + (labelDist.LC || 0)}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Low Band (T)</div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: hasPredictions ? '#34d399' : '#94a3b8', fontFamily: 'Space Mono, monospace' }}>{hasPredictions ? '✓' : '—'}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>ML Predicted</div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#f0abfc', fontFamily: 'Space Mono, monospace', lineHeight: 1.2 }}>{scopeLabel.split(' ').slice(0, 2).join(' ')}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Active Scope</div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 8, alignItems: 'center' }}>
+        <div style={{ fontSize: 9.5, fontFamily: 'Space Mono, monospace', color: ctxColor, fontWeight: 700 }}>{pct}%</div>
+        <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace' }}>{count} voters</div>
+        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 5px', fontFamily: 'Space Mono, monospace' }}>Label: {label}</div>
+        <div style={{ marginLeft: 'auto', fontSize: 8.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>{open ? '▲ collapse' : '▼ all contexts'}</div>
+      </div>
+
+      {/* Expanded: all predicted contexts */}
+      {open && (
+        <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10 }}>
+          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginBottom: 6, fontFamily: 'Space Mono, monospace', letterSpacing: 0.4, textTransform: 'uppercase' }}>All Predicted Contexts</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(155px,1fr))', gap: 5 }}>
+            {CONTEXT_KEYS.map(ck => {
+              const rv = ctx[ck.key] || 'None';
+              const { swot: sw } = decodeLabel(rv);
+              const { color } = swotColors(sw);
+              return (
+                <div key={ck.key} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${color}22`, borderRadius: 6, padding: '5px 8px' }}>
+                  <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>{ck.icon} {ck.label}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color, fontFamily: 'Space Mono, monospace' }}>{rv}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
-
-      {/* Loading state */}
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '48px 0' }}>
-          <div style={{ display: 'inline-block', width: 36, height: 36, borderRadius: '50%', border: '3px solid rgba(96,165,250,0.15)', borderTop: '3px solid #60a5fa', animation: 'spin 0.9s linear infinite', marginBottom: 12 }} />
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Loading query clusters from {scopeLabel}…</div>
-        </div>
-      )}
-
-      {/* Error state */}
-      {error && !loading && (
-        <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 12, padding: '16px 18px', textAlign: 'center' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#f87171', marginBottom: 4 }}>Failed to load query data</div>
-          <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.3)' }}>{error} · Check /api/query-stack/ endpoints</div>
-        </div>
-      )}
-
-      {/* No predictions warning */}
-      {!loading && !error && totalQ > 0 && !hasPredictions && (
-        <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 10.5, color: 'rgba(245,158,11,0.8)', display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span>⚠️</span>
-          <span>Queries loaded but ML predictions not found. Run <code style={{ fontFamily: 'Space Mono, monospace', background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: 4 }}>predict_query_stack.py</code> to populate context predictions.</span>
-        </div>
-      )}
-
-      {/* Context panels */}
-      {!loading && !error && totalQ > 0 && (
-        <div>
-          {visibleCtx.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>
-              No matching context dimensions
-            </div>
-          ) : (
-            visibleCtx.map(ctxKey => (
-              <ContextSwotPanel
-                key={ctxKey}
-                ctxKey={ctxKey}
-                queries={queries}
-                scope={scopeLabel}
-              />
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && !error && totalQ === 0 && (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.2)' }}>
-          <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
-          <div style={{ fontSize: 12 }}>No query clusters found for {scopeLabel}</div>
-          <div style={{ fontSize: 10, marginTop: 4 }}>Run the pipeline to generate and store query stacks.</div>
-        </div>
-      )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
 
+function ContextSWOTPanel({ queries, ctxKey, ctxColor, ctxLabel }) {
+  // Bucket queries into S/W/O/T/None by their predicted context value
+  const buckets = { Strength: [], Weakness: [], Opportunity: [], Threat: [], None: [] };
+  for (const q of queries) {
+    const raw = (q.predictedContext || {})[ctxKey] || 'None';
+    const { swot } = decodeLabel(raw);
+    if (!swot || swot.length === 0) { buckets.None.push(q); }
+    else {
+      for (const s of swot) {
+        if (buckets[s]) buckets[s].push(q);
+      }
+    }
+  }
+
+  const quadrants = [
+    { key: 'Strength',    color: '#10b981', bg: 'rgba(16,185,129,0.05)',  border: 'rgba(16,185,129,0.18)',  label: 'Strengths',    sub: 'Internal · Positive'  },
+    { key: 'Weakness',   color: '#f87171', bg: 'rgba(248,113,113,0.05)', border: 'rgba(248,113,113,0.18)', label: 'Weaknesses',   sub: 'Internal · Negative'  },
+    { key: 'Opportunity',color: '#22d3ee', bg: 'rgba(34,211,238,0.05)',  border: 'rgba(34,211,238,0.18)',  label: 'Opportunities',sub: 'External · Positive'  },
+    { key: 'Threat',     color: '#fb923c', bg: 'rgba(251,146,60,0.05)',  border: 'rgba(251,146,60,0.18)',  label: 'Threats',      sub: 'External · Negative'  },
+  ];
+
+  const total = queries.length;
+  const [expanded, setExpanded] = React.useState('Strength');
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      {/* Context header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: `${ctxColor}14`, border: `1px solid ${ctxColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+          {CONTEXT_KEYS.find(c => c.key === ctxKey)?.icon}
+        </div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#eef2ff', fontFamily: 'Sora, sans-serif' }}>{ctxLabel}</div>
+          <div style={{ fontSize: 9, color: ctxColor, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.8 }}>{total} queries analysed</div>
+        </div>
+        {/* Mini SWOT summary pills */}
+        <div style={{ display: 'flex', gap: 5, marginLeft: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {quadrants.map(q => buckets[q.key].length > 0 && (
+            <span key={q.key} style={{ fontSize: 9, fontWeight: 800, color: q.color, background: `${q.color}12`, border: `1px solid ${q.color}25`, borderRadius: 5, padding: '2px 8px', fontFamily: 'Space Mono, monospace' }}>
+              {q.key[0]} · {buckets[q.key].length}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* SWOT quadrant pills */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {quadrants.map(q => (
+          <button key={q.key} onClick={() => setExpanded(ex => ex === q.key ? null : q.key)}
+            style={{
+              padding: '7px 14px', borderRadius: 8,
+              background: expanded === q.key ? `${q.color}14` : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${expanded === q.key ? q.color : 'rgba(255,255,255,0.09)'}`,
+              color: expanded === q.key ? q.color : 'rgba(255,255,255,0.35)',
+              fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+              transition: 'all 0.18s', display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+            {q.label}
+            <span style={{ fontSize: 9, fontWeight: 800, fontFamily: 'Space Mono, monospace', opacity: 0.7 }}>({buckets[q.key].length})</span>
+          </button>
+        ))}
+        {buckets.None.length > 0 && (
+          <button onClick={() => setExpanded(ex => ex === 'None' ? null : 'None')}
+            style={{
+              padding: '7px 14px', borderRadius: 8,
+              background: expanded === 'None' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${expanded === 'None' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.09)'}`,
+              color: 'rgba(255,255,255,0.3)', fontSize: 10.5, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'Sora, sans-serif', transition: 'all 0.18s',
+            }}>
+            Uncategorised ({buckets.None.length})
+          </button>
+        )}
+      </div>
+
+      {/* Expanded query list */}
+      {expanded && (
+        <div style={{ maxHeight: 400, overflowY: 'auto', paddingRight: 2 }}>
+          {(buckets[expanded] || []).length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>No queries in this category</div>
+          ) : (
+            (buckets[expanded] || []).slice(0, 60).map((q, i) => (
+              <QueryCard key={i} q={q} ctxKey={ctxKey} ctxColor={ctxColor} />
+            ))
+          )}
+          {(buckets[expanded] || []).length > 60 && (
+            <div style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: 8, fontFamily: 'Space Mono, monospace' }}>
+              Showing 60 of {buckets[expanded].length} — refine by ward for full view
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MLIntelligenceTab() {
+  const [scope, setScope] = React.useState('constituency'); // 'constituency' | 'ward'
+  const [selectedWard, setSelectedWard] = React.useState('');
+  const [selectedCtx, setSelectedCtx] = React.useState(CONTEXT_KEYS[0].key);
+  const [data, setData] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const [wardList, setWardList] = React.useState([]);
+
+  // Load ward list once
+  React.useEffect(() => {
+    fetch('/api/wards/', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setWardList(Array.isArray(d.wards) ? d.wards : []))
+      .catch(() => {});
+  }, []);
+
+  const fetchData = React.useCallback(() => {
+    setLoading(true); setError(null); setData(null);
+    const url = scope === 'constituency'
+      ? '/api/ml/constituency-swot/'
+      : `/api/ml/ward-swot/?ward=${encodeURIComponent(selectedWard)}`;
+    fetch(url, { credentials: 'include' })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(d => { setData(d); setLoading(false); })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, [scope, selectedWard]);
+
+  React.useEffect(() => {
+    if (scope === 'constituency') fetchData();
+  }, [scope]);
+
+  const queries = data?.queries || [];
+  const activeMeta = CONTEXT_KEYS.find(c => c.key === selectedCtx);
+
+  // Aggregate SWOT counts for the selected context
+  const swotCounts = { Strength: 0, Weakness: 0, Opportunity: 0, Threat: 0, None: 0 };
+  for (const q of queries) {
+    const raw = (q.predictedContext || {})[selectedCtx] || 'None';
+    const { swot } = decodeLabel(raw);
+    if (!swot || swot.length === 0) swotCounts.None++;
+    else { for (const s of swot) if (swotCounts[s] !== undefined) swotCounts[s]++; }
+  }
+
+  return (
+    <div>
+      {/* Scope toggle */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        {[
+          { key: 'constituency', label: '🏛️ Constituency SWOT', desc: 'Mangalore South · 175' },
+          { key: 'ward',         label: '📍 Ward-wise SWOT',    desc: 'Select a ward below'  },
+        ].map(s => (
+          <button key={s.key} onClick={() => { setScope(s.key); setData(null); }}
+            style={{
+              flex: 1, padding: '10px 14px', borderRadius: 10,
+              background: scope === s.key ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${scope === s.key ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.09)'}`,
+              color: scope === s.key ? '#f59e0b' : 'rgba(255,255,255,0.35)',
+              fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+              transition: 'all 0.18s', textAlign: 'left',
+            }}>
+            <div>{s.label}</div>
+            <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2, fontFamily: 'Space Mono, monospace' }}>{s.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Ward selector */}
+      {scope === 'ward' && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'flex-end' }}>
+          <select value={selectedWard} onChange={e => setSelectedWard(e.target.value)}
+            style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#f0f4ff', fontSize: 12, outline: 'none', fontFamily: 'Sora, sans-serif', minHeight: 44 }}>
+            <option value="">— Select Ward —</option>
+            {wardList.map(w => (
+              <option key={w.wardNumber} value={w.wardNumber}>{w.wardNumber} · {w.wardName}</option>
+            ))}
+          </select>
+          <button onClick={fetchData} disabled={!selectedWard || loading}
+            style={{ padding: '10px 20px', borderRadius: 8, background: selectedWard ? 'rgba(245,158,11,0.14)' : 'rgba(255,255,255,0.04)', border: `1px solid ${selectedWard ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)'}`, color: selectedWard ? '#f59e0b' : 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 700, cursor: selectedWard ? 'pointer' : 'not-allowed', fontFamily: 'Sora, sans-serif', minHeight: 44 }}>
+            {loading ? '⏳' : '▶ Load'}
+          </button>
+        </div>
+      )}
+
+      {/* Context selector */}
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 16 }}>
+        {CONTEXT_KEYS.map(ck => (
+          <button key={ck.key} onClick={() => setSelectedCtx(ck.key)}
+            style={{
+              padding: '6px 12px', borderRadius: 7,
+              background: selectedCtx === ck.key ? `${ck.color}14` : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${selectedCtx === ck.key ? ck.color : 'rgba(255,255,255,0.09)'}`,
+              color: selectedCtx === ck.key ? ck.color : 'rgba(255,255,255,0.3)',
+              fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+            <span>{ck.icon}</span> {ck.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Loading / Error */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>
+          <div style={{ fontSize: 28, marginBottom: 10, animation: 'spin 1.2s linear infinite', display: 'inline-block' }}>⚙️</div>
+          <div>Loading ML predictions from MongoDB…</div>
+        </div>
+      )}
+      {error && (
+        <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 10, padding: '14px 16px', color: '#f87171', fontSize: 11.5, marginBottom: 14 }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Data loaded */}
+      {data && !loading && (
+        <>
+          {/* Summary bar */}
+          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', flex: 1, minWidth: 120 }}>
+              {scope === 'constituency' ? `Mangalore South · ${queries.length} queries` : `Ward ${selectedWard} · ${queries.length} queries`}
+            </div>
+            {[
+              { label: 'S', full: 'Strengths',    color: '#10b981', count: swotCounts.Strength    },
+              { label: 'W', full: 'Weaknesses',   color: '#f87171', count: swotCounts.Weakness    },
+              { label: 'O', full: 'Opportunities',color: '#22d3ee', count: swotCounts.Opportunity },
+              { label: 'T', full: 'Threats',      color: '#fb923c', count: swotCounts.Threat      },
+            ].map(b => (
+              <div key={b.label} style={{ textAlign: 'center', minWidth: 48 }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: b.color, fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{b.count}</div>
+                <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{b.full}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Main SWOT panel for selected context */}
+          <ContextSWOTPanel
+            key={selectedCtx}
+            queries={queries}
+            ctxKey={selectedCtx}
+            ctxColor={activeMeta.color}
+            ctxLabel={activeMeta.label}
+          />
+        </>
+      )}
+
+      {!data && !loading && !error && scope === 'ward' && !selectedWard && (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
+          Select a ward above and click Load to view its ML-predicted SWOT analysis.
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Swot() {
@@ -1300,6 +1112,7 @@ export default function Swot() {
 
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.35; transform:scale(0.55); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         /* ── Mobile ── */
         @media (max-width: 600px) {
@@ -1370,7 +1183,7 @@ export default function Swot() {
           {activeTab === 'swot' && <SwotTab />}
           {activeTab === 'wards' && <WardStrengthTab />}
           {activeTab === 'demographic' && <DemographicTab />}
-          {activeTab === 'queryswot' && <QuerySwotTab />}
+          {activeTab === 'ml' && <MLIntelligenceTab />}
 
           {/* Source strip */}
           <div className="swot-source">

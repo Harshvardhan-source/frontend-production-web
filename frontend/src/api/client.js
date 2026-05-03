@@ -167,3 +167,11 @@ export const wardsApi = {
 };
 
 export default api;
+// ── ML Intelligence — SWOT from QueryStack collections ───────────────────────
+export const mlApi = {
+  // Constituency-level: GET /api/ml/constituency-swot/
+  constituencySwot: () => api.get('/api/ml/constituency-swot/'),
+
+  // Ward-level: GET /api/ml/ward-swot/?ward=<wardNumber>
+  wardSwot: (wardNumber) => api.get('/api/ml/ward-swot/', { params: { ward: wardNumber } }),
+};
