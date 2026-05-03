@@ -959,7 +959,7 @@ function MLIntelligenceTab() {
             style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#f0f4ff', fontSize: 12, outline: 'none', fontFamily: 'Sora, sans-serif', minHeight: 44 }}>
             <option value="">— Select Ward —</option>
             {wardList.map(w => (
-              <option key={w.wardNumber} value={w.wardNumber}>{w.wardNumber} · {w.wardName}</option>
+              <option key={w.number} value={w.number}>{w.number} · {w.name}</option>
             ))}
           </select>
           <button onClick={fetchData} disabled={!selectedWard || loading}
