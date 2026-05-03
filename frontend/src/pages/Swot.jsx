@@ -1176,7 +1176,7 @@ export default function Swot() {
               <span className="swot-eyebrow-dot" />
               Political Intelligence · Mangaluru MCC · 38 Wards
             </div>
-            <h1 className="swot-title">BJP <span className="swot-title-accent">Political SWOT</span></h1>
+            <h1 className="swot-title">SWOT <span className="swot-title-accent">Analysis</span></h1>
             <p className="swot-subtitle">Booth-level intelligence for the 2028 cycle — grounded in 2023 election data across all 38 wards · 2,46,952 registered voters.</p>
           </div>
 
