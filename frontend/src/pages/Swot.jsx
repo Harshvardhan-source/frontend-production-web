@@ -879,9 +879,17 @@ function MLIntelligenceTab() {
   const [error, setError] = React.useState(null);
   const [wardList, setWardList] = React.useState([]);
 
+  // Helper: get JWT token from sessionStorage (same as client.js interceptor)
+  const authHeaders = () => {
+    const token = sessionStorage.getItem('cc_token');
+    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  };
+
+  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-0tsi.onrender.com';
+
   // Load ward list once
   React.useEffect(() => {
-    fetch('/api/wards/', { credentials: 'include' })
+    fetch(`${BASE}/api/wards/`, { credentials: 'include', headers: authHeaders() })
       .then(r => r.json())
       .then(d => setWardList(Array.isArray(d.wards) ? d.wards : []))
       .catch(() => {});
@@ -890,11 +898,18 @@ function MLIntelligenceTab() {
   const fetchData = React.useCallback(() => {
     setLoading(true); setError(null); setData(null);
     const url = scope === 'constituency'
-      ? '/api/ml/constituency-swot/'
-      : `/api/ml/ward-swot/?ward=${encodeURIComponent(selectedWard)}`;
-    fetch(url, { credentials: 'include' })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => { setData(d); setLoading(false); })
+      ? `${BASE}/api/ml/constituency-swot/`
+      : `${BASE}/api/ml/ward-swot/?ward=${encodeURIComponent(selectedWard)}`;
+    fetch(url, { credentials: 'include', headers: authHeaders() })
+      .then(r => {
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) throw new Error(`Server returned ${r.status} — route not found or not JSON. Check Django urls.py has ml/ routes registered.`);
+        return r.json();
+      })
+      .then(d => {
+        if (d.error) throw new Error(d.error);
+        setData(d); setLoading(false);
+      })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [scope, selectedWard]);
 
