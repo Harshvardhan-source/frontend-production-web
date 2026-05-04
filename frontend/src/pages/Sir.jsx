@@ -386,7 +386,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   const rows02 = [];
   if (in2002 && record2002?.name) rows02.push({ ...record2002, _matched: true, matched_by: ['confirmed'] });
   (similar2002 || []).forEach(r => {
-    if (!rows02.find(x => x.voterid && x.voterid === r.voterid)) rows02.push(r);
+    const key = r.voterid || `${r.name}|${r.house}`;
+    if (!rows02.find(x => (x.voterid && x.voterid === r.voterid) || `${x.name}|${x.house}` === key))
+      rows02.push(r);
   });
 
   if (!rows25.length && !rows02.length) return null;
@@ -743,7 +745,7 @@ function LiveCheckPanel() {
       {state === 'result' && (
         <SimilarRecordsPanel
           similar2025={result?.similar_2025 || []}
-          similar2002={result?.suggestions_2002 || []}
+          similar2002={result?.similar_2002 || result?.suggestions_2002 || []}
           record2025={result?.record_2025}
           record2002={result?.record_2002}
           in2025={result?.in_2025}
