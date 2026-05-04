@@ -386,9 +386,14 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   const rows02 = [];
   if (in2002 && record2002?.name) rows02.push({ ...record2002, _matched: true, matched_by: ['confirmed'] });
   (similar2002 || []).forEach(r => {
-    const key = r.voterid || `${r.name}|${r.house}`;
-    if (!rows02.find(x => (x.voterid && x.voterid === r.voterid) || `${x.name}|${x.house}` === key))
-      rows02.push(r);
+    // Deduplicate: use voterid when present, fall back to name+house composite key
+    // (many 2002 voters had no EPIC assigned, so voterid may be blank)
+    const isDup = rows02.some(x => {
+      if (x.voterid && r.voterid && x.voterid === r.voterid) return true;
+      if (x._matched) return false; // never suppress against the confirmed row — keep both
+      return x.name === r.name && x.house === r.house;
+    });
+    if (!isDup) rows02.push(r);
   });
 
   if (!rows25.length && !rows02.length) return null;
@@ -745,7 +750,13 @@ function LiveCheckPanel() {
       {state === 'result' && (
         <SimilarRecordsPanel
           similar2025={result?.similar_2025 || []}
-          similar2002={result?.similar_2002 || result?.suggestions_2002 || []}
+          similar2002={
+            // similar_2002 is the new field (backend v2+); fall back to suggestions_2002
+            // Use .length check so an empty array [] doesn't block the fallback
+            (result?.similar_2002?.length
+              ? result.similar_2002
+              : result?.suggestions_2002) || []
+          }
           record2025={result?.record_2025}
           record2002={result?.record_2002}
           in2025={result?.in_2025}
