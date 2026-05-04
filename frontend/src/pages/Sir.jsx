@@ -472,9 +472,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
 
     return (
       <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-        {/* Header */}
-        <div onClick={() => rows.length > 0 && setOpen(o => !o)}
-          style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom: open && rows.length > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', background:'rgba(0,0,0,0.15)', cursor: rows.length > 0 ? 'pointer' : 'default', userSelect:'none', flexShrink:0 }}>
+        {/* Collapsible roll header */}
+        <div onClick={() => setOpen(o => !o)}
+          style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none', background:'rgba(0,0,0,0.15)', cursor:'pointer', userSelect:'none', flexShrink:0 }}>
           <span style={{ fontSize:10, fontWeight:800, color:accentColor, letterSpacing:'0.8px', textTransform:'uppercase' }}>{year} Roll</span>
           <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', borderRadius:8, padding:'1px 7px', fontWeight:600 }}>
             {total} record{total !== 1 ? 's' : ''}
@@ -486,22 +486,10 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
               {g.rows.length}
             </span>
           ))}
-          {rows.length > 0 && (
-            <span style={{ marginLeft:'auto', color:'rgba(255,255,255,0.2)', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition:'transform 0.2s', display:'inline-flex' }}>
-              <Icon.ChevronDown />
-            </span>
-          )}
+          <span style={{ marginLeft:'auto', color:'rgba(255,255,255,0.2)', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition:'transform 0.2s', display:'inline-flex' }}>
+            <Icon.ChevronDown />
+          </span>
         </div>
-
-        {/* Empty state */}
-        {rows.length === 0 && (
-          <div style={{ padding:'28px 16px', display:'flex', flexDirection:'column', alignItems:'center', gap:8, opacity:0.35 }}>
-            <Icon.XCircle />
-            <span style={{ fontSize:12, color:'rgba(255,255,255,0.5)', textAlign:'center' }}>
-              No matching records in {year} roll
-            </span>
-          </div>
-        )}
 
         {/* Scrollable body — max 460px, thin scrollbar */}
         {open && (
@@ -607,9 +595,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
             ))}
           </div>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:10 }}>
-          <RollSection rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />
-          <RollSection rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />
+        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit,minmax(420px,1fr))', gap:10 }}>
+          {rows25.length > 0 && <RollSection rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />}
+          {rows02.length > 0 && <RollSection rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />}
         </div>
       </div>
       {infoRecord && <VoterInfoModal record={infoRecord.record} roll={infoRecord.roll} onClose={() => setInfoRecord(null)} />}
