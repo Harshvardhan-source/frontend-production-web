@@ -612,6 +612,8 @@ function LiveCheckPanel() {
   const [result, setResult] = useState(null);
   const debounceRef         = useRef(null);
   const abortRef            = useRef(null);
+  // Always-current form ref — fixes stale closure bug in debounced handler
+  const formRef             = useRef({ name:'', epic:'', relation:'', house:'' });
   const [confirmedRec, setConfirmedRec] = useState(null);
 
   const hasInput = form.name.trim() || form.epic.trim() || form.house.trim();
@@ -623,11 +625,13 @@ function LiveCheckPanel() {
     const house    = f.house.trim().toUpperCase();
     if (!name && !epic && !house) { setState('idle'); setResult(null); return; }
 
+    // Cancel any in-flight request
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setState('checking');
 
-    const timeoutId = setTimeout(() => abortRef.current?.abort(), 55000);
+    // 90s client timeout — enough to survive Render.com cold-start (can be ~60s)
+    const timeoutId = setTimeout(() => abortRef.current?.abort(), 90000);
 
     try {
       const res  = await fetch(`${API}/sir/check/`, {
@@ -636,15 +640,17 @@ function LiveCheckPanel() {
         body: JSON.stringify({ name, voterid: epic, relationName: relation, houseNumber: house, wardNumber:'', boothNo:'', serialNumber:'', store:false }),
         signal: abortRef.current.signal,
       });
+      if (!res.ok) { setState('error'); return; }
       const data = await res.json();
       if (data.success) { setResult(data); setState('result'); }
       else setState('error');
     } catch (err) {
-      if (err.name === 'AbortError') {
-        if (name || epic || house) setState('error');
-      } else {
+      // AbortError from our own cancel (new keystroke) → don't show error, just ignore
+      if (err.name !== 'AbortError') {
         setState('error');
       }
+      // If aborted because of a new keystroke the debounce will fire a fresh check,
+      // so we silently drop to avoid a false "Error" flash.
     } finally {
       clearTimeout(timeoutId);
     }
@@ -652,17 +658,33 @@ function LiveCheckPanel() {
 
   const handleChange = (key) => (e) => {
     const val = e.target.value;
-    setForm(p => ({ ...p, [key]: val }));
+    // Update both state (for rendering) and ref (for debounce closure)
+    const next = { ...formRef.current, [key]: val };
+    formRef.current = next;
+    setForm(next);
     setState('typing');
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doCheck({ ...form, [key]: val }), 500);
+    // 800ms debounce — reduces cancelled requests while still feeling responsive
+    debounceRef.current = setTimeout(() => doCheck(formRef.current), 800);
   };
 
   const handleClear = () => {
-    setForm({ name:'', epic:'', relation:'', house:'' });
+    const empty = { name:'', epic:'', relation:'', house:'' };
+    formRef.current = empty;
+    setForm(empty);
     setState('idle'); setResult(null); setConfirmedRec(null);
     clearTimeout(debounceRef.current);
     if (abortRef.current) abortRef.current.abort();
+  };
+
+  const handleSearch = () => {
+    clearTimeout(debounceRef.current);
+    doCheck(formRef.current);
+  };
+
+  const handleRetry = () => {
+    setState('idle');
+    doCheck(formRef.current);
   };
 
   React.useEffect(() => { setConfirmedRec(null); }, [result]);
@@ -689,8 +711,13 @@ function LiveCheckPanel() {
   const statusLine = () => {
     if (state === 'idle')     return null;
     if (state === 'typing')   return <StatusPill color="#6b7280" dot="pulse">Waiting…</StatusPill>;
-    if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Checking rolls… (may take up to 30s on first load)</StatusPill>;
-    if (state === 'error')    return <StatusPill color="#ef4444" dot="">Error — try again</StatusPill>;
+    if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Searching rolls…</StatusPill>;
+    if (state === 'error')    return (
+      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <StatusPill color="#ef4444" dot="">Error — try again</StatusPill>
+        <button onClick={handleRetry} style={{ background:'rgba(99,102,241,0.15)', border:'1px solid rgba(99,102,241,0.4)', borderRadius:7, padding:'4px 10px', fontSize:12, color:'#a5b4fc', cursor:'pointer', fontWeight:600 }}>↺ Retry</button>
+      </div>
+    );
     if (state === 'result' && effectivePrimary) return <StatusPill color={catMeta.color} dot="solid">{effectivePrimary.label}</StatusPill>;
     return null;
   };
@@ -726,6 +753,20 @@ function LiveCheckPanel() {
         <InputBox label="House / Flat No" placeholder="e.g. 7-1-42 or 2-14-1223" value={form.house}  onChange={handleChange('house')}    IconComp={Icon.House}  mono note="Narrows search — partial match supported" />
         <InputBox label="Relative Name"   placeholder="Father / Husband name"   value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Fallback if name unmatched" />
       </div>
+
+      {/* Search button — instant trigger without waiting for debounce */}
+      {hasInput && state !== 'checking' && (
+        <div style={{ marginTop:12 }}>
+          <button
+            onClick={handleSearch}
+            style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(99,102,241,0.15)', border:'1px solid rgba(99,102,241,0.45)', borderRadius:10, padding:'10px 20px', cursor:'pointer', color:'#a5b4fc', fontWeight:700, fontSize:13, transition:'all 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.28)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.15)'}
+          >
+            <Icon.Search /> Search Now
+          </button>
+        </div>
+      )}
 
       {/* Similar records panel — shown as soon as any result arrives */}
       {state === 'result' && (
