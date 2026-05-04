@@ -885,7 +885,7 @@ function MLIntelligenceTab() {
     return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
   };
 
-  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-0tsi.onrender.com';
+  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
 
   // Load ward list once
   React.useEffect(() => {
