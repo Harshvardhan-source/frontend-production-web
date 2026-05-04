@@ -473,8 +473,8 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     return (
       <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden', display:'flex', flexDirection:'column' }}>
         {/* Collapsible roll header */}
-        <div onClick={() => setOpen(o => !o)}
-          style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none', background:'rgba(0,0,0,0.15)', cursor:'pointer', userSelect:'none', flexShrink:0 }}>
+        <div onClick={() => rows.length > 0 && setOpen(o => !o)}
+          style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom: open && rows.length > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', background:'rgba(0,0,0,0.15)', cursor: rows.length > 0 ? 'pointer' : 'default', userSelect:'none', flexShrink:0 }}>
           <span style={{ fontSize:10, fontWeight:800, color:accentColor, letterSpacing:'0.8px', textTransform:'uppercase' }}>{year} Roll</span>
           <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', borderRadius:8, padding:'1px 7px', fontWeight:600 }}>
             {total} record{total !== 1 ? 's' : ''}
@@ -486,10 +486,20 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
               {g.rows.length}
             </span>
           ))}
-          <span style={{ marginLeft:'auto', color:'rgba(255,255,255,0.2)', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition:'transform 0.2s', display:'inline-flex' }}>
-            <Icon.ChevronDown />
-          </span>
+          {rows.length > 0 && (
+            <span style={{ marginLeft:'auto', color:'rgba(255,255,255,0.2)', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition:'transform 0.2s', display:'inline-flex' }}>
+              <Icon.ChevronDown />
+            </span>
+          )}
         </div>
+
+        {/* Empty state */}
+        {rows.length === 0 && (
+          <div style={{ padding:'24px 16px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, opacity:0.4 }}>
+            <Icon.XCircle />
+            <span style={{ fontSize:12, color:'rgba(255,255,255,0.5)', textAlign:'center' }}>No matching records found in {year} roll</span>
+          </div>
+        )}
 
         {/* Scrollable body — max 460px, thin scrollbar */}
         {open && (
@@ -595,9 +605,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
             ))}
           </div>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit,minmax(420px,1fr))', gap:10 }}>
-          {rows25.length > 0 && <RollSection rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />}
-          {rows02.length > 0 && <RollSection rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />}
+        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:10 }}>
+          <RollSection rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />
+          <RollSection rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />
         </div>
       </div>
       {infoRecord && <VoterInfoModal record={infoRecord.record} roll={infoRecord.roll} onClose={() => setInfoRecord(null)} />}
@@ -612,8 +622,6 @@ function LiveCheckPanel() {
   const [result, setResult] = useState(null);
   const debounceRef         = useRef(null);
   const abortRef            = useRef(null);
-  // Always-current form ref — fixes stale closure bug in debounced handler
-  const formRef             = useRef({ name:'', epic:'', relation:'', house:'' });
   const [confirmedRec, setConfirmedRec] = useState(null);
 
   const hasInput = form.name.trim() || form.epic.trim() || form.house.trim();
@@ -625,13 +633,11 @@ function LiveCheckPanel() {
     const house    = f.house.trim().toUpperCase();
     if (!name && !epic && !house) { setState('idle'); setResult(null); return; }
 
-    // Cancel any in-flight request
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setState('checking');
 
-    // 90s client timeout — enough to survive Render.com cold-start (can be ~60s)
-    const timeoutId = setTimeout(() => abortRef.current?.abort(), 90000);
+    const timeoutId = setTimeout(() => abortRef.current?.abort(), 55000);
 
     try {
       const res  = await fetch(`${API}/sir/check/`, {
@@ -640,17 +646,15 @@ function LiveCheckPanel() {
         body: JSON.stringify({ name, voterid: epic, relationName: relation, houseNumber: house, wardNumber:'', boothNo:'', serialNumber:'', store:false }),
         signal: abortRef.current.signal,
       });
-      if (!res.ok) { setState('error'); return; }
       const data = await res.json();
       if (data.success) { setResult(data); setState('result'); }
       else setState('error');
     } catch (err) {
-      // AbortError from our own cancel (new keystroke) → don't show error, just ignore
-      if (err.name !== 'AbortError') {
+      if (err.name === 'AbortError') {
+        if (name || epic || house) setState('error');
+      } else {
         setState('error');
       }
-      // If aborted because of a new keystroke the debounce will fire a fresh check,
-      // so we silently drop to avoid a false "Error" flash.
     } finally {
       clearTimeout(timeoutId);
     }
@@ -658,33 +662,17 @@ function LiveCheckPanel() {
 
   const handleChange = (key) => (e) => {
     const val = e.target.value;
-    // Update both state (for rendering) and ref (for debounce closure)
-    const next = { ...formRef.current, [key]: val };
-    formRef.current = next;
-    setForm(next);
+    setForm(p => ({ ...p, [key]: val }));
     setState('typing');
     clearTimeout(debounceRef.current);
-    // 800ms debounce — reduces cancelled requests while still feeling responsive
-    debounceRef.current = setTimeout(() => doCheck(formRef.current), 800);
+    debounceRef.current = setTimeout(() => doCheck({ ...form, [key]: val }), 500);
   };
 
   const handleClear = () => {
-    const empty = { name:'', epic:'', relation:'', house:'' };
-    formRef.current = empty;
-    setForm(empty);
+    setForm({ name:'', epic:'', relation:'', house:'' });
     setState('idle'); setResult(null); setConfirmedRec(null);
     clearTimeout(debounceRef.current);
     if (abortRef.current) abortRef.current.abort();
-  };
-
-  const handleSearch = () => {
-    clearTimeout(debounceRef.current);
-    doCheck(formRef.current);
-  };
-
-  const handleRetry = () => {
-    setState('idle');
-    doCheck(formRef.current);
   };
 
   React.useEffect(() => { setConfirmedRec(null); }, [result]);
@@ -711,13 +699,8 @@ function LiveCheckPanel() {
   const statusLine = () => {
     if (state === 'idle')     return null;
     if (state === 'typing')   return <StatusPill color="#6b7280" dot="pulse">Waiting…</StatusPill>;
-    if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Searching rolls…</StatusPill>;
-    if (state === 'error')    return (
-      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <StatusPill color="#ef4444" dot="">Error — try again</StatusPill>
-        <button onClick={handleRetry} style={{ background:'rgba(99,102,241,0.15)', border:'1px solid rgba(99,102,241,0.4)', borderRadius:7, padding:'4px 10px', fontSize:12, color:'#a5b4fc', cursor:'pointer', fontWeight:600 }}>↺ Retry</button>
-      </div>
-    );
+    if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Checking rolls… (may take up to 30s on first load)</StatusPill>;
+    if (state === 'error')    return <StatusPill color="#ef4444" dot="">Error — try again</StatusPill>;
     if (state === 'result' && effectivePrimary) return <StatusPill color={catMeta.color} dot="solid">{effectivePrimary.label}</StatusPill>;
     return null;
   };
@@ -753,20 +736,6 @@ function LiveCheckPanel() {
         <InputBox label="House / Flat No" placeholder="e.g. 7-1-42 or 2-14-1223" value={form.house}  onChange={handleChange('house')}    IconComp={Icon.House}  mono note="Narrows search — partial match supported" />
         <InputBox label="Relative Name"   placeholder="Father / Husband name"   value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Fallback if name unmatched" />
       </div>
-
-      {/* Search button — instant trigger without waiting for debounce */}
-      {hasInput && state !== 'checking' && (
-        <div style={{ marginTop:12 }}>
-          <button
-            onClick={handleSearch}
-            style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(99,102,241,0.15)', border:'1px solid rgba(99,102,241,0.45)', borderRadius:10, padding:'10px 20px', cursor:'pointer', color:'#a5b4fc', fontWeight:700, fontSize:13, transition:'all 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.28)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.15)'}
-          >
-            <Icon.Search /> Search Now
-          </button>
-        </div>
-      )}
 
       {/* Similar records panel — shown as soon as any result arrives */}
       {state === 'result' && (
