@@ -626,14 +626,14 @@ function LiveCheckPanel() {
   const abortRef            = useRef(null);
   const [confirmedRec, setConfirmedRec] = useState(null);
 
-  const hasInput = form.name.trim() || form.epic.trim() || form.house.trim();
+  const hasInput = form.name.trim() || form.epic.trim() || form.house.trim() || form.relation.trim();
 
   const doCheck = useCallback(async (f) => {
     const name     = f.name.trim();
     const epic     = f.epic.trim().toUpperCase();
     const relation = f.relation.trim();
     const house    = f.house.trim().toUpperCase();
-    if (!name && !epic && !house) { setState('idle'); setResult(null); return; }
+    if (!name && !epic && !house && !relation) { setState('idle'); setResult(null); return; }
 
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
@@ -736,7 +736,7 @@ function LiveCheckPanel() {
         <InputBox label="Voter Name"      placeholder="Enter full name…"         value={form.name}     onChange={handleChange('name')}     IconComp={Icon.User}   autoFocus />
         <InputBox label="EPIC / Voter ID" placeholder="e.g. NUX4001234"         value={form.epic}     onChange={handleChange('epic')}     IconComp={Icon.ID}     mono />
         <InputBox label="House / Flat No" placeholder="e.g. 7-1-42 or 2-14-1223" value={form.house}  onChange={handleChange('house')}    IconComp={Icon.House}  mono note="Narrows search — partial match supported" />
-        <InputBox label="Relative Name"   placeholder="Father / Husband name"   value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Fallback if name unmatched" />
+        <InputBox label="Relative Name"   placeholder="Father / Husband name"   value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Search standalone or as fallback" />
       </div>
 
       {/* Similar records panel — shown as soon as any result arrives */}
