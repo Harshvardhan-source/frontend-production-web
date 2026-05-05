@@ -56,15 +56,13 @@ export default function SchemeVoters() {
     setSchemes([]);
     setSchemeBusy(true);
     try {
-      // Build the voter data object with only the matching keys
+      // Send only the matching keys; backend normalizes community + field names
       const voterData = {};
       SCHEME_MATCH_KEYS.forEach(k => { if (voter[k] !== undefined) voterData[k] = voter[k]; });
-
-      // ✅ FIX: Backend reads body.get('voterData', {}), so we must wrap the
-      //         payload under the 'voterData' key — previously it was sent flat,
-      //         which meant the backend always received an empty dict and returned
-      //         zero matching schemes even for fully eligible voters.
+      // 2705 CRITICAL FIX: wrap under voterData key — backend does body.get("voterData", {})
+      console.log("[SchemeVoters] sending voterData:", voterData);
       const { data } = await schemeApi.viewScheme({ voterData });
+      console.log("[SchemeVoters] schemes received:", data.schemes?.length ?? 0);
       setSchemes(data.schemes || []);
     } catch {
       setSchemes([]);
