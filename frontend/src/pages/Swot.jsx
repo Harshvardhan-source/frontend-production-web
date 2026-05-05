@@ -1134,8 +1134,9 @@ function BirdsEyeAIPanel({ queries, selectedCtx }) {
   const [insight, setInsight] = React.useState(null);
 
   const handleGenerate = async () => {
-    if (!open) { setOpen(true); }
-    if (insight) return;
+    if (open) { setOpen(false); return; }   // toggle off
+    setOpen(true);
+    if (insight) return;                     // already loaded, just re-open
     setLoading(true);
 
     // Build aggregate stats from queries for the selected context
@@ -1162,25 +1163,63 @@ function BirdsEyeAIPanel({ queries, selectedCtx }) {
     const topFilters = Object.entries(filterFreq).sort((a,b) => b[1]-a[1]).slice(0, 10).map(([k, c]) => `${k} (${c}x)`).join(', ');
     const totalVoters = queries.reduce((s, q) => s + (q.count || 0), 0);
 
+    const ctxMeta = CONTEXT_KEYS.find(c => c.key === selectedCtx);
+    const ctxLabel = ctxMeta?.label || selectedCtx;
+
+    const promptPayload = {
+      context: ctxLabel,
+      totalQueries: queries.length,
+      totalVoters,
+      swotCounts: swotCount,
+      labelCounts: labelCount,
+      topFilterCombinations: topFilters,
+    };
+
     try {
-      // Route through Django backend to avoid CORS — never call Anthropic directly from browser
-      const res = await fetch('/api/ai/birdseye-view/', {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contextKey: selectedCtx,
-          queries: queries,
-          totalVoters: totalVoters,
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: `You are a senior BJP political strategist for Mangalore South constituency, Karnataka.
+Analyse the aggregated SWOT data for the "${ctxLabel}" context and return ONLY valid JSON — no markdown, no backticks, no extra text.
+Return exactly this structure:
+{
+  "headline": "Short sharp strategic title (max 10 words)",
+  "executiveSummary": "3-4 sentences: overall picture, who these voters are, political significance",
+  "keyMetrics": [
+    {"label": "Total Voters", "value": "${totalVoters.toLocaleString()}", "color": "#a78bfa"},
+    {"label": "Query Groups", "value": "${queries.length}", "color": "#22d3ee"},
+    {"label": "Top Signal", "value": "Strength", "color": "#10b981"},
+    {"label": "Risk Level", "value": "Medium", "color": "#f59e0b"}
+  ],
+  "swotRadar": [
+    {"axis": "Strength", "score": 70, "color": "#10b981", "note": "Brief reason"},
+    {"axis": "Weakness", "score": 50, "color": "#f87171", "note": "Brief reason"},
+    {"axis": "Opportunity", "score": 60, "color": "#22d3ee", "note": "Brief reason"},
+    {"axis": "Threat", "score": 40, "color": "#fb923c", "note": "Brief reason"}
+  ],
+  "winProbability": 62,
+  "confidenceNote": "Based on ${ctxLabel} context segment patterns",
+  "strategicPillars": [
+    {"title": "Pillar 1", "body": "Action detail", "color": "#10b981"},
+    {"title": "Pillar 2", "body": "Action detail", "color": "#22d3ee"},
+    {"title": "Pillar 3", "body": "Action detail", "color": "#fb923c"},
+    {"title": "Pillar 4", "body": "Action detail", "color": "#a78bfa"}
+  ]
+}
+Fill all values based on the actual data provided. swotRadar scores are 0-100. winProbability is 0-100. Be specific and data-driven.`,
+          messages: [{ role: 'user', content: JSON.stringify(promptPayload) }],
         }),
       });
       const data = await res.json();
-      if (data.success && data.insight) {
-        setInsight(data.insight);
-      } else {
-        setInsight({ _raw: data.error || 'No insight returned.' });
-      }
-    } catch {
-      setInsight({ _raw: 'Failed to generate bird\'s eye view.' });
+      const raw = (data.content || []).map(b => b.text || '').join('').trim();
+      const clean = raw.replace(/^```json?\s*/i, '').replace(/```\s*$/i, '').trim();
+      const parsed = JSON.parse(clean);
+      setInsight(parsed);
+    } catch (err) {
+      setInsight({ _raw: 'Failed to generate bird\'s eye view. Error: ' + (err?.message || 'Unknown') });
     }
     setLoading(false);
   };
