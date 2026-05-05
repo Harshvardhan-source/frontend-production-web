@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { schemeApi } from '../api/client';
 
-// Keys shown in the voter detail grid inside the modal.
-// PhysicalStatus is kept for display; DifferentlyAbled is sent to backend for matching.
+// ─── Keys shown in the voter detail grid inside the modal ────────────────────
 const VOTER_KEYS = [
   'VoterID', 'House_No', 'MobileNumber', 'DOB', 'AGE', 'Gender',
   'Religion', 'Community', 'SubCategory', 'EconomicStatus',
@@ -13,25 +12,91 @@ const VOTER_KEYS = [
   'AnnualIncome', 'WardNumber', 'BoothNo',
 ];
 
-// Keys sent to the backend for scheme eligibility matching.
-// Community is sent raw (e.g. "General"); the backend maps it to "GC".
-// PhysicalStatus is renamed to DifferentlyAbled by the backend normalizer.
-const SCHEME_MATCH_KEYS = [
-  'Gender', 'MaritalStatus', 'EconomicStatus', 'EmploymentStatus',
-  'EmploymentType', 'Religion', 'Community', 'SubCategory', 'Education',
-  'EducationType', 'PhysicalStatus', 'HealthStatus', 'HomeType', 'AGE',
-];
+// ─── Community: DB raw value → Excel sheet value ─────────────────────────────
+const COMMUNITY_MAP = {
+  'General': 'GC', 'general': 'GC',
+  'GC': 'GC', 'OBC': 'OBC', 'SC': 'SC', 'ST': 'ST',
+  '2A': 'OBC', '2B': 'OBC', '3A': 'OBC', '3B': 'OBC',
+};
 
+// ─── Exact allowed values per Excel column ───────────────────────────────────
+// Any voter value not in this set for its column is omitted from the payload.
+// The backend treats a blank/missing voter field as "no restriction",
+// so unknown values don't cause false-negative mismatches.
+const EXCEL_ALLOWED = {
+  Gender:           new Set(['Male', 'Female', 'Other']),
+  MaritalStatus:    new Set(['Married', 'Single', 'Widowed', 'Divorced']),
+  EconomicStatus:   new Set(['APL', 'BPL']),
+  EmploymentStatus: new Set(['Employed', 'UnEmployed', 'Minor', 'Retired']),
+  EmploymentType:   new Set(['Government', 'Private', 'Self-Employed', 'Daily Wage', 'Business']),
+  Religion:         new Set(['Hindu', 'Muslim', 'Christian', 'Jain', 'Buddhist', 'Sikh']),
+  Community:        new Set(['GC', 'OBC', 'SC', 'ST']),
+  SubCategory:      new Set(['1', '2A', '2B', '3A', '3B']),
+  Education:        new Set(['Educated', 'Uneducated']),
+  EducationType:    new Set(['Primary', 'Secondary', 'Higher Secondary', 'Graduation', 'Post Graduation', 'Doctorate']),
+  DifferentlyAbled: new Set(['Yes', 'No']),
+  HealthStatus:     new Set(['Healthy', 'Diseased']),
+  HomeType:         new Set(['Rent', 'Own', 'Government Quarters', 'Shared']),
+};
+
+/**
+ * Converts a raw voter object (from DB / voterList API) into the exact field
+ * names and values the Excel scheme sheet uses for eligibility matching.
+ *
+ * Transforms applied:
+ *   1. Community   : "General" → "GC", sub-caste codes → "OBC", etc.
+ *   2. PhysicalStatus → renamed to DifferentlyAbled (Excel column name)
+ *   3. SubCategory null / non-string → empty → omitted
+ *   4. Any value not in EXCEL_ALLOWED for its field → omitted
+ *      (backend treats blank voter field as "no restriction")
+ */
+function normalizeForSchemeMatch(voter) {
+  const rawCommunity   = String(voter.Community || '').trim();
+  const community      = COMMUNITY_MAP[rawCommunity] || rawCommunity;
+  const differentlyAbled = String(voter.DifferentlyAbled || voter.PhysicalStatus || 'No').trim();
+
+  const raw = {
+    Gender:           String(voter.Gender           || '').trim(),
+    MaritalStatus:    String(voter.MaritalStatus    || '').trim(),
+    EconomicStatus:   String(voter.EconomicStatus   || '').trim(),
+    EmploymentStatus: String(voter.EmploymentStatus || '').trim(),
+    EmploymentType:   String(voter.EmploymentType   || '').trim(),
+    Religion:         String(voter.Religion         || '').trim(),
+    Community:        community,
+    SubCategory:      voter.SubCategory != null ? String(voter.SubCategory).trim() : '',
+    Education:        String(voter.Education        || '').trim(),
+    EducationType:    String(voter.EducationType    || '').trim(),
+    DifferentlyAbled: differentlyAbled,
+    HealthStatus:     String(voter.HealthStatus     || '').trim(),
+    HomeType:         String(voter.HomeType         || '').trim(),
+    AGE:              voter.AGE != null ? String(voter.AGE).trim() : '',
+  };
+
+  const normalized = {};
+  for (const [key, val] of Object.entries(raw)) {
+    if (!val) continue;
+    if (key === 'AGE') {
+      normalized[key] = val;                   // AGE is a range check — keep as-is
+    } else if (EXCEL_ALLOWED[key]?.has(val)) {
+      normalized[key] = val;                   // known value — include
+    }
+    // unknown value → omit → backend treats field as unrestricted
+  }
+
+  return normalized;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function SchemeVoters() {
-  const { state }   = useLocation();
-  const navigate    = useNavigate();
-  const ward        = state?.ward;
-  const wardName    = state?.wardName || `Ward ${ward}`;
+  const { state } = useLocation();
+  const navigate  = useNavigate();
+  const ward      = state?.ward;
+  const wardName  = state?.wardName || `Ward ${ward}`;
 
   const [voters,     setVoters]     = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState('');
-  const [modal,      setModal]      = useState(null);   // selected voter
+  const [modal,      setModal]      = useState(null);
   const [schemes,    setSchemes]    = useState([]);
   const [schemeBusy, setSchemeBusy] = useState(false);
 
@@ -56,22 +121,21 @@ export default function SchemeVoters() {
     setSchemes([]);
     setSchemeBusy(true);
     try {
-      // Send only the matching keys; backend normalizes community + field names
-      const voterData = {};
-      SCHEME_MATCH_KEYS.forEach(k => { if (voter[k] !== undefined) voterData[k] = voter[k]; });
-      // 2705 CRITICAL FIX: wrap under voterData key — backend does body.get("voterData", {})
-      console.log("[SchemeVoters] sending voterData:", voterData);
+      const voterData = normalizeForSchemeMatch(voter);
+      console.log('[SchemeVoters] sending voterData:', voterData);
+
+      // Backend reads body.get('voterData', {}) — must be wrapped under this key
       const { data } = await schemeApi.viewScheme({ voterData });
-      console.log("[SchemeVoters] schemes received:", data.schemes?.length ?? 0);
+      console.log('[SchemeVoters] schemes received:', data.schemes?.length ?? 0);
       setSchemes(data.schemes || []);
-    } catch {
+    } catch (err) {
+      console.error('[SchemeVoters] viewScheme error:', err);
       setSchemes([]);
     } finally {
       setSchemeBusy(false);
     }
   }, []);
 
-  // ── label helper: camelCase/PascalCase → readable label ─────────────────────
   const label = key => key.replace(/_/g, ' ');
 
   return (
