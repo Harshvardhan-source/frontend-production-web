@@ -838,92 +838,195 @@ function QueryCard({ q, ctxKey, ctxColor }) {
   );
 }
 
-function ContextSWOTPanel({ queries, ctxKey, ctxColor, ctxLabel }) {
-  // Bucket queries by their top-level label (Dominant / Major / Moderate / Minor)
-  const LABEL_KEYS = ['Dominant', 'Major', 'Moderate', 'Minor'];
-  const buckets = { Dominant: [], Major: [], Moderate: [], Minor: [], None: [] };
+// ─── SWOT quadrant meta ───────────────────────────────────────────────────────
+const SWOT_META = {
+  Strength:    { color: '#10b981', bg: 'rgba(16,185,129,0.07)',  border: 'rgba(16,185,129,0.25)',  label: 'Strength',    sub: 'Internal · Positive', code: 'S' },
+  Weakness:    { color: '#f87171', bg: 'rgba(248,113,113,0.07)', border: 'rgba(248,113,113,0.25)', label: 'Weakness',    sub: 'Internal · Negative', code: 'W' },
+  Opportunity: { color: '#22d3ee', bg: 'rgba(34,211,238,0.07)',  border: 'rgba(34,211,238,0.25)',  label: 'Opportunity', sub: 'External · Positive', code: 'O' },
+  Threat:      { color: '#fb923c', bg: 'rgba(251,146,60,0.07)',  border: 'rgba(251,146,60,0.25)',  label: 'Threat',      sub: 'External · Negative', code: 'T' },
+  None:        { color: 'rgba(255,255,255,0.2)', bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.08)', label: 'Unclassified', sub: '', code: '—' },
+};
+const SWOT_ORDER = ['Strength', 'Weakness', 'Opportunity', 'Threat'];
+const LABEL_ORDER = ['Dominant', 'Major', 'Moderate', 'Minor'];
+
+// Decode a predictedContext value like "W", "S,O", "None" → array of SWOT keys
+function ctxToSwot(raw) {
+  if (!raw || raw === 'None') return [];
+  const map = { S: 'Strength', W: 'Weakness', O: 'Opportunity', T: 'Threat' };
+  return raw.split(',').map(s => s.trim()).map(s => map[s]).filter(Boolean);
+}
+
+// Sub-panel: shows queries for ONE swot bucket, broken down by Dominant/Major/Moderate/Minor
+function LabelBreakdown({ queries, ctxKey, ctxColor, swotMeta }) {
+  const [activeLbl, setActiveLbl] = React.useState('Dominant');
+
+  const lblBuckets = { Dominant: [], Major: [], Moderate: [], Minor: [], None: [] };
   for (const q of queries) {
     const lbl = q.label || 'None';
-    if (buckets[lbl] !== undefined) buckets[lbl].push(q);
-    else buckets.None.push(q);
+    if (lblBuckets[lbl] !== undefined) lblBuckets[lbl].push(q);
+    else lblBuckets.None.push(q);
   }
 
-  const quadrants = [
-    { key: 'Dominant', label: 'Dominant', sub: 'Highest impact' },
-    { key: 'Major',    label: 'Major',    sub: 'Significant'    },
-    { key: 'Moderate', label: 'Moderate', sub: 'Notable'        },
-    { key: 'Minor',    label: 'Minor',    sub: 'Low impact'     },
-  ].map(q => ({ ...q, ...getLabelMeta(q.key) }));
+  // Auto-select first non-empty label on mount / when queries change
+  React.useEffect(() => {
+    const first = LABEL_ORDER.find(l => lblBuckets[l].length > 0) || 'Dominant';
+    setActiveLbl(first);
+  }, [queries.length]);
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      {/* Label sub-filter row */}
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
+        {LABEL_ORDER.map(lbl => {
+          const lm = getLabelMeta(lbl);
+          const cnt = lblBuckets[lbl].length;
+          const active = activeLbl === lbl;
+          return (
+            <button key={lbl} onClick={() => setActiveLbl(lbl)}
+              style={{
+                padding: '5px 12px', borderRadius: 7,
+                background: active ? lm.bg : 'rgba(255,255,255,0.025)',
+                border: `1px solid ${active ? lm.color : 'rgba(255,255,255,0.07)'}`,
+                color: active ? lm.color : 'rgba(255,255,255,0.3)',
+                fontSize: 10, fontWeight: 700, cursor: cnt ? 'pointer' : 'default',
+                fontFamily: 'Sora, sans-serif', transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', gap: 5,
+                opacity: cnt ? 1 : 0.4,
+              }}>
+              {lbl}
+              <span style={{ fontSize: 8.5, fontFamily: 'Space Mono, monospace', opacity: 0.75 }}>({cnt})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Query list */}
+      <div style={{ maxHeight: 380, overflowY: 'auto', paddingRight: 2 }}>
+        {(lblBuckets[activeLbl] || []).length === 0 ? (
+          <div style={{ padding: '18px', textAlign: 'center', color: 'rgba(255,255,255,0.18)', fontSize: 11 }}>
+            No {activeLbl} queries in this SWOT category
+          </div>
+        ) : (
+          (lblBuckets[activeLbl] || []).slice(0, 60).map((q, i) => (
+            <QueryCard key={i} q={q} ctxKey={ctxKey} ctxColor={ctxColor} />
+          ))
+        )}
+        {(lblBuckets[activeLbl] || []).length > 60 && (
+          <div style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: 8, fontFamily: 'Space Mono, monospace' }}>
+            Showing 60 of {lblBuckets[activeLbl].length}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ContextSWOTPanel({ queries, ctxKey, ctxColor, ctxLabel }) {
+  // ── Level 1: bucket by SWOT from predictedContext[ctxKey] ─────────────────
+  const swotBuckets = { Strength: [], Weakness: [], Opportunity: [], Threat: [], None: [] };
+  for (const q of queries) {
+    const raw = (q.predictedContext || {})[ctxKey] || 'None';
+    const swots = ctxToSwot(raw);
+    if (swots.length === 0) { swotBuckets.None.push(q); }
+    else { for (const s of swots) { if (swotBuckets[s]) swotBuckets[s].push(q); } }
+  }
 
   const total = queries.length;
-  const [expanded, setExpanded] = React.useState('Dominant');
+  const [activeSwot, setActiveSwot] = React.useState('Strength');
+
+  // Auto-select first non-empty SWOT bucket
+  React.useEffect(() => {
+    const first = SWOT_ORDER.find(s => swotBuckets[s].length > 0) || 'Strength';
+    setActiveSwot(first);
+  }, [ctxKey, queries.length]);
+
+  const activeMeta = SWOT_META[activeSwot] || SWOT_META.None;
 
   return (
     <div style={{ marginBottom: 28 }}>
       {/* Context header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: `${ctxColor}14`, border: `1px solid ${ctxColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 9, background: `${ctxColor}14`, border: `1px solid ${ctxColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
           {CONTEXT_KEYS.find(c => c.key === ctxKey)?.icon}
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 800, color: '#eef2ff', fontFamily: 'Sora, sans-serif' }}>{ctxLabel}</div>
-          <div style={{ fontSize: 9, color: ctxColor, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.8 }}>{total} queries analysed</div>
+          <div style={{ fontSize: 9, color: ctxColor, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.8 }}>{total} queries · classified by SWOT then impact</div>
         </div>
-        {/* Mini label summary pills */}
+        {/* Mini SWOT count pills */}
         <div style={{ display: 'flex', gap: 5, marginLeft: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {quadrants.map(q => buckets[q.key].length > 0 && (
-            <span key={q.key} style={{ fontSize: 9, fontWeight: 800, color: q.color, background: `${q.color}12`, border: `1px solid ${q.color}25`, borderRadius: 5, padding: '2px 8px', fontFamily: 'Space Mono, monospace' }}>
-              {q.key[0]} · {buckets[q.key].length}
+          {SWOT_ORDER.map(s => swotBuckets[s].length > 0 && (
+            <span key={s} style={{ fontSize: 9, fontWeight: 800, color: SWOT_META[s].color, background: `${SWOT_META[s].color}12`, border: `1px solid ${SWOT_META[s].color}28`, borderRadius: 5, padding: '2px 7px', fontFamily: 'Space Mono, monospace' }}>
+              {SWOT_META[s].code} · {swotBuckets[s].length}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Label filter pills */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-        {quadrants.map(q => (
-          <button key={q.key} onClick={() => setExpanded(ex => ex === q.key ? null : q.key)}
+      {/* ── Level 1: SWOT tab row ─────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+        {SWOT_ORDER.map(s => {
+          const sm = SWOT_META[s];
+          const cnt = swotBuckets[s].length;
+          const active = activeSwot === s;
+          return (
+            <button key={s} onClick={() => setActiveSwot(s)}
+              style={{
+                padding: '9px 16px', borderRadius: 9,
+                background: active ? sm.bg : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${active ? sm.color : 'rgba(255,255,255,0.08)'}`,
+                color: active ? sm.color : 'rgba(255,255,255,0.32)',
+                fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+                transition: 'all 0.18s', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
+                minWidth: 90, opacity: cnt ? 1 : 0.45,
+              }}>
+              <span>{sm.label}</span>
+              <span style={{ fontSize: 8.5, fontWeight: 700, opacity: 0.6, fontFamily: 'Space Mono, monospace' }}>{sm.sub} · {cnt}</span>
+            </button>
+          );
+        })}
+        {swotBuckets.None.length > 0 && (
+          <button onClick={() => setActiveSwot('None')}
             style={{
-              padding: '7px 14px', borderRadius: 8,
-              background: expanded === q.key ? q.bg : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${expanded === q.key ? q.color : 'rgba(255,255,255,0.09)'}`,
-              color: expanded === q.key ? q.color : 'rgba(255,255,255,0.35)',
-              fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-              transition: 'all 0.18s', display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-            {q.label}
-            <span style={{ fontSize: 9, fontWeight: 800, fontFamily: 'Space Mono, monospace', opacity: 0.7 }}>({buckets[q.key].length})</span>
-          </button>
-        ))}
-        {buckets.None.length > 0 && (
-          <button onClick={() => setExpanded(ex => ex === 'None' ? null : 'None')}
-            style={{
-              padding: '7px 14px', borderRadius: 8,
-              background: expanded === 'None' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${expanded === 'None' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.09)'}`,
-              color: 'rgba(255,255,255,0.3)', fontSize: 10.5, fontWeight: 700,
+              padding: '9px 16px', borderRadius: 9,
+              background: activeSwot === 'None' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)',
+              border: `1px solid ${activeSwot === 'None' ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)'}`,
+              color: 'rgba(255,255,255,0.28)', fontSize: 11, fontWeight: 800,
               cursor: 'pointer', fontFamily: 'Sora, sans-serif', transition: 'all 0.18s',
             }}>
-            Uncategorised ({buckets.None.length})
+            Unclassified · {swotBuckets.None.length}
           </button>
         )}
       </div>
 
-      {/* Expanded query list */}
-      {expanded && (
-        <div style={{ maxHeight: 400, overflowY: 'auto', paddingRight: 2 }}>
-          {(buckets[expanded] || []).length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>No queries in this category</div>
-          ) : (
-            (buckets[expanded] || []).slice(0, 60).map((q, i) => (
-              <QueryCard key={i} q={q} ctxKey={ctxKey} ctxColor={ctxColor} />
-            ))
-          )}
-          {(buckets[expanded] || []).length > 60 && (
-            <div style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: 8, fontFamily: 'Space Mono, monospace' }}>
-              Showing 60 of {buckets[expanded].length} — refine by ward for full view
-            </div>
-          )}
+      {/* Active SWOT section card */}
+      {activeSwot && (
+        <div style={{
+          background: activeMeta.bg, border: `1px solid ${activeMeta.border}`,
+          borderRadius: 12, padding: '14px 14px 10px',
+        }}>
+          {/* SWOT section header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: activeMeta.color, fontFamily: 'Sora, sans-serif' }}>
+              {activeMeta.label}
+            </span>
+            <span style={{ fontSize: 9, color: activeMeta.color, opacity: 0.6, fontFamily: 'Space Mono, monospace' }}>{activeMeta.sub}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 9, color: activeMeta.color, background: `${activeMeta.color}15`, border: `1px solid ${activeMeta.color}30`, borderRadius: 4, padding: '1px 8px', fontFamily: 'Space Mono, monospace', fontWeight: 700 }}>
+              {(swotBuckets[activeSwot] || []).length} queries
+            </span>
+          </div>
+          <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.2)', marginBottom: 10, fontFamily: 'Space Mono, monospace', letterSpacing: 0.3 }}>
+            ↳ broken down by impact level:
+          </div>
+
+          {/* ── Level 2: Dominant / Major / Moderate / Minor ─────────────────── */}
+          <LabelBreakdown
+            key={activeSwot}
+            queries={swotBuckets[activeSwot] || []}
+            ctxKey={ctxKey}
+            ctxColor={activeMeta.color}
+            swotMeta={activeMeta}
+          />
         </div>
       )}
     </div>
@@ -979,11 +1082,13 @@ function MLIntelligenceTab() {
   const queries = data?.queries || [];
   const activeMeta = CONTEXT_KEYS.find(c => c.key === selectedCtx);
 
-  // Aggregate label counts for summary bar
-  const labelCounts = { Dominant: 0, Major: 0, Moderate: 0, Minor: 0 };
+  // Aggregate SWOT counts for selected context (Level 1 summary bar)
+  const swotSummary = { Strength: 0, Weakness: 0, Opportunity: 0, Threat: 0, None: 0 };
   for (const q of queries) {
-    const lbl = q.label;
-    if (labelCounts[lbl] !== undefined) labelCounts[lbl]++;
+    const raw = (q.predictedContext || {})[selectedCtx] || 'None';
+    const swots = ctxToSwot(raw);
+    if (swots.length === 0) swotSummary.None++;
+    else { for (const s of swots) if (swotSummary[s] !== undefined) swotSummary[s]++; }
   }
 
   return (
@@ -1056,20 +1161,21 @@ function MLIntelligenceTab() {
       {/* Data loaded */}
       {data && !loading && (
         <>
-          {/* Summary bar */}
+          {/* Summary bar — SWOT counts for selected context */}
           <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', flex: 1, minWidth: 120 }}>
-              Mangalore South · {queries.length} queries · NewQueryStack1
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', flex: 1, minWidth: 140 }}>
+              Mangalore South · {queries.length} queries<br/>
+              <span style={{ opacity: 0.55 }}>{activeMeta?.label} context · SWOT breakdown</span>
             </div>
             {[
-              { label: 'Dominant', color: '#f59e0b', count: labelCounts.Dominant },
-              { label: 'Major',    color: '#10b981', count: labelCounts.Major    },
-              { label: 'Moderate', color: '#22d3ee', count: labelCounts.Moderate },
-              { label: 'Minor',    color: '#a78bfa', count: labelCounts.Minor    },
+              { label: 'Strength',    code: 'S', color: '#10b981', count: swotSummary.Strength    },
+              { label: 'Weakness',    code: 'W', color: '#f87171', count: swotSummary.Weakness    },
+              { label: 'Opportunity', code: 'O', color: '#22d3ee', count: swotSummary.Opportunity },
+              { label: 'Threat',      code: 'T', color: '#fb923c', count: swotSummary.Threat      },
             ].map(b => (
-              <div key={b.label} style={{ textAlign: 'center', minWidth: 54 }}>
-                <div style={{ fontSize: 18, fontWeight: 900, color: b.color, fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{b.count}</div>
-                <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{b.label}</div>
+              <div key={b.code} style={{ textAlign: 'center', minWidth: 52 }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: b.color, fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{b.count}</div>
+                <div style={{ fontSize: 8, color: b.color, opacity: 0.6, marginTop: 2, fontFamily: 'Space Mono, monospace', fontWeight: 700 }}>{b.code} · {b.label}</div>
               </div>
             ))}
           </div>
