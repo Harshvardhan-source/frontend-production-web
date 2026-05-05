@@ -211,7 +211,7 @@ const TABS = [
   { id: 'swot',       label: 'Political SWOT', Icon: LayoutGrid },
   { id: 'wards',      label: 'Ward Strength',  Icon: BarChart2  },
   { id: 'demographic',label: 'Demographic',    Icon: PieChart   },
-  { id: 'ml',         label: 'ML Intelligence',Icon: Crosshair  },
+  { id: 'ml',         label: 'Shaastra SWOT',Icon: Crosshair  },
 ];
 // ─── Ward Strength Tab ─────────────────────────────────────────────────────────
 function WardStrengthTab() {
