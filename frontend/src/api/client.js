@@ -186,3 +186,4 @@ export const aiApi = {
   // payload: { contextKey, queries, totalVoters }
   birdseyeView: (payload) => api.post('/api/ai/birdseye-view/', payload),
 };
+

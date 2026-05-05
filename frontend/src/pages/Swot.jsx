@@ -1199,66 +1199,22 @@ function BirdsEyeAIPanel({ queries, selectedCtx }) {
     const topFilters = Object.entries(filterFreq).sort((a,b) => b[1]-a[1]).slice(0, 10).map(([k, c]) => `${k} (${c}x)`).join(', ');
     const totalVoters = queries.reduce((s, q) => s + (q.count || 0), 0);
 
-    const prompt = `Mangalore South Constituency (175) — Bird's Eye SWOT Overview
-Context analysed: ${selectedCtx}
-Total query groups: ${queries.length}
-Total voter-mentions: ${totalVoters.toLocaleString()}
-SWOT distribution for this context: Strength=${swotCount.Strength}, Weakness=${swotCount.Weakness}, Opportunity=${swotCount.Opportunity}, Threat=${swotCount.Threat}, Unclassified=${swotCount.None}
-Impact label distribution: ${JSON.stringify(labelCount)}
-Most frequent demographic filters: ${topFilters}`;
-
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      // Route through Django backend to avoid CORS — never call Anthropic directly from browser
+      const res = await fetch('/api/ai/birdseye-view/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1800,
-          system: `You are a senior political strategist for Mangalore South constituency. 
-Provide a comprehensive bird's eye strategic view. Return ONLY a JSON object (no markdown, no extra text):
-{
-  "headline": "Strategic overview title (10-15 words)",
-  "executiveSummary": "3-4 sentence overall picture — dominant trends, biggest risk, biggest opportunity",
-  "swotRadar": [
-    { "axis": "Strength", "score": <0-100>, "color": "#10b981", "note": "1-line reason" },
-    { "axis": "Weakness", "score": <0-100>, "color": "#f87171", "note": "1-line reason" },
-    { "axis": "Opportunity", "score": <0-100>, "color": "#22d3ee", "note": "1-line reason" },
-    { "axis": "Threat", "score": <0-100>, "color": "#fb923c", "note": "1-line reason" }
-  ],
-  "keyMetrics": [
-    { "label": "Dominant Quadrant", "value": "Strength/Weakness/Opportunity/Threat", "color": "#10b981" },
-    { "label": "Query Groups", "value": "<N>", "color": "#a78bfa" },
-    { "label": "Voter Reach", "value": "<N formatted>", "color": "#22d3ee" },
-    { "label": "Top Risk Factor", "value": "short phrase", "color": "#f87171" }
-  ],
-  "trendBars": {
-    "title": "SWOT Distribution (% of groups)",
-    "bars": [
-      { "label": "Strength", "pct": <calc from data>, "color": "#10b981" },
-      { "label": "Weakness", "pct": <calc from data>, "color": "#f87171" },
-      { "label": "Opportunity", "pct": <calc from data>, "color": "#22d3ee" },
-      { "label": "Threat", "pct": <calc from data>, "color": "#fb923c" }
-    ]
-  },
-  "strategicPillars": [
-    { "title": "Consolidate", "body": "What to protect/double down on", "color": "#10b981" },
-    { "title": "Fix", "body": "Top weakness to address before 2028", "color": "#f87171" },
-    { "title": "Capitalise", "body": "Best opportunity to act on now", "color": "#22d3ee" },
-    { "title": "Neutralise", "body": "Most urgent threat to defuse", "color": "#fb923c" }
-  ],
-  "winProbability": <0-100 number>,
-  "confidenceNote": "1 sentence on data confidence"
-}`,
-          messages: [{ role: 'user', content: prompt }],
+          contextKey: selectedCtx,
+          queries: queries,
+          totalVoters: totalVoters,
         }),
       });
       const data = await res.json();
-      const raw = (data.content || []).map(b => b.text || '').join('').trim();
-      const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
-      try {
-        setInsight(JSON.parse(clean));
-      } catch {
-        setInsight({ _raw: raw || 'No insight returned.' });
+      if (data.success && data.insight) {
+        setInsight(data.insight);
+      } else {
+        setInsight({ _raw: data.error || 'No insight returned.' });
       }
     } catch {
       setInsight({ _raw: 'Failed to generate bird\'s eye view.' });
