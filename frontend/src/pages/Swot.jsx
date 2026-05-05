@@ -675,7 +675,20 @@ const CONTEXT_KEYS = [
   { key: 'Administrative_context', label: 'Administrative',    color: '#fbbf24', icon: '🏛️' },
 ];
 
-// Label decode: W=Weakness T=Threat S=Strength O=Opportunity, H=High M=Medium L=Low etc.
+// ─── New label system: Dominant / Major / Moderate / Minor ───────────────────
+const LABEL_META = {
+  Dominant: { color: '#f59e0b', bg: 'rgba(245,158,11,0.09)',  border: 'rgba(245,158,11,0.28)',  glow: 'rgba(245,158,11,0.18)'  },
+  Major:    { color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.25)',  glow: 'rgba(16,185,129,0.15)'  },
+  Moderate: { color: '#22d3ee', bg: 'rgba(34,211,238,0.07)',  border: 'rgba(34,211,238,0.22)',  glow: 'rgba(34,211,238,0.12)'  },
+  Minor:    { color: '#a78bfa', bg: 'rgba(167,139,250,0.07)', border: 'rgba(167,139,250,0.22)', glow: 'rgba(167,139,250,0.12)' },
+  None:     { color: 'rgba(255,255,255,0.2)', bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.08)', glow: 'transparent' },
+};
+
+function getLabelMeta(label) {
+  return LABEL_META[label] || LABEL_META.None;
+}
+
+// Legacy decode kept for predictedContext expansion (S/W/O/T codes still in context fields)
 function decodeLabel(raw) {
   if (!raw || raw === 'None') return { swot: null, band: null };
   const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
@@ -701,24 +714,53 @@ function swotColors(swot) {
 
 function QueryCard({ q, ctxKey, ctxColor }) {
   const [open, setOpen] = React.useState(false);
+  const [aiOpen, setAiOpen] = React.useState(false);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [aiText, setAiText] = React.useState('');
+
   const ctx = q.predictedContext || {};
-  const raw = ctx[ctxKey] || 'None';
-  const { swot, band } = decodeLabel(raw);
-  const sc = swotColors(swot);
+  const label = q.label || 'None';
+  const lm = getLabelMeta(label);
   const pct = q.percentage != null ? parseFloat(q.percentage).toFixed(1) : '—';
   const count = q.count != null ? q.count.toLocaleString() : '—';
-  const label = q.label || '—';
   const query = q.query || {};
   const cols = q.columns || [];
 
+  const handleAI = async (e) => {
+    e.stopPropagation();
+    if (aiOpen) { setAiOpen(false); return; }
+    setAiOpen(true);
+    if (aiText) return; // already loaded
+    setAiLoading(true);
+    const summary = `Query group: ${cols.join(', ') || q.routeKey}. Filters: ${JSON.stringify(query)}. Count: ${count} voters (${pct}%). Label: ${label}. Predicted contexts: ${JSON.stringify(ctx)}.`;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: 'You are a political analyst specialising in Mangalore South constituency (Karnataka, India). Analyse the voter query group data and give a concise 3-5 sentence strategic insight: what this segment means politically, which party it favours, and one actionable recommendation. Be specific and data-driven. Respond in plain text only.',
+          messages: [{ role: 'user', content: summary }],
+        }),
+      });
+      const data = await res.json();
+      const text = (data.content || []).map(b => b.text || '').join('');
+      setAiText(text || 'No insight returned.');
+    } catch (err) {
+      setAiText('Failed to fetch AI insight. Please try again.');
+    }
+    setAiLoading(false);
+  };
+
   return (
     <div style={{
-      background: sc.bg, border: `1px solid ${sc.border}`,
+      background: lm.bg, border: `1px solid ${lm.border}`,
       borderRadius: 10, padding: '11px 13px', marginBottom: 8,
-      cursor: 'pointer', transition: 'all 0.18s',
-    }} onClick={() => setOpen(o => !o)}>
-      {/* Top row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+      transition: 'all 0.18s',
+    }}>
+      {/* Top row — clickable for expand */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, color: '#e8eeff', lineHeight: 1.4, marginBottom: 4, fontFamily: 'Sora, sans-serif' }}>
             {cols.join(' · ') || q.routeKey || '—'}
@@ -731,25 +773,47 @@ function QueryCard({ q, ctxKey, ctxColor }) {
             ))}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          {swot && swot.length > 0 ? swot.map(s => (
-            <span key={s} style={{ fontSize: 9, fontWeight: 800, color: sc.color, background: `${sc.color}14`, border: `1px solid ${sc.color}28`, borderRadius: 4, padding: '2px 7px', fontFamily: 'Space Mono, monospace', letterSpacing: 0.3 }}>{s}</span>
-          )) : (
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>None</span>
-          )}
-          {band && band.length > 0 && band.map(b => (
-            <span key={b} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: 'Space Mono, monospace' }}>{b}</span>
-          ))}
-        </div>
+        {/* Label badge */}
+        <span style={{ fontSize: 9, fontWeight: 800, color: lm.color, background: `${lm.color}14`, border: `1px solid ${lm.color}30`, borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap', fontFamily: 'Space Mono, monospace', letterSpacing: 0.3, flexShrink: 0 }}>
+          {label}
+        </span>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: 10, marginTop: 8, alignItems: 'center' }}>
+      {/* Stats row + AI button */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* AI button */}
+        <button
+          onClick={handleAI}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 9px', borderRadius: 6, border: `1px solid ${aiOpen ? '#a78bfa44' : 'rgba(167,139,250,0.25)'}`,
+            background: aiOpen ? 'rgba(167,139,250,0.12)' : 'rgba(167,139,250,0.06)',
+            color: aiOpen ? '#a78bfa' : 'rgba(167,139,250,0.7)',
+            fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: 'Space Mono, monospace',
+            transition: 'all 0.15s', letterSpacing: 0.3, flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: 10 }}>✦</span> AI
+        </button>
+
         <div style={{ fontSize: 9.5, fontFamily: 'Space Mono, monospace', color: ctxColor, fontWeight: 700 }}>{pct}%</div>
         <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace' }}>{count} voters</div>
-        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 5px', fontFamily: 'Space Mono, monospace' }}>Label: {label}</div>
-        <div style={{ marginLeft: 'auto', fontSize: 8.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>{open ? '▲ collapse' : '▼ all contexts'}</div>
+        <div style={{ marginLeft: 'auto', fontSize: 8.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace', cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>{open ? '▲ collapse' : '▼ all contexts'}</div>
       </div>
+
+      {/* AI insight panel */}
+      {aiOpen && (
+        <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.2)' }}>
+          <div style={{ fontSize: 8.5, color: '#a78bfa', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6, fontFamily: 'Space Mono, monospace', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span>✦</span> AI Political Insight
+          </div>
+          {aiLoading ? (
+            <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.5)', fontFamily: 'Sora, sans-serif', animation: 'pulse 1.4s ease-in-out infinite' }}>Analysing segment…</div>
+          ) : (
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.65, margin: 0, fontFamily: 'Sora, sans-serif' }}>{aiText}</p>
+          )}
+        </div>
+      )}
 
       {/* Expanded: all predicted contexts */}
       {open && (
@@ -775,28 +839,24 @@ function QueryCard({ q, ctxKey, ctxColor }) {
 }
 
 function ContextSWOTPanel({ queries, ctxKey, ctxColor, ctxLabel }) {
-  // Bucket queries into S/W/O/T/None by their predicted context value
-  const buckets = { Strength: [], Weakness: [], Opportunity: [], Threat: [], None: [] };
+  // Bucket queries by their top-level label (Dominant / Major / Moderate / Minor)
+  const LABEL_KEYS = ['Dominant', 'Major', 'Moderate', 'Minor'];
+  const buckets = { Dominant: [], Major: [], Moderate: [], Minor: [], None: [] };
   for (const q of queries) {
-    const raw = (q.predictedContext || {})[ctxKey] || 'None';
-    const { swot } = decodeLabel(raw);
-    if (!swot || swot.length === 0) { buckets.None.push(q); }
-    else {
-      for (const s of swot) {
-        if (buckets[s]) buckets[s].push(q);
-      }
-    }
+    const lbl = q.label || 'None';
+    if (buckets[lbl] !== undefined) buckets[lbl].push(q);
+    else buckets.None.push(q);
   }
 
   const quadrants = [
-    { key: 'Strength',    color: '#10b981', bg: 'rgba(16,185,129,0.05)',  border: 'rgba(16,185,129,0.18)',  label: 'Strengths',    sub: 'Internal · Positive'  },
-    { key: 'Weakness',   color: '#f87171', bg: 'rgba(248,113,113,0.05)', border: 'rgba(248,113,113,0.18)', label: 'Weaknesses',   sub: 'Internal · Negative'  },
-    { key: 'Opportunity',color: '#22d3ee', bg: 'rgba(34,211,238,0.05)',  border: 'rgba(34,211,238,0.18)',  label: 'Opportunities',sub: 'External · Positive'  },
-    { key: 'Threat',     color: '#fb923c', bg: 'rgba(251,146,60,0.05)',  border: 'rgba(251,146,60,0.18)',  label: 'Threats',      sub: 'External · Negative'  },
-  ];
+    { key: 'Dominant', label: 'Dominant', sub: 'Highest impact' },
+    { key: 'Major',    label: 'Major',    sub: 'Significant'    },
+    { key: 'Moderate', label: 'Moderate', sub: 'Notable'        },
+    { key: 'Minor',    label: 'Minor',    sub: 'Low impact'     },
+  ].map(q => ({ ...q, ...getLabelMeta(q.key) }));
 
   const total = queries.length;
-  const [expanded, setExpanded] = React.useState('Strength');
+  const [expanded, setExpanded] = React.useState('Dominant');
 
   return (
     <div style={{ marginBottom: 28 }}>
@@ -809,7 +869,7 @@ function ContextSWOTPanel({ queries, ctxKey, ctxColor, ctxLabel }) {
           <div style={{ fontSize: 14, fontWeight: 800, color: '#eef2ff', fontFamily: 'Sora, sans-serif' }}>{ctxLabel}</div>
           <div style={{ fontSize: 9, color: ctxColor, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.8 }}>{total} queries analysed</div>
         </div>
-        {/* Mini SWOT summary pills */}
+        {/* Mini label summary pills */}
         <div style={{ display: 'flex', gap: 5, marginLeft: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {quadrants.map(q => buckets[q.key].length > 0 && (
             <span key={q.key} style={{ fontSize: 9, fontWeight: 800, color: q.color, background: `${q.color}12`, border: `1px solid ${q.color}25`, borderRadius: 5, padding: '2px 8px', fontFamily: 'Space Mono, monospace' }}>
@@ -819,13 +879,13 @@ function ContextSWOTPanel({ queries, ctxKey, ctxColor, ctxLabel }) {
         </div>
       </div>
 
-      {/* SWOT quadrant pills */}
+      {/* Label filter pills */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {quadrants.map(q => (
           <button key={q.key} onClick={() => setExpanded(ex => ex === q.key ? null : q.key)}
             style={{
               padding: '7px 14px', borderRadius: 8,
-              background: expanded === q.key ? `${q.color}14` : 'rgba(255,255,255,0.03)',
+              background: expanded === q.key ? q.bg : 'rgba(255,255,255,0.03)',
               border: `1px solid ${expanded === q.key ? q.color : 'rgba(255,255,255,0.09)'}`,
               color: expanded === q.key ? q.color : 'rgba(255,255,255,0.35)',
               fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
@@ -897,9 +957,8 @@ function MLIntelligenceTab() {
 
   const fetchData = React.useCallback(() => {
     setLoading(true); setError(null); setData(null);
-    const url = scope === 'constituency'
-      ? `${BASE}/api/ml/constituency-swot/`
-      : `${BASE}/api/ml/ward-swot/?ward=${encodeURIComponent(selectedWard)}`;
+    // Always use constituency endpoint (ward-wise is in progress)
+    const url = `${BASE}/api/ml/constituency-swot/`;
     fetch(url, { credentials: 'include', headers: authHeaders() })
       .then(r => {
         const ct = r.headers.get('content-type') || '';
@@ -920,54 +979,49 @@ function MLIntelligenceTab() {
   const queries = data?.queries || [];
   const activeMeta = CONTEXT_KEYS.find(c => c.key === selectedCtx);
 
-  // Aggregate SWOT counts for the selected context
-  const swotCounts = { Strength: 0, Weakness: 0, Opportunity: 0, Threat: 0, None: 0 };
+  // Aggregate label counts for summary bar
+  const labelCounts = { Dominant: 0, Major: 0, Moderate: 0, Minor: 0 };
   for (const q of queries) {
-    const raw = (q.predictedContext || {})[selectedCtx] || 'None';
-    const { swot } = decodeLabel(raw);
-    if (!swot || swot.length === 0) swotCounts.None++;
-    else { for (const s of swot) if (swotCounts[s] !== undefined) swotCounts[s]++; }
+    const lbl = q.label;
+    if (labelCounts[lbl] !== undefined) labelCounts[lbl]++;
   }
 
   return (
     <div>
       {/* Scope toggle */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        {[
-          { key: 'constituency', label: '🏛️ Constituency SWOT', desc: 'Mangalore South · 175' },
-          { key: 'ward',         label: '📍 Ward-wise SWOT',    desc: 'Select a ward below'  },
-        ].map(s => (
-          <button key={s.key} onClick={() => { setScope(s.key); setData(null); }}
-            style={{
-              flex: 1, padding: '10px 14px', borderRadius: 10,
-              background: scope === s.key ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${scope === s.key ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.09)'}`,
-              color: scope === s.key ? '#f59e0b' : 'rgba(255,255,255,0.35)',
-              fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-              transition: 'all 0.18s', textAlign: 'left',
-            }}>
-            <div>{s.label}</div>
-            <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2, fontFamily: 'Space Mono, monospace' }}>{s.desc}</div>
-          </button>
-        ))}
-      </div>
+        {/* Constituency — active */}
+        <button onClick={() => { setScope('constituency'); setData(null); }}
+          style={{
+            flex: 1, padding: '10px 14px', borderRadius: 10,
+            background: scope === 'constituency' ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${scope === 'constituency' ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.09)'}`,
+            color: scope === 'constituency' ? '#f59e0b' : 'rgba(255,255,255,0.35)',
+            fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+            transition: 'all 0.18s', textAlign: 'left',
+          }}>
+          <div>🏛️ Constituency SWOT</div>
+          <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2, fontFamily: 'Space Mono, monospace' }}>Mangalore South · 175</div>
+        </button>
 
-      {/* Ward selector */}
-      {scope === 'ward' && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'flex-end' }}>
-          <select value={selectedWard} onChange={e => setSelectedWard(e.target.value)}
-            style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#f0f4ff', fontSize: 12, outline: 'none', fontFamily: 'Sora, sans-serif', minHeight: 44 }}>
-            <option value="">— Select Ward —</option>
-            {wardList.map(w => (
-              <option key={w.number} value={w.number}>{w.number} · {w.name}</option>
-            ))}
-          </select>
-          <button onClick={fetchData} disabled={!selectedWard || loading}
-            style={{ padding: '10px 20px', borderRadius: 8, background: selectedWard ? 'rgba(245,158,11,0.14)' : 'rgba(255,255,255,0.04)', border: `1px solid ${selectedWard ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)'}`, color: selectedWard ? '#f59e0b' : 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 700, cursor: selectedWard ? 'pointer' : 'not-allowed', fontFamily: 'Sora, sans-serif', minHeight: 44 }}>
-            {loading ? '⏳' : '▶ Load'}
-          </button>
-        </div>
-      )}
+        {/* Ward-wise — disabled / in progress */}
+        <button
+          disabled
+          style={{
+            flex: 1, padding: '10px 14px', borderRadius: 10,
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            color: 'rgba(255,255,255,0.2)',
+            fontSize: 11.5, fontWeight: 700, cursor: 'not-allowed', fontFamily: 'Sora, sans-serif',
+            textAlign: 'left', opacity: 0.7,
+          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            📍 Ward-wise SWOT
+            <span style={{ fontSize: 8.5, fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.28)', borderRadius: 4, padding: '1px 6px', fontFamily: 'Space Mono, monospace', letterSpacing: 0.4, textTransform: 'uppercase' }}>In Progress</span>
+          </div>
+          <div style={{ fontSize: 9, opacity: 0.45, marginTop: 2, fontFamily: 'Space Mono, monospace' }}>Coming soon</div>
+        </button>
+      </div>
 
       {/* Context selector */}
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -1005,17 +1059,17 @@ function MLIntelligenceTab() {
           {/* Summary bar */}
           <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', flex: 1, minWidth: 120 }}>
-              {scope === 'constituency' ? `Mangalore South · ${queries.length} queries` : `Ward ${selectedWard} · ${queries.length} queries`}
+              Mangalore South · {queries.length} queries · NewQueryStack1
             </div>
             {[
-              { label: 'S', full: 'Strengths',    color: '#10b981', count: swotCounts.Strength    },
-              { label: 'W', full: 'Weaknesses',   color: '#f87171', count: swotCounts.Weakness    },
-              { label: 'O', full: 'Opportunities',color: '#22d3ee', count: swotCounts.Opportunity },
-              { label: 'T', full: 'Threats',      color: '#fb923c', count: swotCounts.Threat      },
+              { label: 'Dominant', color: '#f59e0b', count: labelCounts.Dominant },
+              { label: 'Major',    color: '#10b981', count: labelCounts.Major    },
+              { label: 'Moderate', color: '#22d3ee', count: labelCounts.Moderate },
+              { label: 'Minor',    color: '#a78bfa', count: labelCounts.Minor    },
             ].map(b => (
-              <div key={b.label} style={{ textAlign: 'center', minWidth: 48 }}>
+              <div key={b.label} style={{ textAlign: 'center', minWidth: 54 }}>
                 <div style={{ fontSize: 18, fontWeight: 900, color: b.color, fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{b.count}</div>
-                <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{b.full}</div>
+                <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{b.label}</div>
               </div>
             ))}
           </div>
@@ -1031,9 +1085,9 @@ function MLIntelligenceTab() {
         </>
       )}
 
-      {!data && !loading && !error && scope === 'ward' && !selectedWard && (
+      {!data && !loading && !error && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
-          Select a ward above and click Load to view its ML-predicted SWOT analysis.
+          Click Load to view constituency-level ML-predicted SWOT analysis.
         </div>
       )}
     </div>
