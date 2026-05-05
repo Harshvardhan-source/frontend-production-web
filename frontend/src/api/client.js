@@ -175,14 +175,3 @@ export const mlApi = {
   // Ward-level: GET /api/ml/ward-swot/?ward=<wardNumber>
   wardSwot: (wardNumber) => api.get('/api/ml/ward-swot/', { params: { ward: wardNumber } }),
 };
-
-// ── AI Insights — Anthropic-powered analysis ─────────────────────────────────
-export const aiApi = {
-  // Per-query deep insight — POST /api/ai/query-insight/
-  // payload: { query, columns, count, percentage, label, routeKey, predictedContext }
-  queryInsight: (payload) => api.post('/api/ai/query-insight/', payload),
-
-  // Constituency bird's eye view — POST /api/ai/birdseye-view/
-  // payload: { contextKey, queries, totalVoters }
-  birdseyeView: (payload) => api.post('/api/ai/birdseye-view/', payload),
-};
