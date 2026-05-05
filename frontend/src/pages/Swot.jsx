@@ -732,23 +732,67 @@ function QueryCard({ q, ctxKey, ctxColor }) {
     setAiOpen(true);
     if (aiText) return; // already loaded
     setAiLoading(true);
-    const summary = `Query group: ${cols.join(', ') || q.routeKey}. Filters: ${JSON.stringify(query)}. Count: ${count} voters (${pct}%). Label: ${label}. Predicted contexts: ${JSON.stringify(ctx)}.`;
+
+    const filterTags = Object.entries(query).filter(([,v]) => v && v !== 'Unknown').map(([k,v]) => `${k}: ${v}`).join(', ');
+    const summary = `Voter segment analysis for Mangalore South (Constituency 175, Karnataka):
+- Demographic filters: ${filterTags || 'All voters'}
+- Segment size: ${count} voters (${pct}% of constituency)
+- SWOT classification: ${label}
+- Column dimensions: ${cols.join(', ') || q.routeKey}
+- All predicted political contexts: ${JSON.stringify(ctx)}`;
+
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: 'You are a political analyst specialising in Mangalore South constituency (Karnataka, India). Analyse the voter query group data and give a concise 3-5 sentence strategic insight: what this segment means politically, which party it favours, and one actionable recommendation. Be specific and data-driven. Respond in plain text only.',
+          max_tokens: 1200,
+          system: `You are a senior political analyst for Mangalore South constituency (Karnataka, India). 
+Analyse the given voter segment and return a JSON object ONLY (no markdown, no extra text) with this exact structure:
+{
+  "headline": "One punchy 8-12 word insight title",
+  "summary": "2-3 sentence plain-language explanation of who this segment is and why it matters politically",
+  "keyFigures": [
+    { "label": "Segment Size", "value": "<X voters>", "note": "short context" },
+    { "label": "Share of Constituency", "value": "<X%>", "note": "short context" },
+    { "label": "Political Lean", "value": "BJP/INC/Swing", "note": "brief reason" },
+    { "label": "Impact Level", "value": "<label>", "note": "Dominant/Major/Moderate/Minor" }
+  ],
+  "barChart": {
+    "title": "Estimated Vote Split",
+    "bars": [
+      { "party": "BJP", "pct": <estimated 0-100 number>, "color": "#fb923c" },
+      { "party": "INC", "pct": <estimated 0-100 number>, "color": "#f87171" },
+      { "party": "Others", "pct": <estimated 0-100 number>, "color": "#6b7280" }
+    ]
+  },
+  "swotBreakdown": {
+    "title": "Context-wise SWOT Signal",
+    "items": [
+      { "ctx": "Economic", "signal": "S/W/O/T/N", "color": "#10b981", "note": "1 line" },
+      { "ctx": "Health", "signal": "S/W/O/T/N", "color": "#22d3ee", "note": "1 line" },
+      { "ctx": "Political", "signal": "S/W/O/T/N", "color": "#f59e0b", "note": "1 line" }
+    ]
+  },
+  "recommendation": "One specific, actionable strategic recommendation for the MLA targeting this segment in 2028",
+  "riskLevel": "Low/Medium/High/Critical",
+  "riskColor": "#10b981 or #f59e0b or #fb923c or #f87171"
+}`,
           messages: [{ role: 'user', content: summary }],
         }),
       });
       const data = await res.json();
-      const text = (data.content || []).map(b => b.text || '').join('');
-      setAiText(text || 'No insight returned.');
+      const raw = (data.content || []).map(b => b.text || '').join('').trim();
+      // Strip markdown fences if present
+      const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+      try {
+        setAiText(JSON.parse(clean));
+      } catch {
+        setAiText({ _raw: raw || 'No insight returned.' });
+      }
     } catch (err) {
-      setAiText('Failed to fetch AI insight. Please try again.');
+      setAiText({ _raw: 'Failed to fetch AI insight. Please try again.' });
     }
     setAiLoading(false);
   };
@@ -801,17 +845,104 @@ function QueryCard({ q, ctxKey, ctxColor }) {
         <div style={{ marginLeft: 'auto', fontSize: 8.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace', cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>{open ? '▲ collapse' : '▼ all contexts'}</div>
       </div>
 
-      {/* AI insight panel */}
+      {/* AI insight panel — rich structured */}
       {aiOpen && (
-        <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.2)' }}>
-          <div style={{ fontSize: 8.5, color: '#a78bfa', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6, fontFamily: 'Space Mono, monospace', display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span>✦</span> AI Political Insight
+        <div style={{ marginTop: 10, borderRadius: 10, background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.22)', overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(167,139,250,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 8.5, color: '#a78bfa', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', fontFamily: 'Space Mono, monospace', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ fontSize: 11 }}>✦</span> AI Deep Insight
+            </div>
+            {!aiLoading && aiText && !aiText._raw && aiText.riskLevel && (
+              <span style={{ fontSize: 8.5, fontWeight: 800, color: aiText.riskColor || '#f59e0b', background: `${aiText.riskColor || '#f59e0b'}18`, border: `1px solid ${aiText.riskColor || '#f59e0b'}35`, borderRadius: 4, padding: '2px 8px', fontFamily: 'Space Mono, monospace' }}>
+                {aiText.riskLevel} Risk
+              </span>
+            )}
           </div>
+
           {aiLoading ? (
-            <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.5)', fontFamily: 'Sora, sans-serif', animation: 'pulse 1.4s ease-in-out infinite' }}>Analysing segment…</div>
-          ) : (
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.65, margin: 0, fontFamily: 'Sora, sans-serif' }}>{aiText}</p>
-          )}
+            <div style={{ padding: '18px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, animation: 'spin 1.2s linear infinite', display: 'inline-block', marginBottom: 6 }}>✦</div>
+              <div style={{ fontSize: 10.5, color: 'rgba(167,139,250,0.55)', fontFamily: 'Sora, sans-serif' }}>Analysing voter segment…</div>
+            </div>
+          ) : aiText && aiText._raw ? (
+            <p style={{ padding: '10px 12px', fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, margin: 0, fontFamily: 'Sora, sans-serif' }}>{aiText._raw}</p>
+          ) : aiText ? (
+            <div style={{ padding: '10px 12px' }}>
+              {/* Headline */}
+              {aiText.headline && (
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: '#e8eeff', lineHeight: 1.3, marginBottom: 7, fontFamily: 'Sora, sans-serif' }}>{aiText.headline}</div>
+              )}
+              {/* Summary */}
+              {aiText.summary && (
+                <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, margin: '0 0 10px', fontFamily: 'Sora, sans-serif' }}>{aiText.summary}</p>
+              )}
+
+              {/* Key Figures */}
+              {aiText.keyFigures && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 5, marginBottom: 10 }}>
+                  {aiText.keyFigures.map((f, i) => (
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '7px 9px' }}>
+                      <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>{f.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#a78bfa', fontFamily: 'Space Mono, monospace', lineHeight: 1.1 }}>{f.value}</div>
+                      {f.note && <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.28)', marginTop: 2, fontFamily: 'Sora, sans-serif' }}>{f.note}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Bar Chart */}
+              {aiText.barChart && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>{aiText.barChart.title}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {(aiText.barChart.bars || []).map((b, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <div style={{ width: 34, fontSize: 8.5, color: 'rgba(255,255,255,0.4)', fontFamily: 'Space Mono, monospace', flexShrink: 0, textAlign: 'right' }}>{b.party}</div>
+                        <div style={{ flex: 1, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                          <div style={{
+                            width: `${Math.max(2, Math.min(100, b.pct))}%`, height: '100%',
+                            background: b.color || '#a78bfa',
+                            borderRadius: 4,
+                            transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
+                          }} />
+                        </div>
+                        <div style={{ width: 30, fontSize: 8.5, fontWeight: 700, color: b.color || '#a78bfa', fontFamily: 'Space Mono, monospace', textAlign: 'right', flexShrink: 0 }}>{b.pct}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SWOT Breakdown */}
+              {aiText.swotBreakdown && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>{aiText.swotBreakdown.title}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {(aiText.swotBreakdown.items || []).map((it, i) => {
+                      const sigColors = { S: '#10b981', W: '#f87171', O: '#22d3ee', T: '#fb923c', N: 'rgba(255,255,255,0.2)' };
+                      const sc = sigColors[it.signal] || it.color || '#a78bfa';
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.025)', borderRadius: 6, padding: '4px 8px' }}>
+                          <span style={{ fontSize: 8.5, fontWeight: 800, color: sc, background: `${sc}15`, border: `1px solid ${sc}30`, borderRadius: 3, padding: '1px 5px', fontFamily: 'Space Mono, monospace', flexShrink: 0 }}>{it.signal}</span>
+                          <span style={{ fontSize: 9, color: sc, fontWeight: 700, fontFamily: 'Sora, sans-serif', flexShrink: 0 }}>{it.ctx}</span>
+                          <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', fontFamily: 'Sora, sans-serif' }}>{it.note}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendation */}
+              {aiText.recommendation && (
+                <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.22)', borderRadius: 7, padding: '7px 10px' }}>
+                  <div style={{ fontSize: 8, color: '#a78bfa', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4, fontFamily: 'Space Mono, monospace' }}>✦ Strategic Recommendation</div>
+                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, margin: 0, fontFamily: 'Sora, sans-serif' }}>{aiText.recommendation}</p>
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -1033,6 +1164,238 @@ function ContextSWOTPanel({ queries, ctxKey, ctxColor, ctxLabel }) {
   );
 }
 
+// ─── Bird's Eye AI Panel ────────────────────────────────────────────────────
+function BirdsEyeAIPanel({ queries, selectedCtx }) {
+  const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [insight, setInsight] = React.useState(null);
+
+  const handleGenerate = async () => {
+    if (!open) { setOpen(true); }
+    if (insight) return;
+    setLoading(true);
+
+    // Build aggregate stats from queries for the selected context
+    const swotCount = { Strength: 0, Weakness: 0, Opportunity: 0, Threat: 0, None: 0 };
+    const labelCount = {};
+    const filterFreq = {};
+
+    for (const q of queries) {
+      const raw = (q.predictedContext || {})[selectedCtx] || 'None';
+      const swots = ctxToSwot(raw);
+      if (swots.length === 0) swotCount.None++;
+      else { for (const s of swots) { if (swotCount[s] !== undefined) swotCount[s]++; } }
+      const lb = q.label || 'None';
+      labelCount[lb] = (labelCount[lb] || 0) + 1;
+      for (const [k, v] of Object.entries(q.query || {})) {
+        if (v && v !== 'Unknown') {
+          const key = `${k}:${v}`;
+          filterFreq[key] = (filterFreq[key] || 0) + 1;
+        }
+      }
+    }
+
+    // Top 10 most common filter combinations
+    const topFilters = Object.entries(filterFreq).sort((a,b) => b[1]-a[1]).slice(0, 10).map(([k, c]) => `${k} (${c}x)`).join(', ');
+    const totalVoters = queries.reduce((s, q) => s + (q.count || 0), 0);
+
+    const prompt = `Mangalore South Constituency (175) — Bird's Eye SWOT Overview
+Context analysed: ${selectedCtx}
+Total query groups: ${queries.length}
+Total voter-mentions: ${totalVoters.toLocaleString()}
+SWOT distribution for this context: Strength=${swotCount.Strength}, Weakness=${swotCount.Weakness}, Opportunity=${swotCount.Opportunity}, Threat=${swotCount.Threat}, Unclassified=${swotCount.None}
+Impact label distribution: ${JSON.stringify(labelCount)}
+Most frequent demographic filters: ${topFilters}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1800,
+          system: `You are a senior political strategist for Mangalore South constituency. 
+Provide a comprehensive bird's eye strategic view. Return ONLY a JSON object (no markdown, no extra text):
+{
+  "headline": "Strategic overview title (10-15 words)",
+  "executiveSummary": "3-4 sentence overall picture — dominant trends, biggest risk, biggest opportunity",
+  "swotRadar": [
+    { "axis": "Strength", "score": <0-100>, "color": "#10b981", "note": "1-line reason" },
+    { "axis": "Weakness", "score": <0-100>, "color": "#f87171", "note": "1-line reason" },
+    { "axis": "Opportunity", "score": <0-100>, "color": "#22d3ee", "note": "1-line reason" },
+    { "axis": "Threat", "score": <0-100>, "color": "#fb923c", "note": "1-line reason" }
+  ],
+  "keyMetrics": [
+    { "label": "Dominant Quadrant", "value": "Strength/Weakness/Opportunity/Threat", "color": "#10b981" },
+    { "label": "Query Groups", "value": "<N>", "color": "#a78bfa" },
+    { "label": "Voter Reach", "value": "<N formatted>", "color": "#22d3ee" },
+    { "label": "Top Risk Factor", "value": "short phrase", "color": "#f87171" }
+  ],
+  "trendBars": {
+    "title": "SWOT Distribution (% of groups)",
+    "bars": [
+      { "label": "Strength", "pct": <calc from data>, "color": "#10b981" },
+      { "label": "Weakness", "pct": <calc from data>, "color": "#f87171" },
+      { "label": "Opportunity", "pct": <calc from data>, "color": "#22d3ee" },
+      { "label": "Threat", "pct": <calc from data>, "color": "#fb923c" }
+    ]
+  },
+  "strategicPillars": [
+    { "title": "Consolidate", "body": "What to protect/double down on", "color": "#10b981" },
+    { "title": "Fix", "body": "Top weakness to address before 2028", "color": "#f87171" },
+    { "title": "Capitalise", "body": "Best opportunity to act on now", "color": "#22d3ee" },
+    { "title": "Neutralise", "body": "Most urgent threat to defuse", "color": "#fb923c" }
+  ],
+  "winProbability": <0-100 number>,
+  "confidenceNote": "1 sentence on data confidence"
+}`,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const data = await res.json();
+      const raw = (data.content || []).map(b => b.text || '').join('').trim();
+      const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+      try {
+        setInsight(JSON.parse(clean));
+      } catch {
+        setInsight({ _raw: raw || 'No insight returned.' });
+      }
+    } catch {
+      setInsight({ _raw: 'Failed to generate bird\'s eye view.' });
+    }
+    setLoading(false);
+  };
+
+  const winPct = insight && !insight._raw ? (insight.winProbability || 0) : 0;
+  const winColor = winPct >= 60 ? '#10b981' : winPct >= 45 ? '#f59e0b' : '#f87171';
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      {/* Trigger bar */}
+      <div
+        style={{
+          background: open ? 'rgba(167,139,250,0.08)' : 'rgba(167,139,250,0.04)',
+          border: `1px solid ${open ? 'rgba(167,139,250,0.35)' : 'rgba(167,139,250,0.18)'}`,
+          borderRadius: 12, overflow: 'hidden', transition: 'all 0.2s',
+        }}
+      >
+        <button
+          onClick={handleGenerate}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+            background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✦</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#a78bfa', fontFamily: 'Sora, sans-serif' }}>AI Bird's Eye View</div>
+            <div style={{ fontSize: 9, color: 'rgba(167,139,250,0.5)', fontFamily: 'Space Mono, monospace', marginTop: 1 }}>
+              {insight ? 'Constituency-wide strategic synthesis' : `Analyse all ${queries.length} queries → strategic overview`}
+            </div>
+          </div>
+          {loading ? (
+            <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.5)', animation: 'pulse 1.4s infinite', fontFamily: 'Space Mono, monospace' }}>Thinking…</div>
+          ) : insight && !insight._raw ? (
+            <span style={{ fontSize: 8.5, fontWeight: 800, color: winColor, background: `${winColor}15`, border: `1px solid ${winColor}30`, borderRadius: 5, padding: '2px 10px', fontFamily: 'Space Mono, monospace' }}>
+              Win Prob: {winPct}%
+            </span>
+          ) : (
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#a78bfa', fontFamily: 'Space Mono, monospace', background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.28)', borderRadius: 5, padding: '3px 10px' }}>
+              {open ? '▲ hide' : 'Generate ▶'}
+            </span>
+          )}
+        </button>
+
+        {/* Panel body */}
+        {open && (
+          <div style={{ borderTop: '1px solid rgba(167,139,250,0.15)', padding: '14px 16px' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 26, animation: 'spin 1.2s linear infinite', display: 'inline-block', marginBottom: 8 }}>✦</div>
+                <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.5)', fontFamily: 'Sora, sans-serif' }}>Synthesising {queries.length} voter segments…</div>
+              </div>
+            ) : insight && insight._raw ? (
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, margin: 0, fontFamily: 'Sora, sans-serif' }}>{insight._raw}</p>
+            ) : insight ? (
+              <>
+                {/* Headline */}
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#eef2ff', marginBottom: 8, fontFamily: 'Sora, sans-serif', lineHeight: 1.3 }}>{insight.headline}</div>
+
+                {/* Key Metrics row */}
+                {insight.keyMetrics && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 6, marginBottom: 14 }}>
+                    {insight.keyMetrics.map((m, i) => (
+                      <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${m.color}25`, borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>{m.label}</div>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, color: m.color, fontFamily: 'Space Mono, monospace', lineHeight: 1.1 }}>{m.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Executive Summary */}
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, margin: '0 0 14px', fontFamily: 'Sora, sans-serif' }}>{insight.executiveSummary}</p>
+
+                {/* SWOT Radar — visual bar */}
+                {insight.swotRadar && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 7 }}>SWOT Intensity Score (0-100)</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {insight.swotRadar.map((r, i) => (
+                        <div key={i}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                            <span style={{ width: 70, fontSize: 9, fontWeight: 700, color: r.color, fontFamily: 'Space Mono, monospace', flexShrink: 0 }}>{r.axis}</span>
+                            <div style={{ flex: 1, height: 16, background: 'rgba(255,255,255,0.05)', borderRadius: 5, overflow: 'hidden', position: 'relative' }}>
+                              <div style={{ width: `${Math.min(100, r.score)}%`, height: '100%', background: `linear-gradient(90deg, ${r.color}aa, ${r.color})`, borderRadius: 5, transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)' }} />
+                            </div>
+                            <span style={{ width: 28, fontSize: 9, fontWeight: 800, color: r.color, fontFamily: 'Space Mono, monospace', textAlign: 'right', flexShrink: 0 }}>{r.score}</span>
+                          </div>
+                          <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Sora, sans-serif', paddingLeft: 77 }}>{r.note}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Win Probability gauge */}
+                {insight.winProbability !== undefined && (
+                  <div style={{ marginBottom: 14, background: `${winColor}08`, border: `1px solid ${winColor}22`, borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>2028 Win Probability</div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: winColor, fontFamily: 'Space Mono, monospace', lineHeight: 1 }}>{winPct}<span style={{ fontSize: 14 }}>%</span></div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', marginBottom: 5 }}>
+                        <div style={{ width: `${winPct}%`, height: '100%', background: `linear-gradient(90deg, ${winColor}88, ${winColor})`, borderRadius: 99, transition: 'width 1s cubic-bezier(0.4,0,0.2,1)' }} />
+                      </div>
+                      {insight.confidenceNote && <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Sora, sans-serif' }}>{insight.confidenceNote}</div>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Strategic Pillars */}
+                {insight.strategicPillars && (
+                  <div>
+                    <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 7 }}>Strategic 2028 Pillars</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 6 }}>
+                      {insight.strategicPillars.map((p, i) => (
+                        <div key={i} style={{ background: `${p.color}07`, border: `1px solid ${p.color}22`, borderRadius: 8, padding: '9px 10px' }}>
+                          <div style={{ fontSize: 8.5, fontWeight: 800, color: p.color, fontFamily: 'Space Mono, monospace', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{p.title}</div>
+                          <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.45)', fontFamily: 'Sora, sans-serif', lineHeight: 1.5 }}>{p.body}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MLIntelligenceTab() {
   const [scope, setScope] = React.useState('constituency'); // 'constituency' | 'ward'
   const [selectedWard, setSelectedWard] = React.useState('');
@@ -1179,6 +1542,9 @@ function MLIntelligenceTab() {
               </div>
             ))}
           </div>
+
+          {/* Bird's Eye AI View */}
+          <BirdsEyeAIPanel queries={queries} selectedCtx={selectedCtx} />
 
           {/* Main SWOT panel for selected context */}
           <ContextSWOTPanel
