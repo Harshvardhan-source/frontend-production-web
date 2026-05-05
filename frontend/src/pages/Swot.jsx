@@ -528,7 +528,7 @@ function SwotTab() {
           { label: 'Ward Win Rate', value: '65.8%', sub: '25 of 38 wards', color: '#10b981', Icon: TrendingUp },
           { label: 'BJP Vote Share', value: '56.1%', sub: 'vs INC 42.0%', color: '#fb923c', Icon: Activity },
           { label: 'Majority Margin', value: '+14.1%', sub: 'over Congress', color: '#22d3ee', Icon: MapPin },
-          { label: 'Strong Booths', value: '33/38', sub: 'Polling stations', color: '#a78bfa', Icon: CheckSquare },
+          { label: 'Strong Wards', value: '33/38', sub: 'Polling stations', color: '#a78bfa', Icon: CheckSquare },
         ].map((s, i) => (
           <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 10px', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
