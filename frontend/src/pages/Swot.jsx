@@ -733,63 +733,26 @@ function QueryCard({ q, ctxKey, ctxColor }) {
     if (aiText) return; // already loaded
     setAiLoading(true);
 
-    const filterTags = Object.entries(query).filter(([,v]) => v && v !== 'Unknown').map(([k,v]) => `${k}: ${v}`).join(', ');
-    const summary = `Voter segment analysis for Mangalore South (Constituency 175, Karnataka):
-- Demographic filters: ${filterTags || 'All voters'}
-- Segment size: ${count} voters (${pct}% of constituency)
-- SWOT classification: ${label}
-- Column dimensions: ${cols.join(', ') || q.routeKey}
-- All predicted political contexts: ${JSON.stringify(ctx)}`;
-
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      // Route through Django backend to avoid CORS — never call Anthropic directly from browser
+      const res = await fetch('/api/ai/query-insight/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1200,
-          system: `You are a senior political analyst for Mangalore South constituency (Karnataka, India). 
-Analyse the given voter segment and return a JSON object ONLY (no markdown, no extra text) with this exact structure:
-{
-  "headline": "One punchy 8-12 word insight title",
-  "summary": "2-3 sentence plain-language explanation of who this segment is and why it matters politically",
-  "keyFigures": [
-    { "label": "Segment Size", "value": "<X voters>", "note": "short context" },
-    { "label": "Share of Constituency", "value": "<X%>", "note": "short context" },
-    { "label": "Political Lean", "value": "BJP/INC/Swing", "note": "brief reason" },
-    { "label": "Impact Level", "value": "<label>", "note": "Dominant/Major/Moderate/Minor" }
-  ],
-  "barChart": {
-    "title": "Estimated Vote Split",
-    "bars": [
-      { "party": "BJP", "pct": <estimated 0-100 number>, "color": "#fb923c" },
-      { "party": "INC", "pct": <estimated 0-100 number>, "color": "#f87171" },
-      { "party": "Others", "pct": <estimated 0-100 number>, "color": "#6b7280" }
-    ]
-  },
-  "swotBreakdown": {
-    "title": "Context-wise SWOT Signal",
-    "items": [
-      { "ctx": "Economic", "signal": "S/W/O/T/N", "color": "#10b981", "note": "1 line" },
-      { "ctx": "Health", "signal": "S/W/O/T/N", "color": "#22d3ee", "note": "1 line" },
-      { "ctx": "Political", "signal": "S/W/O/T/N", "color": "#f59e0b", "note": "1 line" }
-    ]
-  },
-  "recommendation": "One specific, actionable strategic recommendation for the MLA targeting this segment in 2028",
-  "riskLevel": "Low/Medium/High/Critical",
-  "riskColor": "#10b981 or #f59e0b or #fb923c or #f87171"
-}`,
-          messages: [{ role: 'user', content: summary }],
+          query: query,
+          columns: cols,
+          count: q.count,
+          percentage: q.percentage,
+          label: label,
+          routeKey: q.routeKey,
+          predictedContext: ctx,
         }),
       });
       const data = await res.json();
-      const raw = (data.content || []).map(b => b.text || '').join('').trim();
-      // Strip markdown fences if present
-      const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
-      try {
-        setAiText(JSON.parse(clean));
-      } catch {
-        setAiText({ _raw: raw || 'No insight returned.' });
+      if (data.success && data.insight) {
+        setAiText(data.insight);
+      } else {
+        setAiText({ _raw: data.error || 'No insight returned.' });
       }
     } catch (err) {
       setAiText({ _raw: 'Failed to fetch AI insight. Please try again.' });
