@@ -1164,15 +1164,15 @@ function BirdsEyeAIPanel({ queries, selectedCtx }) {
     try {
       // Route through Django backend to avoid CORS — never call Anthropic directly from browser
       const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
+      const token = sessionStorage.getItem('cc_token');
+      const headers = token
+        ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' };
       const res = await fetch(`${BASE}/api/ai/birdseye-view/`, {
         method: 'POST',
         credentials: 'include',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contextKey: selectedCtx,
-          queries,
-          totalVoters,
-        }),
+        headers,
+        body: JSON.stringify({ contextKey: selectedCtx, queries, totalVoters }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Server error');
