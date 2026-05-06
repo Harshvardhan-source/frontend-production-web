@@ -3,6 +3,131 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../App';
 import api, { authApi } from '../api/client';
 
+// ── SVG Icons ─────────────────────────────────────────────────────────────────
+const Icons = {
+  Users: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+  BarChart: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+    </svg>
+  ),
+  MapPin: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  ),
+  Clock: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  ),
+  CheckCircle: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  ),
+  XCircle: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+    </svg>
+  ),
+  Ban: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+    </svg>
+  ),
+  Edit: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  ),
+  AlertTriangle: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  ),
+  LockClosed: ({ size = 26, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  ),
+  LockOpen: ({ size = 16, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+    </svg>
+  ),
+  ShieldLock: ({ size = 26, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10 11V9a2 2 0 1 1 4 0v2"/>
+    </svg>
+  ),
+  HardHat: ({ size = 20, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z"/>
+      <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a8 8 0 0 1 16 0v3"/>
+    </svg>
+  ),
+  Home: ({ size = 20, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  ),
+  Ballot: ({ size = 20, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+  ),
+  Zap: ({ size = 20, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  ),
+  Clipboard: ({ size = 36, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+      <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+    </svg>
+  ),
+  Info: ({ size = 14, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  ),
+  RefreshCw: ({ size = 14, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+    </svg>
+  ),
+  History: ({ size = 12, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4H1"/><polyline points="1 3 1 7 5 7"/>
+    </svg>
+  ),
+  ArrowLeft: ({ size = 12, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+    </svg>
+  ),
+  Check: ({ size = 14, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  ),
+};
+
 // ── Role labels ───────────────────────────────────────────────────────────────
 const ROLE_LABELS = {
   mla:          'MLA',
@@ -25,17 +150,17 @@ const STATUS_COLORS = {
 
 // ── Top-level tabs ────────────────────────────────────────────────────────────
 const TOP_TABS = [
-  { key: 'users',    label: 'User Management', icon: '👥' },
-  { key: 'progress', label: 'Survey Progress',  icon: '📊' },
-  { key: 'location', label: 'Live Location',    icon: '📍' },
+  { key: 'users',    label: 'User Management', Icon: Icons.Users    },
+  { key: 'progress', label: 'Survey Progress',  Icon: Icons.BarChart },
+  { key: 'location', label: 'Live Location',    Icon: Icons.MapPin   },
 ];
 
 // ── User sub-tabs ─────────────────────────────────────────────────────────────
 const USER_TABS = [
-  { key: 'pending',  label: 'Pending',  icon: '⏳' },
-  { key: 'approved', label: 'Approved', icon: '✅' },
-  { key: 'rejected', label: 'Rejected', icon: '❌' },
-  { key: 'disabled', label: 'Disabled', icon: '🚫' },
+  { key: 'pending',  label: 'Pending',  Icon: Icons.Clock       },
+  { key: 'approved', label: 'Approved', Icon: Icons.CheckCircle },
+  { key: 'rejected', label: 'Rejected', Icon: Icons.XCircle     },
+  { key: 'disabled', label: 'Disabled', Icon: Icons.Ban         },
 ];
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
@@ -74,11 +199,17 @@ function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
   const [ward,   setWard]   = useState(user?.ward || '');
   const [booth,  setBooth]  = useState(user?.booth || '');
 
-  const title = isApprove ? '✅ Approve User'
-              : isReject  ? '❌ Reject User'
-              : isDisable ? '🚫 Disable Access'
-              : isEnable  ? '✅ Re-enable Access'
-              :              '✏️ Edit Role';
+  const TitleIcon = isApprove ? Icons.CheckCircle
+                  : isReject  ? Icons.XCircle
+                  : isDisable ? Icons.Ban
+                  : isEnable  ? Icons.CheckCircle
+                  :              Icons.Edit;
+
+  const title = isApprove ? 'Approve User'
+              : isReject  ? 'Reject User'
+              : isDisable ? 'Disable Access'
+              : isEnable  ? 'Re-enable Access'
+              :              'Edit Role';
 
   const confirmBg = isReject  ? '#ef4444'
                   : isDisable ? '#6b7280'
@@ -100,8 +231,8 @@ function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
         background: 'var(--bg-2)', border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 16, padding: 28, maxWidth: 440, width: '90%',
       }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)', marginBottom: 6 }}>
-          {title}
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <TitleIcon size={16} />{title}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>
           <strong style={{ color: '#f59e0b' }}>{user?.username}</strong> — {user?.email}
@@ -145,14 +276,14 @@ function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
         )}
 
         {isDisable && (
-          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(107,114,128,0.12)', border: '1px solid rgba(107,114,128,0.3)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-            ⚠ This user will immediately lose all access. They cannot log in until re-enabled by an admin.
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(107,114,128,0.12)', border: '1px solid rgba(107,114,128,0.3)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <Icons.AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> This user will immediately lose all access. They cannot log in until re-enabled by an admin.
           </div>
         )}
 
         {isEnable && (
-          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, fontSize: 12, color: 'rgba(16,185,129,0.8)', lineHeight: 1.6 }}>
-            ✓ This user will regain access with their existing role and permissions.
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, fontSize: 12, color: 'rgba(16,185,129,0.8)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <Icons.Check size={14} style={{ flexShrink: 0, marginTop: 1 }} /> This user will regain access with their existing role and permissions.
           </div>
         )}
 
@@ -210,7 +341,7 @@ function UserCard({ user, onApprove, onReject, onEdit, onDisable, onEnable, tab 
           <span style={{ fontWeight: 700, color: isDisabled ? 'var(--text-3)' : 'var(--text-1)', fontSize: 14 }}>{user.username}</span>
           <Badge color={roleColor}>{ROLE_LABELS[user.role] || user.role}</Badge>
           <Badge color={statColor}>{user.status}</Badge>
-          {isDisabled && <span style={{ fontSize: 10, color: '#6b7280' }}>🚫 Access suspended</span>}
+          {isDisabled && <span style={{ fontSize: 10, color: '#6b7280', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icons.Ban size={10} /> Access suspended</span>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 3 }}>{user.email}</div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
@@ -242,15 +373,15 @@ function UserCard({ user, onApprove, onReject, onEdit, onDisable, onEnable, tab 
               Edit Role
             </button>
             <button onClick={() => onDisable(user)}
-              style={{ padding: '7px 14px', background: 'rgba(107,114,128,0.15)', border: '1px solid rgba(107,114,128,0.35)', borderRadius: 8, color: '#9ca3af', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-              🚫 Disable
+              style={{ padding: '7px 14px', background: 'rgba(107,114,128,0.15)', border: '1px solid rgba(107,114,128,0.35)', borderRadius: 8, color: '#9ca3af', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <Icons.Ban size={12} /> Disable
             </button>
           </>
         )}
         {tab === 'disabled' && (
           <button onClick={() => onEnable(user)}
-            style={{ padding: '7px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)', borderRadius: 8, color: '#10b981', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-            ✓ Re-enable
+            style={{ padding: '7px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)', borderRadius: 8, color: '#10b981', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Icons.Check size={12} /> Re-enable
           </button>
         )}
         {tab === 'rejected' && (
@@ -317,8 +448,8 @@ function AdminReAuthGate({ onVerified }) {
               background: 'rgba(245,158,11,0.12)',
               border: '2px solid rgba(245,158,11,0.35)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 26,
-            }}>🔐</div>
+              color: '#f59e0b',
+            }}><Icons.ShieldLock size={26} /></div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: 'var(--text-1)', marginBottom: 6 }}>
               Admin Verification
             </div>
@@ -347,7 +478,7 @@ function AdminReAuthGate({ onVerified }) {
           </div>
 
           {error && (
-            <div className="alert alert-error" style={{ marginBottom: 16, fontSize: 13 }}>⚠ {error}</div>
+            <div className="alert alert-error" style={{ marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}><Icons.AlertTriangle size={14} /> {error}</div>
           )}
 
           <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -369,7 +500,7 @@ function AdminReAuthGate({ onVerified }) {
               disabled={busy}
               style={{ marginTop: 4 }}
             >
-              {busy ? <span className="spinner" /> : '🔓 Verify & Enter Admin Panel'}
+              {busy ? <span className="spinner" /> : <><Icons.LockOpen size={15} style={{ marginRight: 6 }} />Verify &amp; Enter Admin Panel</>}
             </button>
           </form>
         </div>
@@ -439,16 +570,16 @@ function SurveyProgressTab() {
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Booth Workers', value: workers.length, color: '#10b981', icon: '👷' },
-          { label: 'Houses Done', value: `${doneHouses} / ${totalHouses}`, color: '#22d3ee', icon: '🏠', sub: `${overallHPct}%` },
-          { label: 'Voters Surveyed', value: `${doneVoters} / ${totalVoters}`, color: '#a78bfa', icon: '🗳️', sub: `${overallVPct}%` },
-          { label: 'Active Today', value: workers.filter(w => w.lastSurveyAt && new Date(w.lastSurveyAt) > new Date(Date.now() - 86400000)).length, color: '#f59e0b', icon: '⚡' },
-        ].map(({ label, value, color, icon, sub }) => (
+          { label: 'Booth Workers',   value: workers.length,                                                                                                                                     color: '#10b981', Icon: Icons.HardHat  },
+          { label: 'Houses Done',     value: `${doneHouses} / ${totalHouses}`,                                                                                                                    color: '#22d3ee', Icon: Icons.Home,     sub: `${overallHPct}%` },
+          { label: 'Voters Surveyed', value: `${doneVoters} / ${totalVoters}`,                                                                                                                    color: '#a78bfa', Icon: Icons.Ballot,   sub: `${overallVPct}%` },
+          { label: 'Active Today',    value: workers.filter(w => w.lastSurveyAt && new Date(w.lastSurveyAt) > new Date(Date.now() - 86400000)).length, color: '#f59e0b', Icon: Icons.Zap         },
+        ].map(({ label, value, color, Icon, sub }) => (
           <div key={label} style={{
             background: `${color}11`, border: `1px solid ${color}33`,
             borderRadius: 12, padding: '14px 16px',
           }}>
-            <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
+            <div style={{ marginBottom: 4, color }}><Icon size={20} /></div>
             <div style={{ fontSize: 20, fontWeight: 900, color, fontFamily: 'var(--font-display)' }}>{value}</div>
             {sub && <div style={{ fontSize: 12, color, fontWeight: 700 }}>{sub} complete</div>}
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{label}</div>
@@ -488,12 +619,12 @@ function SurveyProgressTab() {
           <option value="recent">Sort: Recently Active</option>
         </select>
         <button onClick={fetchProgress} disabled={loading}
-          style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13 }}>
-          {loading ? '⟳' : '↻ Refresh'}
+          style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <Icons.RefreshCw size={13} />{loading ? '' : 'Refresh'}
         </button>
       </div>
 
-      {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>⚠ {error}</div>}
+      {error && <div className="alert alert-error" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}><Icons.AlertTriangle size={14} /> {error}</div>}
 
       {loading ? (
         <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 40 }}>Loading progress…</div>
@@ -533,7 +664,7 @@ function SurveyProgressTab() {
                 {/* Houses */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600 }}>🏠 Houses Surveyed</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.Home size={11} /> Houses Surveyed</span>
                     <span style={{ fontSize: 12, fontWeight: 800, color: '#22d3ee' }}>
                       {w.housesCompleted} <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>/ {w.totalHouses}</span>
                     </span>
@@ -545,7 +676,7 @@ function SurveyProgressTab() {
                 {/* Voters */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600 }}>🗳️ Voters Surveyed</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.Ballot size={11} /> Voters Surveyed</span>
                     <span style={{ fontSize: 12, fontWeight: 800, color: '#a78bfa' }}>
                       {w.votersSurveyed} <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>/ {w.totalVoters}</span>
                     </span>
@@ -699,7 +830,7 @@ function LocationTab() {
         });
         const marker = L.marker([p.lat, p.lng], { icon })
           .addTo(map)
-          .bindPopup(`<b>${isLast ? '📍 Latest' : `#${i + 1}`}</b><br>${new Date(p.timestamp).toLocaleTimeString('en-IN')}<br>Accuracy: ${p.accuracy ? Math.round(p.accuracy) + 'm' : 'N/A'}`);
+          .bindPopup(`<b>${isLast ? '&#x25CF; Latest' : `#${i + 1}`}</b><br>${new Date(p.timestamp).toLocaleTimeString('en-IN')}<br>Accuracy: ${p.accuracy ? Math.round(p.accuracy) + 'm' : 'N/A'}`);
         lf.markers.push(marker);
       });
 
@@ -745,26 +876,26 @@ function LocationTab() {
 
   return (
     <div>
-      {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>⚠ {error}</div>}
+      {error && <div className="alert alert-error" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}><Icons.AlertTriangle size={14} /> {error}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16, minHeight: 520 }}>
         {/* Left panel — worker list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-2)' }}>
-              {selected ? '← Workers' : `Live Locations (${liveWorkers.length})`}
+            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 5 }}>
+              {selected ? <><Icons.ArrowLeft size={12} />Workers</> : `Live Locations (${liveWorkers.length})`}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               {selected && (
                 <button onClick={() => { setSelected(null); setHistory([]); setDates([]); }}
-                  style={{ padding: '4px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer' }}>
-                  ← All Workers
+                  style={{ padding: '4px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icons.ArrowLeft size={11} /> All Workers
                 </button>
               )}
               <button onClick={fetchLive} disabled={loading}
-                style={{ padding: '4px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer' }}>
-                {loading ? '⟳' : '↻'}
+                style={{ padding: '4px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                <Icons.RefreshCw size={12} />
               </button>
             </div>
           </div>
@@ -823,8 +954,8 @@ function LocationTab() {
                         Booth {w.booth || '—'} · {ago}
                       </div>
                     </div>
-                    {isSelected && <span style={{ color: '#a78bfa', fontSize: 12 }}>📋 History</span>}
-                    {!isSelected && w.lat && w.lng && <span style={{ color: '#10b981', fontSize: 12 }}>📍</span>}
+                    {isSelected && <span style={{ color: '#a78bfa', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icons.History size={11} /> History</span>}
+                    {!isSelected && w.lat && w.lng && <span style={{ color: '#10b981', fontSize: 12, display: 'inline-flex', alignItems: 'center' }}><Icons.MapPin size={12} /></span>}
                   </div>
                   {w.lat && w.lng && (
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 5 }}>
@@ -856,8 +987,8 @@ function LocationTab() {
       </div>
 
       {/* Last ping time note */}
-      <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
-        ℹ️ Location is recorded only when a worker has the app open. Map auto-refreshes every 60 seconds.
+      <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
+        <Icons.Info size={12} /> Location is recorded only when a worker has the app open. Map auto-refreshes every 60 seconds.
       </div>
     </div>
   );
@@ -920,10 +1051,10 @@ function UserManagementTab() {
         setModal(null);
         fetchUsers();
       } else {
-        showToast('⚠ ' + (r.data.message || 'Action failed.'));
+        showToast('Warning: ' + (r.data.message || 'Action failed.'));
       }
     } catch (e) {
-      showToast('⚠ ' + (e.userMessage || 'Network error.'));
+      showToast('Error: ' + (e.userMessage || 'Network error.'));
     } finally {
       setActing(false);
     }
@@ -972,16 +1103,16 @@ function UserManagementTab() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {USER_TABS.map(({ key, label, icon }) => (
+        {USER_TABS.map(({ key, label, Icon }) => (
           <button key={key} onClick={() => setTab(key)} style={{
             padding: '8px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
             transition: 'all 0.15s',
             background: tab === key ? '#f59e0b' : 'rgba(255,255,255,0.05)',
             border: tab === key ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
             color: tab === key ? '#090e1c' : 'var(--text-2)',
-            minHeight: 40,
+            minHeight: 40, display: 'inline-flex', alignItems: 'center', gap: 6,
           }}>
-            {icon} {label}
+            <Icon size={13} /> {label}
             {data[key]?.length > 0 && (
               <span style={{
                 marginLeft: 6, background: tab === key ? '#090e1c' : STATUS_COLORS[key] + '33',
@@ -992,12 +1123,12 @@ function UserManagementTab() {
           </button>
         ))}
         <button onClick={fetchUsers} disabled={loading}
-          style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13, minHeight: 40 }}>
-          {loading ? '⟳' : '↻ Refresh'}
+          style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13, minHeight: 40, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <Icons.RefreshCw size={13} />{loading ? '' : 'Refresh'}
         </button>
       </div>
 
-      {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
+      {error && <div className="alert alert-error" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}><Icons.AlertTriangle size={14} /> {error}</div>}
 
       {loading ? (
         <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 40 }}>Loading users…</div>
@@ -1006,8 +1137,8 @@ function UserManagementTab() {
           textAlign: 'center', color: 'var(--text-3)', padding: 48,
           background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)',
         }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>
-            {tab === 'pending' ? '✅' : tab === 'approved' ? '👥' : '📋'}
+          <div style={{ fontSize: 36, marginBottom: 12, display: 'flex', justifyContent: 'center', opacity: 0.35 }}>
+            {tab === 'pending' ? <Icons.CheckCircle size={40} /> : tab === 'approved' ? <Icons.Users size={40} /> : <Icons.Clipboard size={40} />}
           </div>
           <div style={{ fontWeight: 700, marginBottom: 6 }}>
             {tab === 'pending' ? 'No pending requests' : tab === 'approved' ? 'No approved users' : tab === 'disabled' ? 'No disabled users' : 'No rejected users'}
@@ -1091,7 +1222,7 @@ export default function AdminPanel() {
       <div className="page">
         <Navbar />
         <div className="page-inner" style={{ textAlign: 'center', paddingTop: 80 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+          <div style={{ fontSize: 48, marginBottom: 16, display: 'flex', justifyContent: 'center', color: 'var(--text-3)' }}><Icons.LockClosed size={52} /></div>
           <h2 style={{ color: 'var(--text-1)' }}>Access Denied</h2>
           <p style={{ color: 'var(--text-3)' }}>This page is only accessible to MLA and Office P.A accounts.</p>
         </div>
@@ -1121,7 +1252,7 @@ export default function AdminPanel() {
 
         {/* Top-level navigation tabs */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 28, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 0 }}>
-          {TOP_TABS.map(({ key, label, icon }) => (
+          {TOP_TABS.map(({ key, label, Icon }) => (
             <button key={key} onClick={() => setTopTab(key)} style={{
               padding: '10px 20px', borderRadius: '10px 10px 0 0', fontWeight: 700, fontSize: 13, cursor: 'pointer',
               background: topTab === key ? 'rgba(245,158,11,0.12)' : 'transparent',
@@ -1130,8 +1261,9 @@ export default function AdminPanel() {
               color: topTab === key ? '#f59e0b' : 'var(--text-3)',
               marginBottom: -1,
               transition: 'all 0.15s',
+              display: 'inline-flex', alignItems: 'center', gap: 7,
             }}>
-              {icon} {label}
+              <Icon size={14} /> {label}
             </button>
           ))}
         </div>
