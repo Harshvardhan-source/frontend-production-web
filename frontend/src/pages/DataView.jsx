@@ -16,10 +16,11 @@ const AVATAR_COLORS = [
 
 // Tab config — label, icon, view key, accent colour
 const TABS = [
-  { key: 'survey',        label: 'Survey Data',     icon: '✎', color: '#f59e0b' },
-  { key: 'voter',         label: 'Voter List',       icon: '◉', color: '#22d3ee' },
-  { key: 'future_voters', label: 'Future Voters',    icon: '🕐', color: '#10b981' },
-  { key: 'deceased',      label: 'Deceased',         icon: '✦', color: '#a78bfa' },
+  { key: 'survey',            label: 'Survey Data',      icon: '✎',  color: '#f59e0b' },
+  { key: 'voter',             label: 'Voter List',        icon: '◉',  color: '#22d3ee' },
+  { key: 'future_voters',     label: 'Future Voters',     icon: '🕐', color: '#10b981' },
+  { key: 'deceased',          label: 'Deceased',          icon: '✦',  color: '#a78bfa' },
+  { key: 'outstation_voters', label: 'Outstation Voters', icon: '✈',  color: '#f97316' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -442,6 +443,322 @@ const DeceasedCard = memo(function DeceasedCard({ record, onClick }) {
   );
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// OUTSTATION VOTER CARD
+// ─────────────────────────────────────────────────────────────────────────────
+const OutstationCard = memo(function OutstationCard({ record, onClick }) {
+  const firstName = record.firstName || '';
+  const lastName  = record.lastName  || '';
+  const name      = [firstName, record.middleName, lastName].filter(Boolean).join(' ') || '—';
+  const voterid   = record.voterid        || '';
+  const city      = record.outstationCity  || '';
+  const state     = record.outstationState || '';
+  const ward      = record.wardNumber      || '';
+  const booth     = record.boothNo         || '';
+  const contact   = record.contactNumber   || '';
+  const gender    = record.gender          || '';
+  const age       = record.age             || '';
+
+  const initial = name.trim()[0]?.toUpperCase() || '?';
+  const color   = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+  const isMale  = gender.toLowerCase() === 'male' || gender === 'M';
+  const [hov, setHov] = useState(false);
+
+  const locationLine = [city, state].filter(Boolean).join(', ');
+
+  return (
+    <div onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: 'var(--bg-surface)',
+        border: `1px solid ${hov ? '#f97316' : 'var(--border)'}`,
+        borderRadius: 'var(--r-md)', padding: '13px 15px', cursor: 'pointer',
+        transition: 'border-color 0.15s, transform 0.15s, box-shadow 0.15s',
+        transform: hov ? 'translateY(-2px)' : 'none',
+        boxShadow: hov ? '0 6px 24px rgba(249,115,22,0.18)' : 'none',
+        position: 'relative', overflow: 'hidden',
+      }}>
+      {/* Top accent strip */}
+      <div style={{
+        position:'absolute', top:0, left:0, right:0, height:3,
+        background:'linear-gradient(90deg,#f97316,#fb923c)',
+        borderRadius:'var(--r-md) var(--r-md) 0 0',
+      }}/>
+
+      <div style={{ display:'flex', alignItems:'center', gap:11, marginBottom:9, marginTop:4 }}>
+        <div style={{
+          width:38, height:38, borderRadius:10, flexShrink:0,
+          background: color, color:'#fff',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          fontWeight:800, fontSize:15,
+        }}>{initial}</div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontWeight:700, fontSize:13, color:'var(--text-1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{name}</div>
+          {voterid
+            ? <div style={{ fontSize:11, color:'#f97316', fontFamily:'monospace', marginTop:2, letterSpacing:'0.3px' }}>{voterid}</div>
+            : <div style={{ fontSize:11, color:'var(--text-3)', marginTop:2 }}>No Voter ID</div>
+          }
+        </div>
+        {/* OUTSTATION badge */}
+        <div style={{
+          fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:9, flexShrink:0,
+          background:'rgba(249,115,22,0.15)', color:'#f97316',
+          border:'1px solid rgba(249,115,22,0.35)',
+          letterSpacing:'0.04em',
+        }}>✈ OUTSTATION</div>
+      </div>
+
+      {/* Current location highlight */}
+      {locationLine && (
+        <div style={{
+          display:'flex', alignItems:'center', gap:5,
+          background:'rgba(249,115,22,0.07)', borderRadius:7,
+          padding:'5px 9px', marginBottom:9,
+          border:'1px solid rgba(249,115,22,0.2)',
+        }}>
+          <span style={{ fontSize:12 }}>📍</span>
+          <span style={{ fontSize:12, fontWeight:600, color:'#fb923c', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {locationLine}
+          </span>
+        </div>
+      )}
+
+      {/* Chips row */}
+      <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+        {gender  && <Chip label={isMale ? '♂ Male' : '♀ Female'}/>}
+        {age     && <Chip label={`Age ${age}`}/>}
+        {ward    && <Chip label={`Ward: ${ward}`}/>}
+        {booth   && <Chip label={`Booth ${booth}`}/>}
+        {contact && <Chip icon="📞" label={contact}/>}
+      </div>
+    </div>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OUTSTATION VOTER DETAIL MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+function OutstationModal({ record, onClose }) {
+  if (!record) return null;
+
+  const firstName = record.firstName || '';
+  const lastName  = record.lastName  || '';
+  const name      = [firstName, record.middleName, lastName].filter(Boolean).join(' ') || '—';
+  const initial   = name.trim()[0]?.toUpperCase() || '?';
+  const color     = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  // Organised sections for display
+  const ACCENT = '#f97316';
+
+  const Section = ({ title, icon, children }) => (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{
+        display:'flex', alignItems:'center', gap:7,
+        marginBottom:10, paddingBottom:6,
+        borderBottom:`1px solid rgba(249,115,22,0.2)`,
+      }}>
+        <span style={{ fontSize:14 }}>{icon}</span>
+        <span style={{ fontSize:11, fontWeight:800, color: ACCENT, textTransform:'uppercase', letterSpacing:'0.08em' }}>{title}</span>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 16px' }}>
+        {children}
+      </div>
+    </div>
+  );
+
+  const Row = ({ label, value, full, highlight }) => {
+    if (!value && value !== 0 && value !== false) return null;
+    return (
+      <div style={{
+        gridColumn: full ? '1 / -1' : 'auto',
+        display:'flex', flexDirection:'column', gap:2,
+        padding:'7px 10px', borderRadius:8,
+        background: highlight ? 'rgba(249,115,22,0.08)' : 'rgba(255,255,255,0.03)',
+        border: highlight ? '1px solid rgba(249,115,22,0.25)' : '1px solid transparent',
+      }}>
+        <span style={{ fontSize:10, color:'var(--text-3)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</span>
+        <span style={{ fontSize:13, fontWeight:600, color: highlight ? '#fb923c' : 'var(--text-1)', wordBreak:'break-word' }}>
+          {String(value)}
+        </span>
+      </div>
+    );
+  };
+
+  const r = record;
+  const fullName  = [r.firstName, r.middleName, r.lastName].filter(Boolean).join(' ');
+  const regAddr   = [r.houseNumber, r.address].filter(Boolean).join(', ');
+  const currAddr  = [r.currentHouseNumber, r.currentAddress, r.outstationCity, r.outstationState].filter(Boolean).join(', ');
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, zIndex:1000,
+      background:'rgba(0,0,0,0.70)', backdropFilter:'blur(6px)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'var(--bg-surface)',
+        border:`1px solid rgba(249,115,22,0.35)`,
+        borderRadius:'var(--r-lg)', width:'100%', maxWidth:580,
+        maxHeight:'88vh', overflowY:'auto',
+        boxShadow:'0 28px 64px rgba(0,0,0,0.6)',
+      }}>
+        {/* Header */}
+        <div style={{
+          display:'flex', alignItems:'center', gap:14,
+          padding:'18px 22px', borderBottom:'1px solid var(--border)',
+          position:'sticky', top:0, background:'var(--bg-surface)', zIndex:2,
+          backgroundImage:'linear-gradient(135deg,rgba(249,115,22,0.06) 0%,transparent 60%)',
+        }}>
+          <div style={{
+            width:48, height:48, borderRadius:14, flexShrink:0,
+            background: color, color:'#fff',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontWeight:800, fontSize:20, boxShadow:`0 0 0 3px rgba(249,115,22,0.3)`,
+          }}>{initial}</div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:700, fontSize:17, color:'var(--text-1)', lineHeight:1.2 }}>{name}</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4, flexWrap:'wrap' }}>
+              {r.voterid && (
+                <span style={{ fontSize:11, color: ACCENT, fontFamily:'monospace', fontWeight:600 }}>{r.voterid}</span>
+              )}
+              <span style={{
+                fontSize:9, fontWeight:800, padding:'2px 8px', borderRadius:9,
+                background:'rgba(249,115,22,0.15)', color: ACCENT,
+                border:'1px solid rgba(249,115,22,0.35)', letterSpacing:'0.05em',
+              }}>✈ OUTSTATION</span>
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background:'rgba(255,255,255,0.07)', border:'none',
+            borderRadius:8, width:34, height:34, cursor:'pointer',
+            color:'var(--text-2)', fontSize:21,
+            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+          }}>×</button>
+        </div>
+
+        {/* Current location banner */}
+        {(r.outstationCity || r.outstationState) && (
+          <div style={{
+            margin:'16px 22px 0',
+            background:'rgba(249,115,22,0.09)',
+            border:'1px solid rgba(249,115,22,0.3)',
+            borderRadius:10, padding:'10px 14px',
+            display:'flex', alignItems:'center', gap:10,
+          }}>
+            <span style={{ fontSize:22 }}>📍</span>
+            <div>
+              <div style={{ fontSize:11, color:'rgba(249,115,22,0.7)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>Currently residing in</div>
+              <div style={{ fontSize:15, fontWeight:700, color:'#fb923c' }}>
+                {[r.outstationCity, r.outstationState].filter(Boolean).join(', ')}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Body */}
+        <div style={{ padding:'18px 22px 24px' }}>
+
+          <Section title="Personal Details" icon="👤">
+            <Row label="Full Name"       value={fullName}           full />
+            <Row label="Date of Birth"   value={r.dob} />
+            <Row label="Age"             value={r.age} />
+            <Row label="Gender"          value={r.gender} />
+            <Row label="Marital Status"  value={r.maritalStatus} />
+            <Row label="Voter ID"        value={r.voterid} />
+            <Row label="Aadhaar"         value={r.addharNumber} />
+            <Row label="Contact"         value={r.contactNumber} />
+          </Section>
+
+          <Section title="Current / Outstation Address" icon="✈">
+            <Row label="City"            value={r.outstationCity}     highlight />
+            <Row label="State"           value={r.outstationState}    highlight />
+            <Row label="Current Address" value={r.outstationAddress}  full highlight />
+            <Row label="Flat / House No" value={r.currentHouseNumber} />
+            <Row label="Area Type"       value={r.currentAreaType} />
+            <Row label="Home Type"       value={r.currentHomeType} />
+            {r.currentAddress && r.currentAddress !== r.outstationAddress && (
+              <Row label="Full Current Address" value={r.currentAddress} full />
+            )}
+          </Section>
+
+          <Section title="Registered Address" icon="🏠">
+            <Row label="House Number"  value={r.houseNumber}  full />
+            <Row label="Address"       value={r.address}      full />
+            <Row label="Ward"          value={r.wardNumber} />
+            <Row label="Booth No"      value={r.boothNo} />
+            <Row label="Area Type"     value={r.areaType} />
+            <Row label="Home Type"     value={r.homeType} />
+            {r.pollingStation && <Row label="Polling Station" value={r.pollingStation} full />}
+            {r.pollingStationAddr && <Row label="Polling Station Address" value={r.pollingStationAddr} full />}
+          </Section>
+
+          <Section title="Demographics" icon="🧬">
+            <Row label="Religion"       value={r.religion} />
+            <Row label="Community"      value={r.community} />
+            <Row label="Sub-Category"   value={r.subcategory} />
+            <Row label="Annual Income"  value={r.annualIncome ? `₹${r.annualIncome}` : null} />
+            <Row label="Family Income"  value={r.familyIncome ? `₹${r.familyIncome}` : null} />
+            <Row label="Economic Status" value={r.economicStatus} />
+            <Row label="Education"      value={r.education} />
+            <Row label="Education Type" value={r.educationtype} />
+            <Row label="Minority"       value={r.minority} />
+            <Row label="Student"        value={r.student} />
+          </Section>
+
+          <Section title="Employment & Health" icon="💼">
+            <Row label="Employment Status" value={r.employmentStatus} />
+            <Row label="Employment Type"   value={r.employmentType} />
+            <Row label="Health Status"     value={r.healthStatus} />
+            {r.healthStatus === 'Diseased' && <>
+              <Row label="Disease Type"  value={r.diseaseType} />
+              <Row label="Disease Name"  value={r.diseaseName} />
+            </>}
+            <Row label="Differently Abled" value={r.differentlyAbled} />
+          </Section>
+
+          {(r.relation || r.relationName || r.partNo) && (
+            <Section title="Voter Roll Details" icon="📋">
+              <Row label="Relation"      value={r.relation} />
+              <Row label="Relation Name" value={r.relationName} />
+              <Row label="Part No"       value={r.partNo} />
+              <Row label="Section Name"  value={r.sectionName} />
+              <Row label="Serial No"     value={r.serialNumber} />
+              <Row label="Source PDF"    value={r.sourcePdfName} />
+            </Section>
+          )}
+
+          {(r.schemesUsed && r.schemesUsed.length > 0) && (
+            <Section title="Government Schemes" icon="🏛">
+              <div style={{ gridColumn:'1 / -1' }}>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {r.schemesUsed.map((s, i) => (
+                    <span key={i} style={{
+                      fontSize:11, padding:'3px 9px', borderRadius:12,
+                      background:'rgba(249,115,22,0.1)', color:'#fb923c',
+                      border:'1px solid rgba(249,115,22,0.25)',
+                    }}>{s}</span>
+                  ))}
+                </div>
+              </div>
+            </Section>
+          )}
+
+          <div style={{ textAlign:'center', fontSize:11, color:'var(--text-3)', marginTop:8 }}>
+            Serial #{r.serialNumber} · Surveyed {r.Time_stamp ? new Date(r.Time_stamp).toLocaleDateString('en-IN') : '—'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Chip({ icon, label, maxW }) {
   return (
     <span style={{
@@ -626,6 +943,7 @@ export default function DataView() {
   const [uploadProgress, setUploadProgress] = useState('');
   const [selectedVoter,  setSelectedVoter]  = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [selectedOutstation, setSelectedOutstation] = useState(null);
   const [debugInfo,      setDebugInfo]      = useState({});
   const [lightboxPhoto,  setLightboxPhoto]  = useState(null); // { url, label }
 
@@ -633,7 +951,7 @@ export default function DataView() {
   const debouncer = useRef(null);
   const gridRef   = useRef(null);
 
-  const isCardTab  = tab === 'voter' || tab === 'future_voters' || tab === 'deceased';
+  const isCardTab  = tab === 'voter' || tab === 'future_voters' || tab === 'deceased' || tab === 'outstation_voters';
   const isTableTab = tab === 'survey';
 
   const tabConfig = TABS.find(t => t.key === tab) || TABS[0];
@@ -752,6 +1070,12 @@ export default function DataView() {
         onClose={() => setSelectedRecord(null)}
       />
 
+      {/* Outstation voter detail modal */}
+      <OutstationModal
+        record={selectedOutstation}
+        onClose={() => setSelectedOutstation(null)}
+      />
+
       {/* Photo lightbox */}
       {lightboxPhoto && (
         <PhotoLightbox
@@ -786,7 +1110,7 @@ export default function DataView() {
                   if (t.key === tab) return;
                   setTab(t.key); setSearch(''); setError('');
                   setUploadMsg(''); setUploadProgress('');
-                  setSelectedVoter(null); setSelectedRecord(null);
+                  setSelectedVoter(null); setSelectedRecord(null); setSelectedOutstation(null);
                 }}
                 style={{
                   padding:'8px 18px', borderRadius:'var(--r-sm)', border:'none',
@@ -806,10 +1130,11 @@ export default function DataView() {
             <input
               className="input"
               placeholder={
-                tab === 'voter'         ? 'Search by name, EPIC, house no…'    :
-                tab === 'future_voters' ? 'Search by name, house, ward…'        :
-                tab === 'deceased'      ? 'Search by name, voter ID, house…'    :
-                                          'Search survey data…'
+                tab === 'voter'              ? 'Search by name, EPIC, house no…'    :
+                tab === 'future_voters'      ? 'Search by name, house, ward…'        :
+                tab === 'deceased'           ? 'Search by name, voter ID, house…'    :
+                tab === 'outstation_voters'  ? 'Search by name, city, state, ward…'  :
+                                               'Search survey data…'
               }
               value={search}
               onChange={handleSearchChange}
@@ -886,23 +1211,28 @@ export default function DataView() {
             {!loading && !error && rows.length === 0 && skelCount === 0 && (
               <div className="empty-state">
                 <div className="empty-state-icon">
-                  {tab === 'future_voters' ? '🕐' : tab === 'deceased' ? '✦' : '🗳️'}
+                  {tab === 'future_voters'     ? '🕐' :
+                   tab === 'deceased'          ? '✦'  :
+                   tab === 'outstation_voters' ? '✈'  : '🗳️'}
                 </div>
                 <h3>
                   {search
                     ? `No results for "${search}"`
-                    : tab === 'future_voters' ? 'No future voter records found'
-                    : tab === 'deceased'      ? 'No deceased records found'
+                    : tab === 'future_voters'     ? 'No future voter records found'
+                    : tab === 'deceased'          ? 'No deceased records found'
+                    : tab === 'outstation_voters' ? 'No outstation voters found'
                     : 'No voters found'}
                 </h3>
                 <p style={{ maxWidth:460, lineHeight:1.7 }}>
                   {search
-                    ? `No record matched "${search}". Try a different name or ID.`
+                    ? `No record matched "${search}". Try a different name, city, or ID.`
                     : tab === 'future_voters'
                       ? 'Future voter records are added during survey when a household member is below voting age.'
                       : tab === 'deceased'
                         ? 'Deceased records are added during survey. They may include a death certificate upload.'
-                        : 'No voters in the database. Upload a voter list using the Upload button.'}
+                        : tab === 'outstation_voters'
+                          ? 'Outstation voters are survey respondents who live outside the constituency. They are marked during survey.'
+                          : 'No voters in the database. Upload a voter list using the Upload button.'}
                 </p>
                 {search && (
                   <button className="btn btn-ghost" style={{ marginTop:14 }}
@@ -947,6 +1277,15 @@ export default function DataView() {
                               key={record._id || i}
                               record={record}
                               onClick={() => setSelectedRecord(record)}
+                            />
+                          );
+                        }
+                        if (tab === 'outstation_voters') {
+                          return (
+                            <OutstationCard
+                              key={record._id || i}
+                              record={record}
+                              onClick={() => setSelectedOutstation(record)}
                             />
                           );
                         }
