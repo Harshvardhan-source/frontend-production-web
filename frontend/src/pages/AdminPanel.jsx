@@ -323,70 +323,71 @@ function UserCard({ user, onApprove, onReject, onEdit, onDisable, onEnable, tab 
     <div style={{
       background: isDisabled ? 'rgba(107,114,128,0.06)' : 'rgba(255,255,255,0.02)',
       border: isDisabled ? '1px solid rgba(107,114,128,0.2)' : '1px solid rgba(255,255,255,0.07)',
-      borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+      borderRadius: 12, padding: '12px 14px',
       opacity: isDisabled ? 0.75 : 1,
     }}>
-      <div style={{
-        width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800,
-        background: isDisabled ? 'rgba(107,114,128,0.15)' : `${roleColor}22`,
-        color: isDisabled ? '#6b7280' : roleColor,
-        border: isDisabled ? '1px solid rgba(107,114,128,0.3)' : `1px solid ${roleColor}44`,
-      }}>
-        {user.username?.[0]?.toUpperCase() || '?'}
+      {/* Top: avatar + info */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800,
+          background: isDisabled ? 'rgba(107,114,128,0.15)' : `${roleColor}22`,
+          color: isDisabled ? '#6b7280' : roleColor,
+          border: isDisabled ? '1px solid rgba(107,114,128,0.3)' : `1px solid ${roleColor}44`,
+        }}>
+          {user.username?.[0]?.toUpperCase() || '?'}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            <span style={{ fontWeight: 700, color: isDisabled ? 'var(--text-3)' : 'var(--text-1)', fontSize: 14 }}>{user.username}</span>
+            <Badge color={roleColor}>{ROLE_LABELS[user.role] || user.role}</Badge>
+            <Badge color={statColor}>{user.status}</Badge>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4, wordBreak: 'break-all' }}>{user.email}</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+            {user.ward  && <span>Ward: <strong style={{ color: '#22d3ee' }}>{user.ward}</strong></span>}
+            {user.booth && <span>Booth: <strong style={{ color: '#10b981' }}>{user.booth}</strong></span>}
+            <span>Reg: {formattedDate(user.requestedAt)}</span>
+          </div>
+        </div>
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-          <span style={{ fontWeight: 700, color: isDisabled ? 'var(--text-3)' : 'var(--text-1)', fontSize: 14 }}>{user.username}</span>
-          <Badge color={roleColor}>{ROLE_LABELS[user.role] || user.role}</Badge>
-          <Badge color={statColor}>{user.status}</Badge>
-          {isDisabled && <span style={{ fontSize: 10, color: '#6b7280', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icons.Ban size={10} /> Access suspended</span>}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 3 }}>{user.email}</div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-          {user.ward  && <span>Ward: <strong style={{ color: '#22d3ee' }}>{user.ward}</strong></span>}
-          {user.booth && <span>Booth: <strong style={{ color: '#10b981' }}>{user.booth}</strong></span>}
-          <span>Registered: {formattedDate(user.requestedAt)}</span>
-          {user.approvedBy && <span>By: {user.approvedBy}</span>}
-          {user.disabledBy && <span style={{ color: '#6b7280' }}>Disabled by: {user.disabledBy}</span>}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+      {/* Action buttons — full width row */}
+      <div style={{ display: 'flex', gap: 8 }}>
         {tab === 'pending' && (
           <>
             <button onClick={() => onApprove(user)}
-              style={{ padding: '7px 14px', background: '#10b981', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-              Approve
+              style={{ flex: 1, padding: '9px 0', background: '#10b981', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              ✓ Approve
             </button>
             <button onClick={() => onReject(user)}
-              style={{ padding: '7px 14px', background: 'rgba(239,68,68,0.15)', border: '1px solid #ef444466', borderRadius: 8, color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-              Reject
+              style={{ flex: 1, padding: '9px 0', background: 'rgba(239,68,68,0.12)', border: '1px solid #ef444455', borderRadius: 8, color: '#ef4444', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              ✕ Reject
             </button>
           </>
         )}
         {tab === 'approved' && (
           <>
             <button onClick={() => onEdit(user)}
-              style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'var(--text-2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+              style={{ flex: 1, padding: '9px 0', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
               Edit Role
             </button>
             <button onClick={() => onDisable(user)}
-              style={{ padding: '7px 14px', background: 'rgba(107,114,128,0.15)', border: '1px solid rgba(107,114,128,0.35)', borderRadius: 8, color: '#9ca3af', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <Icons.Ban size={12} /> Disable
+              style={{ flex: 1, padding: '9px 0', background: 'rgba(107,114,128,0.12)', border: '1px solid rgba(107,114,128,0.3)', borderRadius: 8, color: '#9ca3af', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              Disable
             </button>
           </>
         )}
         {tab === 'disabled' && (
           <button onClick={() => onEnable(user)}
-            style={{ padding: '7px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)', borderRadius: 8, color: '#10b981', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <Icons.Check size={12} /> Re-enable
+            style={{ flex: 1, padding: '9px 0', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, color: '#10b981', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            ✓ Re-enable
           </button>
         )}
         {tab === 'rejected' && (
           <button onClick={() => onEdit(user)}
-            style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'var(--text-2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '9px 0', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             Edit Role
           </button>
         )}
@@ -567,33 +568,36 @@ function SurveyProgressTab() {
 
   return (
     <div>
-      {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
+      {/* Summary cards — 2x2 on mobile */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Booth Workers',   value: workers.length,                                                                                                                                     color: '#10b981', Icon: Icons.HardHat  },
-          { label: 'Houses Done',     value: `${doneHouses} / ${totalHouses}`,                                                                                                                    color: '#22d3ee', Icon: Icons.Home,     sub: `${overallHPct}%` },
-          { label: 'Voters Surveyed', value: `${doneVoters} / ${totalVoters}`,                                                                                                                    color: '#a78bfa', Icon: Icons.Ballot,   sub: `${overallVPct}%` },
+          { label: 'Houses Done',     value: `${doneHouses}/${totalHouses}`,                                                                                                                    color: '#22d3ee', Icon: Icons.Home,     sub: `${overallHPct}%` },
+          { label: 'Voters Surveyed', value: `${doneVoters}/${totalVoters}`,                                                                                                                    color: '#a78bfa', Icon: Icons.Ballot,   sub: `${overallVPct}%` },
           { label: 'Active Today',    value: workers.filter(w => w.lastSurveyAt && new Date(w.lastSurveyAt) > new Date(Date.now() - 86400000)).length, color: '#f59e0b', Icon: Icons.Zap         },
         ].map(({ label, value, color, Icon, sub }) => (
           <div key={label} style={{
             background: `${color}11`, border: `1px solid ${color}33`,
-            borderRadius: 12, padding: '14px 16px',
+            borderRadius: 12, padding: '12px 14px',
+            display: 'flex', alignItems: 'center', gap: 10,
           }}>
-            <div style={{ marginBottom: 4, color }}><Icon size={20} /></div>
-            <div style={{ fontSize: 20, fontWeight: 900, color, fontFamily: 'var(--font-display)' }}>{value}</div>
-            {sub && <div style={{ fontSize: 12, color, fontWeight: 700 }}>{sub} complete</div>}
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{label}</div>
+            <div style={{ color, opacity: 0.8, flexShrink: 0 }}><Icon size={22} /></div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color, fontFamily: 'var(--font-display)', lineHeight: 1, wordBreak: 'break-all' }}>{value}</div>
+              {sub && <div style={{ fontSize: 11, color, fontWeight: 700 }}>{sub}</div>}
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 }}>{label}</div>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Overall bars */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+      {/* Overall bars — stacked on mobile */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Overall House Coverage', pct: overallHPct, color: '#22d3ee' },
           { label: 'Overall Voter Coverage', pct: overallVPct, color: '#a78bfa' },
         ].map(({ label, pct, color }) => (
-          <div key={label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '12px 16px' }}>
+          <div key={label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '12px 14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 600 }}>{label}</span>
               <span style={{ fontSize: 13, fontWeight: 800, color }}>{pct}%</span>
@@ -604,24 +608,26 @@ function SurveyProgressTab() {
       </div>
 
       {/* Controls */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name, email, booth, ward…"
-          style={{ flex: 1, minWidth: 200, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-1)', fontSize: 13 }}
+          placeholder="Search by name, booth, ward…"
+          style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: 'var(--text-1)', fontSize: 13 }}
         />
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-2)', fontSize: 13 }}>
-          <option value="booth">Sort: Booth No</option>
-          <option value="houses_pct">Sort: Houses %</option>
-          <option value="voters_pct">Sort: Voters %</option>
-          <option value="recent">Sort: Recently Active</option>
-        </select>
-        <button onClick={fetchProgress} disabled={loading}
-          style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          <Icons.RefreshCw size={13} />{loading ? '' : 'Refresh'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'var(--text-2)', fontSize: 13 }}>
+            <option value="booth">Sort: Booth No</option>
+            <option value="houses_pct">Sort: Houses %</option>
+            <option value="voters_pct">Sort: Voters %</option>
+            <option value="recent">Sort: Recently Active</option>
+          </select>
+          <button onClick={fetchProgress} disabled={loading}
+            style={{ padding: '9px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+            <Icons.RefreshCw size={13} />
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}><Icons.AlertTriangle size={14} /> {error}</div>}
@@ -659,8 +665,8 @@ function SurveyProgressTab() {
                 </div>
               </div>
 
-              {/* Progress bars */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              {/* Progress bars — single column on mobile */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Houses */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -878,7 +884,7 @@ function LocationTab() {
     <div>
       {error && <div className="alert alert-error" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}><Icons.AlertTriangle size={14} /> {error}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16, minHeight: 520 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Left panel — worker list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {/* Header */}
@@ -922,7 +928,7 @@ function LocationTab() {
           )}
 
           {/* Worker cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', maxHeight: 440 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', maxHeight: 340 }}>
             {loading ? (
               <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 24 }}>Loading…</div>
             ) : liveWorkers.length === 0 ? (
@@ -969,9 +975,9 @@ function LocationTab() {
           </div>
         </div>
 
-        {/* Right — map */}
-        <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', position: 'relative', minHeight: 480 }}>
-          <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: 480 }} />
+        {/* Map */}
+        <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', position: 'relative', height: 320 }}>
+          <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
           {!window.L && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(9,14,28,0.85)', color: 'var(--text-3)', fontSize: 13 }}>
               Loading map…
@@ -1066,10 +1072,11 @@ function UserManagementTab() {
     <>
       {toast && (
         <div style={{
-          position: 'fixed', top: 20, right: 20, zIndex: 9999,
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, maxWidth: 'calc(100vw - 32px)', width: 'max-content',
           background: '#1a2744', border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: 10, padding: '12px 18px', fontSize: 13, color: 'var(--text-1)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)', textAlign: 'center',
         }}>{toast}</div>
       )}
 
@@ -1084,47 +1091,63 @@ function UserManagementTab() {
       )}
 
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: 10,
+        marginBottom: 20,
+      }}>
         {[
-          { label: 'Pending',  count: data.pending?.length  || 0, color: '#f59e0b' },
-          { label: 'Approved', count: data.approved?.length || 0, color: '#10b981' },
-          { label: 'Rejected', count: data.rejected?.length || 0, color: '#ef4444' },
-          { label: 'Disabled', count: data.disabled?.length || 0, color: '#6b7280' },
-        ].map(({ label, count, color }) => (
+          { label: 'Pending',  count: data.pending?.length  || 0, color: '#f59e0b', Icon: Icons.Clock       },
+          { label: 'Approved', count: data.approved?.length || 0, color: '#10b981', Icon: Icons.CheckCircle },
+          { label: 'Rejected', count: data.rejected?.length || 0, color: '#ef4444', Icon: Icons.XCircle     },
+          { label: 'Disabled', count: data.disabled?.length || 0, color: '#6b7280', Icon: Icons.Ban         },
+        ].map(({ label, count, color, Icon }) => (
           <div key={label} style={{
             background: `${color}11`, border: `1px solid ${color}33`,
-            borderRadius: 12, padding: '14px 18px', textAlign: 'center',
+            borderRadius: 12, padding: '14px 16px',
+            display: 'flex', alignItems: 'center', gap: 12,
           }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color, fontFamily: 'var(--font-display)' }}>{count}</div>
-            <div style={{ fontSize: 11, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+            <div style={{ color, opacity: 0.7 }}><Icon size={22} /></div>
+            <div>
+              <div style={{ fontSize: 26, fontWeight: 900, color, lineHeight: 1, fontFamily: 'var(--font-display)' }}>{count}</div>
+              <div style={{ fontSize: 11, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{label}</div>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      {/* Status Tabs + Refresh */}
+      <div style={{
+        display: 'flex', gap: 6, marginBottom: 16,
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none', msOverflowStyle: 'none',
+        paddingBottom: 2, alignItems: 'center',
+      }}>
         {USER_TABS.map(({ key, label, Icon }) => (
           <button key={key} onClick={() => setTab(key)} style={{
-            padding: '8px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            transition: 'all 0.15s',
+            padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: 'pointer',
+            transition: 'all 0.15s', flexShrink: 0,
             background: tab === key ? '#f59e0b' : 'rgba(255,255,255,0.05)',
             border: tab === key ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
             color: tab === key ? '#090e1c' : 'var(--text-2)',
-            minHeight: 40, display: 'inline-flex', alignItems: 'center', gap: 6,
+            minHeight: 40, display: 'inline-flex', alignItems: 'center', gap: 5,
+            whiteSpace: 'nowrap',
           }}>
             <Icon size={13} /> {label}
             {data[key]?.length > 0 && (
               <span style={{
-                marginLeft: 6, background: tab === key ? '#090e1c' : STATUS_COLORS[key] + '33',
+                marginLeft: 4,
+                background: tab === key ? 'rgba(9,14,28,0.25)' : STATUS_COLORS[key] + '33',
                 color: tab === key ? '#090e1c' : STATUS_COLORS[key],
-                borderRadius: 10, padding: '1px 6px', fontSize: 11, fontWeight: 800,
+                borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 800,
               }}>{data[key].length}</span>
             )}
           </button>
         ))}
         <button onClick={fetchUsers} disabled={loading}
-          style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13, minHeight: 40, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          <Icons.RefreshCw size={13} />{loading ? '' : 'Refresh'}
+          style={{ marginLeft: 'auto', flexShrink: 0, padding: '8px 12px', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 12, minHeight: 40, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <Icons.RefreshCw size={13} /><span style={{ display: 'none' }}>{loading ? '' : 'Refresh'}</span>
         </button>
       </div>
 
@@ -1234,9 +1257,9 @@ export default function AdminPanel() {
     <div className="page">
       <Navbar />
 
-      <div className="page-inner" style={{ maxWidth: 1100 }}>
+      <div className="page-inner" style={{ maxWidth: 1100, paddingLeft: 'max(14px, env(safe-area-inset-left))', paddingRight: 'max(14px, env(safe-area-inset-right))' }}>
         {/* Header */}
-        <div className="page-header anim-fade-up" style={{ marginBottom: 28 }}>
+        <div className="page-header anim-fade-up" style={{ marginBottom: 18 }}>
           <span className="badge badge-gold mb-8">Admin Panel</span>
           <h1 style={{ color: 'var(--text-1)' }}>
             {topTab === 'users'    ? 'User Access Management'
@@ -1251,19 +1274,37 @@ export default function AdminPanel() {
         </div>
 
         {/* Top-level navigation tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 28, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 0 }}>
+        <div style={{
+          display: 'flex', gap: 4, marginBottom: 24,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 14, padding: 4,
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}>
           {TOP_TABS.map(({ key, label, Icon }) => (
             <button key={key} onClick={() => setTopTab(key)} style={{
-              padding: '10px 20px', borderRadius: '10px 10px 0 0', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-              background: topTab === key ? 'rgba(245,158,11,0.12)' : 'transparent',
+              flex: '1 0 auto',
+              padding: '10px 16px',
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: 'pointer',
+              background: topTab === key ? 'rgba(245,158,11,0.14)' : 'transparent',
               border: topTab === key ? '1px solid rgba(245,158,11,0.35)' : '1px solid transparent',
-              borderBottom: topTab === key ? '1px solid rgba(9,14,28,1)' : '1px solid transparent',
-              color: topTab === key ? '#f59e0b' : 'var(--text-3)',
-              marginBottom: -1,
+              color: topTab === key ? '#f59e0b' : 'rgba(255,255,255,0.4)',
               transition: 'all 0.15s',
-              display: 'inline-flex', alignItems: 'center', gap: 7,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              whiteSpace: 'nowrap',
+              minHeight: 42,
             }}>
-              <Icon size={14} /> {label}
+              <Icon size={14} />
+              <span style={{ display: 'inline' }}>{label}</span>
             </button>
           ))}
         </div>
