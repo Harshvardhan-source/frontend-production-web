@@ -21,6 +21,7 @@ const TABS = [
   { key: 'future_voters',     label: 'Future Voters',     icon: '🕐', color: '#10b981' },
   { key: 'deceased',          label: 'Deceased',          icon: '✦',  color: '#a78bfa' },
   { key: 'outstation_voters', label: 'Outstation Voters', icon: '✈',  color: '#f97316' },
+  { key: 'bjp_members',       label: 'BJP Members',       icon: '🪷', color: '#f43f5e' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -759,6 +760,264 @@ function OutstationModal({ record, onClose }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BJP MEMBER CARD
+// ─────────────────────────────────────────────────────────────────────────────
+const BJP_ACCENT = '#f43f5e';
+
+const BjpMemberCard = memo(function BjpMemberCard({ record, onClick }) {
+  const firstName = record.firstName || '';
+  const lastName  = record.lastName  || '';
+  const name      = [firstName, record.middleName, lastName].filter(Boolean).join(' ') || '—';
+  const initial   = name.trim()[0]?.toUpperCase() || '?';
+  const color     = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+  const voterid   = record.voterid        || '';
+  const membershipId = record.partyMembershipId || '';
+  const ward      = record.wardNumber     || '';
+  const contact   = record.contactNumber  || '';
+  const community = record.community      || '';
+  const isMale    = (record.gender || '').toLowerCase() === 'male' || record.gender === 'M';
+  const [hov, setHov] = useState(false);
+
+  return (
+    <div onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: 'var(--bg-surface)',
+        border: `1px solid ${hov ? BJP_ACCENT : 'var(--border)'}`,
+        borderRadius: 'var(--r-md)', padding: '13px 15px', cursor: 'pointer',
+        transition: 'border-color 0.15s, transform 0.15s, box-shadow 0.15s',
+        transform: hov ? 'translateY(-2px)' : 'none',
+        boxShadow: hov ? `0 6px 20px rgba(244,63,94,0.15)` : 'none',
+      }}>
+
+      {/* Header row */}
+      <div style={{ display:'flex', alignItems:'center', gap:11, marginBottom:9 }}>
+        <div style={{
+          width:36, height:36, borderRadius:9, flexShrink:0,
+          background: color, color:'#fff',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          fontWeight:800, fontSize:14,
+          boxShadow: `0 0 0 2px ${BJP_ACCENT}55`,
+        }}>{initial}</div>
+
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontWeight:700, fontSize:13, color:'var(--text-1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{name}</div>
+          {voterid && (
+            <div style={{ fontSize:11, color:'var(--gold)', fontFamily:'monospace', marginTop:2, letterSpacing:'0.3px' }}>{voterid}</div>
+          )}
+        </div>
+
+        {/* BJP badge */}
+        <div style={{
+          fontSize:9, fontWeight:800, padding:'2px 7px', borderRadius:9, flexShrink:0,
+          background:'rgba(244,63,94,0.15)', color: BJP_ACCENT,
+          border:'1px solid rgba(244,63,94,0.35)', letterSpacing:'0.04em',
+        }}>🪷 BJP</div>
+      </div>
+
+      {/* Chips row */}
+      <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+        {membershipId && <Chip icon="🪪" label={membershipId} maxW={100}/>}
+        {ward         && <Chip icon="📍" label={`Ward ${ward}`}/>}
+        {community    && <Chip icon="🏘" label={community} maxW={80}/>}
+        {contact      && <Chip icon="📞" label={contact}/>}
+        {record.gender && (
+          <span style={{
+            fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:9,
+            background: isMale ? 'rgba(59,130,246,0.15)' : 'rgba(236,72,153,0.15)',
+            color:      isMale ? '#60a5fa'               : '#f472b6',
+            border:     `1px solid ${isMale ? 'rgba(59,130,246,0.3)' : 'rgba(236,72,153,0.3)'}`,
+          }}>{isMale ? '♂ M' : '♀ F'}</span>
+        )}
+      </div>
+    </div>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BJP MEMBER DETAIL MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+function BjpMemberModal({ record, onClose }) {
+  if (!record) return null;
+
+  const firstName = record.firstName || '';
+  const lastName  = record.lastName  || '';
+  const name      = [firstName, record.middleName, lastName].filter(Boolean).join(' ') || '—';
+  const initial   = name.trim()[0]?.toUpperCase() || '?';
+  const color     = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const Section = ({ title, icon, children }) => (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{
+        display:'flex', alignItems:'center', gap:7,
+        marginBottom:10, paddingBottom:6,
+        borderBottom:`1px solid rgba(244,63,94,0.2)`,
+      }}>
+        <span style={{ fontSize:14 }}>{icon}</span>
+        <span style={{ fontSize:11, fontWeight:800, color: BJP_ACCENT, textTransform:'uppercase', letterSpacing:'0.08em' }}>{title}</span>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 16px' }}>
+        {children}
+      </div>
+    </div>
+  );
+
+  const Row = ({ label, value, full, highlight }) => {
+    if (!value && value !== 0 && value !== false) return null;
+    return (
+      <div style={{
+        gridColumn: full ? '1 / -1' : 'auto',
+        display:'flex', flexDirection:'column', gap:2,
+        padding:'7px 10px', borderRadius:8,
+        background: highlight ? 'rgba(244,63,94,0.08)' : 'rgba(255,255,255,0.03)',
+        border: highlight ? '1px solid rgba(244,63,94,0.25)' : '1px solid transparent',
+      }}>
+        <span style={{ fontSize:10, color:'var(--text-3)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</span>
+        <span style={{ fontSize:13, fontWeight:600, color: highlight ? '#fb7185' : 'var(--text-1)', wordBreak:'break-word' }}>
+          {String(value)}
+        </span>
+      </div>
+    );
+  };
+
+  const r = record;
+  const fullName = [r.firstName, r.middleName, r.lastName].filter(Boolean).join(' ');
+  const address  = [r.houseNumber, r.address].filter(Boolean).join(', ');
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, zIndex:1000,
+      background:'rgba(0,0,0,0.70)', backdropFilter:'blur(6px)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'var(--bg-surface)',
+        border:`1px solid rgba(244,63,94,0.35)`,
+        borderRadius:'var(--r-lg)', width:'100%', maxWidth:580,
+        maxHeight:'88vh', overflowY:'auto',
+        boxShadow:'0 28px 64px rgba(0,0,0,0.6)',
+      }}>
+
+        {/* Header */}
+        <div style={{
+          display:'flex', alignItems:'center', gap:14,
+          padding:'18px 22px', borderBottom:'1px solid var(--border)',
+          position:'sticky', top:0, background:'var(--bg-surface)', zIndex:2,
+          backgroundImage:'linear-gradient(135deg,rgba(244,63,94,0.07) 0%,transparent 60%)',
+        }}>
+          <div style={{
+            width:48, height:48, borderRadius:14, flexShrink:0,
+            background: color, color:'#fff',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontWeight:800, fontSize:20, boxShadow:`0 0 0 3px rgba(244,63,94,0.35)`,
+          }}>{initial}</div>
+
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:700, fontSize:17, color:'var(--text-1)', lineHeight:1.2 }}>{name}</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4, flexWrap:'wrap' }}>
+              {r.voterid && (
+                <span style={{ fontSize:11, color:'var(--gold)', fontFamily:'monospace', fontWeight:600 }}>{r.voterid}</span>
+              )}
+              <span style={{
+                fontSize:9, fontWeight:800, padding:'2px 8px', borderRadius:9,
+                background:'rgba(244,63,94,0.15)', color: BJP_ACCENT,
+                border:'1px solid rgba(244,63,94,0.35)', letterSpacing:'0.05em',
+              }}>🪷 BJP MEMBER</span>
+            </div>
+          </div>
+
+          <button onClick={onClose} style={{
+            background:'rgba(255,255,255,0.07)', border:'none',
+            borderRadius:8, width:34, height:34, cursor:'pointer',
+            color:'var(--text-2)', fontSize:21,
+            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+          }}>×</button>
+        </div>
+
+        {/* Membership ID banner */}
+        {r.partyMembershipId && (
+          <div style={{
+            margin:'16px 22px 0',
+            background:'rgba(244,63,94,0.09)',
+            border:'1px solid rgba(244,63,94,0.3)',
+            borderRadius:10, padding:'10px 14px',
+            display:'flex', alignItems:'center', gap:10,
+          }}>
+            <span style={{ fontSize:22 }}>🪪</span>
+            <div>
+              <div style={{ fontSize:11, color:'rgba(244,63,94,0.7)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>BJP Membership ID</div>
+              <div style={{ fontSize:15, fontWeight:700, color:'#fb7185', fontFamily:'monospace' }}>{r.partyMembershipId}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Body */}
+        <div style={{ padding:'18px 22px 24px' }}>
+
+          <Section title="Personal Details" icon="👤">
+            <Row label="Full Name"       value={fullName}          full />
+            <Row label="Date of Birth"   value={r.dob} />
+            <Row label="Age"             value={r.age} />
+            <Row label="Gender"          value={r.gender} />
+            <Row label="Marital Status"  value={r.maritalStatus} />
+            <Row label="Voter ID"        value={r.voterid} />
+            <Row label="Aadhaar"         value={r.addharNumber} />
+            <Row label="Contact"         value={r.contactNumber} />
+          </Section>
+
+          <Section title="BJP Membership" icon="🪷">
+            <Row label="Party Member"      value={r.partyMember}        highlight />
+            <Row label="Membership ID"     value={r.partyMembershipId}  highlight full />
+            <Row label="BJP Verified"      value={r.bjpMember === true ? 'Yes' : r.bjpMember === false ? 'No' : 'Pending'} />
+          </Section>
+
+          <Section title="Address" icon="🏠">
+            <Row label="House Number"  value={r.houseNumber}  full />
+            <Row label="Address"       value={r.address}      full />
+            <Row label="Ward"          value={r.wardNumber} />
+            <Row label="Booth No"      value={r.boothNo} />
+            <Row label="Area Type"     value={r.areaType} />
+            <Row label="Home Type"     value={r.homeType} />
+            {r.pollingStation && <Row label="Polling Station" value={r.pollingStation} full />}
+          </Section>
+
+          <Section title="Demographics" icon="🧬">
+            <Row label="Religion"        value={r.religion} />
+            <Row label="Community"       value={r.community} />
+            <Row label="Sub-Category"    value={r.subcategory} />
+            <Row label="Education"       value={r.education} />
+            <Row label="Employment"      value={r.employmentStatus} />
+            <Row label="Annual Income"   value={r.annualIncome ? `₹${r.annualIncome}` : null} />
+            <Row label="Economic Status" value={r.economicStatus} />
+          </Section>
+
+          {(r.relation || r.relationName || r.partNo) && (
+            <Section title="Voter Roll Details" icon="📋">
+              <Row label="Relation"      value={r.relation} />
+              <Row label="Relation Name" value={r.relationName} />
+              <Row label="Part No"       value={r.partNo} />
+              <Row label="Section Name"  value={r.sectionName} />
+              <Row label="Serial No"     value={r.serialNumber} />
+            </Section>
+          )}
+
+          <div style={{ textAlign:'center', fontSize:11, color:'var(--text-3)', marginTop:8 }}>
+            Serial #{r.serialNumber} · Surveyed {r.Time_stamp ? new Date(r.Time_stamp).toLocaleDateString('en-IN') : '—'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Chip({ icon, label, maxW }) {
   return (
     <span style={{
@@ -944,6 +1203,7 @@ export default function DataView() {
   const [selectedVoter,  setSelectedVoter]  = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [selectedOutstation, setSelectedOutstation] = useState(null);
+  const [selectedBjpMember, setSelectedBjpMember]   = useState(null);
   const [debugInfo,      setDebugInfo]      = useState({});
   const [lightboxPhoto,  setLightboxPhoto]  = useState(null); // { url, label }
 
@@ -951,7 +1211,7 @@ export default function DataView() {
   const debouncer = useRef(null);
   const gridRef   = useRef(null);
 
-  const isCardTab  = tab === 'voter' || tab === 'future_voters' || tab === 'deceased' || tab === 'outstation_voters';
+  const isCardTab  = tab === 'voter' || tab === 'future_voters' || tab === 'deceased' || tab === 'outstation_voters' || tab === 'bjp_members';
   const isTableTab = tab === 'survey';
 
   const tabConfig = TABS.find(t => t.key === tab) || TABS[0];
@@ -1076,6 +1336,12 @@ export default function DataView() {
         onClose={() => setSelectedOutstation(null)}
       />
 
+      {/* BJP member detail modal */}
+      <BjpMemberModal
+        record={selectedBjpMember}
+        onClose={() => setSelectedBjpMember(null)}
+      />
+
       {/* Photo lightbox */}
       {lightboxPhoto && (
         <PhotoLightbox
@@ -1110,7 +1376,7 @@ export default function DataView() {
                   if (t.key === tab) return;
                   setTab(t.key); setSearch(''); setError('');
                   setUploadMsg(''); setUploadProgress('');
-                  setSelectedVoter(null); setSelectedRecord(null); setSelectedOutstation(null);
+                  setSelectedVoter(null); setSelectedRecord(null); setSelectedOutstation(null); setSelectedBjpMember(null);
                 }}
                 style={{
                   padding:'8px 18px', borderRadius:'var(--r-sm)', border:'none',
@@ -1134,6 +1400,7 @@ export default function DataView() {
                 tab === 'future_voters'      ? 'Search by name, house, ward…'        :
                 tab === 'deceased'           ? 'Search by name, voter ID, house…'    :
                 tab === 'outstation_voters'  ? 'Search by name, city, state, ward…'  :
+                tab === 'bjp_members'        ? 'Search by name, membership ID, ward…':
                                                'Search survey data…'
               }
               value={search}
@@ -1286,6 +1553,15 @@ export default function DataView() {
                               key={record._id || i}
                               record={record}
                               onClick={() => setSelectedOutstation(record)}
+                            />
+                          );
+                        }
+                        if (tab === 'bjp_members') {
+                          return (
+                            <BjpMemberCard
+                              key={record._id || i}
+                              record={record}
+                              onClick={() => setSelectedBjpMember(record)}
                             />
                           );
                         }
