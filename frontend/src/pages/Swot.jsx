@@ -1,37 +1,81 @@
 import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 
-// ─── Inline SVG Icons (no external dependency) ────────────────────────────────
-const Icon = ({ path, size = 14, color = 'currentColor', strokeWidth = 2, fill = 'none', style = {} }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, ...style }}>
+// ─── Inline SVG Icons ─────────────────────────────────────────────────────────
+const Icon = ({ path, size = 14, color = 'currentColor', strokeWidth = 1.75, fill = 'none', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, display: 'block', ...style }}>
     {Array.isArray(path) ? path.map((d, i) => <path key={i} d={d} />) : <path d={path} />}
   </svg>
 );
 
+// Each path set is tuned for clarity at 11–18px (Lucide-style geometry)
 const PATHS = {
-  ShieldCheck:  ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', 'M9 12l2 2 4-4'],
-  AlertTriangle:['M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', 'M12 9v4', 'M12 17h.01'],
-  Target:       ['M22 12A10 10 0 1 1 12 2', 'M22 12a10 10 0 0 1-10 10', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0', 'M22 12h-4', 'M6 12H2'],
-  AlertOctagon: ['M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z', 'M12 8v4', 'M12 16h.01'],
-  LayoutGrid:   ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'],
-  BarChart2:    ['M18 20V10', 'M12 20V4', 'M6 20v-6'],
-  PieChart:     ['M21.21 15.89A10 10 0 1 1 8 2.83', 'M22 12A10 10 0 0 0 12 2v10z'],
-  Users:        ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', 'M23 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75', 'M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
-  UserCheck:    ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M8 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M17 11l2 2 4-4'],
-  Zap:          ['M13 2L3 14h9l-1 8 10-12h-9l1-8z'],
-  Minus:        ['M5 12h14'],
-  AlertCircle:  ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 8v4', 'M12 16h.01'],
-  XCircle:      ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M15 9l-6 6', 'M9 9l6 6'],
-  ChevronRight: ['M9 18l6-6-6-6'],
+  // ── SWOT quadrant icons ───────────────────────────────────────────────────
+  // Strengths → solid shield with inner check
+  ShieldCheck:  ['M12 3l7.5 2.5V11c0 4.5-3.5 8-7.5 9.5C8 19 4.5 15.5 4.5 11V5.5L12 3z', 'M9 12l2 2 4-4'],
+  // Weaknesses → warning triangle, tight geometry
+  AlertTriangle:['M10.5 4.5l-8 13.5a1.5 1.5 0 0 0 1.3 2.25h16.4a1.5 1.5 0 0 0 1.3-2.25l-8-13.5a1.5 1.5 0 0 0-2.6 0z', 'M12 10v4', 'M12 17.5a.5.5 0 1 1 0 1 .5.5 0 0 1 0-1z'],
+  // Opportunities → precise crosshair / target
+  Target:       ['M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z', 'M12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z', 'M12 2v3', 'M12 19v3', 'M2 12h3', 'M19 12h3'],
+  // Threats → octagon stop-sign shape
+  AlertOctagon: ['M7.5 2.5h9l5 5v9l-5 5h-9l-5-5v-9l5-5z', 'M12 8v5', 'M12 16.5a.5.5 0 1 1 0 1 .5.5 0 0 1 0-1z'],
+
+  // ── Tab nav icons ─────────────────────────────────────────────────────────
+  // Political SWOT → 2×2 bento grid
+  LayoutGrid:   ['M3 3h8v8H3z', 'M13 3h8v8h-8z', 'M13 13h8v8h-8z', 'M3 13h8v8H3z'],
+  // Ward Strength → rising bars
+  BarChart2:    ['M6 20v-5', 'M10 20V9', 'M14 20v-7', 'M18 20V4'],
+  // Demographic → donut / pie
+  PieChart:     ['M12 2v10l7.07 7.07A10 10 0 1 1 12 2z', 'M12 2a10 10 0 0 1 7.07 17.07L12 12V2z'],
+  // Shaastra SWOT → neural / circuit node
+  Crosshair:    ['M12 2v4', 'M12 18v4', 'M2 12h4', 'M18 12h4', 'M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0'],
+
+  // ── Ward filter icons ─────────────────────────────────────────────────────
+  Activity:     ['M3 12h4l2.5-7 4 14 2.5-7H21'],  // ECG pulse
+  // Strong → verified shield
+  ShieldStar:   ['M12 3l7.5 2.5V11c0 4.5-3.5 8-7.5 9.5C8 19 4.5 15.5 4.5 11V5.5L12 3z', 'M12 8l1 2.5 2.5.3-1.8 1.8.4 2.5L12 14l-2.1 1.1.4-2.5-1.8-1.8 2.5-.3L12 8z'],
+  // Medium → equal horizontal bars (balance)
+  Minus:        ['M5 9h14', 'M5 12h14', 'M5 15h14'],
+  // Narrow → warning bell
+  AlertCircle:  ['M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z', 'M12 8v5', 'M12 16.5a.5.5 0 1 1 0 1 .5.5 0 0 1 0-1z'],
+  // Congress / Lost → X in circle
+  XCircle:      ['M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z', 'M15 9l-6 6', 'M9 9l6 6'],
+
+  // ── Misc ──────────────────────────────────────────────────────────────────
+  ChevronRight: ['M9 6l6 6-6 6'],
   X:            ['M18 6 6 18', 'M6 6l12 12'],
-  TrendingUp:   ['M23 6l-9.5 9.5-5-5L1 18', 'M17 6h6v6'],
-  MapPin:       ['M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z', 'M12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
-  Activity:     ['M22 12h-4l-3 9L9 3l-3 9H2'],
+  TrendingUp:   ['M22 7l-9.5 9.5-5-5L1 18', 'M16 7h6v6'],
+  MapPin:       ['M20 10c0 6.4-8 12-8 12S4 16.4 4 10a8 8 0 0 1 16 0z', 'M12 10m-3 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0'],
   CheckSquare:  ['M9 11l3 3L22 4', 'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'],
-  Crosshair:    ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M22 12h-4', 'M6 12H2', 'M12 6V2', 'M12 22v-4'],
-  RefreshCw:    ['M23 4v6h-6', 'M1 20v-6h6', 'M3.51 9a9 9 0 0 1 14.85-3.36L23 10', 'M1 14l4.64 4.36A9 9 0 0 0 20.49 15'],
+  RefreshCw:    ['M21 2v6h-6', 'M3 12a9 9 0 0 1 15-6.7L21 8', 'M3 22v-6h6', 'M21 12a9 9 0 0 1-15 6.7L3 16'],
   Smartphone:   ['M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z', 'M12 18h.01'],
   Building2:    ['M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18z', 'M6 12H4a2 2 0 0 0-2 2v8h4', 'M18 9h2a2 2 0 0 1 2 2v11h-4', 'M10 6h4', 'M10 10h4', 'M10 14h4', 'M10 18h4'],
+
+  // ── Context key icons (replaces emojis) ───────────────────────────────────
+  // Economic → coin / trending
+  Economic:     ['M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z', 'M12 6v2', 'M12 16v2', 'M8.5 9.5a2.5 2 0 0 1 5 0c0 1.5-1 2-2.5 2.5s-2.5 1-2.5 2.5a2.5 2 0 0 0 5 0'],
+  // Employment → briefcase
+  Employment:   ['M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z', 'M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2', 'M12 13v.01'],
+  // Health → heartbeat / cross
+  Health:       ['M12 21.7C5.4 15.5 2 11.6 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.3.8 4.5 2 1.2-1.2 2.8-2 4.5-2C19.6 3 22 5.4 22 8.5c0 3.1-3.4 7-10 13.2z'],
+  // Home Type → house
+  HomeType:     ['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10'],
+  // Education → graduation cap
+  Education:    ['M2 10l10-6 10 6-10 6z', 'M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5', 'M22 10v6'],
+  // Religion → compass / star
+  Religion:     ['M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z'],
+  // Community (PL) → connected nodes
+  Community:    ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M23 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
+  // Economic (PL) → bar chart up
+  EconomicPL:   ['M18 20V10', 'M12 20V4', 'M6 20v-6'],
+  // Political → landmark / columns
+  Political:    ['M3 22h18', 'M6 18v-7', 'M10 18v-7', 'M14 18v-7', 'M18 18v-7', 'M2 11l10-7 10 7'],
+  // Administrative → clipboard/shield
+  Admin:        ['M9 11l3 3L22 4', 'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'],
+  // Users (demographic)
+  Users:        ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M23 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
+  UserCheck:    ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M17 11l2 2 4-4'],
+  Zap:          ['M13 2L3 14h9l-1 8 10-12h-9l1-8z'],
 };
 
 const ShieldCheck   = (p) => <Icon path={PATHS.ShieldCheck}   {...p} />;
@@ -661,18 +705,25 @@ function SwotTab() {
 }
 
 
+// ─── Context SVG icon components ──────────────────────────────────────────────
+const CtxIcon = ({ paths, color, size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', flexShrink: 0 }}>
+    {paths.map((d, i) => <path key={i} d={d} />)}
+  </svg>
+);
+
 // ─── ML Intelligence Tab ─────────────────────────────────────────────────────
 const CONTEXT_KEYS = [
-  { key: 'Economic_context',       label: 'Economic',          color: '#10b981', icon: '💰' },
-  { key: 'Employment_context',     label: 'Employment',        color: '#f59e0b', icon: '🏗️' },
-  { key: 'Health_context',         label: 'Health',            color: '#f87171', icon: '🏥' },
-  { key: 'Hometype_context',       label: 'Home Type',         color: '#a78bfa', icon: '🏠' },
-  { key: 'Education_context',      label: 'Education',         color: '#22d3ee', icon: '📚' },
-  { key: 'PL_Religion_context',    label: 'Religion (PL)',     color: '#fb923c', icon: '⛩️' },
-  { key: 'PL_Community_context',   label: 'Community (PL)',    color: '#60a5fa', icon: '👥' },
-  { key: 'PL_Economic_context',    label: 'Economic (PL)',     color: '#34d399', icon: '📊' },
-  { key: 'Political_context',      label: 'Political',         color: '#e879f9', icon: '🗳️' },
-  { key: 'Administrative_context', label: 'Administrative',    color: '#fbbf24', icon: '🏛️' },
+  { key: 'Economic_context',       label: 'Economic',          color: '#10b981', IconPaths: PATHS.Economic    },
+  { key: 'Employment_context',     label: 'Employment',        color: '#f59e0b', IconPaths: PATHS.Employment  },
+  { key: 'Health_context',         label: 'Health',            color: '#f87171', IconPaths: PATHS.Health      },
+  { key: 'Hometype_context',       label: 'Home Type',         color: '#a78bfa', IconPaths: PATHS.HomeType    },
+  { key: 'Education_context',      label: 'Education',         color: '#22d3ee', IconPaths: PATHS.Education   },
+  { key: 'PL_Religion_context',    label: 'Religion (PL)',     color: '#fb923c', IconPaths: PATHS.Religion    },
+  { key: 'PL_Community_context',   label: 'Community (PL)',    color: '#60a5fa', IconPaths: PATHS.Community   },
+  { key: 'PL_Economic_context',    label: 'Economic (PL)',     color: '#34d399', IconPaths: PATHS.EconomicPL  },
+  { key: 'Political_context',      label: 'Political',         color: '#e879f9', IconPaths: PATHS.Political   },
+  { key: 'Administrative_context', label: 'Administrative',    color: '#fbbf24', IconPaths: PATHS.Admin       },
 ];
 
 // ─── New label system: Dominant / Major / Moderate / Minor ───────────────────
@@ -920,7 +971,10 @@ function QueryCard({ q, ctxKey, ctxColor }) {
               const { color } = swotColors(sw);
               return (
                 <div key={ck.key} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${color}22`, borderRadius: 6, padding: '5px 8px' }}>
-                  <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>{ck.icon} {ck.label}</div>
+                  <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <CtxIcon paths={ck.IconPaths} color="rgba(255,255,255,0.3)" size={10} />
+                    {ck.label}
+                  </div>
                   <div style={{ fontSize: 10, fontWeight: 700, color, fontFamily: 'Space Mono, monospace' }}>{rv}</div>
                 </div>
               );
@@ -1040,8 +1094,8 @@ function ContextSWOTPanel({ queries, ctxKey, ctxColor, ctxLabel }) {
     <div style={{ marginBottom: 28 }}>
       {/* Context header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 9, background: `${ctxColor}14`, border: `1px solid ${ctxColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
-          {CONTEXT_KEYS.find(c => c.key === ctxKey)?.icon}
+        <div style={{ width: 34, height: 34, borderRadius: 9, background: `${ctxColor}14`, border: `1px solid ${ctxColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <CtxIcon paths={CONTEXT_KEYS.find(c => c.key === ctxKey)?.IconPaths || PATHS.EconomicPL} color={ctxColor} size={16} />
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 800, color: '#eef2ff', fontFamily: 'Sora, sans-serif' }}>{ctxLabel}</div>
@@ -1385,7 +1439,10 @@ function MLIntelligenceTab() {
             fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
             transition: 'all 0.18s', textAlign: 'left',
           }}>
-          <div>🏛️ Constituency SWOT</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <CtxIcon paths={PATHS.Political} color={scope === 'constituency' ? '#f59e0b' : 'rgba(255,255,255,0.35)'} size={14} />
+            Constituency SWOT
+          </div>
           <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2, fontFamily: 'Space Mono, monospace' }}>Mangalore South · 175</div>
         </button>
 
@@ -1401,7 +1458,8 @@ function MLIntelligenceTab() {
             textAlign: 'left', opacity: 0.7,
           }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            📍 Ward-wise SWOT
+            <CtxIcon paths={PATHS.MapPin} color="rgba(255,255,255,0.2)" size={14} />
+            Ward-wise SWOT
             <span style={{ fontSize: 8.5, fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.28)', borderRadius: 4, padding: '1px 6px', fontFamily: 'Space Mono, monospace', letterSpacing: 0.4, textTransform: 'uppercase' }}>In Progress</span>
           </div>
           <div style={{ fontSize: 9, opacity: 0.45, marginTop: 2, fontFamily: 'Space Mono, monospace' }}>Coming soon</div>
@@ -1418,9 +1476,10 @@ function MLIntelligenceTab() {
               border: `1px solid ${selectedCtx === ck.key ? ck.color : 'rgba(255,255,255,0.09)'}`,
               color: selectedCtx === ck.key ? ck.color : 'rgba(255,255,255,0.3)',
               fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif', transition: 'all 0.15s',
-              display: 'flex', alignItems: 'center', gap: 5,
+              display: 'flex', alignItems: 'center', gap: 6,
             }}>
-            <span>{ck.icon}</span> {ck.label}
+            <CtxIcon paths={ck.IconPaths} color={selectedCtx === ck.key ? ck.color : 'rgba(255,255,255,0.3)'} size={13} />
+            {ck.label}
           </button>
         ))}
       </div>
@@ -1428,7 +1487,9 @@ function MLIntelligenceTab() {
       {/* Loading / Error */}
       {loading && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>
-          <div style={{ fontSize: 28, marginBottom: 10, animation: 'spin 1.2s linear infinite', display: 'inline-block' }}>⚙️</div>
+          <div style={{ fontSize: 28, marginBottom: 10, animation: 'spin 1.2s linear infinite', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CtxIcon paths={PATHS.RefreshCw} color="rgba(245,158,11,0.5)" size={28} />
+          </div>
           <div>Loading ML predictions from MongoDB…</div>
         </div>
       )}
@@ -1538,11 +1599,13 @@ export default function Swot() {
           flex: 1; padding: 10px 8px; border-radius: 9px; border: 1px solid transparent;
           background: transparent; cursor: pointer; font-family: 'Sora', sans-serif;
           font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.36);
-          transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+          transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
           min-height: 44px;
         }
         .tab-btn.active { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.24); color: #f59e0b; }
+        .tab-btn.active svg { stroke: #f59e0b; }
         .tab-btn:not(.active):hover { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.04); }
+        .tab-btn:not(.active):hover svg { stroke: rgba(255,255,255,0.65); }
 
         /* Responsive grid helpers */
         .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 18px; }
@@ -1631,7 +1694,7 @@ export default function Swot() {
                 className={`tab-btn${activeTab === t.id ? ' active' : ''}`}
                 onClick={() => setActiveTab(t.id)}
               >
-                <t.Icon size={13} strokeWidth={2} />
+                <t.Icon size={15} strokeWidth={1.75} />
                 <span className="tab-label">{t.label}</span>
               </button>
             ))}
