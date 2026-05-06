@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../App';
 import api, { authApi } from '../api/client';
@@ -23,8 +23,15 @@ const STATUS_COLORS = {
   disabled: '#6b7280',
 };
 
-// ── Tabs ──────────────────────────────────────────────────────────────────────
-const TABS = [
+// ── Top-level tabs ────────────────────────────────────────────────────────────
+const TOP_TABS = [
+  { key: 'users',    label: 'User Management', icon: '👥' },
+  { key: 'progress', label: 'Survey Progress',  icon: '📊' },
+  { key: 'location', label: 'Live Location',    icon: '📍' },
+];
+
+// ── User sub-tabs ─────────────────────────────────────────────────────────────
+const USER_TABS = [
   { key: 'pending',  label: 'Pending',  icon: '⏳' },
   { key: 'approved', label: 'Approved', icon: '✅' },
   { key: 'rejected', label: 'Rejected', icon: '❌' },
@@ -39,6 +46,20 @@ function Badge({ color, children }) {
       fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
       background: `${color}22`, color, border: `1px solid ${color}44`,
     }}>{children}</span>
+  );
+}
+
+// ── Progress bar ──────────────────────────────────────────────────────────────
+function ProgressBar({ pct, color = '#10b981', height = 6 }) {
+  const clamped = Math.min(100, Math.max(0, pct || 0));
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 99, height, overflow: 'hidden' }}>
+      <div style={{
+        width: `${clamped}%`, height: '100%', borderRadius: 99,
+        background: clamped >= 80 ? '#10b981' : clamped >= 50 ? '#f59e0b' : '#ef4444',
+        transition: 'width 0.5s ease',
+      }} />
+    </div>
   );
 }
 
@@ -85,32 +106,6 @@ function ConfirmModal({ action, user, onConfirm, onCancel, loading }) {
         <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>
           <strong style={{ color: '#f59e0b' }}>{user?.username}</strong> — {user?.email}
         </div>
-
-        {(isApprove || action === 'edit') && (
-          <>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Role</label>
-              <select value={role} onChange={e => { setRole(e.target.value); setWard(''); setBooth(''); }}
-                style={{ width: '100%', marginTop: 6, background: 'var(--bg-3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13 }}>
-                {Object.entries(ROLE_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
-            {role === 'corporator' && (
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ward Name</label>
-                <input value={ward} onChange={e => setWard(e.target.value)} placeholder="e.g. PADAVU"
-                  style={{ width: '100%', marginTop: 6, boxSizing: 'border-box', background: 'var(--bg-3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13 }} />
-              </div>
-            )}
-            {role === 'booth_worker' && (
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Booth Number</label>
-                <input value={booth} onChange={e => setBooth(e.target.value)} placeholder="e.g. 31"
-                  style={{ width: '100%', marginTop: 6, boxSizing: 'border-box', background: 'var(--bg-3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13 }} />
-              </div>
-            )}
-          </>
-        )}
 
         {(isApprove || action === 'edit') && (
           <>
@@ -200,7 +195,6 @@ function UserCard({ user, onApprove, onReject, onEdit, onDisable, onEnable, tab 
       borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
       opacity: isDisabled ? 0.75 : 1,
     }}>
-      {/* Avatar */}
       <div style={{
         width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex',
         alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800,
@@ -211,7 +205,6 @@ function UserCard({ user, onApprove, onReject, onEdit, onDisable, onEnable, tab 
         {user.username?.[0]?.toUpperCase() || '?'}
       </div>
 
-      {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
           <span style={{ fontWeight: 700, color: isDisabled ? 'var(--text-3)' : 'var(--text-1)', fontSize: 14 }}>{user.username}</span>
@@ -229,7 +222,6 @@ function UserCard({ user, onApprove, onReject, onEdit, onDisable, onEnable, tab 
         </div>
       </div>
 
-      {/* Actions */}
       <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
         {tab === 'pending' && (
           <>
@@ -272,10 +264,7 @@ function UserCard({ user, onApprove, onReject, onEdit, onDisable, onEnable, tab 
   );
 }
 
-
 // ── Admin Re-Auth Gate ─────────────────────────────────────────────────────────
-// Shown every time the admin panel is visited — requires password re-entry.
-// Calls FastAPI /auth/verify-admin which checks the password against DB.
 function AdminReAuthGate({ onVerified }) {
   const { user: authUser } = useAuth();
   const [password, setPassword] = useState('');
@@ -322,7 +311,6 @@ function AdminReAuthGate({ onVerified }) {
           backdropFilter: 'blur(24px)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
         }}>
-          {/* Icon */}
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
             <div style={{
               width: 60, height: 60, borderRadius: '50%', margin: '0 auto 14px',
@@ -339,7 +327,6 @@ function AdminReAuthGate({ onVerified }) {
             </div>
           </div>
 
-          {/* Who is logged in */}
           <div style={{
             background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)',
             borderRadius: 10, padding: '10px 14px', marginBottom: 22,
@@ -391,17 +378,501 @@ function AdminReAuthGate({ onVerified }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SURVEY PROGRESS TAB
+// ═══════════════════════════════════════════════════════════════════════════════
+function SurveyProgressTab() {
+  const [workers, setWorkers]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error,   setError]     = useState('');
+  const [search,  setSearch]    = useState('');
+  const [sortBy,  setSortBy]    = useState('booth');
 
-// ── Main component ─────────────────────────────────────────────────────────────
-export default function AdminPanel() {
-  const { user: authUser } = useAuth();
-  const [verified, setVerified] = useState(false);       // re-auth gate
+  const fetchProgress = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const r = await api.get('/api/admin/survey-progress/');
+      if (r.data.success) setWorkers(r.data.workers || []);
+      else setError(r.data.message || 'Failed to load progress.');
+    } catch (e) {
+      setError(e.userMessage || 'Network error.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchProgress(); }, [fetchProgress]);
+
+  // ── filter + sort ──────────────────────────────────────────────────────────
+  const filtered = workers
+    .filter(w => {
+      const q = search.toLowerCase();
+      return !q ||
+        w.username?.toLowerCase().includes(q) ||
+        w.email?.toLowerCase().includes(q) ||
+        w.boothNumber?.includes(q) ||
+        w.wardName?.toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      if (sortBy === 'booth')      return parseInt(a.boothNumber) - parseInt(b.boothNumber);
+      if (sortBy === 'houses_pct') return b.housesPct - a.housesPct;
+      if (sortBy === 'voters_pct') return b.votersPct - a.votersPct;
+      if (sortBy === 'recent')     return new Date(b.lastSurveyAt || 0) - new Date(a.lastSurveyAt || 0);
+      return 0;
+    });
+
+  const totalHouses  = workers.reduce((s, w) => s + (w.totalHouses  || 0), 0);
+  const doneHouses   = workers.reduce((s, w) => s + (w.housesCompleted || 0), 0);
+  const totalVoters  = workers.reduce((s, w) => s + (w.totalVoters  || 0), 0);
+  const doneVoters   = workers.reduce((s, w) => s + (w.votersSurveyed || 0), 0);
+  const overallHPct  = totalHouses ? Math.round(doneHouses  / totalHouses  * 100) : 0;
+  const overallVPct  = totalVoters ? Math.round(doneVoters  / totalVoters  * 100) : 0;
+
+  const fmtDate = (iso) => {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }); }
+    catch { return iso; }
+  };
+
+  return (
+    <div>
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'Booth Workers', value: workers.length, color: '#10b981', icon: '👷' },
+          { label: 'Houses Done', value: `${doneHouses} / ${totalHouses}`, color: '#22d3ee', icon: '🏠', sub: `${overallHPct}%` },
+          { label: 'Voters Surveyed', value: `${doneVoters} / ${totalVoters}`, color: '#a78bfa', icon: '🗳️', sub: `${overallVPct}%` },
+          { label: 'Active Today', value: workers.filter(w => w.lastSurveyAt && new Date(w.lastSurveyAt) > new Date(Date.now() - 86400000)).length, color: '#f59e0b', icon: '⚡' },
+        ].map(({ label, value, color, icon, sub }) => (
+          <div key={label} style={{
+            background: `${color}11`, border: `1px solid ${color}33`,
+            borderRadius: 12, padding: '14px 16px',
+          }}>
+            <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color, fontFamily: 'var(--font-display)' }}>{value}</div>
+            {sub && <div style={{ fontSize: 12, color, fontWeight: 700 }}>{sub} complete</div>}
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Overall bars */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'Overall House Coverage', pct: overallHPct, color: '#22d3ee' },
+          { label: 'Overall Voter Coverage', pct: overallVPct, color: '#a78bfa' },
+        ].map(({ label, pct, color }) => (
+          <div key={label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '12px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 600 }}>{label}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color }}>{pct}%</span>
+            </div>
+            <ProgressBar pct={pct} color={color} height={8} />
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name, email, booth, ward…"
+          style={{ flex: 1, minWidth: 200, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-1)', fontSize: 13 }}
+        />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-2)', fontSize: 13 }}>
+          <option value="booth">Sort: Booth No</option>
+          <option value="houses_pct">Sort: Houses %</option>
+          <option value="voters_pct">Sort: Voters %</option>
+          <option value="recent">Sort: Recently Active</option>
+        </select>
+        <button onClick={fetchProgress} disabled={loading}
+          style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13 }}>
+          {loading ? '⟳' : '↻ Refresh'}
+        </button>
+      </div>
+
+      {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>⚠ {error}</div>}
+
+      {loading ? (
+        <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 40 }}>Loading progress…</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 40 }}>No workers found.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filtered.map(w => (
+            <div key={w.email} style={{
+              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 14, padding: '14px 18px',
+            }}>
+              {/* Header row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: '50%', background: 'rgba(16,185,129,0.15)',
+                  border: '1px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: 15, fontWeight: 800, color: '#10b981', flexShrink: 0,
+                }}>
+                  {w.username?.[0]?.toUpperCase() || '?'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text-1)', fontSize: 14 }}>{w.username}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{w.email}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Badge color="#10b981">Booth {w.boothNumber}</Badge>
+                  {w.wardName && <Badge color="#22d3ee">{w.wardName}</Badge>}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                  Last active: {fmtDate(w.lastSurveyAt)}
+                </div>
+              </div>
+
+              {/* Progress bars */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                {/* Houses */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600 }}>🏠 Houses Surveyed</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#22d3ee' }}>
+                      {w.housesCompleted} <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>/ {w.totalHouses}</span>
+                    </span>
+                  </div>
+                  <ProgressBar pct={w.housesPct} height={8} />
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4, textAlign: 'right' }}>{w.housesPct}% complete</div>
+                </div>
+
+                {/* Voters */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600 }}>🗳️ Voters Surveyed</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#a78bfa' }}>
+                      {w.votersSurveyed} <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>/ {w.totalVoters}</span>
+                    </span>
+                  </div>
+                  <ProgressBar pct={w.votersPct} height={8} />
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4, textAlign: 'right' }}>{w.votersPct}% complete</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOCATION TRACKING TAB
+// ═══════════════════════════════════════════════════════════════════════════════
+function LocationTab() {
+  const [liveWorkers, setLiveWorkers] = useState([]);
+  const [selected,    setSelected]    = useState(null);   // email
+  const [history,     setHistory]     = useState([]);
+  const [dates,       setDates]       = useState([]);
+  const [selDate,     setSelDate]     = useState('');
+  const [loading,     setLoading]     = useState(true);
+  const [histLoading, setHistLoading] = useState(false);
+  const [error,       setError]       = useState('');
+  const mapRef   = useRef(null);
+  const leafletRef = useRef(null);  // holds { map, markers, polyline }
+
+  // ── Fetch live locations ──────────────────────────────────────────────────
+  const fetchLive = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const r = await api.get('/api/admin/locations/?mode=live');
+      if (r.data.success) setLiveWorkers(r.data.workers || []);
+      else setError(r.data.message || 'Failed to load locations.');
+    } catch (e) {
+      setError(e.userMessage || 'Network error.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchLive(); }, [fetchLive]);
+
+  // ── Auto-refresh live every 60s ──────────────────────────────────────────
+  useEffect(() => {
+    const id = setInterval(() => { if (!selected) fetchLive(); }, 60000);
+    return () => clearInterval(id);
+  }, [selected, fetchLive]);
+
+  // ── Fetch dates for selected worker ──────────────────────────────────────
+  const fetchDates = useCallback(async (email) => {
+    try {
+      const r = await api.get(`/api/admin/location-dates/?email=${encodeURIComponent(email)}`);
+      if (r.data.success) {
+        setDates(r.data.dates || []);
+        if (r.data.dates?.length) setSelDate(r.data.dates[0]);
+      }
+    } catch {}
+  }, []);
+
+  // ── Fetch history for selected worker + date ──────────────────────────────
+  const fetchHistory = useCallback(async (email, date) => {
+    if (!email) return;
+    setHistLoading(true);
+    try {
+      const params = `?mode=history&email=${encodeURIComponent(email)}${date ? `&date=${date}` : ''}`;
+      const r = await api.get(`/api/admin/locations/${params}`);
+      if (r.data.success) setHistory(r.data.pings || []);
+    } catch {}
+    setHistLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (selected) {
+      fetchDates(selected);
+      setHistory([]);
+    }
+  }, [selected, fetchDates]);
+
+  useEffect(() => {
+    if (selected && selDate) fetchHistory(selected, selDate);
+  }, [selected, selDate, fetchHistory]);
+
+  // ── Leaflet map initialisation ────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (leafletRef.current) return;  // already initialised
+
+    // Dynamically load Leaflet CSS + JS
+    const loadLeaflet = () => {
+      return new Promise((resolve) => {
+        if (window.L) { resolve(); return; }
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    };
+
+    loadLeaflet().then(() => {
+      const L = window.L;
+      const map = L.map(mapRef.current, { zoomControl: true }).setView([12.87, 74.84], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map);
+      leafletRef.current = { map, markers: [], polyline: null };
+    });
+
+    return () => {
+      if (leafletRef.current?.map) {
+        leafletRef.current.map.remove();
+        leafletRef.current = null;
+      }
+    };
+  }, []);
+
+  // ── Update map when live data or history changes ──────────────────────────
+  useEffect(() => {
+    const L = window.L;
+    const lf = leafletRef.current;
+    if (!L || !lf) return;
+
+    const { map } = lf;
+
+    // Clear existing markers + polyline
+    lf.markers.forEach(m => map.removeLayer(m));
+    lf.markers = [];
+    if (lf.polyline) { map.removeLayer(lf.polyline); lf.polyline = null; }
+
+    if (selected && history.length > 0) {
+      // History mode — draw path + markers
+      const latlngs = history.map(p => [p.lat, p.lng]);
+      lf.polyline = L.polyline(latlngs, { color: '#a78bfa', weight: 3, opacity: 0.8 }).addTo(map);
+
+      history.forEach((p, i) => {
+        const isLast  = i === history.length - 1;
+        const icon = L.divIcon({
+          html: `<div style="width:${isLast?16:10}px;height:${isLast?16:10}px;background:${isLast?'#10b981':'#a78bfa'};border:2px solid #fff;border-radius:50%;"></div>`,
+          className: '',
+          iconAnchor: [isLast ? 8 : 5, isLast ? 8 : 5],
+        });
+        const marker = L.marker([p.lat, p.lng], { icon })
+          .addTo(map)
+          .bindPopup(`<b>${isLast ? '📍 Latest' : `#${i + 1}`}</b><br>${new Date(p.timestamp).toLocaleTimeString('en-IN')}<br>Accuracy: ${p.accuracy ? Math.round(p.accuracy) + 'm' : 'N/A'}`);
+        lf.markers.push(marker);
+      });
+
+      map.fitBounds(latlngs, { padding: [40, 40] });
+    } else if (!selected && liveWorkers.length > 0) {
+      // Live mode — one pin per worker
+      const validWorkers = liveWorkers.filter(w => w.lat && w.lng);
+      validWorkers.forEach(w => {
+        const isRecent = w.timestamp && (Date.now() - new Date(w.timestamp)) < 3600000;
+        const icon = L.divIcon({
+          html: `<div style="background:${isRecent?'#10b981':'#6b7280'};color:#fff;padding:3px 7px;border-radius:8px;font-size:11px;font-weight:700;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">B${w.booth||'?'}</div>`,
+          className: '',
+          iconAnchor: [20, 14],
+        });
+        const marker = L.marker([w.lat, w.lng], { icon })
+          .addTo(map)
+          .bindPopup(`<b>${w.username}</b> (Booth ${w.booth})<br>${w.email}<br>Last seen: ${w.timestamp ? new Date(w.timestamp).toLocaleString('en-IN') : '—'}<br>Accuracy: ${w.accuracy ? Math.round(w.accuracy) + 'm' : 'N/A'}`);
+        lf.markers.push(marker);
+      });
+
+      if (validWorkers.length > 0) {
+        const bounds = validWorkers.map(w => [w.lat, w.lng]);
+        if (bounds.length === 1) map.setView(bounds[0], 15);
+        else map.fitBounds(bounds, { padding: [40, 40] });
+      }
+    }
+  }, [liveWorkers, selected, history]);
+
+  const fmtTime = (iso) => {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }); }
+    catch { return iso; }
+  };
+
+  const minutesAgo = (iso) => {
+    if (!iso) return null;
+    const diff = Math.floor((Date.now() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+    return `${Math.floor(diff / 1440)}d ago`;
+  };
+
+  return (
+    <div>
+      {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>⚠ {error}</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16, minHeight: 520 }}>
+        {/* Left panel — worker list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-2)' }}>
+              {selected ? '← Workers' : `Live Locations (${liveWorkers.length})`}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {selected && (
+                <button onClick={() => { setSelected(null); setHistory([]); setDates([]); }}
+                  style={{ padding: '4px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer' }}>
+                  ← All Workers
+                </button>
+              )}
+              <button onClick={fetchLive} disabled={loading}
+                style={{ padding: '4px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer' }}>
+                {loading ? '⟳' : '↻'}
+              </button>
+            </div>
+          </div>
+
+          {/* History date picker (shown when worker selected) */}
+          {selected && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location History</div>
+              {dates.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-3)' }}>No history available.</div>
+              ) : (
+                <select value={selDate} onChange={e => setSelDate(e.target.value)}
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 10px', color: 'var(--text-1)', fontSize: 13 }}>
+                  {dates.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              )}
+              {histLoading && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>Loading history…</div>}
+              {!histLoading && history.length > 0 && (
+                <div style={{ fontSize: 11, color: '#a78bfa', marginTop: 6 }}>
+                  {history.length} pings recorded · path drawn on map
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Worker cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', maxHeight: 440 }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 24 }}>Loading…</div>
+            ) : liveWorkers.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 24, fontSize: 12 }}>
+                No location data yet. Workers share location when they open the app.
+              </div>
+            ) : liveWorkers.map(w => {
+              const ago      = minutesAgo(w.timestamp);
+              const isRecent = w.timestamp && (Date.now() - new Date(w.timestamp)) < 3600000;
+              const isSelected = selected === w.email;
+
+              return (
+                <div key={w.email} onClick={() => setSelected(isSelected ? null : w.email)}
+                  style={{
+                    background: isSelected ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.02)',
+                    border: isSelected ? '1px solid rgba(167,139,250,0.4)' : '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 10, padding: '10px 12px', cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <div style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                      background: isRecent ? '#10b981' : '#6b7280',
+                      boxShadow: isRecent ? '0 0 6px #10b981' : 'none',
+                    }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1)' }}>{w.username}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                        Booth {w.booth || '—'} · {ago}
+                      </div>
+                    </div>
+                    {isSelected && <span style={{ color: '#a78bfa', fontSize: 12 }}>📋 History</span>}
+                    {!isSelected && w.lat && w.lng && <span style={{ color: '#10b981', fontSize: 12 }}>📍</span>}
+                  </div>
+                  {w.lat && w.lng && (
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 5 }}>
+                      {w.lat.toFixed(5)}, {w.lng.toFixed(5)}
+                      {w.accuracy ? ` · ±${Math.round(w.accuracy)}m` : ''}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right — map */}
+        <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', position: 'relative', minHeight: 480 }}>
+          <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: 480 }} />
+          {!window.L && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(9,14,28,0.85)', color: 'var(--text-3)', fontSize: 13 }}>
+              Loading map…
+            </div>
+          )}
+          {/* Map legend */}
+          <div style={{ position: 'absolute', bottom: 16, right: 16, background: 'rgba(9,14,28,0.85)', backdropFilter: 'blur(8px)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: 'var(--text-3)', lineHeight: 1.8, border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div><span style={{ color: '#10b981' }}>●</span> Active (last 1h)</div>
+            <div><span style={{ color: '#6b7280' }}>●</span> Inactive</div>
+            {selected && <div><span style={{ color: '#a78bfa' }}>━</span> Location path</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* Last ping time note */}
+      <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+        ℹ️ Location is recorded only when a worker has the app open. Map auto-refreshes every 60 seconds.
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// USER MANAGEMENT TAB (original functionality)
+// ═══════════════════════════════════════════════════════════════════════════════
+function UserManagementTab() {
   const [data,    setData]    = useState({ pending: [], approved: [], rejected: [], disabled: [] });
   const [tab,     setTab]     = useState('pending');
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
   const [toast,   setToast]   = useState('');
-  const [modal,   setModal]   = useState(null);   // { action, user }
+  const [modal,   setModal]   = useState(null);
   const [acting,  setActing]  = useState(false);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
@@ -409,19 +880,12 @@ export default function AdminPanel() {
   const fetchUsers = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      // ── Ensure Django has a valid token via Authorization header ─────────
-      // The cc_token cookie is set on FastAPI's domain, not Django's domain.
-      // So we call authApi.me() (FastAPI) first to get a fresh JWT, then
-      // store it so client.js interceptor can add Authorization: Bearer.
       if (!sessionStorage.getItem('cc_token')) {
         try {
           const meRes = await authApi.me();
-          if (meRes.data?.token) {
-            sessionStorage.setItem('cc_token', meRes.data.token);
-          }
+          if (meRes.data?.token) sessionStorage.setItem('cc_token', meRes.data.token);
         } catch {}
       }
-
       const r = await api.get('/api/admin/users/');
       if (r.data.success) setData(r.data);
       else setError(r.data.message || 'Failed to load users.');
@@ -442,14 +906,14 @@ export default function AdminPanel() {
       let r;
       if (action === 'approve') {
         r = await api.post('/api/admin/approve/', { email: user.email, role, ward, booth });
+      } else if (action === 'edit') {
+        r = await api.post('/api/admin/update-role/', { email: user.email, role, ward, booth });
       } else if (action === 'reject') {
         r = await api.post('/api/admin/reject/',  { email: user.email, reason });
       } else if (action === 'disable') {
         r = await api.post('/api/admin/disable/', { email: user.email, reason });
       } else if (action === 'enable') {
         r = await api.post('/api/admin/enable/',  { email: user.email });
-      } else {
-        r = await api.post('/api/admin/update-role/', { email: user.email, role, ward, booth });
       }
       if (r.data.success) {
         showToast(r.data.message);
@@ -465,35 +929,10 @@ export default function AdminPanel() {
     }
   };
 
-  // ── Re-auth gate — shown before panel content on every visit ────────────────
-  if (!verified) {
-    // If not admin at all, skip the gate and fall through to Access Denied below
-    if (authUser && ['mla', 'pa'].includes(authUser.role)) {
-      return <AdminReAuthGate onVerified={() => setVerified(true)} />;
-    }
-  }
-
-  // Access guard
-  if (authUser && !['mla', 'pa'].includes(authUser.role)) {
-    return (
-      <div className="page">
-        <Navbar />
-        <div className="page-inner" style={{ textAlign: 'center', paddingTop: 80 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-          <h2 style={{ color: 'var(--text-1)' }}>Access Denied</h2>
-          <p style={{ color: 'var(--text-3)' }}>This page is only accessible to MLA and Office P.A accounts.</p>
-        </div>
-      </div>
-    );
-  }
-
   const tabData = data[tab] || [];
 
   return (
-    <div className="page">
-      <Navbar />
-
-      {/* Toast */}
+    <>
       {toast && (
         <div style={{
           position: 'fixed', top: 20, right: 20, zIndex: 9999,
@@ -513,94 +952,194 @@ export default function AdminPanel() {
         />
       )}
 
-      <div className="page-inner" style={{ maxWidth: 860 }}>
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+        {[
+          { label: 'Pending',  count: data.pending?.length  || 0, color: '#f59e0b' },
+          { label: 'Approved', count: data.approved?.length || 0, color: '#10b981' },
+          { label: 'Rejected', count: data.rejected?.length || 0, color: '#ef4444' },
+          { label: 'Disabled', count: data.disabled?.length || 0, color: '#6b7280' },
+        ].map(({ label, count, color }) => (
+          <div key={label} style={{
+            background: `${color}11`, border: `1px solid ${color}33`,
+            borderRadius: 12, padding: '14px 18px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color, fontFamily: 'var(--font-display)' }}>{count}</div>
+            <div style={{ fontSize: 11, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {USER_TABS.map(({ key, label, icon }) => (
+          <button key={key} onClick={() => setTab(key)} style={{
+            padding: '8px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            transition: 'all 0.15s',
+            background: tab === key ? '#f59e0b' : 'rgba(255,255,255,0.05)',
+            border: tab === key ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+            color: tab === key ? '#090e1c' : 'var(--text-2)',
+            minHeight: 40,
+          }}>
+            {icon} {label}
+            {data[key]?.length > 0 && (
+              <span style={{
+                marginLeft: 6, background: tab === key ? '#090e1c' : STATUS_COLORS[key] + '33',
+                color: tab === key ? '#090e1c' : STATUS_COLORS[key],
+                borderRadius: 10, padding: '1px 6px', fontSize: 11, fontWeight: 800,
+              }}>{data[key].length}</span>
+            )}
+          </button>
+        ))}
+        <button onClick={fetchUsers} disabled={loading}
+          style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13, minHeight: 40 }}>
+          {loading ? '⟳' : '↻ Refresh'}
+        </button>
+      </div>
+
+      {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
+
+      {loading ? (
+        <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 40 }}>Loading users…</div>
+      ) : tabData.length === 0 ? (
+        <div style={{
+          textAlign: 'center', color: 'var(--text-3)', padding: 48,
+          background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)',
+        }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>
+            {tab === 'pending' ? '✅' : tab === 'approved' ? '👥' : '📋'}
+          </div>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>
+            {tab === 'pending' ? 'No pending requests' : tab === 'approved' ? 'No approved users' : tab === 'disabled' ? 'No disabled users' : 'No rejected users'}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {tabData.map(u => (
+            <UserCard
+              key={u._id || u.email}
+              user={u}
+              tab={tab}
+              onApprove={user => setModal({ action: 'approve', user })}
+              onReject={user  => setModal({ action: 'reject',  user })}
+              onEdit={user    => setModal({ action: 'edit',    user })}
+              onDisable={user => setModal({ action: 'disable', user })}
+              onEnable={user  => setModal({ action: 'enable',  user })}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOCATION PING HOOK — used in the app root / wherever you want to emit pings
+// Import and call useLocationPing() inside any component that should be active
+// while the worker has the app open.
+// ═══════════════════════════════════════════════════════════════════════════════
+export function useLocationPing(intervalMs = 45000) {
+  const { user } = useAuth();
+  const pingRef = useRef(null);
+
+  useEffect(() => {
+    if (!user || !['booth_worker', 'corporator'].includes(user.role)) return;
+    if (user.status !== 'approved') return;
+
+    const sendPing = () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          api.post('/api/location/ping/', {
+            lat:      pos.coords.latitude,
+            lng:      pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          }).catch(() => {});
+        },
+        () => {},  // silently ignore denied / unavailable
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
+      );
+    };
+
+    sendPing();  // immediate first ping on app open
+    pingRef.current = setInterval(sendPing, intervalMs);
+
+    return () => {
+      if (pingRef.current) clearInterval(pingRef.current);
+    };
+  }, [user, intervalMs]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN ADMIN PANEL
+// ═══════════════════════════════════════════════════════════════════════════════
+export default function AdminPanel() {
+  const { user: authUser } = useAuth();
+  const [verified, setVerified] = useState(false);
+  const [topTab,   setTopTab]   = useState('users');
+
+  // ── Re-auth gate ──────────────────────────────────────────────────────────
+  if (!verified) {
+    if (authUser && ['mla', 'pa'].includes(authUser.role)) {
+      return <AdminReAuthGate onVerified={() => setVerified(true)} />;
+    }
+  }
+
+  // ── Access guard ──────────────────────────────────────────────────────────
+  if (authUser && !['mla', 'pa'].includes(authUser.role)) {
+    return (
+      <div className="page">
+        <Navbar />
+        <div className="page-inner" style={{ textAlign: 'center', paddingTop: 80 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+          <h2 style={{ color: 'var(--text-1)' }}>Access Denied</h2>
+          <p style={{ color: 'var(--text-3)' }}>This page is only accessible to MLA and Office P.A accounts.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <Navbar />
+
+      <div className="page-inner" style={{ maxWidth: 1100 }}>
         {/* Header */}
         <div className="page-header anim-fade-up" style={{ marginBottom: 28 }}>
           <span className="badge badge-gold mb-8">Admin Panel</span>
-          <h1 style={{ color: 'var(--text-1)' }}>User Access Management</h1>
+          <h1 style={{ color: 'var(--text-1)' }}>
+            {topTab === 'users'    ? 'User Access Management'
+           : topTab === 'progress' ? 'Survey Progress Tracker'
+           :                        'Live Location Tracking'}
+          </h1>
           <p style={{ color: 'var(--text-3)', fontSize: 13 }}>
-            Review, approve and manage access for Corporators and Booth Workers
+            {topTab === 'users'    ? 'Review, approve and manage access for Corporators and Booth Workers'
+           : topTab === 'progress' ? 'Monitor how many houses and voters each booth worker has surveyed'
+           :                        'View real-time and historical locations of booth workers while app is open'}
           </p>
         </div>
 
-        {/* Summary cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-          {[
-            { label: 'Pending',  count: data.pending?.length  || 0, color: '#f59e0b' },
-            { label: 'Approved', count: data.approved?.length || 0, color: '#10b981' },
-            { label: 'Rejected', count: data.rejected?.length || 0, color: '#ef4444' },
-            { label: 'Disabled', count: data.disabled?.length || 0, color: '#6b7280' },
-          ].map(({ label, count, color }) => (
-            <div key={label} style={{
-              background: `${color}11`, border: `1px solid ${color}33`,
-              borderRadius: 12, padding: '14px 18px', textAlign: 'center',
-            }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color, fontFamily: 'var(--font-display)' }}>{count}</div>
-              <div style={{ fontSize: 11, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          {TABS.map(({ key, label, icon }) => (
-            <button key={key} onClick={() => setTab(key)} style={{
-              padding: '8px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+        {/* Top-level navigation tabs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 28, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 0 }}>
+          {TOP_TABS.map(({ key, label, icon }) => (
+            <button key={key} onClick={() => setTopTab(key)} style={{
+              padding: '10px 20px', borderRadius: '10px 10px 0 0', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              background: topTab === key ? 'rgba(245,158,11,0.12)' : 'transparent',
+              border: topTab === key ? '1px solid rgba(245,158,11,0.35)' : '1px solid transparent',
+              borderBottom: topTab === key ? '1px solid rgba(9,14,28,1)' : '1px solid transparent',
+              color: topTab === key ? '#f59e0b' : 'var(--text-3)',
+              marginBottom: -1,
               transition: 'all 0.15s',
-              background: tab === key ? '#f59e0b' : 'rgba(255,255,255,0.05)',
-              border: tab === key ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
-              color: tab === key ? '#090e1c' : 'var(--text-2)',
-              minHeight: 40,
             }}>
               {icon} {label}
-              {data[key]?.length > 0 && (
-                <span style={{
-                  marginLeft: 6, background: tab === key ? '#090e1c' : STATUS_COLORS[key] + '33',
-                  color: tab === key ? '#090e1c' : STATUS_COLORS[key],
-                  borderRadius: 10, padding: '1px 6px', fontSize: 11, fontWeight: 800,
-                }}>{data[key].length}</span>
-              )}
             </button>
           ))}
-          <button onClick={fetchUsers} disabled={loading}
-            style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-2)', fontSize: 13, minHeight: 40 }}>
-            {loading ? '⟳' : '↻ Refresh'}
-          </button>
         </div>
 
-        {/* User list */}
-        {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
-
-        {loading ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: 40 }}>Loading users…</div>
-        ) : tabData.length === 0 ? (
-          <div style={{
-            textAlign: 'center', color: 'var(--text-3)', padding: 48,
-            background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)',
-          }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>
-              {tab === 'pending' ? '✅' : tab === 'approved' ? '👥' : '📋'}
-            </div>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>
-              {tab === 'pending' ? 'No pending requests' : tab === 'approved' ? 'No approved users' : tab === 'disabled' ? 'No disabled users' : 'No rejected users'}
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {tabData.map(u => (
-              <UserCard
-                key={u._id || u.email}
-                user={u}
-                tab={tab}
-                onApprove={user => setModal({ action: 'approve', user })}
-                onReject={user  => setModal({ action: 'reject',  user })}
-                onEdit={user    => setModal({ action: 'edit',    user })}
-                onDisable={user => setModal({ action: 'disable', user })}
-                onEnable={user  => setModal({ action: 'enable',  user })}
-              />
-            ))}
-          </div>
-        )}
+        {/* Tab content */}
+        {topTab === 'users'    && <UserManagementTab />}
+        {topTab === 'progress' && <SurveyProgressTab />}
+        {topTab === 'location' && <LocationTab />}
       </div>
     </div>
   );

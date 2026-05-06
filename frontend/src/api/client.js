@@ -1,8 +1,6 @@
 import axios from 'axios';
 
 // ── Axios instance ───────────────────────────────────────────────────────────
-// baseURL is empty so every path like /api/... goes through CRA proxy.
-// Add  "proxy": "http://localhost:8000"  to package.json and restart npm start.
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com',
   withCredentials: true,
@@ -14,11 +12,7 @@ const authClient = axios.create({
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
-// Attach JWT Authorization header to FastAPI (auth service) requests.
-// The cc_token cookie is httpOnly + samesite=none on FastAPI's own domain,
-// so it IS sent automatically via withCredentials on same-origin calls, but
-// on cross-origin (different Render subdomain) the browser may block it.
-// Sending it as a Bearer header is the reliable cross-origin fallback.
+
 authClient.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('cc_token');
   if (token) {
@@ -33,7 +27,7 @@ let csrfReady = false;
 async function ensureCsrf() {
   if (csrfReady) return;
   try {
-    await api.get('/api/csrf/');   // sets csrftoken cookie in browser
+    await api.get('/api/csrf/');
   } catch (e) {
     console.warn('CSRF fetch failed:', e.message);
   }
@@ -47,17 +41,11 @@ function getCookie(name) {
   return match ? decodeURIComponent(match[2]) : '';
 }
 
-// Attach CSRF token + JWT Authorization header to Django requests
-// The cc_token cookie is set by FastAPI on its own domain and is NOT sent to Django
-// (different subdomain). So we read the token from sessionStorage and send it
-// as Authorization: Bearer <token> — which Django's _user_from_request supports.
 api.interceptors.request.use(async (config) => {
-  // Always attach JWT if available
   const token = sessionStorage.getItem('cc_token');
   if (token) {
     config.headers['Authorization'] = `Bearer ${token}`;
   }
-  // CSRF for state-changing requests
   if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
     await ensureCsrf();
     config.headers['X-CSRFToken'] = getCookie('csrftoken');
@@ -65,7 +53,6 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Global error interceptor — attach a friendly message for UI display
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -94,7 +81,6 @@ export const authApi = {
     return authClient.post('/auth/logout');
   },
   me:          ()     => authClient.get('/auth/me'),
-  // Re-authentication gate for the Admin Panel — calls FastAPI /auth/verify-admin
   verifyAdmin: (data) => authClient.post('/auth/verify-admin', data),
 };
 
@@ -109,19 +95,10 @@ export const dashboardApi = {
 
 // ── Survey ───────────────────────────────────────────────────────────────────
 export const surveyApi = {
-  // Get next serial number
-  serialNumber: () => api.get('/api/serial-number/'),
-
-  // Save a single survey record (main household member form)
-  save: (data) => api.post('/api/save-survey/', data),
-
-  // Save first-time voters who will be eligible by 2028
-  // payload: { futureVoters: [{name, dob, gender}], houseNumber, wardNumber, address }
-  saveFutureVoters: (data) => api.post('/api/save-future-voters/', data),
-
-  // Save deceased household members
-  // payload: { deceased: [{name, voterid, gender, ageAtDeath, deathCertificate, houseNumber, address}] }
-  saveDeceased: (data) => api.post('/api/save-deceased/', data),
+  serialNumber:    () => api.get('/api/serial-number/'),
+  save:            (data) => api.post('/api/save-survey/', data),
+  saveFutureVoters:(data) => api.post('/api/save-future-voters/', data),
+  saveDeceased:    (data) => api.post('/api/save-deceased/', data),
 };
 
 // ── Schemes ──────────────────────────────────────────────────────────────────
@@ -142,22 +119,14 @@ export const dataApi = {
     });
   },
 
-  // Update a voter record in MongoDB (MainB.CollDB)
-  // payload: { voter_id: "ABC123", "Voter Name": "New Name", "Age": "30", ... }
-  updateVoter: (payload) => api.post('/api/update-voter/', payload),
-
-  // Update a survey record in MongoDB (SurveyDataBase.SurveyRecords)
-  // payload: { record_id: "64a1b2...", firstName: "Ravi", wardNumber: "5", ... }
+  updateVoter:  (payload) => api.post('/api/update-voter/',  payload),
   updateSurvey: (payload) => api.post('/api/update-survey/', payload),
 };
 
 // ── Voters ───────────────────────────────────────────────────────────────────
 export const voterApi = {
-  // Load full alphabetical list on page mount (up to 2 000 voters)
   list:   (limit = 2000) => api.get('/api/voters/', { params: { limit } }),
-  // Keyword search
   search: (q, page = 1)  => api.get('/api/voters/', { params: { q, page } }),
-  // Family members by house number
   family: (house)        => api.get('/api/voter-family/', { params: { house } }),
 };
 
@@ -166,24 +135,40 @@ export const wardsApi = {
   list: () => api.get('/api/wards/'),
 };
 
-export default api;
-// ── ML Intelligence — SWOT from QueryStack collections ───────────────────────
+// ── ML Intelligence ───────────────────────────────────────────────────────────
 export const mlApi = {
-  // Constituency-level: GET /api/ml/constituency-swot/
   constituencySwot: () => api.get('/api/ml/constituency-swot/'),
-
-  // Ward-level: GET /api/ml/ward-swot/?ward=<wardNumber>
   wardSwot: (wardNumber) => api.get('/api/ml/ward-swot/', { params: { ward: wardNumber } }),
 };
 
-// ── AI Insights — Anthropic-powered analysis ─────────────────────────────────
+// ── AI Insights ───────────────────────────────────────────────────────────────
 export const aiApi = {
-  // Per-query deep insight — POST /api/ai/query-insight/
-  // payload: { query, columns, count, percentage, label, routeKey, predictedContext }
   queryInsight: (payload) => api.post('/api/ai/query-insight/', payload),
-
-  // Constituency bird's eye view — POST /api/ai/birdseye-view/
-  // payload: { contextKey, queries, totalVoters }
   birdseyeView: (payload) => api.post('/api/ai/birdseye-view/', payload),
 };
 
+// ── Admin — Survey Progress & Location Tracking (MLA / PA only) ──────────────
+export const adminApi = {
+  // Survey progress for all booth workers (or filtered by ?booth=N or ?ward=N)
+  surveyProgress: (params = {}) => api.get('/api/admin/survey-progress/', { params }),
+
+  // Live location: latest ping per worker
+  liveLocations:  (email = '')  =>
+    api.get('/api/admin/locations/', { params: { mode: 'live', ...(email ? { email } : {}) } }),
+
+  // History: all pings for one worker on a given date
+  locationHistory:(email, date = '') =>
+    api.get('/api/admin/locations/', { params: { mode: 'history', email, ...(date ? { date } : {}) } }),
+
+  // Distinct dates a worker sent pings (for the date-picker)
+  locationDates:  (email)       => api.get('/api/admin/location-dates/', { params: { email } }),
+};
+
+// ── Location Ping — called by worker client automatically ─────────────────────
+// Used by useLocationPing() hook exported from AdminPanel.jsx.
+// Direct api.post('/api/location/ping/', {...}) is fine too.
+export const locationApi = {
+  ping: (lat, lng, accuracy) => api.post('/api/location/ping/', { lat, lng, accuracy }),
+};
+
+export default api;
