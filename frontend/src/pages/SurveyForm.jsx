@@ -565,6 +565,13 @@ export default function SurveyForm() {
   const aadhaarFileRef   = useRef(null);
   const aadhaarCameraRef = useRef(null);
 
+  // ── SIR application form photo ─────────────────────────────────────────────
+  const [sirFormPhoto,    setSirFormPhoto]    = useState(null);   // File object
+  const [sirFormPreview,  setSirFormPreview]  = useState(null);   // data-URL for preview
+  const [sirFormUploading, setSirFormUploading] = useState(false);
+  const sirFormFileRef   = useRef(null);
+  const sirFormCameraRef = useRef(null);
+
   // ── SIR — manual check + auto-populated from save response ─────────
   const [sirResult,    setSirResult]   = useState(null);   // SIR data from last save / manual check
   const [showSir,      setShowSir]     = useState(false);  // panel visible?
@@ -633,6 +640,26 @@ export default function SurveyForm() {
     setAadhaarPhoto(null); setAadhaarPreview(null);
     if (aadhaarFileRef.current)   aadhaarFileRef.current.value   = '';
     if (aadhaarCameraRef.current) aadhaarCameraRef.current.value = '';
+  };
+
+  // ── SIR form photo handler ────────────────────────────────────────────────
+  const handleSirFormPhoto = async (file) => {
+    if (!file) return;
+    setSirFormUploading(true);
+    try {
+      const compressed = await compressAadhaarPhoto(file, 1200, 0.80);
+      setSirFormPhoto(compressed);
+      const reader = new FileReader();
+      reader.onload = (e) => setSirFormPreview(e.target.result);
+      reader.readAsDataURL(compressed);
+    } finally {
+      setSirFormUploading(false);
+    }
+  };
+  const clearSirFormPhoto = () => {
+    setSirFormPhoto(null); setSirFormPreview(null);
+    if (sirFormFileRef.current)   sirFormFileRef.current.value   = '';
+    if (sirFormCameraRef.current) sirFormCameraRef.current.value = '';
   };
 
   const currentHouse   = lockedRef.current.houseNumber || form.houseNumber;
@@ -733,7 +760,7 @@ export default function SurveyForm() {
       console.log('[SurveyForm] submitting payload:', JSON.stringify(payload, null, 2));
 
       let surveyRes;
-      if (aadhaarPhoto) {
+      if (aadhaarPhoto || sirFormPhoto) {
         // ── Multipart upload via native fetch() ───────────────────────────────────────
         // axios cannot be used here: the api instance has a hard-coded
         // default  Content-Type: application/json  that survives every
@@ -754,7 +781,8 @@ export default function SurveyForm() {
 
         const fd = new FormData();
         fd.append('data', JSON.stringify(payload));
-        fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
+        if (aadhaarPhoto) fd.append('aadhaar_photo', aadhaarPhoto, aadhaarPhoto.name);
+        if (sirFormPhoto) fd.append('sir_form_photo', sirFormPhoto, sirFormPhoto.name);
 
         const rawRes = await fetch(`${BASE}/api/save-survey/`, {
           method:      'POST',
@@ -1379,89 +1407,21 @@ export default function SurveyForm() {
               </>}
               <Field label="Differently Abled?">{S('differentlyAbled',['No','Yes'])}</Field>
 
-              {/* ── Party Membership ── */}
-              <SectionDivider title="Party Membership" subtitle="Is this person a registered political party member?" color="linear-gradient(#f97316,#ef4444)" />
-              <Field label="Party Member?">
+              {/* ── BJP Membership ── */}
+              <SectionDivider title="BJP Membership" subtitle="Select this person's BJP membership status" color="linear-gradient(#f97316,#ef4444)" />
+              <Field label="BJP Membership">
                 <select className="input" value={form.partyMember}
                   onChange={e => {
                     const val = e.target.value;
                     setForm(p => ({ ...p, partyMember: val, partyMembershipId: '', bjpMember: null }));
                     setBjpCheckStatus(null);
                   }}>
-                  <option value="No">No — not a party member</option>
-                  <option value="Yes">Yes — registered party member</option>
+                  <option value="">— Select —</option>
+                  <option value="Already member">Already member</option>
+                  <option value="Interested">Interested</option>
+                  <option value="Not interested">Not interested</option>
                 </select>
               </Field>
-
-              {form.partyMember === 'Yes' && (
-                <>
-                  <Field label="Party Membership ID (Unique ID)" full>
-                    <div style={{ display:'flex', gap:8 }}>
-                      <input
-                        className="input"
-                        type="text"
-                        placeholder="Enter unique membership ID"
-                        value={form.partyMembershipId}
-                        onChange={e => {
-                          setForm(p => ({ ...p, partyMembershipId: e.target.value, bjpMember: null }));
-                          setBjpCheckStatus(null);
-                        }}
-                        style={{ flex:1 }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleCheckBjp}
-                        disabled={!form.partyMembershipId?.trim() || bjpCheckStatus === 'checking'}
-                        style={{
-                          background: 'rgba(249,115,22,0.12)',
-                          border: '1px solid rgba(249,115,22,0.4)',
-                          borderRadius: 8, padding: '0 14px',
-                          color: '#fb923c', fontSize: 12, fontWeight: 700,
-                          cursor: form.partyMembershipId?.trim() ? 'pointer' : 'not-allowed',
-                          whiteSpace: 'nowrap', opacity: form.partyMembershipId?.trim() ? 1 : 0.5,
-                          display: 'flex', alignItems: 'center', gap: 5,
-                        }}>
-                        {bjpCheckStatus === 'checking'
-                          ? <><span style={{ display:'inline-block', width:10, height:10, border:'2px solid #fb923c', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /> Checking…</>
-                          : '🔍 Check BJP'
-                        }
-                      </button>
-                    </div>
-                    {/* BJP check result badge */}
-                    {bjpCheckStatus && bjpCheckStatus !== 'checking' && (
-                      <div style={{ marginTop: 8 }}>
-                        {bjpCheckStatus === 'member' && (
-                          <div style={{
-                            display:'inline-flex', alignItems:'center', gap:7,
-                            background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.35)',
-                            borderRadius:20, padding:'5px 12px', fontSize:12, fontWeight:700, color:'#10b981',
-                          }}>
-                            ✓ Confirmed BJP Member
-                          </div>
-                        )}
-                        {bjpCheckStatus === 'not_member' && (
-                          <div style={{
-                            display:'inline-flex', alignItems:'center', gap:7,
-                            background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.3)',
-                            borderRadius:20, padding:'5px 12px', fontSize:12, fontWeight:700, color:'#f87171',
-                          }}>
-                            ✗ Not a BJP Member
-                          </div>
-                        )}
-                        {bjpCheckStatus === 'pending' && (
-                          <div style={{
-                            display:'inline-flex', alignItems:'center', gap:7,
-                            background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.3)',
-                            borderRadius:20, padding:'5px 12px', fontSize:12, fontWeight:700, color:'#fbbf24',
-                          }}>
-                            ⏳ DB not connected yet — ID saved, will verify once database is linked
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Field>
-                </>
-              )}
             </>}
           </div>
 
@@ -1681,6 +1641,73 @@ export default function SurveyForm() {
                           color:'#10b981', borderRadius:4, padding:'1px 5px', marginLeft:4 }}>✓</span>
                       )}
                     </button>
+                  )}
+                </div>
+
+                {/* Row 4: SIR Application Form Photo */}
+                <div style={{
+                  background:'rgba(34,211,238,0.04)',
+                  border:'1px solid rgba(34,211,238,0.18)',
+                  borderRadius:10, padding:'12px 14px',
+                }}>
+                  {/* Hidden file inputs */}
+                  <input ref={sirFormCameraRef} type="file" accept="image/*" capture="environment"
+                    style={{ display:'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleSirFormPhoto(f); }} />
+                  <input ref={sirFormFileRef} type="file" accept="image/*,application/pdf"
+                    style={{ display:'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleSirFormPhoto(f); }} />
+
+                  <div style={{ fontSize:12, fontWeight:700, color:'var(--text-2)', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    SIR Application Form <span style={{ fontWeight:400, color:'var(--text-3)', fontSize:11 }}>(optional)</span>
+                  </div>
+
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    <button type="button"
+                      onClick={() => sirFormCameraRef.current?.click()}
+                      disabled={sirFormUploading}
+                      style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.3)', borderRadius:8, padding:'7px 12px', color:'#22d3ee', fontSize:12, fontWeight:600, cursor:'pointer', flex:1, justifyContent:'center' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                      </svg>
+                      Click Photo
+                    </button>
+                    <button type="button"
+                      onClick={() => sirFormFileRef.current?.click()}
+                      disabled={sirFormUploading}
+                      style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(168,139,250,0.08)', border:'1px solid rgba(168,139,250,0.3)', borderRadius:8, padding:'7px 12px', color:'#a78bfa', fontSize:12, fontWeight:600, cursor:'pointer', flex:1, justifyContent:'center' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      Upload Form
+                    </button>
+                    {sirFormPhoto && (
+                      <button type="button" onClick={clearSirFormPhoto}
+                        style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.28)', borderRadius:8, padding:'7px 10px', color:'#f87171', fontSize:12, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  {sirFormUploading && (
+                    <div style={{ fontSize:11, color:'#22d3ee', display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
+                      <span style={{ display:'inline-block', width:9, height:9, border:'2px solid #22d3ee', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                      Processing…
+                    </div>
+                  )}
+
+                  {sirFormPreview && (
+                    <div style={{ marginTop:8, position:'relative', display:'inline-block', maxWidth:'100%' }}>
+                      <img src={sirFormPreview} alt="SIR form preview"
+                        style={{ maxWidth:'100%', maxHeight:160, borderRadius:8, border:'1px solid rgba(34,211,238,0.25)', objectFit:'contain', display:'block' }} />
+                      <div style={{ marginTop:4, fontSize:11, color:'rgba(255,255,255,0.35)' }}>
+                        ✓ {sirFormPhoto?.name} · {(sirFormPhoto?.size / 1024).toFixed(0)} KB
+                      </div>
+                    </div>
                   )}
                 </div>
 
