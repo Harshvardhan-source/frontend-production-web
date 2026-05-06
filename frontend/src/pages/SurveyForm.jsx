@@ -188,7 +188,9 @@ function blankForm(serialNo, wardNumber, locked = {}, prefill = {}) {
     maritalStatus:'', annualIncome:'',
     employmentStatus:'', employmentType:'',
     healthStatus:'Healthy', diseaseType:'', diseaseName:'',
-    differentlyAbled:'No', religion:'', community:'', subcategory:'',
+    differentlyAbled:'No',
+    partyMember:'No', partyMembershipId:'', bjpMember:null,
+    religion:'', community:'', subcategory:'',
     education:'', educationtype:'', minority:'No', student:'No',
     economicStatus:'',
     outstationResident:'No', outstationAddress:'', outstationCity:'', outstationState:'',
@@ -569,6 +571,11 @@ export default function SurveyForm() {
   const [sirMember,    setSirMember]   = useState('');     // name of checked member
   const [sirChecking,  setSirChecking] = useState(false);  // manual check in progress
 
+  // ── BJP membership check ─────────────────────────────────────────────
+  // null = not checked, 'pending' = no DB yet, 'member' = confirmed BJP member,
+  // 'not_member' = confirmed not a member, 'checking' = API call in progress
+  const [bjpCheckStatus, setBjpCheckStatus] = useState(null);
+
   // Resolve booth: explicit boothNo from nav state > locked booth (booth_worker) > prefill.boothNo
   const resolvedBooth = boothNo ? String(boothNo)
     : (lockedBooth || (prefill.boothNo ? String(prefill.boothNo) : ''));
@@ -683,6 +690,33 @@ export default function SurveyForm() {
     }
   };
 
+  // ── BJP Membership Check ─────────────────────────────────────────────────
+  const handleCheckBjp = async () => {
+    if (!form.partyMembershipId?.trim()) return;
+    setBjpCheckStatus('checking');
+    try {
+      const BJP_URL = (process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com') + '/api/bjp/check/';
+      const res  = await fetch(BJP_URL, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ membershipId: form.partyMembershipId.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const isMember = data.bjpMember === true;
+        setBjpCheckStatus(isMember ? 'member' : 'not_member');
+        setForm(p => ({ ...p, bjpMember: isMember }));
+      } else {
+        // DB not yet connected — show pending state
+        setBjpCheckStatus('pending');
+      }
+    } catch {
+      // No DB connected yet — surface a clear pending state
+      setBjpCheckStatus('pending');
+    }
+  };
+
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (mode) => {
     setBusy(true); setSaveMode(mode); setError('');
@@ -691,7 +725,11 @@ export default function SurveyForm() {
       // via its interceptors, exactly like save-future-voters and save-deceased.
       // ⚠️ Do NOT use raw fetch() here — it bypasses auth and causes 401.
       // ── Build payload — log it so we can verify values are non-empty ────────
-      const payload = { ...form, schemes, serialNo_voterlist: serialNo };
+      const payload = { ...form, schemes, serialNo_voterlist: serialNo,
+        partyMember: form.partyMember,
+        partyMembershipId: form.partyMember === 'Yes' ? (form.partyMembershipId || '') : '',
+        bjpMember: form.partyMember === 'Yes' ? form.bjpMember : null,
+      };
       console.log('[SurveyForm] submitting payload:', JSON.stringify(payload, null, 2));
 
       let surveyRes;
@@ -836,6 +874,7 @@ export default function SurveyForm() {
       setForm(blankForm(nextSerial, lockedRef.current.wardNumber, lockedRef.current));
       clearAadhaarPhoto();
       setSchemes([]);
+      setBjpCheckStatus(null);
       flash(`Member ${savedMembers.length + 1} saved — enter next person ✓`);
 
     } catch (e) {
@@ -1339,6 +1378,90 @@ export default function SurveyForm() {
                 <Field label="Disease Name">{I('diseaseName','text','Specific name')}</Field>
               </>}
               <Field label="Differently Abled?">{S('differentlyAbled',['No','Yes'])}</Field>
+
+              {/* ── Party Membership ── */}
+              <SectionDivider title="Party Membership" subtitle="Is this person a registered political party member?" color="linear-gradient(#f97316,#ef4444)" />
+              <Field label="Party Member?">
+                <select className="input" value={form.partyMember}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(p => ({ ...p, partyMember: val, partyMembershipId: '', bjpMember: null }));
+                    setBjpCheckStatus(null);
+                  }}>
+                  <option value="No">No — not a party member</option>
+                  <option value="Yes">Yes — registered party member</option>
+                </select>
+              </Field>
+
+              {form.partyMember === 'Yes' && (
+                <>
+                  <Field label="Party Membership ID (Unique ID)" full>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <input
+                        className="input"
+                        type="text"
+                        placeholder="Enter unique membership ID"
+                        value={form.partyMembershipId}
+                        onChange={e => {
+                          setForm(p => ({ ...p, partyMembershipId: e.target.value, bjpMember: null }));
+                          setBjpCheckStatus(null);
+                        }}
+                        style={{ flex:1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCheckBjp}
+                        disabled={!form.partyMembershipId?.trim() || bjpCheckStatus === 'checking'}
+                        style={{
+                          background: 'rgba(249,115,22,0.12)',
+                          border: '1px solid rgba(249,115,22,0.4)',
+                          borderRadius: 8, padding: '0 14px',
+                          color: '#fb923c', fontSize: 12, fontWeight: 700,
+                          cursor: form.partyMembershipId?.trim() ? 'pointer' : 'not-allowed',
+                          whiteSpace: 'nowrap', opacity: form.partyMembershipId?.trim() ? 1 : 0.5,
+                          display: 'flex', alignItems: 'center', gap: 5,
+                        }}>
+                        {bjpCheckStatus === 'checking'
+                          ? <><span style={{ display:'inline-block', width:10, height:10, border:'2px solid #fb923c', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /> Checking…</>
+                          : '🔍 Check BJP'
+                        }
+                      </button>
+                    </div>
+                    {/* BJP check result badge */}
+                    {bjpCheckStatus && bjpCheckStatus !== 'checking' && (
+                      <div style={{ marginTop: 8 }}>
+                        {bjpCheckStatus === 'member' && (
+                          <div style={{
+                            display:'inline-flex', alignItems:'center', gap:7,
+                            background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.35)',
+                            borderRadius:20, padding:'5px 12px', fontSize:12, fontWeight:700, color:'#10b981',
+                          }}>
+                            ✓ Confirmed BJP Member
+                          </div>
+                        )}
+                        {bjpCheckStatus === 'not_member' && (
+                          <div style={{
+                            display:'inline-flex', alignItems:'center', gap:7,
+                            background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.3)',
+                            borderRadius:20, padding:'5px 12px', fontSize:12, fontWeight:700, color:'#f87171',
+                          }}>
+                            ✗ Not a BJP Member
+                          </div>
+                        )}
+                        {bjpCheckStatus === 'pending' && (
+                          <div style={{
+                            display:'inline-flex', alignItems:'center', gap:7,
+                            background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.3)',
+                            borderRadius:20, padding:'5px 12px', fontSize:12, fontWeight:700, color:'#fbbf24',
+                          }}>
+                            ⏳ DB not connected yet — ID saved, will verify once database is linked
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Field>
+                </>
+              )}
             </>}
           </div>
 
