@@ -624,9 +624,20 @@ function LiveCheckPanel() {
   const [result, setResult] = useState(null);
   const debounceRef         = useRef(null);
   const abortRef            = useRef(null);
+  const retryRef            = useRef(null);
   const [confirmedRec, setConfirmedRec] = useState(null);
 
   const hasInput = form.name.trim() || form.epic.trim() || form.house.trim() || form.relation.trim();
+
+  // Auto-retry once on error after a short delay
+  React.useEffect(() => {
+    if (state === 'error' && hasInput) {
+      retryRef.current = setTimeout(() => {
+        doCheck(form);
+      }, 2000);
+    }
+    return () => clearTimeout(retryRef.current);
+  }, [state]);
 
   const doCheck = useCallback(async (f) => {
     const name     = f.name.trim();
@@ -702,7 +713,7 @@ function LiveCheckPanel() {
     if (state === 'idle')     return null;
     if (state === 'typing')   return <StatusPill color="#6b7280" dot="pulse">Waiting…</StatusPill>;
     if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Checking rolls… (may take up to 30s on first load)</StatusPill>;
-    if (state === 'error')    return <StatusPill color="#ef4444" dot="">Error — try again</StatusPill>;
+    if (state === 'error')    return <StatusPill color="#6366f1" dot="spin"><span className="spinner" style={{ width:12, height:12, marginRight:6, display:'inline-block' }} />Retrying…</StatusPill>;
     if (state === 'result' && effectivePrimary) return <StatusPill color={catMeta.color} dot="solid">{effectivePrimary.label}</StatusPill>;
     return null;
   };
