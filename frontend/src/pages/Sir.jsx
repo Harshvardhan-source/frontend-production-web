@@ -375,18 +375,46 @@ function VoterInfoModal({ record, roll, onClose }) {
 }
 
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
-function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0 }) {
+function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '' }) {
   const [infoRecord, setInfoRecord] = useState(null);
+
+  // ── Validate whether a "confirmed" record is truly an exact/close match ──────
+  // The backend's Tier-1/Tier-2 lookup can return a fuzzy match that doesn't
+  // actually satisfy the search inputs (e.g. relation "HECH SHINA" when the user
+  // typed "sheela").  We do a lightweight sanity check here so we don't mislead
+  // the user with a green "Confirmed Match" badge on a clearly wrong record.
+  const _normalize = s => (s || '').trim().toUpperCase();
+  const _nameMatch = (rec) => {
+    if (!searchName) return true;
+    const n = _normalize(rec?.name || '');
+    const q = _normalize(searchName);
+    // Accept if every token of the query appears somewhere in the record name
+    return q.split(/\s+/).filter(Boolean).every(tok => n.includes(tok));
+  };
+  const _relMatch = (rec) => {
+    if (!searchRelation) return true;
+    const r = _normalize(rec?.relation || '');
+    const q = _normalize(searchRelation);
+    // At least one token of the relation query must appear in the record relation
+    return q.split(/\s+/).filter(Boolean).some(tok => r.includes(tok));
+  };
+  const _isExactConfirmed = (rec) => _nameMatch(rec) && _relMatch(rec);
 
   // Build merged rows for each roll
   const rows25 = [];
-  if (in2025 && record2025?.name) rows25.push({ ...record2025, _matched: true, matched_by: ['confirmed'] });
+  if (in2025 && record2025?.name) {
+    const exact = _isExactConfirmed(record2025);
+    rows25.push({ ...record2025, _matched: exact, _notExact: !exact, matched_by: exact ? ['confirmed'] : (record2025.matched_by || []) });
+  }
   (similar2025 || []).forEach(r => {
     if (!rows25.find(x => x.voterid && x.voterid === r.voterid)) rows25.push(r);
   });
 
   const rows02 = [];
-  if (in2002 && record2002?.name) rows02.push({ ...record2002, _matched: true, matched_by: ['confirmed'] });
+  if (in2002 && record2002?.name) {
+    const exact = _isExactConfirmed(record2002);
+    rows02.push({ ...record2002, _matched: exact, _notExact: !exact, matched_by: exact ? ['confirmed'] : (record2002.matched_by || []) });
+  }
   (similar2002 || []).forEach(r => {
     if (!rows02.find(x => x.voterid && x.voterid === r.voterid)) rows02.push(r);
   });
@@ -395,12 +423,13 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
 
   // ── Field metadata ───────────────────────────────────────────────────────────
   const FIELD_META = {
-    voterid:   { label: 'Voter ID',     color: '#10b981' },
-    name:      { label: 'Voter Name',   color: '#22d3ee' },
-    house:     { label: 'House No',     color: '#a78bfa' },
-    relation:  { label: 'Relation',     color: '#f59e0b' },
-    confirmed: { label: '✓ Confirmed',  color: '#10b981' },
-    partial:   { label: 'Partial Name',   color: '#6366f1' },
+    voterid:   { label: 'Voter ID',           color: '#10b981' },
+    name:      { label: 'Voter Name',         color: '#22d3ee' },
+    house:     { label: 'House No',           color: '#a78bfa' },
+    relation:  { label: 'Relation',           color: '#f59e0b' },
+    confirmed: { label: '✓ Confirmed',        color: '#10b981' },
+    not_exact: { label: '✗ No Exact Match',   color: '#f87171' },
+    partial:   { label: 'Partial Name',       color: '#6366f1' },
   };
 
   // ── Group rows by match strength + "Almost matched" labelling ────────────────
@@ -413,6 +442,10 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
 
       if (r._matched) {
         key = 'confirmed'; label = 'Confirmed Match'; priority = 0; color = '#10b981';
+      } else if (r._notExact) {
+        // Backend returned a "confirmed" record but it doesn't satisfy the search
+        // inputs — show it as a near-match, not as a confirmed exact match.
+        key = 'not_exact'; label = 'No Exact Match Found'; priority = 0; color = '#f87171';
       } else if (mb.length >= 4) {
         key = 'all4'; label = 'All 4 fields matched'; priority = 1; color = '#10b981';
       } else if (mb.length === 3) {
@@ -481,7 +514,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderBottom: open && rows.length > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', background:'rgba(0,0,0,0.15)', cursor: rows.length > 0 ? 'pointer' : 'default', userSelect:'none', flexShrink:0 }}>
           <span style={{ fontSize:10, fontWeight:800, color:accentColor, letterSpacing:'0.8px', textTransform:'uppercase' }}>{year} Roll</span>
           <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', borderRadius:8, padding:'1px 7px', fontWeight:600 }}>
-            {total} record{total !== 1 ? 's' : ''}{total >= 100 ? ' (top 100)' : ''}
+            {total} record{total !== 1 ? 's' : ''}{total >= 300 ? ' (top 300)' : ''}
           </span>
           {open && groups.map(g => (
             <span key={g.key} style={{ fontSize:9, fontWeight:700, color: g.isAlmost ? '#f59e0b' : g.color, background:`${g.isAlmost ? '#f59e0b' : g.color}14`, border:`1px solid ${g.isAlmost ? '#f59e0b' : g.color}28`, borderRadius:6, padding:'1px 6px', display:'inline-flex', alignItems:'center', gap:3 }}>
@@ -513,10 +546,12 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
             {groups.map((group, gi) => (
               <div key={group.key}>
                 {/* Group label */}
-                <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px 4px', background: group.isAlmost ? 'rgba(245,158,11,0.07)' : 'rgba(0,0,0,0.10)', borderTop: gi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px 4px', background: group.isAlmost ? 'rgba(245,158,11,0.07)' : group.key === 'not_exact' ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.10)', borderTop: gi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                   {group.isAlmost
                     ? <span style={{ fontSize:11 }}>⚡</span>
-                    : <span style={{ width:6, height:6, borderRadius:'50%', background:group.color, flexShrink:0 }} />
+                    : group.key === 'not_exact'
+                      ? <span style={{ display:'inline-flex', color:'#f87171' }}><Icon.XCircle /></span>
+                      : <span style={{ width:6, height:6, borderRadius:'50%', background:group.color, flexShrink:0 }} />
                   }
                   <span style={{ fontSize:10, fontWeight:700, color: group.isAlmost ? '#f59e0b' : group.color, letterSpacing:'0.3px' }}>
                     {group.label}
@@ -539,14 +574,15 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                     </thead>
                     <tbody>
                       {group.rows.map((r, i) => (
-                        <tr key={i} style={{ background: r._matched ? `${accentColor}12` : group.isAlmost ? 'rgba(245,158,11,0.04)' : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                        <tr key={i} style={{ background: r._matched ? `${accentColor}12` : r._notExact ? 'rgba(239,68,68,0.07)' : group.isAlmost ? 'rgba(245,158,11,0.04)' : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
                           {/* House */}
-                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: r._matched || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : r._notExact ? '#f87171' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: r._matched || r._notExact || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
                             {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
+                            {r._notExact && <span style={{ display:'inline-flex', marginRight:5, color:'#f87171' }}><Icon.XCircle /></span>}
                             {r.house || '—'}
                           </td>
                           {/* Name */}
-                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : group.isAlmost ? '#fde68a' : '#cbd5e1', fontWeight: r._matched || group.isAlmost ? 600 : 400, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : r._notExact ? '#fca5a5' : group.isAlmost ? '#fde68a' : '#cbd5e1', fontWeight: r._matched || r._notExact || group.isAlmost ? 600 : 400, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                             {r.name || '—'}
                           </td>
                           {/* Relation */}
@@ -769,6 +805,8 @@ function LiveCheckPanel() {
           in2025={result?.in_2025}
           in2002={result?.in_2002}
           inputFieldCount={[form.name, form.epic, form.house, form.relation].filter(v => v.trim()).length}
+          searchName={form.name.trim()}
+          searchRelation={form.relation.trim()}
         />
       )}
 
