@@ -100,6 +100,295 @@ const SIR_WARD_DATA = {
 // ─── SIR BOOTH DRILL-DOWN DATA (from BOOTH DRILL-DOWN sheet — risk wards only) ─
 const SIR_BOOTH_DATA = {"21":[{"booth":31,"totalElectors":1496,"cutoffElectors":987,"bloMapped":577,"totalMapped":577,"bloMappedPct":58.46,"ageCutoff":515,"progeny18":427,"progenyPct":63.42,"totalMappedPct":67.11},{"booth":32,"totalElectors":711,"cutoffElectors":502,"bloMapped":351,"totalMapped":351,"bloMappedPct":69.92,"ageCutoff":205,"progeny18":268,"progenyPct":109.44,"totalMappedPct":87.06},{"booth":33,"totalElectors":803,"cutoffElectors":553,"bloMapped":357,"totalMapped":357,"bloMappedPct":64.56,"ageCutoff":250,"progeny18":229,"progenyPct":64.34,"totalMappedPct":72.98},{"booth":55,"totalElectors":1314,"cutoffElectors":847,"bloMapped":482,"totalMapped":482,"bloMappedPct":56.91,"ageCutoff":469,"progeny18":412,"progenyPct":81.26,"totalMappedPct":68.04},{"booth":56,"totalElectors":1240,"cutoffElectors":767,"bloMapped":416,"totalMapped":416,"bloMappedPct":54.24,"ageCutoff":476,"progeny18":380,"progenyPct":64.2,"totalMappedPct":64.19},{"booth":57,"totalElectors":941,"cutoffElectors":665,"bloMapped":330,"totalMapped":330,"bloMappedPct":49.62,"ageCutoff":275,"progeny18":227,"progenyPct":64.98,"totalMappedPct":59.19},{"booth":58,"totalElectors":1037,"cutoffElectors":724,"bloMapped":461,"totalMapped":461,"bloMappedPct":63.67,"ageCutoff":313,"progeny18":311,"progenyPct":102.04,"totalMappedPct":74.45}],"24":[{"booth":9,"totalElectors":1079,"cutoffElectors":752,"bloMapped":434,"totalMapped":434,"bloMappedPct":57.71,"ageCutoff":329,"progeny18":257,"progenyPct":92.13,"totalMappedPct":62.0},{"booth":11,"totalElectors":1318,"cutoffElectors":932,"bloMapped":481,"totalMapped":481,"bloMappedPct":51.61,"ageCutoff":398,"progeny18":192,"progenyPct":65.87,"totalMappedPct":51.06},{"booth":13,"totalElectors":1036,"cutoffElectors":719,"bloMapped":418,"totalMapped":418,"bloMappedPct":58.14,"ageCutoff":314,"progeny18":279,"progenyPct":66.17,"totalMappedPct":45.07},{"booth":17,"totalElectors":1334,"cutoffElectors":937,"bloMapped":493,"totalMapped":493,"bloMappedPct":52.61,"ageCutoff":397,"progeny18":423,"progenyPct":116.11,"totalMappedPct":68.67}],"27":[{"booth":82,"totalElectors":820,"cutoffElectors":590,"bloMapped":415,"totalMapped":415,"bloMappedPct":70.34,"ageCutoff":231,"progeny18":245,"progenyPct":122.04,"totalMappedPct":80.49},{"booth":83,"totalElectors":444,"cutoffElectors":304,"bloMapped":226,"totalMapped":226,"bloMappedPct":74.34,"ageCutoff":142,"progeny18":140,"progenyPct":84.0,"totalMappedPct":82.43},{"booth":84,"totalElectors":1032,"cutoffElectors":749,"bloMapped":369,"totalMapped":369,"bloMappedPct":49.27,"ageCutoff":285,"progeny18":203,"progenyPct":64.0,"totalMappedPct":55.43},{"booth":88,"totalElectors":973,"cutoffElectors":716,"bloMapped":336,"totalMapped":336,"bloMappedPct":46.93,"ageCutoff":257,"progeny18":192,"progenyPct":68.25,"totalMappedPct":54.27},{"booth":93,"totalElectors":843,"cutoffElectors":606,"bloMapped":398,"totalMapped":398,"bloMappedPct":65.68,"ageCutoff":238,"progeny18":197,"progenyPct":107.09,"totalMappedPct":70.58},{"booth":95,"totalElectors":1193,"cutoffElectors":848,"bloMapped":457,"totalMapped":458,"bloMappedPct":54.01,"ageCutoff":344,"progeny18":292,"progenyPct":112.09,"totalMappedPct":62.78},{"booth":96,"totalElectors":543,"cutoffElectors":356,"bloMapped":239,"totalMapped":239,"bloMappedPct":67.13,"ageCutoff":187,"progeny18":160,"progenyPct":83.42,"totalMappedPct":73.48},{"booth":97,"totalElectors":770,"cutoffElectors":522,"bloMapped":402,"totalMapped":402,"bloMappedPct":77.01,"ageCutoff":249,"progeny18":253,"progenyPct":86.38,"totalMappedPct":85.06}],"28":[{"booth":12,"totalElectors":1106,"cutoffElectors":805,"bloMapped":437,"totalMapped":437,"bloMappedPct":54.29,"ageCutoff":292,"progeny18":237,"progenyPct":73.05,"totalMappedPct":63.02},{"booth":75,"totalElectors":620,"cutoffElectors":427,"bloMapped":263,"totalMapped":263,"bloMappedPct":61.59,"ageCutoff":195,"progeny18":168,"progenyPct":88.44,"totalMappedPct":69.52},{"booth":78,"totalElectors":791,"cutoffElectors":405,"bloMapped":138,"totalMapped":138,"bloMappedPct":34.07,"ageCutoff":386,"progeny18":217,"progenyPct":45.48,"totalMappedPct":44.88},{"booth":79,"totalElectors":726,"cutoffElectors":646,"bloMapped":460,"totalMapped":460,"bloMappedPct":71.21,"ageCutoff":80,"progeny18":73,"progenyPct":117.58,"totalMappedPct":73.42},{"booth":80,"totalElectors":1113,"cutoffElectors":793,"bloMapped":382,"totalMapped":382,"bloMappedPct":48.17,"ageCutoff":319,"progeny18":169,"progenyPct":67.46,"totalMappedPct":49.51},{"booth":81,"totalElectors":1316,"cutoffElectors":976,"bloMapped":534,"totalMapped":534,"bloMappedPct":54.71,"ageCutoff":340,"progeny18":226,"progenyPct":59.67,"totalMappedPct":57.75},{"booth":85,"totalElectors":674,"cutoffElectors":506,"bloMapped":282,"totalMapped":282,"bloMappedPct":55.73,"ageCutoff":167,"progeny18":139,"progenyPct":100.0,"totalMappedPct":62.46},{"booth":86,"totalElectors":1245,"cutoffElectors":885,"bloMapped":432,"totalMapped":432,"bloMappedPct":48.81,"ageCutoff":361,"progeny18":219,"progenyPct":65.34,"totalMappedPct":52.29},{"booth":87,"totalElectors":511,"cutoffElectors":366,"bloMapped":196,"totalMapped":196,"bloMappedPct":53.55,"ageCutoff":149,"progeny18":112,"progenyPct":88.89,"totalMappedPct":60.27}],"29":[{"booth":68,"totalElectors":700,"cutoffElectors":476,"bloMapped":195,"totalMapped":195,"bloMappedPct":40.97,"ageCutoff":224,"progeny18":145,"progenyPct":56.09,"totalMappedPct":48.57},{"booth":69,"totalElectors":928,"cutoffElectors":663,"bloMapped":369,"totalMapped":369,"bloMappedPct":55.66,"ageCutoff":264,"progeny18":176,"progenyPct":64.18,"totalMappedPct":58.73},{"booth":71,"totalElectors":1071,"cutoffElectors":748,"bloMapped":428,"totalMapped":428,"bloMappedPct":57.22,"ageCutoff":324,"progeny18":221,"progenyPct":73.98,"totalMappedPct":60.6},{"booth":72,"totalElectors":582,"cutoffElectors":404,"bloMapped":226,"totalMapped":226,"bloMappedPct":55.94,"ageCutoff":177,"progeny18":151,"progenyPct":70.43,"totalMappedPct":64.78},{"booth":73,"totalElectors":1236,"cutoffElectors":806,"bloMapped":567,"totalMapped":567,"bloMappedPct":70.35,"ageCutoff":428,"progeny18":371,"progenyPct":99.33,"totalMappedPct":75.89}],"31":[{"booth":15,"totalElectors":531,"cutoffElectors":380,"bloMapped":208,"totalMapped":208,"bloMappedPct":54.74,"ageCutoff":151,"progeny18":171,"progenyPct":101.85,"totalMappedPct":71.37},{"booth":16,"totalElectors":1041,"cutoffElectors":740,"bloMapped":388,"totalMapped":388,"bloMappedPct":52.43,"ageCutoff":304,"progeny18":200,"progenyPct":50.79,"totalMappedPct":56.48},{"booth":18,"totalElectors":1196,"cutoffElectors":829,"bloMapped":375,"totalMapped":375,"bloMappedPct":45.24,"ageCutoff":369,"progeny18":265,"progenyPct":73.06,"totalMappedPct":53.51},{"booth":19,"totalElectors":1146,"cutoffElectors":796,"bloMapped":515,"totalMapped":515,"bloMappedPct":64.7,"ageCutoff":352,"progeny18":304,"progenyPct":74.66,"totalMappedPct":71.47},{"booth":20,"totalElectors":1235,"cutoffElectors":856,"bloMapped":516,"totalMapped":516,"bloMappedPct":60.28,"ageCutoff":383,"progeny18":431,"progenyPct":99.75,"totalMappedPct":76.68},{"booth":21,"totalElectors":993,"cutoffElectors":690,"bloMapped":322,"totalMapped":322,"bloMappedPct":46.67,"ageCutoff":294,"progeny18":254,"progenyPct":79.28,"totalMappedPct":58.01},{"booth":23,"totalElectors":1104,"cutoffElectors":772,"bloMapped":336,"totalMapped":336,"bloMappedPct":43.52,"ageCutoff":332,"progeny18":210,"progenyPct":91.44,"totalMappedPct":49.46}],"32":[{"booth":27,"totalElectors":1090,"cutoffElectors":754,"bloMapped":422,"totalMapped":422,"bloMappedPct":55.97,"ageCutoff":338,"progeny18":202,"progenyPct":52.38,"totalMappedPct":57.25},{"booth":28,"totalElectors":895,"cutoffElectors":643,"bloMapped":433,"totalMapped":433,"bloMappedPct":67.34,"ageCutoff":251,"progeny18":282,"progenyPct":90.84,"totalMappedPct":79.89},{"booth":29,"totalElectors":1456,"cutoffElectors":991,"bloMapped":618,"totalMapped":618,"bloMappedPct":62.36,"ageCutoff":471,"progeny18":389,"progenyPct":93.48,"totalMappedPct":69.16},{"booth":30,"totalElectors":1483,"cutoffElectors":1059,"bloMapped":570,"totalMapped":570,"bloMappedPct":53.82,"ageCutoff":434,"progeny18":352,"progenyPct":73.74,"totalMappedPct":62.17},{"booth":63,"totalElectors":1509,"cutoffElectors":1046,"bloMapped":498,"totalMapped":498,"bloMappedPct":47.61,"ageCutoff":464,"progeny18":259,"progenyPct":64.17,"totalMappedPct":50.17}],"34":[{"booth":45,"totalElectors":1115,"cutoffElectors":729,"bloMapped":401,"totalMapped":401,"bloMappedPct":55.01,"ageCutoff":385,"progeny18":282,"progenyPct":101.49,"totalMappedPct":61.26},{"booth":60,"totalElectors":930,"cutoffElectors":658,"bloMapped":427,"totalMapped":427,"bloMappedPct":64.89,"ageCutoff":289,"progeny18":368,"progenyPct":111.0,"totalMappedPct":85.48},{"booth":134,"totalElectors":899,"cutoffElectors":614,"bloMapped":276,"totalMapped":276,"bloMappedPct":44.95,"ageCutoff":289,"progeny18":308,"progenyPct":86.27,"totalMappedPct":64.96},{"booth":135,"totalElectors":722,"cutoffElectors":514,"bloMapped":374,"totalMapped":374,"bloMappedPct":72.76,"ageCutoff":210,"progeny18":262,"progenyPct":103.96,"totalMappedPct":88.09},{"booth":136,"totalElectors":1354,"cutoffElectors":835,"bloMapped":338,"totalMapped":338,"bloMappedPct":40.48,"ageCutoff":511,"progeny18":495,"progenyPct":109.62,"totalMappedPct":61.52},{"booth":139,"totalElectors":1274,"cutoffElectors":936,"bloMapped":472,"totalMapped":472,"bloMappedPct":50.43,"ageCutoff":343,"progeny18":273,"progenyPct":104.67,"totalMappedPct":58.48}],"36":[{"booth":36,"totalElectors":650,"cutoffElectors":447,"bloMapped":274,"totalMapped":274,"bloMappedPct":61.3,"ageCutoff":204,"progeny18":164,"progenyPct":67.76,"totalMappedPct":67.38},{"booth":37,"totalElectors":971,"cutoffElectors":668,"bloMapped":370,"totalMapped":370,"bloMappedPct":55.39,"ageCutoff":302,"progeny18":291,"progenyPct":71.08,"totalMappedPct":68.07},{"booth":38,"totalElectors":1067,"cutoffElectors":729,"bloMapped":419,"totalMapped":419,"bloMappedPct":57.48,"ageCutoff":342,"progeny18":308,"progenyPct":62.57,"totalMappedPct":68.13},{"booth":41,"totalElectors":1063,"cutoffElectors":825,"bloMapped":414,"totalMapped":414,"bloMappedPct":50.18,"ageCutoff":241,"progeny18":139,"progenyPct":58.43,"totalMappedPct":52.02},{"booth":42,"totalElectors":720,"cutoffElectors":408,"bloMapped":148,"totalMapped":148,"bloMappedPct":36.27,"ageCutoff":324,"progeny18":229,"progenyPct":50.46,"totalMappedPct":52.36}],"38":[{"booth":133,"totalElectors":970,"cutoffElectors":699,"bloMapped":698,"totalMapped":698,"bloMappedPct":99.86,"ageCutoff":272,"progeny18":349,"progenyPct":103.89,"totalMappedPct":107.94},{"booth":138,"totalElectors":917,"cutoffElectors":663,"bloMapped":353,"totalMapped":353,"bloMappedPct":53.24,"ageCutoff":285,"progeny18":235,"progenyPct":84.75,"totalMappedPct":64.12},{"booth":140,"totalElectors":1203,"cutoffElectors":853,"bloMapped":390,"totalMapped":390,"bloMappedPct":45.72,"ageCutoff":350,"progeny18":248,"progenyPct":87.3,"totalMappedPct":53.03},{"booth":166,"totalElectors":1181,"cutoffElectors":794,"bloMapped":411,"totalMapped":411,"bloMappedPct":51.76,"ageCutoff":384,"progeny18":283,"progenyPct":84.58,"totalMappedPct":58.76},{"booth":167,"totalElectors":1173,"cutoffElectors":777,"bloMapped":430,"totalMapped":430,"bloMappedPct":55.34,"ageCutoff":399,"progeny18":360,"progenyPct":89.47,"totalMappedPct":67.35},{"booth":171,"totalElectors":852,"cutoffElectors":617,"bloMapped":334,"totalMapped":334,"bloMappedPct":54.13,"ageCutoff":379,"progeny18":286,"progenyPct":90.26,"totalMappedPct":71.6}],"40":[{"booth":129,"totalElectors":945,"cutoffElectors":697,"bloMapped":412,"totalMapped":412,"bloMappedPct":59.11,"ageCutoff":243,"progeny18":319,"progenyPct":144.84,"totalMappedPct":77.35},{"booth":130,"totalElectors":1276,"cutoffElectors":848,"bloMapped":327,"totalMapped":327,"bloMappedPct":38.56,"ageCutoff":451,"progeny18":316,"progenyPct":81.45,"totalMappedPct":50.39},{"booth":131,"totalElectors":1016,"cutoffElectors":709,"bloMapped":238,"totalMapped":238,"bloMappedPct":33.57,"ageCutoff":306,"progeny18":199,"progenyPct":72.48,"totalMappedPct":43.01},{"booth":132,"totalElectors":1093,"cutoffElectors":754,"bloMapped":378,"totalMapped":378,"bloMappedPct":50.13,"ageCutoff":344,"progeny18":425,"progenyPct":98.9,"totalMappedPct":73.47},{"booth":146,"totalElectors":1337,"cutoffElectors":823,"bloMapped":346,"totalMapped":346,"bloMappedPct":42.04,"ageCutoff":529,"progeny18":402,"progenyPct":68.43,"totalMappedPct":55.95},{"booth":147,"totalElectors":313,"cutoffElectors":192,"bloMapped":100,"totalMapped":100,"bloMappedPct":52.08,"ageCutoff":120,"progeny18":100,"progenyPct":97.64,"totalMappedPct":63.9}],"41":[{"booth":124,"totalElectors":728,"cutoffElectors":498,"bloMapped":292,"totalMapped":292,"bloMappedPct":58.63,"ageCutoff":229,"progeny18":173,"progenyPct":97.11,"totalMappedPct":63.87},{"booth":125,"totalElectors":954,"cutoffElectors":678,"bloMapped":473,"totalMapped":473,"bloMappedPct":69.76,"ageCutoff":274,"progeny18":243,"progenyPct":115.72,"totalMappedPct":75.05},{"booth":126,"totalElectors":761,"cutoffElectors":531,"bloMapped":385,"totalMapped":385,"bloMappedPct":72.5,"ageCutoff":230,"progeny18":166,"progenyPct":123.53,"totalMappedPct":72.4},{"booth":127,"totalElectors":1451,"cutoffElectors":1084,"bloMapped":605,"totalMapped":605,"bloMappedPct":55.81,"ageCutoff":366,"progeny18":246,"progenyPct":72.34,"totalMappedPct":58.65},{"booth":128,"totalElectors":988,"cutoffElectors":687,"bloMapped":451,"totalMapped":451,"bloMappedPct":65.65,"ageCutoff":303,"progeny18":218,"progenyPct":67.6,"totalMappedPct":67.71}],"42":[{"booth":74,"totalElectors":1229,"cutoffElectors":891,"bloMapped":506,"totalMapped":506,"bloMappedPct":56.79,"ageCutoff":338,"progeny18":243,"progenyPct":86.7,"totalMappedPct":60.94},{"booth":76,"totalElectors":888,"cutoffElectors":600,"bloMapped":342,"totalMapped":342,"bloMappedPct":57.0,"ageCutoff":294,"progeny18":204,"progenyPct":63.52,"totalMappedPct":61.49},{"booth":77,"totalElectors":1359,"cutoffElectors":953,"bloMapped":542,"totalMapped":542,"bloMappedPct":56.87,"ageCutoff":408,"progeny18":225,"progenyPct":78.84,"totalMappedPct":56.44},{"booth":112,"totalElectors":1250,"cutoffElectors":889,"bloMapped":457,"totalMapped":457,"bloMappedPct":51.41,"ageCutoff":354,"progeny18":229,"progenyPct":63.78,"totalMappedPct":54.88},{"booth":115,"totalElectors":739,"cutoffElectors":495,"bloMapped":319,"totalMapped":319,"bloMappedPct":64.44,"ageCutoff":244,"progeny18":257,"progenyPct":85.77,"totalMappedPct":77.94},{"booth":117,"totalElectors":1348,"cutoffElectors":951,"bloMapped":578,"totalMapped":578,"bloMappedPct":60.78,"ageCutoff":399,"progeny18":258,"progenyPct":85.68,"totalMappedPct":62.02},{"booth":118,"totalElectors":851,"cutoffElectors":565,"bloMapped":326,"totalMapped":326,"bloMappedPct":57.7,"ageCutoff":286,"progeny18":314,"progenyPct":113.5,"totalMappedPct":75.21}],"46":[{"booth":141,"totalElectors":1062,"cutoffElectors":755,"bloMapped":434,"totalMapped":434,"bloMappedPct":57.48,"ageCutoff":311,"progeny18":288,"progenyPct":99.7,"totalMappedPct":67.98},{"booth":145,"totalElectors":613,"cutoffElectors":382,"bloMapped":229,"totalMapped":229,"bloMappedPct":59.95,"ageCutoff":230,"progeny18":177,"progenyPct":62.3,"totalMappedPct":66.23},{"booth":149,"totalElectors":1043,"cutoffElectors":687,"bloMapped":349,"totalMapped":349,"bloMappedPct":50.8,"ageCutoff":359,"progeny18":243,"progenyPct":66.58,"totalMappedPct":56.76},{"booth":150,"totalElectors":1377,"cutoffElectors":935,"bloMapped":540,"totalMapped":540,"bloMappedPct":57.75,"ageCutoff":445,"progeny18":271,"progenyPct":61.47,"totalMappedPct":58.9}],"48":[{"booth":137,"totalElectors":926,"cutoffElectors":547,"bloMapped":304,"totalMapped":304,"bloMappedPct":55.58,"ageCutoff":373,"progeny18":238,"progenyPct":63.94,"totalMappedPct":58.53},{"booth":176,"totalElectors":951,"cutoffElectors":668,"bloMapped":361,"totalMapped":361,"bloMappedPct":54.04,"ageCutoff":231,"progeny18":218,"progenyPct":182.58,"totalMappedPct":96.45},{"booth":177,"totalElectors":584,"cutoffElectors":425,"bloMapped":247,"totalMapped":247,"bloMappedPct":58.12,"ageCutoff":288,"progeny18":275,"progenyPct":73.44,"totalMappedPct":66.88},{"booth":178,"totalElectors":1233,"cutoffElectors":846,"bloMapped":554,"totalMapped":554,"bloMappedPct":65.48,"ageCutoff":164,"progeny18":171,"progenyPct":73.1,"totalMappedPct":71.58},{"booth":187,"totalElectors":1396,"cutoffElectors":976,"bloMapped":538,"totalMapped":538,"bloMappedPct":55.12,"ageCutoff":143,"progeny18":213,"progenyPct":125.16,"totalMappedPct":87.78}],"59":[{"booth":158,"totalElectors":827,"cutoffElectors":589,"bloMapped":297,"totalMapped":297,"bloMappedPct":50.42,"ageCutoff":241,"progeny18":322,"progenyPct":140.45,"totalMappedPct":74.85},{"booth":159,"totalElectors":800,"cutoffElectors":662,"bloMapped":269,"totalMapped":269,"bloMappedPct":40.63,"ageCutoff":128,"progeny18":135,"progenyPct":140.0,"totalMappedPct":50.5},{"booth":160,"totalElectors":1019,"cutoffElectors":749,"bloMapped":402,"totalMapped":402,"bloMappedPct":53.67,"ageCutoff":280,"progeny18":238,"progenyPct":69.7,"totalMappedPct":62.81},{"booth":161,"totalElectors":1127,"cutoffElectors":825,"bloMapped":553,"totalMapped":553,"bloMappedPct":67.03,"ageCutoff":285,"progeny18":254,"progenyPct":121.43,"totalMappedPct":71.61},{"booth":224,"totalElectors":834,"cutoffElectors":608,"bloMapped":394,"totalMapped":394,"bloMappedPct":64.8,"ageCutoff":226,"progeny18":270,"progenyPct":148.21,"totalMappedPct":79.62},{"booth":225,"totalElectors":754,"cutoffElectors":526,"bloMapped":307,"totalMapped":307,"bloMappedPct":58.37,"ageCutoff":227,"progeny18":232,"progenyPct":115.13,"totalMappedPct":71.49},{"booth":245,"totalElectors":1260,"cutoffElectors":792,"bloMapped":469,"totalMapped":469,"bloMappedPct":59.22,"ageCutoff":468,"progeny18":370,"progenyPct":83.94,"totalMappedPct":66.59},{"booth":246,"totalElectors":1090,"cutoffElectors":685,"bloMapped":410,"totalMapped":410,"bloMappedPct":59.85,"ageCutoff":409,"progeny18":375,"progenyPct":85.88,"totalMappedPct":72.02}],"60":[{"booth":98,"totalElectors":824,"cutoffElectors":618,"bloMapped":299,"totalMapped":299,"bloMappedPct":48.38,"ageCutoff":224,"progeny18":334,"progenyPct":99.18,"totalMappedPct":76.82},{"booth":99,"totalElectors":1354,"cutoffElectors":723,"bloMapped":420,"totalMapped":420,"bloMappedPct":58.09,"ageCutoff":624,"progeny18":779,"progenyPct":136.21,"totalMappedPct":88.55}]};
 
+// ─── Community Classification Data (2002 vs 2025) ────────────────────────────
+const COMMUNITY_BROAD_DATA = {
+  2002: {
+    'Unclassified': 114246, 'Minority': 23579, 'GC': 22351, 'OBC': 16809,
+    'GC/OBC': 12028, 'Ambiguous': 1227, 'OBC/Minority': 805, 'OBC/GC': 632,
+    'GC/Minority': 277, 'ST': 68,
+  },
+  2025: {
+    'Unclassified': 159371, 'Minority': 30583, 'GC': 26819, 'GC/OBC': 16572,
+    'OBC': 13539, 'Ambiguous': 1556, 'OBC/SC': 1417, 'OBC/Minority': 947,
+    'OBC/GC': 692, 'GC/Minority': 468, 'ST': 29, 'ST/Minority': 3, 'SC': 2,
+  },
+};
+const COMMUNITY_DETAILED_DATA = {
+  2002: [
+    ['Mangalorean Catholic', 17308, 'Minority'],
+    ['GSB', 12447, 'GC'],
+    ['Bunt / Billava / Mogaveera', 9018, 'GC/OBC'],
+    ['Billava / Devadiga', 5130, 'OBC'],
+    ['Muslim', 5000, 'Minority'],
+    ['Brahmin / Multi-community', 4232, 'GC'],
+    ['Brahmin', 3205, 'GC'],
+    ['Mogaveera', 2740, 'OBC'],
+    ['Bunt', 2422, 'GC'],
+    ['Devadiga', 1916, 'OBC'],
+    ['Bunt / GSB', 1784, 'GC/OBC'],
+    ['Vishwakarma', 1487, 'OBC'],
+    ['Billava / Artisan', 1472, 'OBC'],
+    ['Vishwakarma/GSB Ambiguous', 1227, 'Ambiguous'],
+    ['Billava / Mogaveera', 1074, 'OBC'],
+    ['Havyaka / Bunt / Gauda', 646, 'GC/OBC'],
+    ['Vokkaliga', 868, 'OBC'],
+    ['Bhandari / Nalke', 844, 'OBC'],
+    ['Billava / Muslim title', 805, 'OBC/Minority'],
+    ['Goan / Mangalorean Catholic', 732, 'Minority'],
+    ['Trading communities', 632, 'OBC/GC'],
+    ['Billava', 567, 'OBC'],
+    ['Mangalorean Catholic (Da Silva)', 539, 'Minority'],
+    ['GSB / Bunt', 517, 'GC/OBC'],
+    ['Coastal Tulu communities', 404, 'OBC'],
+    ['GSB / Goan Catholic', 277, 'GC/Minority'],
+    ['Sapaliga / Mogaveera', 157, 'OBC'],
+    ['Devadiga / Billava', 150, 'OBC'],
+    ['Koraga', 68, 'ST'],
+    ['Bunt / Jain', 64, 'GC'],
+    ['Shivalli Brahmin', 43, 'GC'],
+  ],
+  2025: [
+    ['Mangalorean Catholic', 23035, 'Minority'],
+    ['GSB', 14325, 'GC'],
+    ['Bunt / Billava / Mogaveera', 11700, 'GC/OBC'],
+    ['Muslim', 6932, 'Minority'],
+    ['Brahmin / Multi-community', 5348, 'GC'],
+    ['Bunt', 4058, 'GC'],
+    ['Brahmin', 4021, 'GC'],
+    ['Mogaveera', 3180, 'OBC'],
+    ['Billava / Devadiga', 2236, 'OBC'],
+    ['Bunt / GSB', 2221, 'GC/OBC'],
+    ['Billava / Artisan', 2039, 'OBC'],
+    ['Vishwakarma/GSB Ambiguous', 1556, 'Ambiguous'],
+    ['Devadiga', 1552, 'OBC'],
+    ['Billava / Namadari / SC overlap', 1417, 'OBC/SC'],
+    ['Billava / Mogaveera', 1064, 'OBC'],
+    ['Havyaka / Bunt / Gauda', 1010, 'GC/OBC'],
+    ['Vokkaliga', 984, 'OBC'],
+    ['Vishwakarma', 952, 'OBC'],
+    ['Billava / Muslim title', 947, 'OBC/Minority'],
+    ['Trading communities', 692, 'OBC/GC'],
+    ['Goan / Mangalorean Catholic', 597, 'Minority'],
+    ['Coastal Tulu communities', 580, 'OBC'],
+    ['GSB / Goan Catholic', 468, 'GC/Minority'],
+    ['GSB / Bunt', 404, 'GC/OBC'],
+    ['Bhandari / Nalke', 381, 'OBC'],
+    ['Kharvi', 218, 'OBC'],
+    ['Bunt / Jain', 202, 'GC'],
+    ['Sapaliga / Mogaveera', 172, 'OBC'],
+    ['Shivalli Brahmin', 100, 'GC'],
+    ['Devadiga / Billava', 90, 'OBC'],
+    ['Billava', 48, 'OBC'],
+    ['Sapaliga', 43, 'OBC'],
+    ['Koraga', 29, 'ST'],
+    ['Mangalorean Catholic (Da Silva)', 19, 'Minority'],
+    ['Siddi', 3, 'ST/Minority'],
+    ['Nalike', 2, 'SC'],
+    ['GSB / Daivajna', 2, 'GC'],
+  ],
+};
+
+const BROAD_COLORS = {
+  'Unclassified': '#64748b', 'GC': '#f97316', 'OBC': '#8b5cf6',
+  'Minority': '#10b981', 'GC/OBC': '#f59e0b', 'Ambiguous': '#6b7280',
+  'OBC/Minority': '#06b6d4', 'OBC/GC': '#a78bfa', 'GC/Minority': '#34d399',
+  'ST': '#ef4444', 'OBC/SC': '#ec4899', 'ST/Minority': '#f87171', 'SC': '#fbbf24',
+};
+
+function CommunityClassificationPanel() {
+  const [activeYear, setActiveYear] = React.useState(2025);
+  const [showAll, setShowAll] = React.useState(false);
+
+  const total2002 = 192022;
+  const total2025 = 251998;
+  const totalMap  = { 2002: total2002, 2025: total2025 };
+
+  const broadCategories = Object.keys({ ...COMMUNITY_BROAD_DATA[2002], ...COMMUNITY_BROAD_DATA[2025] });
+  const maxBroadVal = Math.max(
+    ...broadCategories.map(k => Math.max(COMMUNITY_BROAD_DATA[2002][k] || 0, COMMUNITY_BROAD_DATA[2025][k] || 0))
+  );
+
+  const detailedRows = COMMUNITY_DETAILED_DATA[activeYear];
+  const displayRows  = showAll ? detailedRows : detailedRows.slice(0, 12);
+  const maxDetail    = detailedRows[0]?.[1] || 1;
+  const total        = totalMap[activeYear];
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      {/* ── Header ── */}
+      <div style={{
+        background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
+        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+        padding: '20px 18px', marginBottom: 14,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+      }}>
+        {/* Title row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>Community Classification</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Voter roll 2002 vs 2025 — broad category counts</div>
+          </div>
+          {/* Summary pills */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[
+              { year: 2002, total: total2002, color: '#f59e0b' },
+              { year: 2025, total: total2025, color: '#22d3ee' },
+            ].map(({ year, total: t, color }) => (
+              <div key={year} style={{ background: `${color}12`, border: `1px solid ${color}30`, borderRadius: 10, padding: '6px 12px', textAlign: 'center' }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: `${color}99`, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{year}</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{(t / 1000).toFixed(0)}k</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>voters</div>
+              </div>
+            ))}
+            <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '6px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(16,185,129,0.7)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Growth</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#10b981', fontFamily: 'var(--font-display)' }}>+31%</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>+59,976</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Broad category comparison bars */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {broadCategories.map(cat => {
+            const v02 = COMMUNITY_BROAD_DATA[2002][cat] || 0;
+            const v25 = COMMUNITY_BROAD_DATA[2025][cat] || 0;
+            const pct02 = ((v02 / maxBroadVal) * 100).toFixed(1);
+            const pct25 = ((v25 / maxBroadVal) * 100).toFixed(1);
+            const color = BROAD_COLORS[cat] || '#888';
+            const diff  = v25 - v02;
+            return (
+              <div key={cat}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', minWidth: 90 }}>{cat}</span>
+                    {v02 > 0 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{v02.toLocaleString()}</span>}
+                    <span style={{ fontSize: 9, color: `${color}99` }}>→</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color }}>{v25.toLocaleString()}</span>
+                  </div>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 7px',
+                    background: diff > 0 ? 'rgba(34,211,238,0.1)' : diff < 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)',
+                    color: diff > 0 ? '#22d3ee' : diff < 0 ? '#ef4444' : 'rgba(255,255,255,0.3)',
+                  }}>
+                    {diff > 0 ? '+' : ''}{diff.toLocaleString()}
+                  </span>
+                </div>
+                {/* 2002 bar */}
+                {v02 > 0 && (
+                  <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', marginBottom: 2 }}>
+                    <div style={{ width: `${pct02}%`, height: '100%', background: `${color}55`, borderRadius: 3, transition: 'width 0.6s ease' }} />
+                  </div>
+                )}
+                {/* 2025 bar */}
+                <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ width: `${pct25}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+            <div style={{ width: 28, height: 5, background: 'rgba(255,255,255,0.3)', borderRadius: 2, opacity: 0.5 }} />
+            <span>2002</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+            <div style={{ width: 28, height: 5, background: '#22d3ee', borderRadius: 2 }} />
+            <span>2025</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Detailed community table ── */}
+      <div style={{
+        background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
+        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+        overflow: 'hidden', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+      }}>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px 0', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 2 }}>Classified Community Breakdown</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{detailedRows.length} communities · sorted by count</div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[2025, 2002].map(yr => (
+              <button key={yr} onClick={() => { setActiveYear(yr); setShowAll(false); }} style={{
+                padding: '7px 16px', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                background: activeYear === yr ? (yr === 2025 ? 'rgba(34,211,238,0.15)' : 'rgba(245,158,11,0.15)') : 'rgba(255,255,255,0.04)',
+                border: activeYear === yr ? `1px solid ${yr === 2025 ? 'rgba(34,211,238,0.4)' : 'rgba(245,158,11,0.4)'}` : '1px solid rgba(255,255,255,0.08)',
+                color: activeYear === yr ? (yr === 2025 ? '#22d3ee' : '#f59e0b') : 'rgba(255,255,255,0.4)',
+                transition: 'all 0.15s',
+              }}>{yr}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Table header */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 90px 80px', gap: 0, padding: '8px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {['Community', 'Category', 'Count', 'Share'].map(h => (
+            <div key={h} style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: h === 'Count' || h === 'Share' ? 'right' : 'left' }}>{h}</div>
+          ))}
+        </div>
+
+        {/* Rows */}
+        {displayRows.map(([name, count, cat], idx) => {
+          const barW = Math.round((count / maxDetail) * 100);
+          const pct  = ((count / total) * 100).toFixed(1);
+          const color = BROAD_COLORS[cat] || '#888';
+          return (
+            <div key={name} style={{
+              display: 'grid', gridTemplateColumns: '1fr 80px 90px 80px',
+              gap: 0, padding: '11px 18px',
+              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)',
+              alignItems: 'center',
+            }}>
+              {/* Name + bar */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 4, lineHeight: 1.3 }}>{name}</div>
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden', maxWidth: 160 }}>
+                  <div style={{ width: `${barW}%`, height: '100%', background: `linear-gradient(90deg,${color}60,${color})`, borderRadius: 2 }} />
+                </div>
+              </div>
+              {/* Category badge */}
+              <div>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '3px 7px',
+                  background: `${color}18`, color, border: `1px solid ${color}30`,
+                  whiteSpace: 'nowrap',
+                }}>{cat}</span>
+              </div>
+              {/* Count */}
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {count.toLocaleString()}
+              </div>
+              {/* Pct */}
+              <div style={{ fontSize: 12, fontWeight: 600, color, textAlign: 'right' }}>{pct}%</div>
+            </div>
+          );
+        })}
+
+        {/* Show more / less */}
+        {detailedRows.length > 12 && (
+          <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
+            <button onClick={() => setShowAll(v => !v)} style={{
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 10, padding: '9px 24px', cursor: 'pointer', fontSize: 13,
+              fontWeight: 700, color: 'rgba(255,255,255,0.5)', transition: 'all 0.15s',
+            }}>
+              {showAll ? '▲ Show less' : `▼ Show all ${detailedRows.length} communities`}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Priority helpers ─────────────────────────────────────────────────────────
 const PRIORITY_CONFIG = {
   CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: '🔴 CRITICAL', order: 0 },
@@ -2661,6 +2950,9 @@ export default function Dashboard() {
               />
             </div>
           </div>
+
+          {/* ── Community Classification 2002 vs 2025 ─────────────────────── */}
+          <CommunityClassificationPanel />
 
           {/* ── NEW: Risk Wards Overview (only on overall view) ───────────── */}
           {!selectedWard && (
