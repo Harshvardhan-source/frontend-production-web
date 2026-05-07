@@ -501,6 +501,44 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     );
   };
 
+  // ── HighlightText — only the tokens that appear in the query get highlighted ──
+  // e.g. query="vedavyas", text="VEDAVYAS KAMATH" → "VEDAVYAS" highlighted, "KAMATH" dim.
+  // e.g. query="vaman kamath", text="VAMANA KAMATH" → both tokens highlighted.
+  const HighlightText = ({ text, query, highlightColor, baseColor, bold }) => {
+    if (!text) return <span style={{ color: baseColor }}>—</span>;
+    if (!query || !query.trim()) return <span style={{ color: baseColor, fontWeight: bold ? 600 : 400 }}>{text}</span>;
+
+    const tokens = query.trim().toUpperCase().split(/\s+/).filter(Boolean);
+    // Build a regex that matches any of the query tokens (case-insensitive)
+    const escaped = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    let parts;
+    try {
+      const rx = new RegExp(`(${escaped.join('|')})`, 'gi');
+      parts = text.split(rx);
+    } catch {
+      return <span style={{ color: baseColor, fontWeight: bold ? 600 : 400 }}>{text}</span>;
+    }
+
+    return (
+      <span>
+        {parts.map((part, idx) => {
+          const isMatch = tokens.some(t => part.toUpperCase() === t || part.toUpperCase().includes(t));
+          return isMatch ? (
+            <span key={idx} style={{
+              color: highlightColor,
+              fontWeight: 700,
+              background: `${highlightColor}18`,
+              borderRadius: 3,
+              padding: '0 2px',
+            }}>{part}</span>
+          ) : (
+            <span key={idx} style={{ color: baseColor, fontWeight: bold ? 500 : 400 }}>{part}</span>
+          );
+        })}
+      </span>
+    );
+  };
+
   // ── Per-roll section — collapsible header + scrollable body ──────────────────
   const RollSection = ({ rows, year, accentColor, borderColor }) => {
     const groups = groupRows(rows);
@@ -582,12 +620,24 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                             {r.house || '—'}
                           </td>
                           {/* Name */}
-                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? '#e2e8f0' : r._notExact ? '#fca5a5' : group.isAlmost ? '#fde68a' : '#cbd5e1', fontWeight: r._matched || r._notExact || group.isAlmost ? 600 : 400, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                            {r.name || '—'}
+                          <td style={{ padding:'7px 10px', fontSize:12, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            <HighlightText
+                              text={r.name || '—'}
+                              query={searchName}
+                              highlightColor={r._matched ? accentColor : r._notExact ? '#fca5a5' : group.isAlmost ? '#fde68a' : '#22d3ee'}
+                              baseColor={r._matched ? '#e2e8f0' : r._notExact ? '#fca5a5' : group.isAlmost ? '#fde68a' : '#cbd5e1'}
+                              bold={r._matched || r._notExact || group.isAlmost}
+                            />
                           </td>
                           {/* Relation */}
-                          <td style={{ padding:'7px 10px', fontSize:11, color: group.isAlmost ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.45)', maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                            {r.relation || '—'}
+                          <td style={{ padding:'7px 10px', fontSize:11, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            <HighlightText
+                              text={r.relation || '—'}
+                              query={searchRelation}
+                              highlightColor={r._matched ? '#f59e0b' : group.isAlmost ? '#fcd34d' : '#f59e0b'}
+                              baseColor={r._matched ? 'rgba(255,255,255,0.6)' : group.isAlmost ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.4)'}
+                              bold={r._matched}
+                            />
                           </td>
                           {/* Matched-by tags */}
                           <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
