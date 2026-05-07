@@ -398,7 +398,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     house:     { label: 'House No',     color: '#a78bfa' },
     relation:  { label: 'Relation',     color: '#f59e0b' },
     confirmed: { label: '✓ Confirmed',  color: '#10b981' },
-    surname:   { label: 'Surname',        color: '#c084fc' },
+    partial:   { label: 'Partial Name',   color: '#6366f1' },
   };
 
   // ── Group rows by match strength + "Almost matched" labelling ────────────────
@@ -432,14 +432,13 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           : sorted.map(f => FIELD_META[f]?.label || f).join(' + ') + ' matched';
         priority = 3; color = isAlmost ? '#f59e0b' : '#6366f1';
       } else if (mb.length === 1) {
-        const fieldLabels = { name: 'Voter Name', house: 'House No', relation: 'Relation', voterid: 'Voter ID', surname: 'Surname' };
+        const fieldLabels = { name: 'Voter Name', house: 'House No', relation: 'Relation', voterid: 'Voter ID', partial: 'Partial Name' };
         key = 'f1_' + mb[0];
-        // surname-only match: when just the name field is typed, surname hit = almost matched
-        isAlmost = mb[0] === 'surname' ? inputFieldCount === 1 : inputFieldCount === 2;
+        isAlmost = mb[0] === 'partial' ? false : inputFieldCount === 2;
+        priority = mb[0] === 'partial' ? 5 : 4;
         label = isAlmost
           ? 'Almost matched — ' + (fieldLabels[mb[0]] || mb[0])
           : (fieldLabels[mb[0]] || mb[0]) + ' matched';
-        priority = mb[0] === 'surname' ? 3 : 4;
         color = isAlmost ? '#f59e0b' : (FIELD_META[mb[0]]?.color || '#94a3b8');
       } else {
         key = 'other'; label = 'Other records'; priority = 5; color = '#475569';
@@ -570,10 +569,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                           <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.3)', fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
                             {r.voterid || '—'}
                           </td>
-                          {/* Score */}
                           <td style={{ padding:'7px 8px', textAlign:'center' }}>
                             {r.score != null ? (
-                              <span style={{ fontSize:10, fontWeight:700, color: r.score>=80?'#10b981':r.score>=60?'#f59e0b':'#94a3b8', background:'rgba(0,0,0,0.2)', borderRadius:6, padding:'1px 5px' }}>{r.score}</span>
+                              <span style={{ fontSize:10, fontWeight:700, borderRadius:6, padding:'1px 5px', background:'rgba(0,0,0,0.2)', color: r.score>=80?'#10b981':r.score>=60?'#f59e0b':'#94a3b8' }}>{r.score}</span>
                             ) : null}
                           </td>
                           {/* Info */}
@@ -611,7 +609,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           {/* Legend */}
           <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
             <span style={{ fontSize:9, color:'#f59e0b', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:4, padding:'1px 6px', fontWeight:700 }}>⚡ Almost matched</span>
-            {[['voterid','Voter ID'],['name','Voter Name'],['house','House No'],['relation','Relation'],['surname','Surname']].map(([f, lbl]) => (
+            {[['voterid','Voter ID'],['name','Voter Name'],['house','House No'],['relation','Relation'],['partial','Partial']].map(([f, lbl]) => (
               <span key={f} style={{ fontSize:9, color:FIELD_META[f].color, background:`${FIELD_META[f].color}14`, border:`1px solid ${FIELD_META[f].color}28`, borderRadius:4, padding:'1px 6px', fontWeight:700 }}>{lbl}</span>
             ))}
           </div>
