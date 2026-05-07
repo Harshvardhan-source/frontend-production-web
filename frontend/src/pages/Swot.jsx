@@ -786,9 +786,14 @@ function QueryCard({ q, ctxKey, ctxColor }) {
 
     try {
       // Route through Django backend to avoid CORS — never call Anthropic directly from browser
-      const res = await fetch('/api/ai/query-insight/', {
+      const token = sessionStorage.getItem('cc_token');
+      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
+
+      const res = await fetch(`${BASE}/api/ai/query-insight/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({
           query: query,
           columns: cols,
