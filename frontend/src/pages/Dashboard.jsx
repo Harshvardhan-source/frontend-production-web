@@ -740,6 +740,227 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
   );
 }
 
+// ─── Static 2023 Polled vs NotPolled: Broad Category ──────────────────────────
+const POLLED_BROAD_DATA = [
+  { key: 'GC',        label: 'General Category', color: '#22d3ee', polled: 16684, notPolled: 10777 },
+  { key: 'OBC',       label: 'OBC',              color: '#10b981', polled:  9011, notPolled:  5281 },
+  { key: 'GC/OBC',   label: 'GC / OBC',         color: '#f59e0b', polled: 10167, notPolled:  6279 },
+  { key: 'Minority',  label: 'Minority',          color: '#8b5cf6', polled: 44055, notPolled: 42246 },
+  { key: 'OBC/SC',   label: 'OBC / SC',          color: '#ec4899', polled:   843, notPolled:    561 },
+  { key: 'ST',        label: 'Scheduled Tribe',   color: '#f97316', polled:    47, notPolled:     31 },
+  { key: 'Ambiguous', label: 'Ambiguous',         color: '#64748b', polled:  1053, notPolled:    528 },
+];
+
+function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
+  const [showAll, setShowAll] = React.useState(false);
+  const data = POLLED_BROAD_DATA;
+  const displayed = showAll ? data : data.slice(0, 5);
+  const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
+  const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
+  const grandTotal     = grandPolled + grandNotPolled;
+  const overallPct     = grandTotal > 0 ? ((grandPolled / grandTotal) * 100).toFixed(1) : '0.0';
+
+  if (loading) {
+    return (
+      <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
+        <Skeleton w="60%" h={12} style={{ marginBottom:12 }} />
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {[0,1,2,3].map(i => <Skeleton key={i} h={52} radius={10} />)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+        <div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-1)', marginBottom:2 }}>Polled vs Not Polled (Caste Category)</div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{label} · 2023 Election Data</div>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize:18, fontWeight:900, color:'#10b981', fontFamily:'var(--font-display)' }}>{overallPct}%</div>
+          <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:600 }}>Classified Turnout</div>
+        </div>
+      </div>
+
+      {/* Overall bar */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:'flex', height:8, borderRadius:4, overflow:'hidden', marginBottom:5 }}>
+          <div style={{ width:`${overallPct}%`, background:'linear-gradient(90deg,#10b98180,#10b981)', transition:'width 0.6s ease' }} />
+          <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,0.3)' }}>
+          <span style={{ color:'#10b981', fontWeight:700 }}>✓ Polled {grandPolled.toLocaleString()}</span>
+          <span style={{ color:'#f87171', fontWeight:700 }}>✗ Not Polled {grandNotPolled.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Per-category rows */}
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {displayed.map(({ key, label:lbl, color, polled, notPolled }) => {
+          const rowTotal  = polled + notPolled || 1;
+          const polledPct = ((polled / rowTotal) * 100).toFixed(1);
+          const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
+          return (
+            <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                  <div style={{ width:22, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:800, color, letterSpacing:'-0.3px', padding:'0 3px' }}>{key}</div>
+                  <span style={{ fontSize:12, fontWeight:700, color }}>{lbl}</span>
+                </div>
+                <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{(polled+notPolled).toLocaleString()} total</span>
+              </div>
+              <div style={{ display:'flex', height:6, borderRadius:3, overflow:'hidden', marginBottom:6 }}>
+                <div style={{ width:`${polledPct}%`, background:color, transition:'width 0.5s ease' }} />
+                <div style={{ flex:1, background:'rgba(239,68,68,0.25)' }} />
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:7, height:7, borderRadius:2, background:color, flexShrink:0 }} />
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:800, color, lineHeight:1 }}>{polled.toLocaleString()}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Polled · {polledPct}%</div>
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:7, height:7, borderRadius:2, background:'#ef4444', flexShrink:0 }} />
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:800, color:'#f87171', lineHeight:1 }}>{notPolled.toLocaleString()}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Not Polled · {notPct}%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {data.length > 5 && (
+        <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
+          {showAll ? '▲ Show less' : `▼ Show all ${data.length} categories`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Static 2023 Polled vs NotPolled: Community ────────────────────────────────
+const POLLED_COMMUNITY_DATA = [
+  { key: 'Muslim',           label: 'Muslim',                    color: '#10b981', polled: 22359, notPolled: 22510 },
+  { key: 'MangCath',         label: 'Mangalorean Catholic',      color: '#8b5cf6', polled: 12234, notPolled: 10394 },
+  { key: 'ChristCath',       label: 'Christian / Catholic',      color: '#a78bfa', polled:  9462, notPolled:  9342 },
+  { key: 'GSB',              label: 'GSB',                       color: '#22d3ee', polled:  9062, notPolled:  5743 },
+  { key: 'BuntBillMog',      label: 'Bunt / Billava / Mogaveera',color: '#f59e0b', polled:  7146, notPolled:  4422 },
+  { key: 'BrahmiMulti',      label: 'Brahmin / Multi-community', color: '#f97316', polled:  3155, notPolled:  2292 },
+  { key: 'Brahmin',          label: 'Brahmin',                   color: '#fb923c', polled:  2467, notPolled:  1613 },
+  { key: 'Bunt',             label: 'Bunt',                      color: '#fbbf24', polled:  2467, notPolled:  1455 },
+  { key: 'Mogaveera',        label: 'Mogaveera',                 color: '#34d399', polled:  2008, notPolled:  1201 },
+  { key: 'BillDev',          label: 'Billava / Devadiga',        color: '#6ee7b7', polled:  1631, notPolled:   940 },
+  { key: 'BillArt',          label: 'Billava / Artisan',         color: '#5eead4', polled:  1411, notPolled:   862 },
+  { key: 'BuntGSB',          label: 'Bunt / GSB',                color: '#67e8f9', polled:  1440, notPolled:   805 },
+  { key: 'Devadiga',         label: 'Devadiga',                  color: '#4ade80', polled:  1105, notPolled:   501 },
+  { key: 'VishwGSB',         label: 'Vishwakarma / GSB',         color: '#64748b', polled:  1053, notPolled:   528 },
+  { key: 'BillSCovlap',      label: 'Billava / SC overlap',      color: '#ec4899', polled:   843, notPolled:   561 },
+];
+
+function PolledCommunityWidget({ loading, label = 'Constituency' }) {
+  const [showAll, setShowAll] = React.useState(false);
+  const data = POLLED_COMMUNITY_DATA;
+  const displayed = showAll ? data : data.slice(0, 6);
+  const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
+  const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
+  const grandTotal     = grandPolled + grandNotPolled;
+  const overallPct     = grandTotal > 0 ? ((grandPolled / grandTotal) * 100).toFixed(1) : '0.0';
+
+  if (loading) {
+    return (
+      <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
+        <Skeleton w="60%" h={12} style={{ marginBottom:12 }} />
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {[0,1,2,3].map(i => <Skeleton key={i} h={52} radius={10} />)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+        <div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-1)', marginBottom:2 }}>Polled vs Not Polled (Community)</div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{label} · 2023 Election Data</div>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize:18, fontWeight:900, color:'#f59e0b', fontFamily:'var(--font-display)' }}>{overallPct}%</div>
+          <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:600 }}>Classified Turnout</div>
+        </div>
+      </div>
+
+      {/* Overall bar */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:'flex', height:8, borderRadius:4, overflow:'hidden', marginBottom:5 }}>
+          <div style={{ width:`${overallPct}%`, background:'linear-gradient(90deg,#f59e0b80,#f59e0b)', transition:'width 0.6s ease' }} />
+          <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,0.3)' }}>
+          <span style={{ color:'#f59e0b', fontWeight:700 }}>✓ Polled {grandPolled.toLocaleString()}</span>
+          <span style={{ color:'#f87171', fontWeight:700 }}>✗ Not Polled {grandNotPolled.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Per-community rows */}
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {displayed.map(({ key, label:lbl, color, polled, notPolled }) => {
+          const rowTotal  = polled + notPolled || 1;
+          const polledPct = ((polled / rowTotal) * 100).toFixed(1);
+          const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
+          const initial   = lbl.charAt(0).toUpperCase();
+          return (
+            <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                  <div style={{ width:20, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color }}>{initial}</div>
+                  <span style={{ fontSize:12, fontWeight:700, color }}>{lbl}</span>
+                </div>
+                <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{(polled+notPolled).toLocaleString()} total</span>
+              </div>
+              <div style={{ display:'flex', height:6, borderRadius:3, overflow:'hidden', marginBottom:6 }}>
+                <div style={{ width:`${polledPct}%`, background:color, transition:'width 0.5s ease' }} />
+                <div style={{ flex:1, background:'rgba(239,68,68,0.25)' }} />
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:7, height:7, borderRadius:2, background:color, flexShrink:0 }} />
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:800, color, lineHeight:1 }}>{polled.toLocaleString()}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Polled · {polledPct}%</div>
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:7, height:7, borderRadius:2, background:'#ef4444', flexShrink:0 }} />
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:800, color:'#f87171', lineHeight:1 }}>{notPolled.toLocaleString()}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Not Polled · {notPct}%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {data.length > 6 && (
+        <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
+          {showAll ? '▲ Show less' : `▼ Show all ${data.length} communities`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function WardSIRPanel({ wardNum }) {
   const d = SIR_WARD_DATA[Number(wardNum)];
   if (!d) return null;
@@ -2941,6 +3162,28 @@ export default function Dashboard() {
               />
               <PolledHMCWidget
                 polledHMC={s.polledHMC}
+                loading={activeLoading}
+                label={
+                  selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
+                  selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
+                  'All Wards (Constituency)'
+                }
+              />
+            </div>
+          </div>
+
+          {/* ── Caste Category + Community Polled/NotPolled ─────────────── */}
+          <div style={{ marginBottom: 20 }} className="anim-fade-up">
+            <div className="db-two-col">
+              <PolledBroadCategoryWidget
+                loading={activeLoading}
+                label={
+                  selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
+                  selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
+                  'All Wards (Constituency)'
+                }
+              />
+              <PolledCommunityWidget
                 loading={activeLoading}
                 label={
                   selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
