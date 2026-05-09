@@ -14,7 +14,7 @@ import VoterSearch  from './pages/VoterSearch';
 import SIR          from './pages/Sir';
 import AdminPanel   from './pages/AdminPanel';
 import Swot         from './pages/Swot';
-import AiChat       from './pages/Aichat';   // ← NEW
+
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -121,7 +121,7 @@ export default function App() {
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
           <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
           <Route path="/swot"           element={<Protected><Swot /></Protected>} />
-          <Route path="/ai"             element={<Protected><AiChat /></Protected>} />  {/* ← NEW */}
+
 
           <Route path="*"               element={<Navigate to="/" replace />} />
         </Routes>
