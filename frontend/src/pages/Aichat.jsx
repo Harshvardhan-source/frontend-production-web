@@ -449,13 +449,23 @@ export default function AiChat() {
                 width: 64, height: 64, borderRadius: 20,
                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', marginBottom: 22,
+                color: '#fff', marginBottom: 12,
                 animation: 'logoGlow 3s ease-in-out infinite',
               }}>
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.44-4.66z"/>
                   <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.44-4.66z"/>
                 </svg>
+              </div>
+
+              {/* ShaastraAI wordmark */}
+              <div style={{ marginBottom: 18, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color: '#a5b4fc', letterSpacing: '-0.3px' }}>Shaastra</span>
+                <span style={{
+                  fontSize: 22, fontWeight: 800, letterSpacing: '-0.3px',
+                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                }}>AI</span>
               </div>
 
               {/* Headline */}
