@@ -41,12 +41,21 @@ function getCookie(name) {
   return match ? decodeURIComponent(match[2]) : '';
 }
 
+// Endpoints decorated with @csrf_exempt on the backend — skip CSRF for these
+const CSRF_EXEMPT_PATHS = [
+  '/api/ai/query-insight/',
+  '/api/ai/birdseye-view/',
+  '/api/ai/export/',
+];
+
 api.interceptors.request.use(async (config) => {
   const token = sessionStorage.getItem('cc_token');
   if (token) {
     config.headers['Authorization'] = `Bearer ${token}`;
   }
-  if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
+  const isMutation = ['post', 'put', 'patch', 'delete'].includes(config.method);
+  const isExempt   = CSRF_EXEMPT_PATHS.some(p => config.url?.includes(p));
+  if (isMutation && !isExempt) {
     await ensureCsrf();
     config.headers['X-CSRFToken'] = getCookie('csrftoken');
   }
