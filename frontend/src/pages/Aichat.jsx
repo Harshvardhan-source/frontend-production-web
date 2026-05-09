@@ -372,168 +372,129 @@ export default function AiChat() {
           50%      { transform:translateY(-4px); opacity:1; }
         }
         @keyframes msgIn {
-          from { opacity:0; transform:translateY(8px); }
+          from { opacity:0; transform:translateY(6px); }
           to   { opacity:1; transform:translateY(0); }
         }
-        @keyframes fadeUp {
-          from { opacity:0; transform:translateY(18px); }
-          to   { opacity:1; transform:translateY(0); }
-        }
-        @keyframes logoGlow {
-          0%,100% { box-shadow: 0 0 24px rgba(99,102,241,0.25); }
-          50%      { box-shadow: 0 0 44px rgba(99,102,241,0.5); }
-        }
-        .ai-msg  { animation: msgIn 0.22s ease forwards; }
-        .ai-chip {
-          transition: all .18s ease; cursor: pointer;
-          border: 1px solid rgba(255,255,255,0.07) !important;
-          background: rgba(255,255,255,0.03) !important;
-        }
+        .ai-msg  { animation: msgIn 0.2s ease forwards; }
+        .ai-chip { transition: all .15s ease; cursor: pointer; }
         .ai-chip:hover {
-          background: rgba(99,102,241,0.1) !important;
-          border-color: rgba(99,102,241,0.35) !important;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(99,102,241,0.12) !important;
+          background: rgba(99,102,241,0.14) !important;
+          border-color: rgba(99,102,241,0.38) !important;
+          transform: translateY(-1px);
         }
         .ai-scroll::-webkit-scrollbar { width: 3px; }
         .ai-scroll::-webkit-scrollbar-track { background: transparent; }
-        .ai-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        .ai-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 4px; }
         .ai-send { transition: all .14s ease; }
-        .ai-send:hover:not(:disabled) { filter: brightness(1.18); transform: scale(1.06); }
+        .ai-send:hover:not(:disabled) { filter: brightness(1.15); transform: scale(1.06); }
         textarea.ai-ta { resize: none; }
         textarea.ai-ta:focus { outline: none; }
-        .shaastra-landing { animation: fadeUp 0.45s ease forwards; }
-        .shaastra-title { animation: fadeUp 0.45s 0.08s ease both; }
-        .shaastra-chips  { animation: fadeUp 0.45s 0.18s ease both; }
-        .shaastra-input-wrap:focus-within .shaastra-input-inner {
-          border-color: rgba(99,102,241,0.5) !important;
-          box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
-        }
-        .clear-btn { transition: all .14s; }
-        .clear-btn:hover { background: rgba(239,68,68,0.12) !important; border-color: rgba(239,68,68,0.35) !important; }
+        .stat-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.07); flex-shrink: 0; }
       `}</style>
 
-      {/* ── Full page container — sits below app navbar (60px) ── */}
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        height: 'calc(100vh - 60px)',
-        background: C.bg,
-        fontFamily: "'DM Sans','SF Pro Display',-apple-system,sans-serif",
-        color: C.textPri,
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)', background: C.bg, fontFamily: "'DM Sans','SF Pro Display',-apple-system,sans-serif", color: C.textPri, overflow: 'hidden' }}>
 
-        {/* Subtle radial glow background */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
-          background: 'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 70%)',
-        }} />
+        {/* ══ FULL-WIDTH NAVBAR ══════════════════════════════════════════ */}
+        <header style={{ padding: '0 20px', borderBottom: `1px solid ${C.border}`, background: C.surface, display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, height: 52 }}>
 
-        {/* ══ MESSAGES AREA ═════════════════════════════════════════════ */}
-        <div className="ai-scroll" style={{ flex: 1, overflowY: 'auto', position: 'relative', zIndex: 1 }}>
-
-          {isEmpty ? (
-            /* ── LANDING STATE — ChatGPT style ── */
-            <div className="shaastra-landing" style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', minHeight: '100%',
-              padding: '40px 24px 24px', textAlign: 'center',
-            }}>
-
-              {/* Logo mark */}
-              <div style={{
-                width: 64, height: 64, borderRadius: 20,
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', marginBottom: 22,
-                animation: 'logoGlow 3s ease-in-out infinite',
-              }}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.44-4.66z"/>
-                  <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.44-4.66z"/>
-                </svg>
-              </div>
-
-              {/* Headline */}
-              <div className="shaastra-title">
-                <h1 style={{
-                  margin: '0 0 10px',
-                  fontSize: 28, fontWeight: 700,
-                  color: C.textPri,
-                  letterSpacing: '-0.5px',
-                }}>
-                  Where should we begin?
-                </h1>
-                <p style={{
-                  margin: '0 0 36px',
-                  fontSize: 13.5, color: C.textSec,
-                  lineHeight: 1.6, maxWidth: 380,
-                }}>
-                  Ask <strong style={{ color: '#a5b4fc' }}>ShaastraAI</strong> anything about your constituency — ward strategies, caste analysis, turnout patterns, or survey coverage.
-                </p>
-              </div>
-
-              {/* Suggestion chips — 2×3 grid */}
-              <div className="shaastra-chips" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-                gap: 10, maxWidth: 680, width: '100%',
-              }}>
-                {CHIPS.map((p, i) => (
-                  <button
-                    key={i}
-                    className="ai-chip"
-                    onClick={() => sendMessage(p.q)}
-                    style={{
-                      borderRadius: 12, padding: '12px 14px',
-                      color: C.textSec, fontSize: 12.5,
-                      textAlign: 'left', display: 'flex',
-                      gap: 10, alignItems: 'flex-start',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span style={{ flexShrink: 0, marginTop: 1, color: C.accent, opacity: 0.85 }}><p.Icon /></span>
-                    <div>
-                      <div style={{ fontSize: 9, color: C.textMut, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{p.label}</div>
-                      <div style={{ lineHeight: 1.45, color: C.textSec }}>{p.q}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+          {/* Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingRight: 20, borderRight: `1px solid ${C.border}`, height: '100%' }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, boxShadow: '0 0 12px rgba(99,102,241,0.28)' }}>
+              <Icon.Map />
             </div>
-          ) : (
-            /* ── MESSAGES ── */
-            <div style={{ padding: '20px 28px 0', maxWidth: 780, margin: '0 auto', width: '100%' }}>
-              {messages.map(msg => (
-                <div key={msg.id} className="ai-msg">
-                  <AiMessage msg={msg} username={user?.username} />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: C.textPri, whiteSpace: 'nowrap' }}>Constituency AI</span>
+                <span style={{ fontSize: 9.5, color: C.textMut, background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap' }}>Mangalore South 175</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 10, color: '#7c78e8', whiteSpace: 'nowrap' }}>Claude · Backend-routed</p>
+            </div>
+          </div>
+
+          {/* Live stats row */}
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, paddingLeft: 20, gap: 0 }}>
+            {liveStats.length > 0 ? liveStats.map((s, i) => (
+              <React.Fragment key={i}>
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '0 20px', gap: 1 }}>
+                  <span style={{ fontSize: 9.5, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{s.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: s.color, lineHeight: 1.2 }}>{s.value}</span>
                 </div>
-              ))}
-              {loading && <TypingIndicator />}
-              <div ref={bottomRef} style={{ height: 20 }} />
-            </div>
-          )}
-        </div>
+                {i < liveStats.length - 1 && <div className="stat-divider" />}
+              </React.Fragment>
+            )) : (
+              <div style={{ padding: '0 20px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.textMut, display: 'inline-block', animation: 'aiPulse 1.4s ease-in-out infinite' }} />
+                <span style={{ fontSize: 11, color: C.textMut }}>Connecting to MongoDB…</span>
+              </div>
+            )}
+          </div>
 
-        {/* ══ INPUT BAR ═════════════════════════════════════════════════ */}
-        <div className="shaastra-input-wrap" style={{
-          padding: '12px 24px 16px',
-          background: C.bg,
-          borderTop: isEmpty ? 'none' : `1px solid ${C.border}`,
-          position: 'relative', zIndex: 1, flexShrink: 0,
-        }}>
-          <div style={{ maxWidth: 680, margin: '0 auto', position: 'relative' }}>
+          {/* Right side — live dot + clear */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 20, borderLeft: `1px solid ${C.border}`, height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: dashData ? C.green : C.textMut, display: 'inline-block', boxShadow: dashData ? `0 0 6px ${C.green}` : 'none' }} />
+              <span style={{ fontSize: 11, color: dashData ? C.green : C.textMut, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                {dashData ? 'Live' : 'Offline'}
+              </span>
+            </div>
+            {messages.length > 0 && (
+              <button onClick={() => setMessages([])} style={{ padding: '5px 11px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.05)', color: '#fca5a5', fontSize: 10.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+                <Icon.Trash /> Clear
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* ══ MAIN CHAT ══════════════════════════════════════════════════ */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+
+          {/* Messages */}
+          <div className="ai-scroll" style={{ flex: 1, overflowY: 'auto', padding: '18px 28px 0' }}>
+
+            {isEmpty && (
+              <div style={{ textAlign: 'center', padding: '40px 0 20px' }}>
+                <div style={{ width: 58, height: 58, borderRadius: 16, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', margin: '0 auto 14px', boxShadow: '0 0 28px rgba(99,102,241,0.22)' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                    <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+                  </svg>
+                </div>
+                <h2 style={{ margin: '0 0 5px', fontSize: 18, fontWeight: 700, color: C.textPri }}>Hello, {user?.username?.split(' ')[0] || 'MLA'}</h2>
+                <p style={{ margin: '0 0 6px', fontSize: 13, color: C.textSec, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
+                  Ask me anything about your constituency.
+                </p>
+                <p style={{ margin: '0 0 28px', fontSize: 11, color: C.textMut }}>
+                  Powered by MongoDB live data + {DATA_FILES.length} Excel files from <code style={{ background: C.surfaceUp, padding: '1px 5px', borderRadius: 3, fontSize: 10 }}>backend/data/</code>
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(205px,1fr))', gap: 7, maxWidth: 700, margin: '0 auto' }}>
+                  {CHIPS.map((p, i) => (
+                    <button key={i} className="ai-chip" onClick={() => sendMessage(p.q)} style={{ background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', color: C.textSec, fontSize: 12, textAlign: 'left', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ flexShrink: 0, marginTop: 1, color: C.accent }}><p.Icon /></span>
+                      <div>
+                        <div style={{ fontSize: 9.5, color: C.textMut, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>{p.label}</div>
+                        <div style={{ lineHeight: 1.4 }}>{p.q}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {messages.map(msg => (
+              <div key={msg.id} className="ai-msg">
+                <AiMessage msg={msg} username={user?.username} />
+              </div>
+            ))}
+            {loading && <TypingIndicator />}
+            <div ref={bottomRef} style={{ height: 18 }} />
+          </div>
+
+          {/* Input */}
+          <footer style={{ padding: '11px 28px 14px', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
             <div
-              className="shaastra-input-inner"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: 'rgba(255,255,255,0.04)',
-                border: `1px solid rgba(255,255,255,0.1)`,
-                borderRadius: 999,
-                padding: '10px 10px 10px 20px',
-                transition: 'border-color .18s, box-shadow .18s',
-              }}
+              style={{ display: 'flex', gap: 8, alignItems: 'flex-end', background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 13, padding: '7px 7px 7px 15px', transition: 'border-color .18s' }}
+              onFocusCapture={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.48)'}
+              onBlurCapture={e => e.currentTarget.style.borderColor = C.border}
             >
               <textarea
                 ref={inputRef}
@@ -541,58 +502,34 @@ export default function AiChat() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder="Ask anything…"
+                placeholder="Ask about voter data, ward strategies, caste analysis…"
                 rows={1}
-                style={{
-                  flex: 1, background: 'transparent', border: 'none',
-                  color: C.textPri, fontSize: 14, lineHeight: 1.5,
-                  fontFamily: 'inherit', maxHeight: 90, overflowY: 'auto',
-                  paddingTop: 1,
-                }}
-                onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 90) + 'px'; }}
+                style={{ flex: 1, background: 'transparent', border: 'none', color: C.textPri, fontSize: 13.5, lineHeight: 1.6, fontFamily: 'inherit', maxHeight: 105, overflowY: 'auto', paddingTop: 2 }}
+                onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 105) + 'px'; }}
               />
-
-              {/* Clear button — only when there are messages */}
-              {messages.length > 0 && (
-                <button
-                  className="clear-btn"
-                  onClick={() => setMessages([])}
-                  style={{
-                    padding: '5px 10px', borderRadius: 20,
-                    border: '1px solid rgba(239,68,68,0.18)',
-                    background: 'rgba(239,68,68,0.05)',
-                    color: '#fca5a5', fontSize: 10, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    whiteSpace: 'nowrap', flexShrink: 0,
-                  }}
-                >
-                  <Icon.Trash /> Clear
-                </button>
-              )}
-
-              {/* Send button */}
               <button
                 className="ai-send"
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || loading}
                 style={{
-                  width: 36, height: 36, borderRadius: '50%', border: 'none', flexShrink: 0,
-                  background: input.trim() && !loading
-                    ? 'linear-gradient(135deg,#6366f1,#8b5cf6)'
-                    : 'rgba(255,255,255,0.06)',
+                  width: 33, height: 33, borderRadius: 8, border: 'none', flexShrink: 0,
+                  background: input.trim() && !loading ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.05)',
                   color: input.trim() && !loading ? '#fff' : C.textMut,
                   cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: input.trim() && !loading ? '0 0 14px rgba(99,102,241,0.35)' : 'none',
-                  transition: 'all .14s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                  boxShadow: input.trim() && !loading ? '0 0 12px rgba(99,102,241,0.3)' : 'none',
                 }}
               >
                 <Icon.Send />
               </button>
             </div>
-          </div>
+            <p style={{ margin: '5px 0 0', fontSize: 10, color: C.textMut, textAlign: 'center' }}>
+              Routed through backend · MongoDB + data files context ·&nbsp;
+              <kbd style={{ background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 3, padding: '0 3px', fontSize: 9.5 }}>Enter</kbd> send &nbsp;
+              <kbd style={{ background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 3, padding: '0 3px', fontSize: 9.5 }}>Shift+Enter</kbd> newline
+            </p>
+          </footer>
         </div>
-
       </div>
     </>
   );
