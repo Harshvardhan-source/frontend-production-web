@@ -16,8 +16,8 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import Navbar from '../components/Navbar';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -367,6 +367,7 @@ export default function AiChat() {
 
   return (
     <>
+      <Navbar />
       <style>{`
         @keyframes aiPulse {
           0%,100% { transform:translateY(0); opacity:.35; }
@@ -417,59 +418,14 @@ export default function AiChat() {
       {/* ── Full page container — sits below app navbar (60px) ── */}
       <div style={{
         display: 'flex', flexDirection: 'column',
-        height: 'calc(100vh - 60px)',
+        height: 'calc(100vh - 54px)',
+        marginTop: 54,
         background: C.bg,
         fontFamily: "'DM Sans','SF Pro Display',-apple-system,sans-serif",
         color: C.textPri,
         overflow: 'hidden',
         position: 'relative',
       }}>
-
-        {/* ── Quick‑nav strip: jump to SWOT (and back) ── */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '7px 18px',
-          borderBottom: `1px solid rgba(255,255,255,0.06)`,
-          flexShrink: 0, zIndex: 2, position: 'relative',
-        }}>
-          {/* SWOT pill */}
-          <Link to="/swot" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '4px 11px', borderRadius: 20,
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.15px',
-            color: '#f59e0b',
-            border: '1px solid rgba(245,158,11,0.3)',
-            background: 'rgba(245,158,11,0.07)',
-            textDecoration: 'none',
-            transition: 'all .15s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background='rgba(245,158,11,0.14)'; e.currentTarget.style.borderColor='rgba(245,158,11,0.5)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background='rgba(245,158,11,0.07)'; e.currentTarget.style.borderColor='rgba(245,158,11,0.3)'; }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/>
-              <rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
-            </svg>
-            SWOT
-          </Link>
-
-          {/* Dashboard pill */}
-          <Link to="/" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '4px 11px', borderRadius: 20,
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.15px',
-            color: '#94a3b8',
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.04)',
-            textDecoration: 'none',
-            transition: 'all .15s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color='#f1f5f9'; }}
-            onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#94a3b8'; }}
-          >
-            ⊞ Dashboard
-          </Link>
-        </div>
 
         {/* Subtle radial glow background */}
         <div style={{
