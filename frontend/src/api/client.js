@@ -86,19 +86,19 @@ export const authApi = {
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
 export const dashboardApi = {
-  stats:         ()             => api.get('/api/dashboard/'),
-  serialNumber:  ()             => api.get('/api/serial-number/'),
-  houseSearch:   (q)            => api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
-  wardStats:     (ward)         => api.get(`/api/ward-dashboard/?ward=${ward}`),
-  boothStats:    (ward, booth)  => api.get(`/api/booth-dashboard/?ward=${ward}&booth=${booth}`),
+  stats:        ()            => api.get('/api/dashboard/'),
+  serialNumber: ()            => api.get('/api/serial-number/'),
+  houseSearch:  (q)           => api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
+  wardStats:    (ward)        => api.get(`/api/ward-dashboard/?ward=${ward}`),
+  boothStats:   (ward, booth) => api.get(`/api/booth-dashboard/?ward=${ward}&booth=${booth}`),
 };
 
 // ── Survey ───────────────────────────────────────────────────────────────────
 export const surveyApi = {
-  serialNumber:    () => api.get('/api/serial-number/'),
-  save:            (data) => api.post('/api/save-survey/', data),
-  saveFutureVoters:(data) => api.post('/api/save-future-voters/', data),
-  saveDeceased:    (data) => api.post('/api/save-deceased/', data),
+  serialNumber:     ()     => api.get('/api/serial-number/'),
+  save:             (data) => api.post('/api/save-survey/',        data),
+  saveFutureVoters: (data) => api.post('/api/save-future-voters/', data),
+  saveDeceased:     (data) => api.post('/api/save-deceased/',      data),
 };
 
 // ── Schemes ──────────────────────────────────────────────────────────────────
@@ -136,37 +136,45 @@ export const wardsApi = {
 };
 
 // ── ML Intelligence ───────────────────────────────────────────────────────────
+// Note: only constituency-swot exists in urls.py — ward-swot route does not exist
 export const mlApi = {
   constituencySwot: () => api.get('/api/ml/constituency-swot/'),
-  wardSwot: (wardNumber) => api.get('/api/ml/ward-swot/', { params: { ward: wardNumber } }),
 };
 
-// ── AI Insights ───────────────────────────────────────────────────────────────
+// ── AI Insights — routed through Django backend (Anthropic called server-side)
+// Backend reads your Excel/CSV files and live DB, then calls Claude.
+// Use these instead of calling Anthropic directly from the frontend.
 export const aiApi = {
-  queryInsight: (payload) => api.post('/api/ai/query-insight/', payload),
-  birdseyeView: (payload) => api.post('/api/ai/birdseye-view/', payload),
+  // Single conversational query — pass history array for multi-turn
+  queryInsight: (query, history = []) =>
+    api.post('/api/ai/query-insight/', { query, history }),
+
+  // Full constituency overview — no input needed
+  birdseyeView: () => api.post('/api/ai/birdseye-view/', {}),
 };
 
 // ── Admin — Survey Progress & Location Tracking (MLA / PA only) ──────────────
 export const adminApi = {
-  // Survey progress for all booth workers (or filtered by ?booth=N or ?ward=N)
   surveyProgress: (params = {}) => api.get('/api/admin/survey-progress/', { params }),
 
-  // Live location: latest ping per worker
   liveLocations:  (email = '')  =>
     api.get('/api/admin/locations/', { params: { mode: 'live', ...(email ? { email } : {}) } }),
 
-  // History: all pings for one worker on a given date
-  locationHistory:(email, date = '') =>
+  locationHistory: (email, date = '') =>
     api.get('/api/admin/locations/', { params: { mode: 'history', email, ...(date ? { date } : {}) } }),
 
-  // Distinct dates a worker sent pings (for the date-picker)
-  locationDates:  (email)       => api.get('/api/admin/location-dates/', { params: { email } }),
+  locationDates: (email) => api.get('/api/admin/location-dates/', { params: { email } }),
+
+  // User management
+  users:      (params = {}) => api.get('/api/admin/users/',        { params }),
+  approve:    (email)       => api.post('/api/admin/approve/',      { email }),
+  reject:     (email)       => api.post('/api/admin/reject/',       { email }),
+  updateRole: (payload)     => api.post('/api/admin/update-role/',  payload),
+  disable:    (email)       => api.post('/api/admin/disable/',      { email }),
+  enable:     (email)       => api.post('/api/admin/enable/',       { email }),
 };
 
-// ── Location Ping — called by worker client automatically ─────────────────────
-// Used by useLocationPing() hook exported from AdminPanel.jsx.
-// Direct api.post('/api/location/ping/', {...}) is fine too.
+// ── Location Ping — called automatically by useLocationPing() hook ─────────────
 export const locationApi = {
   ping: (lat, lng, accuracy) => api.post('/api/location/ping/', { lat, lng, accuracy }),
 };

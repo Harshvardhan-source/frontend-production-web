@@ -14,8 +14,7 @@ import VoterSearch  from './pages/VoterSearch';
 import SIR          from './pages/Sir';
 import AdminPanel   from './pages/AdminPanel';
 import Swot         from './pages/Swot';
-
-// inside your <Routes>:
+import AiChat       from './pages/Aichat';   // ← NEW
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
@@ -66,9 +65,6 @@ function AuthProvider({ children }) {
         if (data?.token) sessionStorage.setItem('cc_token', data.token);
 
         if (data?.success) {
-          // Use != null (not ||) so a legitimate empty string (e.g. mla has
-          // ward:"" and booth:"") is kept as-is and never replaced by a stale
-          // sessionStorage fallback.
           const updated = {
             username: data.username ?? '',
             email:    data.email    ?? '',
@@ -80,21 +76,18 @@ function AuthProvider({ children }) {
           setUser(updated);
           _persist(updated);
         } else {
-          // /auth/me returned success:false — not authenticated
           setUser(null);
           _clear();
         }
       })
       .catch((err) => {
         if (err?.response?.status === 401) {
-          // Cookie expired or revoked — force re-login
           setUser(null);
           _clear();
         }
-        // Network / 5xx errors: keep whatever sessionStorage had
       })
       .finally(() => setAuthReady(true));
-  }, []); // run once on mount
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoggedIn: !!user, authReady }}>
@@ -104,8 +97,6 @@ function AuthProvider({ children }) {
 }
 
 // ─── Protected Route ──────────────────────────────────────────────────────────
-// Wait for authReady before deciding — prevents redirect-to-login during the
-// async /auth/me call that happens on every page load.
 function Protected({ children }) {
   const { isLoggedIn, authReady } = useAuth();
   if (!authReady) return null;
@@ -130,9 +121,9 @@ export default function App() {
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
           <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
           <Route path="/swot"           element={<Protected><Swot /></Protected>} />
-          
-          <Route path="*"               element={<Navigate to="/" replace />} />
+          <Route path="/ai"             element={<Protected><AiChat /></Protected>} />  {/* ← NEW */}
 
+          <Route path="*"               element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
