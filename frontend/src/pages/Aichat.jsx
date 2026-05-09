@@ -289,7 +289,6 @@ export default function AiChat() {
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [dashData, setDashData] = useState(null);
-  const [sideOpen, setSideOpen] = useState(true);
   const bottomRef               = useRef(null);
   const inputRef                = useRef(null);
   const API_URL                 = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
@@ -388,105 +387,72 @@ export default function AiChat() {
         .ai-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 4px; }
         .ai-send { transition: all .14s ease; }
         .ai-send:hover:not(:disabled) { filter: brightness(1.15); transform: scale(1.06); }
-        .ai-tog  { transition: background .15s ease; }
-        .ai-tog:hover { background: rgba(99,102,241,0.1) !important; }
         textarea.ai-ta { resize: none; }
         textarea.ai-ta:focus { outline: none; }
+        .stat-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.07); flex-shrink: 0; }
       `}</style>
 
-      {/*
-        ╔══════════════════════════════════════════════════════╗
-        ║  height: calc(100vh - 60px)                         ║
-        ║  Fills the area BELOW your existing navbar (60px).  ║
-        ║  Change 60 to match your actual navbar height.      ║
-        ╚══════════════════════════════════════════════════════╝
-      */}
-      <div style={{ display: 'flex', height: 'calc(100vh - 60px)', background: C.bg, fontFamily: "'DM Sans','SF Pro Display',-apple-system,sans-serif", color: C.textPri, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)', background: C.bg, fontFamily: "'DM Sans','SF Pro Display',-apple-system,sans-serif", color: C.textPri, overflow: 'hidden' }}>
 
-        {/* ══ SIDEBAR ═══════════════════════════════════════════════════ */}
-        <aside style={{
-          width: sideOpen ? 224 : 0, minWidth: sideOpen ? 224 : 0,
-          background: C.surface, borderRight: `1px solid ${C.border}`,
-          transition: 'width .22s ease, min-width .22s ease',
-          overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column',
-        }}>
-          <div className="ai-scroll" style={{ opacity: sideOpen ? 1 : 0, transition: 'opacity .15s ease', padding: '16px 13px', flex: 1, overflowY: 'auto' }}>
+        {/* ══ FULL-WIDTH NAVBAR ══════════════════════════════════════════ */}
+        <header style={{ padding: '0 20px', borderBottom: `1px solid ${C.border}`, background: C.surface, display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, height: 52 }}>
 
-            {/* Live stats */}
-            <p style={{ margin: '0 0 9px', fontSize: 9.5, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ color: C.green }}><Icon.Signal /></span> Live MongoDB</p>
-            {liveStats.length > 0 ? liveStats.map((s, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < liveStats.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                <span style={{ fontSize: 11.5, color: C.textSec }}>{s.label}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.value}</span>
-              </div>
-            )) : (
-              <p style={{ fontSize: 11, color: C.textMut, margin: '4px 0 0' }}>Connecting…</p>
-            )}
-
-            {/* Ward progress bars */}
-            {wardEntries.length > 0 && (
-              <>
-                <p style={{ margin: '16px 0 9px', fontSize: 9.5, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ color: C.gold }}><Icon.Warning /></span> Lowest Coverage</p>
-                {wardEntries.map(([ward, pct]) => (
-                  <div key={ward} style={{ marginBottom: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                      <span style={{ fontSize: 10.5, color: C.textSec, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{ward}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: pct < 30 ? C.red : pct < 60 ? C.gold : C.green }}>{pct}%</span>
-                    </div>
-                    <div style={{ height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
-                      <div style={{ height: '100%', borderRadius: 2, width: `${Math.min(pct, 100)}%`, background: pct < 30 ? C.red : pct < 60 ? C.gold : C.green, transition: 'width .5s ease' }} />
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {/* Clear button */}
-            {messages.length > 0 && (
-              <button onClick={() => setMessages([])} style={{ marginTop: 16, width: '100%', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 8, padding: '7px', color: '#fca5a5', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <Icon.Trash /> Clear chat
-              </button>
-            )}
-          </div>
-        </aside>
-
-        {/* ══ MAIN CHAT ══════════════════════════════════════════════════ */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-
-          {/* Header */}
-          <header style={{ padding: '10px 16px', borderBottom: `1px solid ${C.border}`, background: C.surface, display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <button className="ai-tog" onClick={() => setSideOpen(o => !o)} style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.border}`, background: sideOpen ? C.accentSft : 'transparent', color: sideOpen ? C.accent : C.textSec, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Toggle data panel">
-              <Icon.Menu />
-            </button>
+          {/* Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingRight: 20, borderRight: `1px solid ${C.border}`, height: '100%' }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, boxShadow: '0 0 12px rgba(99,102,241,0.28)' }}>
               <Icon.Map />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: C.textPri }}>Constituency AI</span>
-                <span style={{ fontSize: 10, color: C.textMut, background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 5px' }}>Mangalore South 175</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: C.textPri, whiteSpace: 'nowrap' }}>Constituency AI</span>
+                <span style={{ fontSize: 9.5, color: C.textMut, background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap' }}>Mangalore South 175</span>
               </div>
-              <p style={{ margin: 0, fontSize: 10.5, color: '#7c78e8' }}>
-                Claude · Backend-routed · MongoDB + {DATA_FILES.length} data files
-              </p>
+              <p style={{ margin: 0, fontSize: 10, color: '#7c78e8', whiteSpace: 'nowrap' }}>Claude · Backend-routed</p>
             </div>
-            {/* Live indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          </div>
+
+          {/* Live stats row */}
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, paddingLeft: 20, gap: 0 }}>
+            {liveStats.length > 0 ? liveStats.map((s, i) => (
+              <React.Fragment key={i}>
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '0 20px', gap: 1 }}>
+                  <span style={{ fontSize: 9.5, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{s.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: s.color, lineHeight: 1.2 }}>{s.value}</span>
+                </div>
+                {i < liveStats.length - 1 && <div className="stat-divider" />}
+              </React.Fragment>
+            )) : (
+              <div style={{ padding: '0 20px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.textMut, display: 'inline-block', animation: 'aiPulse 1.4s ease-in-out infinite' }} />
+                <span style={{ fontSize: 11, color: C.textMut }}>Connecting to MongoDB…</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right side — live dot + clear */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 20, borderLeft: `1px solid ${C.border}`, height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: dashData ? C.green : C.textMut, display: 'inline-block', boxShadow: dashData ? `0 0 6px ${C.green}` : 'none' }} />
-              <span style={{ fontSize: 11, color: dashData ? C.green : C.textMut, fontWeight: 500 }}>
-                {dashData ? `${(dashData.totalVoters || dashData.total_voters || 0).toLocaleString()} voters` : 'Connecting…'}
+              <span style={{ fontSize: 11, color: dashData ? C.green : C.textMut, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                {dashData ? 'Live' : 'Offline'}
               </span>
             </div>
-            {messages.length > 0 && !sideOpen && (
-              <button onClick={() => setMessages([])} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.05)', color: '#fca5a5', fontSize: 10.5, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}><Icon.Trash /> Clear</button>
+            {messages.length > 0 && (
+              <button onClick={() => setMessages([])} style={{ padding: '5px 11px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.05)', color: '#fca5a5', fontSize: 10.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+                <Icon.Trash /> Clear
+              </button>
             )}
-          </header>
+          </div>
+        </header>
+
+        {/* ══ MAIN CHAT ══════════════════════════════════════════════════ */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
 
           {/* Messages */}
-          <div className="ai-scroll" style={{ flex: 1, overflowY: 'auto', padding: '18px 22px 0' }}>
+          <div className="ai-scroll" style={{ flex: 1, overflowY: 'auto', padding: '18px 28px 0' }}>
 
             {isEmpty && (
-              <div style={{ textAlign: 'center', padding: '28px 0 20px' }}>
+              <div style={{ textAlign: 'center', padding: '40px 0 20px' }}>
                 <div style={{ width: 58, height: 58, borderRadius: 16, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', margin: '0 auto 14px', boxShadow: '0 0 28px rgba(99,102,241,0.22)' }}>
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
@@ -497,10 +463,10 @@ export default function AiChat() {
                 <p style={{ margin: '0 0 6px', fontSize: 13, color: C.textSec, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
                   Ask me anything about your constituency.
                 </p>
-                <p style={{ margin: '0 0 24px', fontSize: 11, color: C.textMut }}>
+                <p style={{ margin: '0 0 28px', fontSize: 11, color: C.textMut }}>
                   Powered by MongoDB live data + {DATA_FILES.length} Excel files from <code style={{ background: C.surfaceUp, padding: '1px 5px', borderRadius: 3, fontSize: 10 }}>backend/data/</code>
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(205px,1fr))', gap: 7, maxWidth: 640, margin: '0 auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(205px,1fr))', gap: 7, maxWidth: 700, margin: '0 auto' }}>
                   {CHIPS.map((p, i) => (
                     <button key={i} className="ai-chip" onClick={() => sendMessage(p.q)} style={{ background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', color: C.textSec, fontSize: 12, textAlign: 'left', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ flexShrink: 0, marginTop: 1, color: C.accent }}><p.Icon /></span>
@@ -524,7 +490,7 @@ export default function AiChat() {
           </div>
 
           {/* Input */}
-          <footer style={{ padding: '11px 18px 14px', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
+          <footer style={{ padding: '11px 28px 14px', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
             <div
               style={{ display: 'flex', gap: 8, alignItems: 'flex-end', background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 13, padding: '7px 7px 7px 15px', transition: 'border-color .18s' }}
               onFocusCapture={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.48)'}
