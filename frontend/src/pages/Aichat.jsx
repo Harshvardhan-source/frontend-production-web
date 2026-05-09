@@ -593,8 +593,7 @@ export default function AiChat() {
 
             {/* Branding line */}
             <p style={{ margin: '7px 0 0', fontSize: 10, color: C.textMut, textAlign: 'center' }}>
-              <span style={{ color: '#6366f1', fontWeight: 600 }}>ShaastraAI</span>
-              {' '}· Routed through backend · MongoDB + data files ·{' '}
+  
               <kbd style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 3, padding: '0 4px', fontSize: 9 }}>Enter</kbd> send
             </p>
           </div>
