@@ -14,7 +14,7 @@ import VoterSearch  from './pages/VoterSearch';
 import SIR          from './pages/Sir';
 import AdminPanel   from './pages/AdminPanel';
 import Swot         from './pages/Swot';
-import AiChat       from './pages/AiChat';   // ← NEW
+import AiChat       from './pages/Aichat';   // ← NEW
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
