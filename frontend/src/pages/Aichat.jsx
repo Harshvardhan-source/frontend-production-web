@@ -42,13 +42,94 @@ const C = {
 };
 const CHT = [C.gold, C.green, C.accent, C.red, C.blue, C.pink, '#14b8a6', '#f97316'];
 
+// SVG icon components for professional UI
+const Icon = {
+  Turnout: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  ),
+  Caste: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+  Coverage: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>
+    </svg>
+  ),
+  Strategy: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </svg>
+  ),
+  Families: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  ),
+  Swing: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    </svg>
+  ),
+  Send: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+    </svg>
+  ),
+  Menu: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  ),
+  Brain: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.44-4.66z"/>
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.44-4.66z"/>
+    </svg>
+  ),
+  Signal: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/>
+    </svg>
+  ),
+  Warning: () => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  ),
+  Trash: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+    </svg>
+  ),
+  AlertCircle: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  ),
+  Target: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </svg>
+  ),
+  Map: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+      <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+    </svg>
+  ),
+};
+
 const CHIPS = [
-  { icon: '🗳️', label: 'Turnout',   q: 'Which wards have the lowest voter turnout and what is driving it?' },
-  { icon: '🏘️', label: 'Caste',     q: 'Show me caste-wise voter distribution across all wards' },
-  { icon: '📊', label: 'Coverage',  q: 'What is the survey coverage gap and which booths need priority?' },
-  { icon: '🎯', label: 'Strategy',  q: 'Give me a winning strategy for the top 5 risk wards' },
-  { icon: '👨‍👩‍👧‍👦', label: 'Families', q: 'Analyse large family households and their political significance' },
-  { icon: '🔮', label: 'Swing',     q: 'Predict swing wards based on current survey data trends' },
+  { Icon: Icon.Turnout,  label: 'Turnout',   q: 'Which wards have the lowest voter turnout and what is driving it?' },
+  { Icon: Icon.Caste,    label: 'Caste',     q: 'Show me caste-wise voter distribution across all wards' },
+  { Icon: Icon.Coverage, label: 'Coverage',  q: 'What is the survey coverage gap and which booths need priority?' },
+  { Icon: Icon.Strategy, label: 'Strategy',  q: 'Give me a winning strategy for the top 5 risk wards' },
+  { Icon: Icon.Families, label: 'Families',  q: 'Analyse large family households and their political significance' },
+  { Icon: Icon.Swing,    label: 'Swing',     q: 'Predict swing wards based on current survey data trends' },
 ];
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -123,7 +204,9 @@ function StrategyList({ items }) {
 
 function AiAvatar() {
   return (
-    <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', boxShadow: '0 0 10px rgba(99,102,241,0.3)' }}>AI</div>
+    <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 0 10px rgba(99,102,241,0.3)' }}>
+      <Icon.Brain />
+    </div>
   );
 }
 
@@ -149,8 +232,9 @@ function AiMessage({ msg, username }) {
     return (
       <div style={{ display: 'flex', gap: 9, marginBottom: 12, alignItems: 'flex-start' }}>
         <AiAvatar />
-        <div style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '3px 15px 15px 15px', padding: '9px 14px', fontSize: 13, color: '#fca5a5', lineHeight: 1.6, maxWidth: '80%' }}>
-          ⚠️ {error}
+        <div style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '3px 15px 15px 15px', padding: '9px 14px', fontSize: 13, color: '#fca5a5', lineHeight: 1.6, maxWidth: '80%', display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+          <span style={{ color: '#fca5a5', flexShrink: 0, marginTop: 2 }}><Icon.AlertCircle /></span>
+          {error}
         </div>
       </div>
     );
@@ -174,7 +258,7 @@ function AiMessage({ msg, username }) {
         {strategies?.length > 0 && (
           <div style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.14)', borderRadius: 11, padding: '11px 15px', marginTop: 9 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7 }}>
-              <span style={{ fontSize: 12 }}>🎯</span>
+              <span style={{ color: C.gold }}><Icon.Target /></span>
               <p style={{ margin: 0, fontSize: 9.5, color: C.gold, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em' }}>Recommended Strategies</p>
             </div>
             <StrategyList items={strategies} />
@@ -329,7 +413,7 @@ export default function AiChat() {
           <div className="ai-scroll" style={{ opacity: sideOpen ? 1 : 0, transition: 'opacity .15s ease', padding: '16px 13px', flex: 1, overflowY: 'auto' }}>
 
             {/* Live stats */}
-            <p style={{ margin: '0 0 9px', fontSize: 9.5, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.1em' }}>📡 Live MongoDB</p>
+            <p style={{ margin: '0 0 9px', fontSize: 9.5, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ color: C.green }}><Icon.Signal /></span> Live MongoDB</p>
             {liveStats.length > 0 ? liveStats.map((s, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < liveStats.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                 <span style={{ fontSize: 11.5, color: C.textSec }}>{s.label}</span>
@@ -342,7 +426,7 @@ export default function AiChat() {
             {/* Ward progress bars */}
             {wardEntries.length > 0 && (
               <>
-                <p style={{ margin: '16px 0 9px', fontSize: 9.5, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.1em' }}>⚠️ Lowest Coverage</p>
+                <p style={{ margin: '16px 0 9px', fontSize: 9.5, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ color: C.gold }}><Icon.Warning /></span> Lowest Coverage</p>
                 {wardEntries.map(([ward, pct]) => (
                   <div key={ward} style={{ marginBottom: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
@@ -357,19 +441,10 @@ export default function AiChat() {
               </>
             )}
 
-            {/* Data files loaded */}
-            <p style={{ margin: '16px 0 9px', fontSize: 9.5, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.1em' }}>📁 Data Files Loaded</p>
-            {DATA_FILES.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 0' }}>
-                <span style={{ fontSize: 9, color: C.green }}>✓</span>
-                <span style={{ fontSize: 10, color: C.textMut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</span>
-              </div>
-            ))}
-
             {/* Clear button */}
             {messages.length > 0 && (
-              <button onClick={() => setMessages([])} style={{ marginTop: 16, width: '100%', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 8, padding: '7px', color: '#fca5a5', fontSize: 11.5, cursor: 'pointer' }}>
-                🗑 Clear chat
+              <button onClick={() => setMessages([])} style={{ marginTop: 16, width: '100%', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 8, padding: '7px', color: '#fca5a5', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Icon.Trash /> Clear chat
               </button>
             )}
           </div>
@@ -380,10 +455,12 @@ export default function AiChat() {
 
           {/* Header */}
           <header style={{ padding: '10px 16px', borderBottom: `1px solid ${C.border}`, background: C.surface, display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <button className="ai-tog" onClick={() => setSideOpen(o => !o)} style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.border}`, background: sideOpen ? C.accentSft : 'transparent', color: sideOpen ? C.accent : C.textSec, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }} title="Toggle data panel">
-              ☰
+            <button className="ai-tog" onClick={() => setSideOpen(o => !o)} style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.border}`, background: sideOpen ? C.accentSft : 'transparent', color: sideOpen ? C.accent : C.textSec, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Toggle data panel">
+              <Icon.Menu />
             </button>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, boxShadow: '0 0 12px rgba(99,102,241,0.28)' }}>🤖</div>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, boxShadow: '0 0 12px rgba(99,102,241,0.28)' }}>
+              <Icon.Map />
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: C.textPri }}>Constituency AI</span>
@@ -401,7 +478,7 @@ export default function AiChat() {
               </span>
             </div>
             {messages.length > 0 && !sideOpen && (
-              <button onClick={() => setMessages([])} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.05)', color: '#fca5a5', fontSize: 10.5, cursor: 'pointer', flexShrink: 0 }}>Clear</button>
+              <button onClick={() => setMessages([])} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.05)', color: '#fca5a5', fontSize: 10.5, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}><Icon.Trash /> Clear</button>
             )}
           </header>
 
@@ -410,8 +487,13 @@ export default function AiChat() {
 
             {isEmpty && (
               <div style={{ textAlign: 'center', padding: '28px 0 20px' }}>
-                <div style={{ width: 58, height: 58, borderRadius: 16, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 25, margin: '0 auto 14px', boxShadow: '0 0 28px rgba(99,102,241,0.22)' }}>🏛️</div>
-                <h2 style={{ margin: '0 0 5px', fontSize: 18, fontWeight: 700, color: C.textPri }}>Hello, {user?.username?.split(' ')[0] || 'MLA'} 👋</h2>
+                <div style={{ width: 58, height: 58, borderRadius: 16, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', margin: '0 auto 14px', boxShadow: '0 0 28px rgba(99,102,241,0.22)' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                    <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+                  </svg>
+                </div>
+                <h2 style={{ margin: '0 0 5px', fontSize: 18, fontWeight: 700, color: C.textPri }}>Hello, {user?.username?.split(' ')[0] || 'MLA'}</h2>
                 <p style={{ margin: '0 0 6px', fontSize: 13, color: C.textSec, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
                   Ask me anything about your constituency.
                 </p>
@@ -421,7 +503,7 @@ export default function AiChat() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(205px,1fr))', gap: 7, maxWidth: 640, margin: '0 auto' }}>
                   {CHIPS.map((p, i) => (
                     <button key={i} className="ai-chip" onClick={() => sendMessage(p.q)} style={{ background: C.surfaceUp, border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', color: C.textSec, fontSize: 12, textAlign: 'left', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{p.icon}</span>
+                      <span style={{ flexShrink: 0, marginTop: 1, color: C.accent }}><p.Icon /></span>
                       <div>
                         <div style={{ fontSize: 9.5, color: C.textMut, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>{p.label}</div>
                         <div style={{ lineHeight: 1.4 }}>{p.q}</div>
@@ -471,7 +553,9 @@ export default function AiChat() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
                   boxShadow: input.trim() && !loading ? '0 0 12px rgba(99,102,241,0.3)' : 'none',
                 }}
-              >↑</button>
+              >
+                <Icon.Send />
+              </button>
             </div>
             <p style={{ margin: '5px 0 0', fontSize: 10, color: C.textMut, textAlign: 'center' }}>
               Routed through backend · MongoDB + data files context ·&nbsp;
