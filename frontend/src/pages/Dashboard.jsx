@@ -752,9 +752,7 @@ const POLLED_BROAD_DATA = [
 ];
 
 function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
-  const [showAll, setShowAll] = React.useState(false);
   const data = POLLED_BROAD_DATA;
-  const displayed = showAll ? data : data.slice(0, 5);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
   const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
   const grandTotal     = grandPolled + grandNotPolled;
@@ -797,9 +795,10 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
         </div>
       </div>
 
-      {/* Per-category rows */}
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {displayed.map(({ key, label:lbl, color, polled, notPolled }) => {
+      {/* Per-category rows — scrollable */}
+      <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:420, overflowY:'auto', paddingRight:2,
+        scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,0.12) transparent' }}>
+        {data.map(({ key, label:lbl, color, polled, notPolled }) => {
           const rowTotal  = polled + notPolled || 1;
           const polledPct = ((polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
@@ -837,11 +836,6 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
         })}
       </div>
 
-      {data.length > 5 && (
-        <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
-          {showAll ? '▲ Show less' : `▼ Show all ${data.length} categories`}
-        </button>
-      )}
     </div>
   );
 }
@@ -866,9 +860,7 @@ const POLLED_COMMUNITY_DATA = [
 ];
 
 function PolledCommunityWidget({ loading, label = 'Constituency' }) {
-  const [showAll, setShowAll] = React.useState(false);
   const data = POLLED_COMMUNITY_DATA;
-  const displayed = showAll ? data : data.slice(0, 6);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
   const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
   const grandTotal     = grandPolled + grandNotPolled;
@@ -911,9 +903,10 @@ function PolledCommunityWidget({ loading, label = 'Constituency' }) {
         </div>
       </div>
 
-      {/* Per-community rows */}
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {displayed.map(({ key, label:lbl, color, polled, notPolled }) => {
+      {/* Per-community rows — scrollable */}
+      <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:600, overflowY:'auto', paddingRight:2,
+        scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,0.12) transparent' }}>
+        {data.map(({ key, label:lbl, color, polled, notPolled }) => {
           const rowTotal  = polled + notPolled || 1;
           const polledPct = ((polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
@@ -952,11 +945,7 @@ function PolledCommunityWidget({ loading, label = 'Constituency' }) {
         })}
       </div>
 
-      {data.length > 6 && (
-        <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
-          {showAll ? '▲ Show less' : `▼ Show all ${data.length} communities`}
-        </button>
-      )}
+      </div>
     </div>
   );
 }
@@ -3146,7 +3135,7 @@ export default function Dashboard() {
           {/* ── HMC Religion Breakdown + Polled/NotPolled (constituency / ward / booth) ── */}
           <div style={{ marginBottom: 20 }} className="anim-fade-up">
             {/* Two widgets side by side on wider screens, stacked on mobile */}
-            <div className="db-two-col">
+            <div className="db-two-col" style={{ alignItems: 'start' }}>
               <HMCWidget
                 hmc={
                   selectedBooth ? s.boothHMC :
@@ -3174,7 +3163,7 @@ export default function Dashboard() {
 
           {/* ── Caste Category + Community Polled/NotPolled ─────────────── */}
           <div style={{ marginBottom: 20 }} className="anim-fade-up">
-            <div className="db-two-col">
+            <div className="db-two-col" style={{ alignItems: 'start' }}>
               <PolledBroadCategoryWidget
                 loading={activeLoading}
                 label={
