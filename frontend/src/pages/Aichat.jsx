@@ -17,11 +17,8 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../App';
-import Navbar from '../components/Navbar';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  ScatterChart, Scatter, ZAxis,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { aiApi } from '../api/client';
@@ -124,17 +121,6 @@ const Icon = {
       <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
     </svg>
   ),
-  Download: () => (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-    </svg>
-  ),
-  FileXls: () => (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-      <line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/>
-    </svg>
-  ),
 };
 
 const CHIPS = [
@@ -156,82 +142,36 @@ function SmartChart({ chart }) {
     border: '1px solid rgba(99,102,241,0.25)',
     borderRadius: 8, color: C.textPri, fontSize: 12,
   };
-
-  const renderChart = () => {
-    if (type === 'pie') return (
-      <PieChart>
-        <Pie data={data} dataKey={yKeys[0]} nameKey={xKey} cx="50%" cy="50%" outerRadius={72} innerRadius={28}
-          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-          {data.map((_, i) => <Cell key={i} fill={CHT[i % CHT.length]} />)}
-        </Pie>
-        <Tooltip contentStyle={tt} />
-        <Legend wrapperStyle={{ fontSize: 11, color: C.textSec }} />
-      </PieChart>
-    );
-
-    if (type === 'line') return (
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-        <XAxis dataKey={xKey} tick={{ fill: C.textMut, fontSize: 10 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: C.textMut, fontSize: 10 }} axisLine={false} tickLine={false} />
-        <Tooltip contentStyle={tt} />
-        <Legend wrapperStyle={{ fontSize: 11, color: C.textSec }} />
-        {yKeys.map((k, i) => <Line key={k} type="monotone" dataKey={k} stroke={CHT[i % CHT.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />)}
-      </LineChart>
-    );
-
-    if (type === 'scatter') {
-      const xK = xKey || (yKeys && yKeys[0]) || 'x';
-      const yK = yKeys && yKeys[1] ? yKeys[1] : (yKeys && yKeys[0] ? yKeys[0] : 'y');
-      return (
-        <ScatterChart>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-          <XAxis dataKey={xK} name={xK} tick={{ fill: C.textMut, fontSize: 10 }} axisLine={false} tickLine={false} />
-          <YAxis dataKey={yK} name={yK} tick={{ fill: C.textMut, fontSize: 10 }} axisLine={false} tickLine={false} />
-          <ZAxis range={[40, 200]} />
-          <Tooltip contentStyle={tt} cursor={{ strokeDasharray: '3 3' }} />
-          <Legend wrapperStyle={{ fontSize: 11, color: C.textSec }} />
-          {data.length && (
-            <Scatter name={title || 'Data'} data={data} fill={C.accent} opacity={0.8} />
-          )}
-        </ScatterChart>
-      );
-    }
-
-    if (type === 'radar') {
-      const angleKey = xKey || 'subject';
-      return (
-        <RadarChart cx="50%" cy="50%" outerRadius={80} data={data}>
-          <PolarGrid stroke="rgba(255,255,255,0.08)" />
-          <PolarAngleAxis dataKey={angleKey} tick={{ fill: C.textSec, fontSize: 10 }} />
-          <PolarRadiusAxis tick={{ fill: C.textMut, fontSize: 9 }} axisLine={false} />
-          <Tooltip contentStyle={tt} />
-          <Legend wrapperStyle={{ fontSize: 11, color: C.textSec }} />
-          {yKeys.map((k, i) => (
-            <Radar key={k} name={k} dataKey={k} stroke={CHT[i % CHT.length]} fill={CHT[i % CHT.length]} fillOpacity={0.18} strokeWidth={2} />
-          ))}
-        </RadarChart>
-      );
-    }
-
-    // default: bar
-    return (
-      <BarChart data={data} barGap={2}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-        <XAxis dataKey={xKey} tick={{ fill: C.textMut, fontSize: 10 }} angle={-25} textAnchor="end" height={38} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: C.textMut, fontSize: 10 }} axisLine={false} tickLine={false} />
-        <Tooltip contentStyle={tt} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
-        <Legend wrapperStyle={{ fontSize: 11, color: C.textSec }} />
-        {yKeys.map((k, i) => <Bar key={k} dataKey={k} fill={CHT[i % CHT.length]} radius={[3, 3, 0, 0]} maxBarSize={30} />)}
-      </BarChart>
-    );
-  };
-
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 18px', marginTop: 10 }}>
       {title && <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{title}</p>}
-      <ResponsiveContainer width="100%" height={220}>
-        {renderChart()}
+      <ResponsiveContainer width="100%" height={195}>
+        {type === 'pie' ? (
+          <PieChart>
+            <Pie data={data} dataKey={yKeys[0]} nameKey={xKey} cx="50%" cy="50%" outerRadius={72} innerRadius={28} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+              {data.map((_, i) => <Cell key={i} fill={CHT[i % CHT.length]} />)}
+            </Pie>
+            <Tooltip contentStyle={tt} />
+          </PieChart>
+        ) : type === 'line' ? (
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            <XAxis dataKey={xKey} tick={{ fill: C.textMut, fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: C.textMut, fontSize: 10 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={tt} />
+            <Legend wrapperStyle={{ fontSize: 11, color: C.textSec }} />
+            {yKeys.map((k, i) => <Line key={k} type="monotone" dataKey={k} stroke={CHT[i % CHT.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />)}
+          </LineChart>
+        ) : (
+          <BarChart data={data} barGap={2}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <XAxis dataKey={xKey} tick={{ fill: C.textMut, fontSize: 10 }} angle={-25} textAnchor="end" height={38} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: C.textMut, fontSize: 10 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={tt} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
+            <Legend wrapperStyle={{ fontSize: 11, color: C.textSec }} />
+            {yKeys.map((k, i) => <Bar key={k} dataKey={k} fill={CHT[i % CHT.length]} radius={[3, 3, 0, 0]} maxBarSize={30} />)}
+          </BarChart>
+        )}
       </ResponsiveContainer>
     </div>
   );
@@ -262,102 +202,6 @@ function StrategyList({ items }) {
   );
 }
 
-// Format → colour + label mapping
-const FORMAT_META = {
-  xlsx: { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', label: 'Excel (.xlsx)' },
-  csv:  { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', label: 'CSV (.csv)'   },
-  pdf:  { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.25)',  label: 'PDF (.pdf)'   },
-  docx: { color: '#6366f1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.25)', label: 'Word (.docx)' },
-};
-
-function DownloadCard({ download, apiUrl, token }) {
-  const [busy, setBusy] = useState({});
-
-  if (!download?.filename || !download?.data?.length) return null;
-
-  const handleDownload = async (fmt) => {
-    setBusy(b => ({ ...b, [fmt]: true }));
-    try {
-      const res = await fetch(`${apiUrl}/api/ai/export/`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ filename: download.filename, columns: download.columns, data: download.data, format: fmt }),
-      });
-      if (!res.ok) throw new Error('Export failed');
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = `${download.filename}.${fmt}`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      alert('Export failed: ' + e.message);
-    } finally {
-      setBusy(b => ({ ...b, [fmt]: false }));
-    }
-  };
-
-  const formats = download.formats || ['xlsx', 'csv', 'pdf', 'docx'];
-
-  return (
-    <div style={{
-      marginTop: 10, borderRadius: 12,
-      background: 'rgba(99,102,241,0.04)',
-      border: '1px solid rgba(99,102,241,0.18)',
-      padding: '12px 15px',
-    }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <span style={{ color: C.accent }}><Icon.FileXls /></span>
-        <span style={{ fontSize: 10, fontWeight: 700, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-          Export Analysis
-        </span>
-        <span style={{ marginLeft: 'auto', fontSize: 10, color: C.textMut }}>
-          {download.data.length} rows · {(download.columns || []).length} columns
-        </span>
-      </div>
-
-      {/* Filename */}
-      <p style={{ margin: '0 0 10px', fontSize: 12, color: C.textSec }}>
-        📄 <strong style={{ color: C.textPri }}>{download.filename}</strong>
-      </p>
-
-      {/* Format buttons */}
-      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-        {formats.map(fmt => {
-          const m = FORMAT_META[fmt] || FORMAT_META.xlsx;
-          return (
-            <button
-              key={fmt}
-              onClick={() => handleDownload(fmt)}
-              disabled={busy[fmt]}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '6px 13px', borderRadius: 20,
-                border: `1px solid ${m.border}`,
-                background: m.bg, color: m.color,
-                fontSize: 11.5, fontWeight: 700, cursor: busy[fmt] ? 'wait' : 'pointer',
-                transition: 'all .14s', opacity: busy[fmt] ? 0.6 : 1,
-              }}
-            >
-              {busy[fmt]
-                ? <span style={{ width: 10, height: 10, borderRadius: '50%', border: `2px solid ${m.color}`, borderTopColor: 'transparent', display: 'inline-block', animation: 'spin .7s linear infinite' }} />
-                : <Icon.Download />
-              }
-              {busy[fmt] ? 'Generating…' : m.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function AiAvatar() {
   return (
     <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 0 10px rgba(99,102,241,0.3)' }}>
@@ -366,7 +210,7 @@ function AiAvatar() {
   );
 }
 
-function AiMessage({ msg, username, apiUrl, token }) {
+function AiMessage({ msg, username }) {
   const isUser = msg.role === 'user';
 
   if (isUser) {
@@ -382,7 +226,7 @@ function AiMessage({ msg, username, apiUrl, token }) {
     );
   }
 
-  const { text, metrics, chart, strategies, download, error } = msg.content || {};
+  const { text, metrics, chart, strategies, error } = msg.content || {};
 
   if (error) {
     return (
@@ -420,7 +264,6 @@ function AiMessage({ msg, username, apiUrl, token }) {
             <StrategyList items={strategies} />
           </div>
         )}
-        <DownloadCard download={download} apiUrl={apiUrl} token={token} />
       </div>
     </div>
   );
@@ -523,14 +366,10 @@ export default function AiChat() {
 
   return (
     <>
-      <Navbar />
       <style>{`
         @keyframes aiPulse {
           0%,100% { transform:translateY(0); opacity:.35; }
           50%      { transform:translateY(-4px); opacity:1; }
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
         }
         @keyframes msgIn {
           from { opacity:0; transform:translateY(8px); }
@@ -577,8 +416,7 @@ export default function AiChat() {
       {/* ── Full page container — sits below app navbar (60px) ── */}
       <div style={{
         display: 'flex', flexDirection: 'column',
-        height: 'calc(100vh - 54px)',
-        marginTop: 54,
+        height: 'calc(100vh - 60px)',
         background: C.bg,
         fontFamily: "'DM Sans','SF Pro Display',-apple-system,sans-serif",
         color: C.textPri,
@@ -608,23 +446,13 @@ export default function AiChat() {
                 width: 64, height: 64, borderRadius: 20,
                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', marginBottom: 12,
+                color: '#fff', marginBottom: 22,
                 animation: 'logoGlow 3s ease-in-out infinite',
               }}>
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.44-4.66z"/>
                   <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.44-4.66z"/>
                 </svg>
-              </div>
-
-              {/* ShaastraAI wordmark */}
-              <div style={{ marginBottom: 18, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: '#a5b4fc', letterSpacing: '-0.3px' }}>Shaastra</span>
-                <span style={{
-                  fontSize: 22, fontWeight: 800, letterSpacing: '-0.3px',
-                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                }}>AI</span>
               </div>
 
               {/* Headline */}
@@ -679,7 +507,7 @@ export default function AiChat() {
             <div style={{ padding: '20px 28px 0', maxWidth: 780, margin: '0 auto', width: '100%' }}>
               {messages.map(msg => (
                 <div key={msg.id} className="ai-msg">
-                  <AiMessage msg={msg} username={user?.username} apiUrl={API_URL} token={sessionStorage.getItem('cc_token')} />
+                  <AiMessage msg={msg} username={user?.username} />
                 </div>
               ))}
               {loading && <TypingIndicator />}
