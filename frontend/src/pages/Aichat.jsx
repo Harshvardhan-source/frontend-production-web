@@ -61,52 +61,17 @@ const NAV_ITEMS = [
 ];
 
 // ════════════════════════════════════════════════════════════════════════════════
-// BRAIN ICON — circuit-brain outline (matches uploaded logo)
+// BRAIN SVG ICON
 // ════════════════════════════════════════════════════════════════════════════════
-function BrainIcon({ size = 48, color = '#06b6d4', glow = false }) {
+function BrainIcon({ size = 48, color = '#f59e0b', glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={glow ? { filter: `drop-shadow(0 0 10px ${color})` } : {}}>
-      {/* Outer brain outline — left hemisphere bumps */}
-      <path d="
-        M50 10
-        C44 10 38 13 34 18
-        C30 14 24 14 20 18
-        C15 22 14 28 16 33
-        C12 36 10 41 11 46
-        C9  50 10 55 13 59
-        C12 64 14 70 19 73
-        C21 79 27 83 33 83
-        C35 87 39 90 44 90
-        L44 90
-        C46 92 48 93 50 93
-      "
-        stroke={color} strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      {/* Right hemisphere bumps */}
-      <path d="
-        M50 10
-        C56 10 62 13 66 18
-        C70 14 76 14 80 18
-        C85 22 86 28 84 33
-        C88 36 90 41 89 46
-        C91 50 90 55 87 59
-        C88 64 86 70 81 73
-        C79 79 73 83 67 83
-        C65 87 61 90 56 90
-        L56 90
-        C54 92 52 93 50 93
-      "
-        stroke={color} strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      {/* Center dividing line */}
-      <line x1="50" y1="12" x2="50" y2="91" stroke={color} strokeWidth="4" strokeLinecap="round"/>
-      {/* Left circuit trace — S-curve with node */}
-      <circle cx="32" cy="38" r="4.5" stroke={color} strokeWidth="4" fill="none"/>
-      <path d="M32 42.5 C32 52 38 52 38 62 C38 72 32 72 32 78"
-        stroke={color} strokeWidth="4" strokeLinecap="round" fill="none"/>
-      {/* Right circuit trace — straight with node */}
-      <circle cx="62" cy="32" r="4.5" stroke={color} strokeWidth="4" fill="none"/>
-      <path d="M62 36.5 L62 78"
-        stroke={color} strokeWidth="4" strokeLinecap="round"/>
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={glow ? { filter: `drop-shadow(0 0 12px ${color})` } : {}}>
+      <path d="M24 6C19 6 15 10 15 14.5C15 15.2 15.1 15.9 15.3 16.5C13.4 17.4 12 19.3 12 21.5C12 22.5 12.3 23.4 12.8 24.2C11.1 25.1 10 26.9 10 29C10 32.3 12.7 35 16 35C16.7 35 17.4 34.9 18 34.6V36C18 39.3 20.7 42 24 42C27.3 42 30 39.3 30 36V34.6C30.6 34.9 31.3 35 32 35C35.3 35 38 32.3 38 29C38 26.9 36.9 25.1 35.2 24.2C35.7 23.4 36 22.5 36 21.5C36 19.3 34.6 17.4 32.7 16.5C32.9 15.9 33 15.2 33 14.5C33 10 29 6 24 6Z"
+        stroke={color} strokeWidth="2" fill="none"/>
+      <path d="M24 14V28M18 18L24 22M30 18L24 22M20 30L24 28M28 30L24 28"
+        stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="24" cy="22" r="2" fill={color} opacity="0.8"/>
     </svg>
   );
 }
@@ -121,10 +86,18 @@ function Navbar({ hasMessages }) {
 
   return (
     <nav style={navStyles.root}>
-      {/* Logo — ShaastrAI text LEFT of icon */}
+      {/* Logo */}
       <div style={navStyles.logo} onClick={() => navigate('/')}>
-        <span style={navStyles.logoText}>ShaastrAI</span>
-        <BrainIcon size={28} color="#06b6d4" />
+        <div style={navStyles.logoIcon}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="#f59e0b" strokeWidth="1.5"/>
+            <path d="M12 7v10M7 9.5l5 2.5 5-2.5" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div style={navStyles.logoText}>Constituency</div>
+          <div style={navStyles.logoSub}>CONNECT</div>
+        </div>
       </div>
 
       {/* Nav links */}
@@ -181,7 +154,14 @@ const navStyles = {
     display: 'flex', alignItems: 'center', gap: 8,
     cursor: 'pointer', marginRight: 28, flexShrink: 0,
   },
-  logoText: { fontSize: 15, fontWeight: 800, color: '#06b6d4', letterSpacing: '-0.02em', lineHeight: 1 },
+  logoIcon: {
+    width: 30, height: 30, borderRadius: 8,
+    background: 'rgba(245,158,11,0.1)',
+    border: '1px solid rgba(245,158,11,0.3)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  logoText: { fontSize: 13, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 },
+  logoSub: { fontSize: 9, color: '#f59e0b', fontWeight: 700, letterSpacing: '0.12em', lineHeight: 1.4 },
   links: { display: 'flex', alignItems: 'center', gap: 2, flex: 1 },
   link: {
     display: 'flex', alignItems: 'center', gap: 5,
@@ -416,6 +396,11 @@ function MessageBubble({ msg }) {
         </div>
         {msg.chartSpec && <ChartRenderer spec={msg.chartSpec} />}
         {msg.exportSpec && <ExportBar exportSpec={msg.exportSpec} />}
+        {msg.filesUsed?.length > 0 && (
+          <div style={{ color: '#475569', fontSize: 10, marginTop: 6, background: 'rgba(15,23,42,0.5)', borderRadius: 4, padding: '4px 8px' }}>
+            📁 Sources: {msg.filesUsed.join(' · ')}
+          </div>
+        )}
         <div style={{ color: '#334155', fontSize: 10, marginTop: 4, textAlign: isUser ? 'right' : 'left' }}>{msg.timestamp}</div>
       </div>
       {isUser && (
@@ -504,16 +489,6 @@ function HistorySidebar({ sessions, activeId, onSelect, onNew, open, onToggle })
             ))}
           </div>
 
-          {/* Quick prompts */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '10px 10px', flexShrink: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#374151', letterSpacing: '0.07em', marginBottom: 7 }}>QUICK PROMPTS</div>
-            {SUGGESTED.slice(0, 4).map((s, i) => (
-              <div key={i} style={{ color: '#4b5563', fontSize: 11, padding: '4px 6px', cursor: 'pointer', borderRadius: 5, marginBottom: 2, lineHeight: 1.4 }}
-                onClick={() => onSelect('prompt:' + s)}>
-                {s}
-              </div>
-            ))}
-          </div>
         </>
       )}
     </div>
@@ -530,6 +505,7 @@ export default function AiChat() {
   const [input, setInput]             = useState('');
   const [loading, setLoading]         = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [includeData, setIncludeData] = useState(true);
   const [brainMoved, setBrainMoved]   = useState(false); // brain icon state
 
   const bottomRef = useRef(null);
@@ -577,7 +553,7 @@ export default function AiChat() {
     setLoading(true);
 
     try {
-      const { data } = await aiChatApi.send(msg, history, true);
+      const { data } = await aiChatApi.send(msg, history, includeData);
       const aiMsg = {
         id: Date.now() + 1, role: 'assistant',
         content: data.reply || '',
@@ -598,7 +574,7 @@ export default function AiChat() {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [input, loading, history, activeId, createSession]);
+  }, [input, loading, history, includeData, activeId, createSession]);
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
@@ -692,6 +668,10 @@ export default function AiChat() {
                 <BrainIcon size={22} color="#06b6d4" glow />
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.1em' }}>SHAASTR AI</span>
                 <div style={{ flex: 1 }} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)} style={{ accentColor: '#06b6d4', width: 13, height: 13 }} />
+                  <span style={{ color: '#4b5563', fontSize: 11 }}>Use data files</span>
+                </label>
                 <button onClick={handleNew} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '4px 10px', color: '#4b5563', fontSize: 11, cursor: 'pointer' }}>
                   + New
                 </button>
@@ -705,6 +685,12 @@ export default function AiChat() {
 
           {/* ── INPUT BAR (shorter, centered) ── */}
           <div style={{ flexShrink: 0, padding: '12px 20px 16px', background: '#0d1117', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {!hasMessages && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', justifyContent: 'center', marginBottom: 8 }}>
+                <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)} style={{ accentColor: '#06b6d4', width: 13, height: 13 }} />
+                <span style={{ color: '#4b5563', fontSize: 11 }}>Include constituency data files</span>
+              </label>
+            )}
             <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea
                 ref={inputRef}
