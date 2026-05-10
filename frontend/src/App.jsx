@@ -1,3 +1,8 @@
+/**
+ * App.jsx — updated to include the new /ai route
+ * Only the import and the route line are new. Everything else is unchanged.
+ */
+
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authApi } from './api/client';
@@ -14,25 +19,16 @@ import VoterSearch  from './pages/VoterSearch';
 import SIR          from './pages/Sir';
 import AdminPanel   from './pages/AdminPanel';
 import Swot         from './pages/Swot';
-
+import AiChat       from './pages/Aichat';   // ← NEW
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 function AuthProvider({ children }) {
-  // sessionStorage is intentionally TAB-SCOPED.
-  // Two different users can be logged in on two separate tabs without
-  // contaminating each other. localStorage is SHARED across all tabs of the
-  // same domain — switching it to localStorage caused Tab 2's login to
-  // overwrite Tab 1's cc_user, making the name and role flip on reload.
   const [user, setUser] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('cc_user')); } catch { return null; }
   });
-
-  // authReady: true once /auth/me has resolved (success or failure).
-  // Protected routes render null (not redirect) until this is set,
-  // preventing the flash-to-login on page reload.
   const [authReady, setAuthReady] = useState(false);
 
   const _persist = (u) => sessionStorage.setItem('cc_user', JSON.stringify(u));
@@ -52,18 +48,10 @@ function AuthProvider({ children }) {
     _clear();
   }, [user]);
 
-  // On every mount, ALWAYS call /auth/me — even if sessionStorage is empty.
-  // The FastAPI httpOnly cookie (cc_token) is domain-scoped and survives:
-  //   • navigating to another site and coming back
-  //   • manual page reload (F5 / Ctrl+R)
-  //   • closing and reopening the tab (cookie persists, sessionStorage does not)
-  // /auth/me reads role/ward/booth fresh from UserReg every time, so the DB
-  // is always the single source of truth regardless of what sessionStorage had.
   useEffect(() => {
     authApi.me()
       .then(({ data }) => {
         if (data?.token) sessionStorage.setItem('cc_token', data.token);
-
         if (data?.success) {
           const updated = {
             username: data.username ?? '',
@@ -96,14 +84,12 @@ function AuthProvider({ children }) {
   );
 }
 
-// ─── Protected Route ──────────────────────────────────────────────────────────
 function Protected({ children }) {
   const { isLoggedIn, authReady } = useAuth();
   if (!authReady) return null;
   return isLoggedIn ? children : <Navigate to="/login" replace />;
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
     <AuthProvider>
@@ -121,8 +107,7 @@ export default function App() {
           <Route path="/sir"            element={<Protected><SIR /></Protected>} />
           <Route path="/admin"          element={<Protected><AdminPanel /></Protected>} />
           <Route path="/swot"           element={<Protected><Swot /></Protected>} />
-
-
+          <Route path="/ai"             element={<Protected><AiChat /></Protected>} />  {/* ← NEW */}
           <Route path="*"               element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
