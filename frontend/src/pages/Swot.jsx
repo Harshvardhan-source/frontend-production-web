@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navbar from '../components/Navbar';
+import { swotApi } from '../api/client';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
 const Icon = ({ path, size = 14, color = 'currentColor', strokeWidth = 1.75, fill = 'none', style = {} }) => (
@@ -261,6 +262,239 @@ const TABS = [
   { id: 'election',   label: 'Prev. Election',       Icon: HistoryIcon },
   { id: 'ml',         label: 'Shaastra SWOT',        Icon: Crosshair   },
 ];
+// ─── AI Overview Panel ────────────────────────────────────────────────────────
+// Shown at the top of each tab. Calls /api/ai/swot-overview/ with the tab id.
+// Caches results per tab so switching back doesn't re-fetch.
+const overviewCache = {};   // module-level so persists across tab switches
+
+function SwotAIOverview({ tab }) {
+  const [state,    setState]    = useState('idle');  // idle | loading | done | error
+  const [overview, setOverview] = useState(overviewCache[tab] || null);
+  const [open,     setOpen]     = useState(false);
+  const abortRef = useRef(null);
+
+  const fetch = useCallback(async () => {
+    if (overviewCache[tab]) {
+      setOverview(overviewCache[tab]);
+      setState('done');
+      setOpen(true);
+      return;
+    }
+    setState('loading');
+    setOpen(true);
+    try {
+      const { data } = await swotApi.overview(tab);
+      if (data?.success && data?.overview) {
+        overviewCache[tab] = data.overview;
+        setOverview(data.overview);
+        setState('done');
+      } else {
+        setState('error');
+      }
+    } catch {
+      setState('error');
+    }
+  }, [tab]);
+
+  // Reset when tab changes
+  useEffect(() => {
+    if (overviewCache[tab]) {
+      setOverview(overviewCache[tab]);
+      setState('done');
+    } else {
+      setState('idle');
+      setOverview(null);
+    }
+    setOpen(false);
+  }, [tab]);
+
+  const TAB_LABELS = {
+    swot:        'Political SWOT',
+    wards:       'Ward Strength',
+    demographic: 'Demographics',
+    election:    'Prev. Election',
+  };
+
+  const ICON_PATHS = {
+    thinking: 'M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z M8 12h.01 M12 12h.01 M16 12h.01',
+    brain:    'M9.5 2a2.5 2.5 0 0 1 5 0M12 7v5l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+    spark:    'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+    close:    'M18 6 6 18 M6 6l12 12',
+  };
+
+  return (
+    <div style={{ marginBottom: 18, animation: 'fadeUp 0.3s ease both' }}>
+
+      {/* Trigger button — always visible */}
+      <button
+        onClick={state === 'loading' ? undefined : (open && state === 'done' ? () => setOpen(o => !o) : fetch)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '11px 16px', borderRadius: 12,
+          background: state === 'done' && open
+            ? 'linear-gradient(135deg,rgba(99,102,241,0.14),rgba(79,70,229,0.08))'
+            : 'rgba(255,255,255,0.03)',
+          border: `1px solid ${state==='done' ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.08)'}`,
+          cursor: state === 'loading' ? 'default' : 'pointer',
+          transition: 'all 0.2s', fontFamily: 'Sora, sans-serif',
+          textAlign: 'left',
+        }}
+      >
+        {/* Animated brain icon */}
+        <div style={{
+          width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+          background: state === 'loading'
+            ? 'linear-gradient(135deg,rgba(99,102,241,0.2),rgba(124,58,237,0.2))'
+            : 'linear-gradient(135deg,#4f46e5,#7c3aed)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: state === 'done' ? '0 0 16px rgba(99,102,241,0.5)' : 'none',
+          transition: 'all 0.3s',
+        }}>
+          {state === 'loading' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round"
+              style={{ animation: 'spin 1s linear infinite' }}>
+              <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" strokeOpacity="0.25"/>
+              <path d="M21 12a9 9 0 0 0-9-9"/>
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c7d2fe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          )}
+        </div>
+
+        {/* Text */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: state === 'done' ? '#c7d2fe' : 'rgba(255,255,255,0.55)', lineHeight: 1.2 }}>
+            {state === 'loading' ? 'ShaastraAI is analysing…'
+              : state === 'done'  ? `AI Overview — ${TAB_LABELS[tab]}`
+              : state === 'error' ? 'Analysis unavailable — tap to retry'
+              : `Get AI Overview — ${TAB_LABELS[tab]}`}
+          </div>
+          {state === 'idle' && (
+            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>
+              ShaastraAI · Strategic intelligence grounded in 2023 election data
+            </div>
+          )}
+          {state === 'done' && overview?.headline && (
+            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {overview.headline}
+            </div>
+          )}
+        </div>
+
+        {/* Right badge / chevron */}
+        {state === 'idle' && (
+          <span style={{ fontSize: 10, fontWeight: 700, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', borderRadius: 6, padding: '3px 9px', flexShrink: 0, letterSpacing: '0.04em' }}>
+            Generate
+          </span>
+        )}
+        {state === 'done' && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(165,180,252,0.6)" strokeWidth="2.5" strokeLinecap="round"
+            style={{ flexShrink: 0, transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+            <path d="M9 6l6 6-6 6"/>
+          </svg>
+        )}
+      </button>
+
+      {/* Loading shimmer */}
+      {state === 'loading' && (
+        <div style={{ marginTop: 10, background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, padding: '16px 18px' }}>
+          {[90, 70, 80, 60].map((w, i) => (
+            <div key={i} className="swot-ai-shimmer" style={{ width: `${w}%`, height: 10, borderRadius: 6, marginBottom: i < 3 ? 10 : 0 }} />
+          ))}
+          <style>{`
+            .swot-ai-shimmer {
+              background: linear-gradient(90deg, rgba(51,65,85,0.5) 25%, rgba(99,102,241,0.3) 50%, rgba(51,65,85,0.5) 75%);
+              background-size: 200% 100%;
+              animation: swotShimmer 1.5s linear infinite;
+            }
+            @keyframes swotShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+            @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+          `}</style>
+        </div>
+      )}
+
+      {/* Result panel */}
+      {state === 'done' && open && overview && (
+        <div style={{
+          marginTop: 8,
+          background: 'linear-gradient(145deg,rgba(15,23,42,0.97),rgba(10,18,40,0.99))',
+          border: '1px solid rgba(99,102,241,0.25)',
+          borderRadius: 14, overflow: 'hidden',
+          animation: 'fadeUp 0.25s ease both',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}>
+          {/* Header */}
+          <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid rgba(99,102,241,0.12)', background: 'linear-gradient(135deg,rgba(79,70,229,0.1),transparent)' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#818cf8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 5, fontFamily: 'Space Mono, monospace' }}>
+              ShaastraAI · {TAB_LABELS[tab]}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#e2e8f0', lineHeight: 1.3, letterSpacing: '-0.02em' }}>
+              {overview.headline}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', lineHeight: 1.7 }}>
+              {overview.summary}
+            </p>
+          </div>
+
+          {/* Bullets */}
+          {overview.bullets?.length > 0 && (
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {overview.bullets.map((b, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>{b.icon}</span>
+                    <span style={{ fontSize: 12.5, color: '#cbd5e1', lineHeight: 1.6 }}>{b.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Callout */}
+          {overview.callout && (
+            <div style={{ padding: '12px 18px', background: `${overview.callout.color || '#f59e0b'}09`, borderTop: `1px solid ${overview.callout.color || '#f59e0b'}20` }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ width: 3, minHeight: 36, borderRadius: 2, background: overview.callout.color || '#f59e0b', flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, color: overview.callout.color || '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: 'Space Mono, monospace' }}>
+                    {overview.callout.label}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, fontWeight: 600 }}>
+                    {overview.callout.text}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ padding: '8px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.2)' }}>
+            <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>
+              Powered by Claude · Mangaluru South 2023 Data
+            </span>
+            <button onClick={() => { overviewCache[tab] = null; setOverview(null); setState('idle'); setOpen(false); }}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: 10, cursor: 'pointer', fontFamily: 'Sora, sans-serif', padding: 0 }}>
+              Regenerate
+            </button>
+          </div>
+        </div>
+      )}
+
+      {state === 'error' && open && (
+        <div style={{ marginTop: 8, padding: '12px 16px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10 }}>
+          <span style={{ fontSize: 12, color: '#f87171' }}>⚠ Could not generate overview. Check your connection and try again.</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Ward Strength Tab ─────────────────────────────────────────────────────────
 function WardStrengthTab() {
   const [filter, setFilter] = useState('all');
@@ -2153,6 +2387,11 @@ export default function Swot() {
               </button>
             ))}
           </div>
+
+          {/* AI Overview — shown for the 4 data tabs */}
+          {['swot','wards','demographic','election'].includes(activeTab) && (
+            <SwotAIOverview tab={activeTab} />
+          )}
 
           {/* Tab Content */}
           {activeTab === 'swot' && <SwotTab />}

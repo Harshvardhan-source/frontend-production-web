@@ -147,6 +147,12 @@ export const aiApi = {
   birdseyeView: (payload) => api.post('/api/ai/birdseye-view/', payload),
 };
 
+// ── SWOT Page AI Overview ─────────────────────────────────────────────────────
+export const swotApi = {
+  /** Generate AI overview for a SWOT tab. tab = 'swot'|'wards'|'demographic'|'election' */
+  overview: (tab) => api.post('/api/ai/swot-overview/', { tab }),
+};
+
 // ── Admin — Survey Progress & Location Tracking (MLA / PA only) ──────────────
 export const adminApi = {
   // Survey progress for all booth workers (or filtered by ?booth=N or ?ward=N)
