@@ -615,7 +615,7 @@ function ThinkingIndicator() {
 // ════════════════════════════════════════════════════════════════════════════════
 // SHARED INPUT BOX
 // ════════════════════════════════════════════════════════════════════════════════
-function InputBox({ inputRef, input, setInput, loading, send, handleKey, includeData, setIncludeData }) {
+function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
   return (
     <div style={{width:'100%',maxWidth:720,margin:'0 auto'}}>
       <div style={{
@@ -660,13 +660,7 @@ function InputBox({ inputRef, input, setInput, loading, send, handleKey, include
           </span>
         </button>
       </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:9,padding:'0 6px'}}>
-        <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',userSelect:'none'}}>
-          <input type="checkbox" checked={includeData} onChange={e=>setIncludeData(e.target.checked)}
-            style={{accentColor:'#4f46e5',width:13,height:13}}/>
-          <span style={{width:12,height:12,display:'flex',color:includeData?'#6366f1':'#334155',transition:'color 0.2s'}}>{ICONS.database}</span>
-          <span style={{color:'#475569',fontSize:12}}>Use data files</span>
-        </label>
+      <div style={{display:'flex',justifyContent:'flex-end',marginTop:9,padding:'0 6px'}}>
         <span style={{color:'#1e293b',fontSize:11}}>
           <kbd style={S.kbd}>Enter</kbd> send · <kbd style={S.kbd}>Shift+Enter</kbd> new line
         </span>
@@ -682,7 +676,6 @@ export default function AiChat() {
   const [messages,    setMessages]    = useState([]);
   const [input,       setInput]       = useState('');
   const [loading,     setLoading]     = useState(false);
-  const [includeData, setIncludeData] = useState(true);
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
 
@@ -704,7 +697,7 @@ export default function AiChat() {
     }]);
     setLoading(true);
     try {
-      const { data } = await aiChatApi.send(msg, history, includeData);
+      const { data } = await aiChatApi.send(msg, history);
       setMessages(prev=>[...prev,{
         id:Date.now()+1, role:'assistant',
         content:    data.reply      || '',
@@ -723,11 +716,11 @@ export default function AiChat() {
       setLoading(false);
       setTimeout(()=>inputRef.current?.focus(),100);
     }
-  }, [input, loading, history, includeData]);
+  }, [input, loading, history]);
 
   const handleKey = e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} };
 
-  const inputProps = { inputRef, input, setInput, loading, send, handleKey, includeData, setIncludeData };
+  const inputProps = { inputRef, input, setInput, loading, send, handleKey };
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
