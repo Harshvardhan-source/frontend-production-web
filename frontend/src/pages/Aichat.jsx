@@ -28,6 +28,51 @@ const SUGGESTED = [
   { icon: '🎯', text: 'Strategic priority wards' },
 ];
 
+// ════════════════════════════════════════════════════════════════════════════════
+// TYPEWRITER HOOK
+// Simulates character-by-character streaming from a complete string.
+// Speed scales with length so long replies don't drag forever.
+// Returns { displayed, done } — render `displayed`, show cursor until `done`.
+// ════════════════════════════════════════════════════════════════════════════════
+function useTypewriter(fullText, active = true, onTick) {
+  const [displayed, setDisplayed] = useState('');
+  const [done,      setDone]      = useState(false);
+  const rafRef    = useRef(null);
+  const indexRef  = useRef(0);
+
+  useEffect(() => {
+    if (!active || !fullText) {
+      setDisplayed(fullText || '');
+      setDone(true);
+      return;
+    }
+    setDisplayed('');
+    setDone(false);
+    indexRef.current = 0;
+
+    // Chars-per-frame scales with response length so it always feels snappy
+    const cpf = fullText.length > 2000 ? 10
+              : fullText.length > 800  ? 6
+              : fullText.length > 300  ? 4
+              : 2;
+
+    const tick = () => {
+      indexRef.current = Math.min(indexRef.current + cpf, fullText.length);
+      setDisplayed(fullText.slice(0, indexRef.current));
+      onTick?.();
+      if (indexRef.current < fullText.length) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        setDone(true);
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [fullText, active]);
+
+  return { displayed, done };
+}
+
 // ── SVG Circuit-Brain Logo ─────────────────────────────────────────────────────
 function BrainLogo({ size = 72, animated = false }) {
   return (
@@ -98,21 +143,113 @@ function BrainAvatar({ size = 20 }) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// MARKDOWN RENDERER
+// INLINE FORMATTER  (bold, inline-code)
+// ════════════════════════════════════════════════════════════════════════════════
+function fmt(text) {
+  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((p, i) => {
+    if (p.startsWith('**') && p.endsWith('**'))
+      return <strong key={i} style={{color:'#e2e8f0',fontWeight:700}}>{p.slice(2,-2)}</strong>;
+    if (p.startsWith('`') && p.endsWith('`'))
+      return <code key={i} style={S.inlineCode}>{p.slice(1,-1)}</code>;
+    return p;
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// TABLE RENDERER
+// Parses GFM pipe tables:
+//   | Col A | Col B |
+//   |-------|-------|
+//   | val1  | val2  |
+// ════════════════════════════════════════════════════════════════════════════════
+function isTableRow(line) {
+  return line.trim().startsWith('|') && line.trim().endsWith('|');
+}
+function isSeparatorRow(line) {
+  return isTableRow(line) && /^\|[\s\-:|]+\|/.test(line.trim()) && /^[\|\s\-:]+$/.test(line.trim());
+}
+function parseTableCells(line) {
+  return line.trim().replace(/^\||\|$/g,'').split('|').map(c => c.trim());
+}
+
+function MarkdownTable({ headers, rows }) {
+  return (
+    <div style={{overflowX:'auto', marginTop:14, marginBottom:6}}>
+      <table style={{
+        width:'100%', borderCollapse:'collapse',
+        fontSize:13, fontFamily:'inherit',
+        border:'1px solid rgba(99,102,241,0.2)',
+        borderRadius:10, overflow:'hidden',
+      }}>
+        <thead>
+          <tr>
+            {headers.map((h, ci) => (
+              <th key={ci} style={{
+                padding:'9px 14px',
+                background:'linear-gradient(135deg,rgba(79,70,229,0.35),rgba(124,58,237,0.25))',
+                color:'#c7d2fe', fontWeight:700, fontSize:12,
+                textAlign:'left', letterSpacing:'0.04em',
+                borderBottom:'1px solid rgba(99,102,241,0.35)',
+                borderRight: ci < headers.length-1 ? '1px solid rgba(99,102,241,0.15)' : 'none',
+                whiteSpace:'nowrap',
+              }}>
+                {fmt(h)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri} style={{
+              background: ri%2===0 ? 'rgba(17,27,46,0.9)' : 'rgba(22,33,58,0.7)',
+              transition:'background 0.15s',
+            }}
+              onMouseEnter={e=>{ e.currentTarget.style.background='rgba(79,70,229,0.12)'; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background=ri%2===0?'rgba(17,27,46,0.9)':'rgba(22,33,58,0.7)'; }}
+            >
+              {row.map((cell, ci) => (
+                <td key={ci} style={{
+                  padding:'8px 14px',
+                  color: ci===0 ? '#e2e8f0' : '#94a3b8',
+                  fontWeight: ci===0 ? 600 : 400,
+                  borderBottom:'1px solid rgba(51,65,85,0.35)',
+                  borderRight: ci < row.length-1 ? '1px solid rgba(51,65,85,0.2)' : 'none',
+                  fontSize:13, lineHeight:1.5,
+                }}>
+                  {fmt(cell)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MARKDOWN RENDERER  (headings, lists, code, tables, hr, paragraphs)
 // ════════════════════════════════════════════════════════════════════════════════
 function renderMarkdown(text) {
   if (!text) return null;
   const lines = text.split('\n');
   const elements = [];
   let i = 0;
+
   while (i < lines.length) {
     const line = lines[i];
+
+    // ── Headings ──────────────────────────────────────────────────────────────
     if (/^### (.+)/.test(line)) {
       elements.push(<h3 key={i} style={S.h3}>{line.replace(/^### /,'')}</h3>);
+
     } else if (/^## (.+)/.test(line)) {
       elements.push(<h2 key={i} style={S.h2}>{line.replace(/^## /,'')}</h2>);
+
     } else if (/^# (.+)/.test(line)) {
       elements.push(<h1 key={i} style={S.h1}>{line.replace(/^# /,'')}</h1>);
+
+    // ── Bullet list ───────────────────────────────────────────────────────────
     } else if (/^[\-\*] (.+)/.test(line)) {
       const items = [];
       while (i < lines.length && /^[\-\*] (.+)/.test(lines[i])) {
@@ -121,6 +258,8 @@ function renderMarkdown(text) {
       }
       elements.push(<ul key={'ul'+i} style={S.ul}>{items}</ul>);
       continue;
+
+    // ── Numbered list ─────────────────────────────────────────────────────────
     } else if (/^\d+\. (.+)/.test(line)) {
       const items = [];
       while (i < lines.length && /^\d+\. (.+)/.test(lines[i])) {
@@ -129,29 +268,43 @@ function renderMarkdown(text) {
       }
       elements.push(<ol key={'ol'+i} style={S.ol}>{items}</ol>);
       continue;
+
+    // ── Fenced code block ─────────────────────────────────────────────────────
     } else if (line.startsWith('```')) {
       const code = [];
       i++;
       while (i < lines.length && !lines[i].startsWith('```')) { code.push(lines[i]); i++; }
       elements.push(<pre key={i} style={S.pre}><code>{code.join('\n')}</code></pre>);
+
+    // ── Pipe table ────────────────────────────────────────────────────────────
+    // Detect: current line is a table row, next line is a separator row
+    } else if (isTableRow(line) && i+1 < lines.length && isSeparatorRow(lines[i+1])) {
+      const headers = parseTableCells(line);
+      i += 2; // skip header row + separator row
+      const rows = [];
+      while (i < lines.length && isTableRow(lines[i])) {
+        rows.push(parseTableCells(lines[i]));
+        i++;
+      }
+      elements.push(<MarkdownTable key={'tbl'+i} headers={headers} rows={rows} />);
+      continue;
+
+    // ── Horizontal rule ───────────────────────────────────────────────────────
     } else if (/^---+$/.test(line.trim())) {
       elements.push(<hr key={i} style={S.hr} />);
+
+    // ── Empty line ────────────────────────────────────────────────────────────
     } else if (!line.trim()) {
       elements.push(<div key={i} style={{height:8}} />);
+
+    // ── Paragraph ─────────────────────────────────────────────────────────────
     } else {
       elements.push(<p key={i} style={S.p}>{fmt(line)}</p>);
     }
+
     i++;
   }
   return elements;
-}
-
-function fmt(text) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((p, i) => {
-    if (p.startsWith('**') && p.endsWith('**')) return <strong key={i} style={{color:'#e2e8f0',fontWeight:700}}>{p.slice(2,-2)}</strong>;
-    if (p.startsWith('`')  && p.endsWith('`'))  return <code key={i} style={S.inlineCode}>{p.slice(1,-1)}</code>;
-    return p;
-  });
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -239,10 +392,24 @@ function ExportBar({ exportSpec }) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// MESSAGE BUBBLE
+// MESSAGE BUBBLE  — AI messages stream character-by-character via useTypewriter.
+// Charts / exports / sources only appear once the full text is done rendering
+// so they don't flash in before the text catches up.
 // ════════════════════════════════════════════════════════════════════════════════
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onTick }) {
   const isUser = msg.role === 'user';
+
+  // Only animate the newest AI message (isNew flag set in send()).
+  // All previous messages and user messages render instantly.
+  const { displayed, done } = useTypewriter(
+    msg.content,
+    !isUser && !!msg.isNew,
+    onTick,
+  );
+
+  const visibleText = (isUser || !msg.isNew) ? msg.content : displayed;
+  const isDone      = isUser || !msg.isNew || done;
+
   return (
     <div style={{display:'flex',justifyContent:isUser?'flex-end':'flex-start',marginBottom:20}}>
       {!isUser && (
@@ -252,21 +419,46 @@ function MessageBubble({ msg }) {
       )}
       <div style={{maxWidth:'75%',minWidth:80}}>
         <div style={isUser ? S.userBubble : S.aiBubble}>
-          {isUser
-            ? <p style={{margin:0,color:'#fff',lineHeight:1.6,fontSize:14}}>{msg.content}</p>
-            : <div style={{color:'#cbd5e1',lineHeight:1.7}}>{renderMarkdown(msg.content)}</div>
-          }
+          {isUser ? (
+            <p style={{margin:0,color:'#fff',lineHeight:1.6,fontSize:14}}>{msg.content}</p>
+          ) : (
+            <div style={{color:'#cbd5e1',lineHeight:1.7}}>
+              {renderMarkdown(visibleText)}
+              {/* Blinking cursor while still typing */}
+              {!isDone && (
+                <span className="shaastra-cursor" style={{
+                  display:'inline-block', width:2, height:'1em',
+                  background:'#818cf8', marginLeft:2, verticalAlign:'text-bottom',
+                  borderRadius:1,
+                }}/>
+              )}
+            </div>
+          )}
         </div>
-        {msg.chartSpec  && <ChartRenderer spec={msg.chartSpec}/>}
-        {msg.exportSpec && <ExportBar exportSpec={msg.exportSpec}/>}
-        {msg.filesUsed?.length>0 && <div style={S.filesUsed}>📁 {msg.filesUsed.join(' · ')}</div>}
-        <div style={S.timestamp}>{msg.timestamp}</div>
+
+        {/* Charts, exports, sources only render after typewriter finishes */}
+        {isDone && msg.chartSpec  && <ChartRenderer spec={msg.chartSpec}/>}
+        {isDone && msg.exportSpec && <ExportBar exportSpec={msg.exportSpec}/>}
+        {isDone && msg.filesUsed?.length>0 && (
+          <div style={S.filesUsed}>📁 {msg.filesUsed.join(' · ')}</div>
+        )}
+        {isDone && <div style={S.timestamp}>{msg.timestamp}</div>}
       </div>
+
       {isUser && (
         <div style={{...S.avatar,background:'linear-gradient(135deg,#4338ca,#4f46e5)',marginLeft:10,marginRight:0}}>
           <span style={{fontSize:12,color:'#fff',fontWeight:700}}>U</span>
         </div>
       )}
+
+      {/* Cursor blink keyframe — injected once, scoped class name */}
+      <style>{`
+        @keyframes shaastraCursorBlink {
+          0%,100% { opacity:1; }
+          50%      { opacity:0; }
+        }
+        .shaastra-cursor { animation: shaastraCursorBlink 0.7s step-start infinite; }
+      `}</style>
     </div>
   );
 }
@@ -411,9 +603,13 @@ export default function AiChat() {
 
   const hasMessages = messages.length > 0;
 
+  // scrollTick increments every time a message streams a character,
+  // triggering the auto-scroll useEffect so the view follows the typewriter.
+  const [scrollTick, setScrollTick] = useState(0);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior:'smooth' });
-  }, [messages, loading]);
+  }, [messages, loading, scrollTick]);
 
   const history = useMemo(() => messages.map(m=>({role:m.role,content:m.content})), [messages]);
 
@@ -434,12 +630,14 @@ export default function AiChat() {
         chartSpec:  data.chartSpec  || null,
         exportSpec: data.exportSpec || null,
         filesUsed:  data.filesUsed  || [],
+        isNew:      true,   // ← flag: animate this message
         timestamp:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
       }]);
     } catch(e) {
       setMessages(prev=>[...prev,{
         id:Date.now()+1, role:'assistant',
         content:'⚠️ **Error:** '+(e.userMessage||e.message||'Something went wrong.'),
+        isNew: true,
         timestamp:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
       }]);
     } finally {
@@ -516,7 +714,7 @@ export default function AiChat() {
         <>
           <div style={S.chatArea}>
             <div style={S.messagesInner}>
-              {messages.map(msg=><MessageBubble key={msg.id} msg={msg}/>)}
+              {messages.map(msg=><MessageBubble key={msg.id} msg={msg} onTick={()=>setScrollTick(t=>t+1)}/>)}
               {loading && <ThinkingIndicator/>}
               <div ref={bottomRef}/>
             </div>
