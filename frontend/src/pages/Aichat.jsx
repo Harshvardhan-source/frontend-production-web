@@ -1,7 +1,10 @@
 /**
- * AiChat.jsx — ShaastrAI
- * Clean, minimal ChatGPT-style UI.
- * Shared <Navbar /> at top. No data-source display anywhere.
+ * AiChat.jsx — Redesigned AI Chat page
+ * • ChatGPT-style layout: chat history in LEFT sidebar
+ * • App navbar matching Constituency Connect design
+ * • Brain icon animates from center → top-left on first message
+ * • Dynamic loading dots with political vocabulary words
+ * • Shorter, centered chat input box
  */
 
 import React, {
@@ -9,513 +12,659 @@ import React, {
 } from 'react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { aiChatApi } from '../api/client';
-import Navbar from '../components/Navbar';
+import { useAuth } from '../App';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-const PALETTE = ['#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
-
-const LOADING_WORDS = [
-  'Analysing voters…','Querying wards…','Scanning booths…',
-  'Reading surveys…','Checking schemes…','Crunching numbers…',
-  'Processing polls…','Computing stats…',
+// ── colour palette ────────────────────────────────────────────────────────────
+const PALETTE = [
+  '#f59e0b', '#06b6d4', '#10b981', '#4f46e5',
+  '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6',
 ];
+
+const FILE_ICONS = {
+  xlsx: '📊', xls: '📊', csv: '📋', pdf: '📄',
+  docx: '📝', doc: '📝', txt: '📃',
+};
 
 const SUGGESTED = [
-  'Total voter count by ward',
-  'Religion-wise breakdown all wards',
-  'Survey completion status ward-wise',
-  'Which schemes have most beneficiaries?',
-  'Top 10 wards by voters as bar chart',
-  'Strategic priority wards to focus on',
+  'What is the total voter count by ward?',
+  'Show religion-wise voter breakdown for all wards',
+  'Which wards have the highest Muslim voter %?',
+  'Give survey completion status ward-wise',
+  'Which schemes have the most beneficiaries?',
+  'Compare 2019 vs 2023 polling percentages',
+  'Booth-wise voter count for ward 28?',
+  'Top 10 wards by total voters as bar chart',
+  'What are the strategic priority wards?',
 ];
 
-const STORAGE_KEY = 'shaastrai_chats_v2';
+// Political words for loading animation
+const POLITICAL_WORDS = [
+  'Analysing', 'Strategising', 'Computing', 'Mapping', 'Forecasting',
+  'Calculating', 'Researching', 'Processing', 'Evaluating', 'Decoding',
+];
 
-// ── LocalStorage ──────────────────────────────────────────────────────────────
-function loadChats() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-  catch { return []; }
-}
-function saveChats(chats) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chats.slice(0, 50))); }
-  catch {}
-}
-function makeChat() {
-  return { id: Date.now(), title: 'New Chat', messages: [], createdAt: new Date().toISOString() };
+// ── Nav items ──────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { label: 'Dashboard', path: '/', icon: '⊞' },
+  { label: 'Survey',    path: '/survey', icon: '◎' },
+  { label: 'Schemes',   path: '/schemes', icon: '◇' },
+  { label: 'Data',      path: '/data', icon: '▤' },
+  { label: 'SIR',       path: '/sir', icon: '✓' },
+  { label: 'SWOT',      path: '/swot', icon: '⊞', highlight: 'swot' },
+  { label: 'AI',        path: '/ai', icon: null, highlight: 'ai' },
+  { label: 'Admin',     path: '/admin', icon: '⚙' },
+];
+
+// ════════════════════════════════════════════════════════════════════════════════
+// BRAIN SVG ICON
+// ════════════════════════════════════════════════════════════════════════════════
+function BrainIcon({ size = 48, color = '#f59e0b', glow = false }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={glow ? { filter: `drop-shadow(0 0 12px ${color})` } : {}}>
+      <path d="M24 6C19 6 15 10 15 14.5C15 15.2 15.1 15.9 15.3 16.5C13.4 17.4 12 19.3 12 21.5C12 22.5 12.3 23.4 12.8 24.2C11.1 25.1 10 26.9 10 29C10 32.3 12.7 35 16 35C16.7 35 17.4 34.9 18 34.6V36C18 39.3 20.7 42 24 42C27.3 42 30 39.3 30 36V34.6C30.6 34.9 31.3 35 32 35C35.3 35 38 32.3 38 29C38 26.9 36.9 25.1 35.2 24.2C35.7 23.4 36 22.5 36 21.5C36 19.3 34.6 17.4 32.7 16.5C32.9 15.9 33 15.2 33 14.5C33 10 29 6 24 6Z"
+        stroke={color} strokeWidth="2" fill="none"/>
+      <path d="M24 14V28M18 18L24 22M30 18L24 22M20 30L24 28M28 30L24 28"
+        stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="24" cy="22" r="2" fill={color} opacity="0.8"/>
+    </svg>
+  );
 }
 
-// ── Markdown renderer ─────────────────────────────────────────────────────────
-function renderMd(text) {
+// ════════════════════════════════════════════════════════════════════════════════
+// TOP NAVBAR
+// ════════════════════════════════════════════════════════════════════════════════
+function Navbar({ hasMessages }) {
+  const { user, logout } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+
+  return (
+    <nav style={navStyles.root}>
+      {/* Logo */}
+      <div style={navStyles.logo} onClick={() => navigate('/')}>
+        <div style={navStyles.logoIcon}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="#f59e0b" strokeWidth="1.5"/>
+            <path d="M12 7v10M7 9.5l5 2.5 5-2.5" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div style={navStyles.logoText}>Constituency</div>
+          <div style={navStyles.logoSub}>CONNECT</div>
+        </div>
+      </div>
+
+      {/* Nav links */}
+      <div style={navStyles.links}>
+        {NAV_ITEMS.map(item => {
+          const active = location.pathname === item.path ||
+            (item.path !== '/' && location.pathname.startsWith(item.path));
+          return (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              style={{
+                ...navStyles.link,
+                ...(item.highlight === 'swot' ? navStyles.swotLink : {}),
+                ...(item.highlight === 'ai' ? navStyles.aiLink : {}),
+                ...(active && item.highlight !== 'swot' && item.highlight !== 'ai'
+                  ? navStyles.activeLink : {}),
+              }}
+            >
+              {item.icon && <span style={{ fontSize: 12 }}>{item.icon}</span>}
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* User */}
+      <div style={navStyles.userArea}>
+        <div style={navStyles.avatar}>
+          {user?.username?.[0]?.toUpperCase() || 'U'}
+        </div>
+        <div>
+          <div style={navStyles.userName}>{user?.username || 'User'}</div>
+          <div style={navStyles.userRole}>{user?.role?.toUpperCase() || 'USER'}</div>
+        </div>
+        <button onClick={logout} style={navStyles.logoutBtn}>
+          ⏻ Logout
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+const navStyles = {
+  root: {
+    display: 'flex', alignItems: 'center', gap: 0,
+    height: 52, flexShrink: 0,
+    background: '#0d1117',
+    borderBottom: '1px solid rgba(255,255,255,0.06)',
+    padding: '0 20px',
+    zIndex: 100,
+  },
+  logo: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    cursor: 'pointer', marginRight: 28, flexShrink: 0,
+  },
+  logoIcon: {
+    width: 30, height: 30, borderRadius: 8,
+    background: 'rgba(245,158,11,0.1)',
+    border: '1px solid rgba(245,158,11,0.3)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  logoText: { fontSize: 13, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 },
+  logoSub: { fontSize: 9, color: '#f59e0b', fontWeight: 700, letterSpacing: '0.12em', lineHeight: 1.4 },
+  links: { display: 'flex', alignItems: 'center', gap: 2, flex: 1 },
+  link: {
+    display: 'flex', alignItems: 'center', gap: 5,
+    background: 'transparent', border: 'none',
+    color: '#94a3b8', fontSize: 13, fontWeight: 500,
+    padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
+    transition: 'color 0.15s, background 0.15s',
+    whiteSpace: 'nowrap',
+  },
+  activeLink: { color: '#e2e8f0', background: 'rgba(255,255,255,0.07)' },
+  swotLink: {
+    background: 'rgba(245,158,11,0.15)',
+    border: '1px solid rgba(245,158,11,0.3)',
+    color: '#f59e0b', fontWeight: 700,
+  },
+  aiLink: {
+    background: 'rgba(6,182,212,0.12)',
+    border: '1px solid rgba(6,182,212,0.3)',
+    color: '#06b6d4', fontWeight: 700,
+  },
+  userArea: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 },
+  avatar: {
+    width: 30, height: 30, borderRadius: '50%',
+    background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0,
+  },
+  userName: { color: '#e2e8f0', fontSize: 13, fontWeight: 600, lineHeight: 1 },
+  userRole: { color: '#f59e0b', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1.6 },
+  logoutBtn: {
+    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)',
+    borderRadius: 6, padding: '5px 12px', color: '#f87171',
+    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+  },
+};
+
+// ════════════════════════════════════════════════════════════════════════════════
+// TYPING INDICATOR with political words
+// ════════════════════════════════════════════════════════════════════════════════
+function TypingIndicator() {
+  const [wordIdx, setWordIdx] = useState(0);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setWordIdx(i => (i + 1) % POLITICAL_WORDS.length);
+    }, 800);
+    return () => clearInterval(iv);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20, padding: '0 20px' }}>
+      <div style={chatStyles.aiAvatar}>
+        <BrainIcon size={20} color="#06b6d4" />
+      </div>
+      <div style={{ ...chatStyles.aiBubble, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: '#64748b', fontSize: 13, fontStyle: 'italic', minWidth: 100 }}>
+          {POLITICAL_WORDS[wordIdx]}…
+        </span>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <span className="typing-dot" />
+          <span className="typing-dot" style={{ animationDelay: '0.15s' }} />
+          <span className="typing-dot" style={{ animationDelay: '0.30s' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MARKDOWN RENDERER
+// ════════════════════════════════════════════════════════════════════════════════
+function renderMarkdown(text) {
   if (!text) return null;
   const lines = text.split('\n');
-  const els = [];
+  const elements = [];
   let i = 0;
   while (i < lines.length) {
-    const ln = lines[i];
-    if      (/^### .+/.test(ln)) { els.push(<h3 key={i} style={T.h3}>{ln.replace(/^### /, '')}</h3>); }
-    else if (/^## .+/.test(ln))  { els.push(<h2 key={i} style={T.h2}>{ln.replace(/^## /, '')}</h2>); }
-    else if (/^# .+/.test(ln))   { els.push(<h1 key={i} style={T.h1}>{ln.replace(/^# /, '')}</h1>); }
-    else if (/^[-*] .+/.test(ln)) {
+    const line = lines[i];
+    if (/^### (.+)/.test(line)) {
+      elements.push(<h3 key={i} style={mdStyles.h3}>{line.replace(/^### /, '')}</h3>);
+    } else if (/^## (.+)/.test(line)) {
+      elements.push(<h2 key={i} style={mdStyles.h2}>{line.replace(/^## /, '')}</h2>);
+    } else if (/^# (.+)/.test(line)) {
+      elements.push(<h1 key={i} style={mdStyles.h1}>{line.replace(/^# /, '')}</h1>);
+    } else if (/^[\-\*] (.+)/.test(line)) {
       const items = [];
-      while (i < lines.length && /^[-*] .+/.test(lines[i])) {
-        items.push(<li key={i} style={T.li}>{fmt(lines[i].replace(/^[-*] /, ''))}</li>);
+      while (i < lines.length && /^[\-\*] (.+)/.test(lines[i])) {
+        items.push(<li key={i} style={mdStyles.li}>{inlineFormat(lines[i].replace(/^[\-\*] /, ''))}</li>);
         i++;
       }
-      els.push(<ul key={`u${i}`} style={T.ul}>{items}</ul>);
+      elements.push(<ul key={`ul-${i}`} style={mdStyles.ul}>{items}</ul>);
       continue;
-    }
-    else if (/^\d+\. .+/.test(ln)) {
+    } else if (/^\d+\. (.+)/.test(line)) {
       const items = [];
-      while (i < lines.length && /^\d+\. .+/.test(lines[i])) {
-        items.push(<li key={i} style={T.li}>{fmt(lines[i].replace(/^\d+\. /, ''))}</li>);
+      while (i < lines.length && /^\d+\. (.+)/.test(lines[i])) {
+        items.push(<li key={i} style={mdStyles.li}>{inlineFormat(lines[i].replace(/^\d+\. /, ''))}</li>);
         i++;
       }
-      els.push(<ol key={`o${i}`} style={T.ol}>{items}</ol>);
+      elements.push(<ol key={`ol-${i}`} style={mdStyles.ol}>{items}</ol>);
       continue;
-    }
-    else if (ln.startsWith('```')) {
-      const code = [];
+    } else if (line.startsWith('```')) {
+      const codeLines = [];
       i++;
-      while (i < lines.length && !lines[i].startsWith('```')) { code.push(lines[i]); i++; }
-      els.push(<pre key={i} style={T.pre}><code>{code.join('\n')}</code></pre>);
+      while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
+      elements.push(<pre key={i} style={mdStyles.pre}><code>{codeLines.join('\n')}</code></pre>);
+    } else if (/^---+$/.test(line.trim())) {
+      elements.push(<hr key={i} style={mdStyles.hr} />);
+    } else if (line.trim() === '') {
+      elements.push(<div key={i} style={{ height: 6 }} />);
+    } else {
+      elements.push(<p key={i} style={mdStyles.p}>{inlineFormat(line)}</p>);
     }
-    else if (/^---+$/.test(ln.trim())) { els.push(<hr key={i} style={T.hr} />); }
-    else if (!ln.trim()) { els.push(<div key={i} style={{ height: 6 }} />); }
-    else { els.push(<p key={i} style={T.p}>{fmt(ln)}</p>); }
     i++;
   }
-  return els;
+  return elements;
 }
 
-function fmt(text) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((p, i) => {
-    if (p.startsWith('**') && p.endsWith('**'))
-      return <strong key={i} style={{ color: '#f1f5f9', fontWeight: 600 }}>{p.slice(2, -2)}</strong>;
-    if (p.startsWith('`') && p.endsWith('`'))
-      return <code key={i} style={T.inlineCode}>{p.slice(1, -1)}</code>;
-    return p;
+function inlineFormat(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**'))
+      return <strong key={idx} style={{ color: '#e2e8f0', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith('`') && part.endsWith('`'))
+      return <code key={idx} style={mdStyles.inlineCode}>{part.slice(1, -1)}</code>;
+    return part;
   });
 }
 
-// ── Chart renderer ────────────────────────────────────────────────────────────
+const mdStyles = {
+  h1: { fontSize: 19, fontWeight: 800, color: '#e2e8f0', margin: '10px 0 5px', letterSpacing: '-0.02em' },
+  h2: { fontSize: 16, fontWeight: 700, color: '#c7d2fe', margin: '8px 0 4px' },
+  h3: { fontSize: 13, fontWeight: 700, color: '#06b6d4', margin: '7px 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  p: { margin: '3px 0', color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 },
+  ul: { margin: '5px 0', paddingLeft: 18 },
+  ol: { margin: '5px 0', paddingLeft: 18 },
+  li: { color: '#94a3b8', fontSize: 13, lineHeight: 1.7, marginBottom: 2 },
+  pre: { background: 'rgba(15,23,42,0.9)', borderRadius: 8, padding: '10px 14px', overflowX: 'auto', margin: '8px 0', border: '1px solid rgba(51,65,85,0.6)', fontSize: 12, color: '#7dd3fc', fontFamily: 'monospace' },
+  inlineCode: { background: 'rgba(6,182,212,0.15)', borderRadius: 4, padding: '1px 5px', color: '#67e8f9', fontSize: '0.9em', fontFamily: 'monospace' },
+  hr: { border: 'none', borderTop: '1px solid rgba(51,65,85,0.6)', margin: '10px 0' },
+};
+
+// ════════════════════════════════════════════════════════════════════════════════
+// CHART RENDERER
+// ════════════════════════════════════════════════════════════════════════════════
 function ChartRenderer({ spec }) {
   if (!spec) return null;
   const { type, title, labels = [], datasets = [] } = spec;
-  const data = labels.map((name, i) => {
-    const o = { name };
-    datasets.forEach(d => { o[d.label] = d.data[i] ?? 0; });
-    return o;
+  const chartData = labels.map((label, i) => {
+    const point = { name: label };
+    datasets.forEach(ds => { point[ds.label] = ds.data[i] ?? 0; });
+    return point;
   });
-  const pie = labels.map((name, i) => ({ name, value: (datasets[0]?.data ?? [])[i] ?? 0 }));
-  const tt = {
-    contentStyle: { background: '#1c1c1e', border: '1px solid #2a2a2e', borderRadius: 8, color: '#e2e8f0' },
-    labelStyle: { color: '#888' },
-  };
-  const wrap = ch => (
-    <div style={{ background: '#111113', borderRadius: 12, padding: '14px 8px 8px', marginTop: 12, border: '1px solid #222' }}>
-      {title && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, marginBottom: 6, fontWeight: 600 }}>{title}</div>}
-      {ch}
+  const pieData = labels.map((label, i) => ({ name: label, value: (datasets[0]?.data ?? [])[i] ?? 0 }));
+  const chartStyle = { background: 'rgba(15,23,42,0.7)', borderRadius: 12, padding: '16px 8px 8px', marginTop: 12, border: '1px solid rgba(245,158,11,0.15)' };
+  const titleEl = <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, marginBottom: 8, fontWeight: 600 }}>{title}</div>;
+  const tooltipStyle = { contentStyle: { background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }, labelStyle: { color: '#94a3b8' } };
+
+  if (type === 'pie' || type === 'doughnut') return (
+    <div style={chartStyle}>{titleEl}
+      <ResponsiveContainer width="100%" height={260}>
+        <PieChart><Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={type === 'doughnut' ? 60 : 0} outerRadius={95} paddingAngle={2} label={({ name, percent }) => `${name} ${(percent*100).toFixed(1)}%`} labelLine={{ stroke: '#475569' }}>
+          {pieData.map((_, idx) => <Cell key={idx} fill={PALETTE[idx % PALETTE.length]} />)}
+        </Pie><Tooltip {...tooltipStyle} /><Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} /></PieChart>
+      </ResponsiveContainer>
     </div>
   );
-  if (type === 'pie' || type === 'doughnut') return wrap(
-    <ResponsiveContainer width="100%" height={220}>
-      <PieChart>
-        <Pie data={pie} dataKey="value" nameKey="name" cx="50%" cy="50%"
-          innerRadius={type === 'doughnut' ? 55 : 0} outerRadius={85} paddingAngle={2}
-          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-          labelLine={{ stroke: '#444' }}>
-          {pie.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-        </Pie>
-        <Tooltip {...tt} /><Legend wrapperStyle={{ color: '#888', fontSize: 11 }} />
-      </PieChart>
-    </ResponsiveContainer>
+  if (type === 'line') return (
+    <div style={chartStyle}>{titleEl}
+      <ResponsiveContainer width="100%" height={240}>
+        <LineChart data={chartData}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" /><XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} /><YAxis tick={{ fill: '#64748b', fontSize: 11 }} /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+          {datasets.map((ds, idx) => <Line key={idx} type="monotone" dataKey={ds.label} stroke={PALETTE[idx % PALETTE.length]} strokeWidth={2} dot={{ r: 3 }} />)}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   );
-  if (type === 'line') return wrap(
-    <ResponsiveContainer width="100%" height={200}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#222" />
-        <XAxis dataKey="name" tick={{ fill: '#555', fontSize: 10 }} />
-        <YAxis tick={{ fill: '#555', fontSize: 10 }} />
-        <Tooltip {...tt} /><Legend wrapperStyle={{ color: '#888', fontSize: 11 }} />
-        {datasets.map((d, i) => (
-          <Line key={i} type="monotone" dataKey={d.label} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} dot={{ r: 2 }} />
-        ))}
-      </LineChart>
-    </ResponsiveContainer>
-  );
-  return wrap(
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={data} barCategoryGap="28%">
-        <CartesianGrid strokeDasharray="3 3" stroke="#222" />
-        <XAxis dataKey="name" tick={{ fill: '#555', fontSize: 10 }}
-          angle={data.length > 10 ? -25 : 0}
-          textAnchor={data.length > 10 ? 'end' : 'middle'}
-          height={data.length > 10 ? 38 : 20}
-          interval={data.length > 15 ? 2 : 0} />
-        <YAxis tick={{ fill: '#555', fontSize: 10 }} />
-        <Tooltip {...tt} /><Legend wrapperStyle={{ color: '#888', fontSize: 11 }} />
-        {datasets.map((d, i) => (
-          <Bar key={i} dataKey={d.label} fill={PALETTE[i % PALETTE.length]}
-            stackId={type === 'stackedBar' ? 's' : undefined} radius={[3, 3, 0, 0]} />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+  return (
+    <div style={chartStyle}>{titleEl}
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart data={chartData} barCategoryGap="30%"><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" /><XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} interval={chartData.length > 15 ? 2 : 0} angle={chartData.length > 10 ? -30 : 0} textAnchor={chartData.length > 10 ? 'end' : 'middle'} height={chartData.length > 10 ? 50 : 30} /><YAxis tick={{ fill: '#64748b', fontSize: 11 }} /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+          {datasets.map((ds, idx) => <Bar key={idx} dataKey={ds.label} fill={PALETTE[idx % PALETTE.length]} stackId={type === 'stackedBar' ? 'stack' : undefined} radius={type !== 'stackedBar' ? [3,3,0,0] : undefined} />)}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
-// ── Export bar ────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════════
+// EXPORT BAR
+// ════════════════════════════════════════════════════════════════════════════════
 function ExportBar({ exportSpec }) {
-  const [busy, setBusy] = useState(false);
-  const dl = async (fmt) => {
-    setBusy(true);
+  const [loading, setLoading] = useState(false);
+  const download = async (fmt) => {
+    setLoading(true);
     try {
-      const res = await aiChatApi.export({ ...exportSpec, format: fmt });
+      const spec = { ...exportSpec, format: fmt };
+      const res = await aiChatApi.export(spec);
       const url = URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a');
-      a.href = url; a.download = exportSpec.filename || `export.${fmt}`; a.click();
-      URL.revokeObjectURL(url);
+      const a = document.createElement('a'); a.href = url; a.download = spec.filename || `export.${fmt}`; a.click(); URL.revokeObjectURL(url);
     } catch (e) { alert('Export failed: ' + (e.userMessage || e.message)); }
-    finally { setBusy(false); }
+    finally { setLoading(false); }
   };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-      <span style={{ color: '#555', fontSize: 11 }}>Export:</span>
-      {['csv', 'xlsx', 'pdf'].map(f => (
-        <button key={f} disabled={busy} onClick={() => dl(f)}
-          style={{
-            background: '#1a1a1e', border: '1px solid #2a2a2e',
-            borderRadius: 6, padding: '3px 10px',
-            color: '#aaa', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}>
-          {f.toUpperCase()}
+    <div style={{ display: 'flex', alignItems: 'center', marginTop: 10, background: 'rgba(15,23,42,0.6)', borderRadius: 8, padding: '8px 12px', border: '1px solid rgba(245,158,11,0.2)', flexWrap: 'wrap', gap: 6 }}>
+      <span style={{ color: '#94a3b8', fontSize: 12, marginRight: 8 }}>📦 Export:</span>
+      {['csv', 'xlsx', 'pdf'].map(fmt => (
+        <button key={fmt} disabled={loading} onClick={() => download(fmt)} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#0d1117', fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.05em' }}>
+          {fmt.toUpperCase()}
         </button>
       ))}
     </div>
   );
 }
 
-// ── Brain icon ────────────────────────────────────────────────────────────────
-function BrainIcon({ size = 32 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#4f46e5" /><stop offset="100%" stopColor="#7c3aed" />
-        </linearGradient>
-        <linearGradient id="br2" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#c7d2fe" /><stop offset="100%" stopColor="#e0e7ff" />
-        </linearGradient>
-      </defs>
-      <rect width="48" height="48" rx="12" fill="url(#bg2)" />
-      <path d="M24 10C17.37 10 12 15.37 12 22c0 3.1 1.16 5.93 3.06 8.06C16.34 31.53 17 33.2 17 35v1h7V10z" fill="url(#br2)" opacity=".9" />
-      <path d="M24 10c6.63 0 12 5.37 12 12 0 3.1-1.16 5.93-3.06 8.06C31.66 31.53 31 33.2 31 35v1h-7V10z" fill="url(#br2)" opacity=".72" />
-      <line x1="24" y1="10" x2="24" y2="36" stroke="#6366f1" strokeWidth="1.5" />
-      <rect x="19" y="36" width="10" height="3" rx="1.5" fill="url(#br2)" opacity=".65" />
-      <circle cx="20" cy="17" r="1.5" fill="#c7d2fe" />
-      <circle cx="28" cy="17" r="1.5" fill="#c7d2fe" />
-    </svg>
-  );
-}
-
-// ── Loading dots ──────────────────────────────────────────────────────────────
-function LoadingDots() {
-  const [wi, setWi] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setWi(p => (p + 1) % LOADING_WORDS.length), 900);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '10px 14px', background: '#111113',
-      borderRadius: '4px 14px 14px 14px',
-      border: '1px solid #1e1e22', maxWidth: 220,
-    }}>
-      <div style={{ display: 'flex', gap: 4 }}>
-        {[0, 1, 2].map(i => (
-          <span key={i} className={`sai-dot sai-dot-${i}`}
-            style={{ width: 5, height: 5, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
-        ))}
-      </div>
-      <span style={{ color: '#555', fontSize: 11, fontStyle: 'italic', whiteSpace: 'nowrap' }}>
-        {LOADING_WORDS[wi]}
-      </span>
-    </div>
-  );
-}
-
-// ── Message bubble ────────────────────────────────────────────────────────────
-function Bubble({ msg }) {
+// ════════════════════════════════════════════════════════════════════════════════
+// MESSAGE BUBBLE
+// ════════════════════════════════════════════════════════════════════════════════
+function MessageBubble({ msg }) {
   const isUser = msg.role === 'user';
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: isUser ? 'flex-end' : 'flex-start',
-      marginBottom: 18, gap: 10, alignItems: 'flex-start',
-    }}>
+    <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 20, padding: '0 20px' }}>
       {!isUser && (
-        <div style={{ flexShrink: 0, marginTop: 2 }}>
-          <BrainIcon size={28} />
+        <div style={chatStyles.aiAvatar}>
+          <BrainIcon size={20} color="#06b6d4" />
         </div>
       )}
-      <div style={{ maxWidth: '72%', minWidth: 60 }}>
-        <div style={isUser ? T.userBubble : T.aiBubble}>
+      <div style={{ maxWidth: '76%', minWidth: 60 }}>
+        <div style={isUser ? chatStyles.userBubble : chatStyles.aiBubble}>
           {isUser
-            ? <span style={{ color: '#f1f5f9', fontSize: 14, lineHeight: 1.65 }}>{msg.content}</span>
-            : <div style={{ color: '#d1d5db', fontSize: 14, lineHeight: 1.8 }}>{renderMd(msg.content)}</div>
+            ? <p style={{ margin: 0, color: '#fff', lineHeight: 1.6, fontSize: 14 }}>{msg.content}</p>
+            : <div style={{ color: '#cbd5e1', lineHeight: 1.7 }}>{renderMarkdown(msg.content)}</div>
           }
         </div>
-        {msg.chartSpec  && <ChartRenderer spec={msg.chartSpec} />}
+        {msg.chartSpec && <ChartRenderer spec={msg.chartSpec} />}
         {msg.exportSpec && <ExportBar exportSpec={msg.exportSpec} />}
-        <div style={{ color: '#2a2a2e', fontSize: 10, marginTop: 4, textAlign: isUser ? 'right' : 'left' }}>
-          {msg.ts}
-        </div>
+        {msg.filesUsed?.length > 0 && (
+          <div style={{ color: '#475569', fontSize: 10, marginTop: 6, background: 'rgba(15,23,42,0.5)', borderRadius: 4, padding: '4px 8px' }}>
+            📁 Sources: {msg.filesUsed.join(' · ')}
+          </div>
+        )}
+        <div style={{ color: '#334155', fontSize: 10, marginTop: 4, textAlign: isUser ? 'right' : 'left' }}>{msg.timestamp}</div>
       </div>
       {isUser && (
-        <div style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: '#1a1a1e', border: '1px solid #2a2a2e',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, marginTop: 2, fontSize: 13,
-        }}>👤</div>
+        <div style={{ ...chatStyles.aiAvatar, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', marginLeft: 10, marginRight: 0, border: 'none' }}>
+          <span style={{ fontSize: 13 }}>👤</span>
+        </div>
       )}
     </div>
   );
 }
 
-// ── History drawer ────────────────────────────────────────────────────────────
-function HistoryDrawer({ chats, activeChatId, onSelect, onDelete, onNew, onClose }) {
-  const [hovered, setHovered] = useState(null);
+const chatStyles = {
+  aiAvatar: {
+    width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+    background: 'rgba(6,182,212,0.1)',
+    border: '1px solid rgba(6,182,212,0.25)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    marginRight: 10, alignSelf: 'flex-start', marginTop: 2,
+  },
+  userBubble: {
+    background: 'linear-gradient(135deg,#4338ca,#4f46e5)',
+    borderRadius: '16px 16px 4px 16px',
+    padding: '12px 16px',
+    boxShadow: '0 4px 20px rgba(79,70,229,0.3)',
+  },
+  aiBubble: {
+    background: 'rgba(15,23,42,0.9)',
+    border: '1px solid rgba(51,65,85,0.7)',
+    borderRadius: '4px 16px 16px 16px',
+    padding: '14px 18px',
+  },
+};
+
+// ════════════════════════════════════════════════════════════════════════════════
+// HISTORY SIDEBAR (LEFT)
+// ════════════════════════════════════════════════════════════════════════════════
+function HistorySidebar({ sessions, activeId, onSelect, onNew, open, onToggle }) {
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, bottom: 0, width: 256, zIndex: 200,
-      background: '#0d0d0f', borderRight: '1px solid #1a1a1e',
+      width: open ? 240 : 0,
+      flexShrink: 0,
+      background: '#080d14',
+      borderRight: open ? '1px solid rgba(255,255,255,0.06)' : 'none',
       display: 'flex', flexDirection: 'column',
-      animation: 'drawerIn .2s ease',
+      overflow: 'hidden',
+      transition: 'width 0.25s ease',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 14px 12px' }}>
-        <span style={{ color: '#555', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          History
-        </span>
-        <button onClick={onClose}
-          style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: 16 }}>
-          ✕
-        </button>
-      </div>
-
-      <div style={{ padding: '0 10px 10px' }}>
-        <button onClick={onNew} style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-          background: '#111113', border: '1px solid #222',
-          borderRadius: 8, color: '#888', fontSize: 13, fontWeight: 500,
-          padding: '9px 12px', cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-          <span style={{ fontSize: 17, lineHeight: 1 }}>+</span> New Chat
-        </button>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 6px' }}>
-        {chats.length === 0
-          ? <div style={{ color: '#333', fontSize: 12, textAlign: 'center', padding: '24px 8px' }}>No chats yet.</div>
-          : chats.map(c => (
-            <div key={c.id}
-              onClick={() => { onSelect(c.id); onClose(); }}
-              onMouseEnter={() => setHovered(c.id)}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 10px', borderRadius: 8, cursor: 'pointer', marginBottom: 2,
-                background: c.id === activeChatId ? '#1a1a1e' : hovered === c.id ? '#141416' : 'transparent',
-                transition: 'background .12s',
-              }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  color: c.id === activeChatId ? '#e2e8f0' : '#666',
-                  fontSize: 12, fontWeight: 500,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {c.title || 'New Chat'}
-                </div>
-                <div style={{ color: '#333', fontSize: 10, marginTop: 1 }}>
-                  {c.messages.length} msg{c.messages.length !== 1 ? 's' : ''}
-                </div>
-              </div>
-              {hovered === c.id && (
-                <button onClick={e => onDelete(c.id, e)}
-                  style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: 12, padding: 2, flexShrink: 0 }}>
-                  🗑
-                </button>
-              )}
+      {open && (
+        <>
+          {/* Sidebar header */}
+          <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <BrainIcon size={18} color="#06b6d4" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.04em' }}>ShaastrAI</span>
             </div>
-          ))
-        }
-      </div>
+            <button onClick={onNew} style={{
+              width: '100%', padding: '8px 12px',
+              background: 'rgba(6,182,212,0.08)', border: '1px dashed rgba(6,182,212,0.25)',
+              borderRadius: 8, color: '#94a3b8', fontSize: 12,
+              cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{ fontSize: 16, color: '#06b6d4' }}>+</span> New conversation
+            </button>
+          </div>
+
+          {/* Session list */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px', scrollbarWidth: 'thin', scrollbarColor: '#1e293b transparent' }}>
+            {sessions.length === 0 && (
+              <div style={{ color: '#374151', fontSize: 12, padding: '20px 8px', textAlign: 'center' }}>
+                No conversations yet
+              </div>
+            )}
+            {sessions.map(s => (
+              <button key={s.id} onClick={() => onSelect(s.id)} style={{
+                width: '100%', textAlign: 'left', padding: '9px 10px',
+                background: s.id === activeId ? 'rgba(6,182,212,0.1)' : 'transparent',
+                border: s.id === activeId ? '1px solid rgba(6,182,212,0.2)' : '1px solid transparent',
+                borderRadius: 7, marginBottom: 2, cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}>
+                <div style={{ color: s.id === activeId ? '#e2e8f0' : '#64748b', fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.title}
+                </div>
+                <div style={{ color: '#334155', fontSize: 10, marginTop: 2 }}>{s.date}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Quick prompts */}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '10px 10px', flexShrink: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#374151', letterSpacing: '0.07em', marginBottom: 7 }}>QUICK PROMPTS</div>
+            {SUGGESTED.slice(0, 4).map((s, i) => (
+              <div key={i} style={{ color: '#4b5563', fontSize: 11, padding: '4px 6px', cursor: 'pointer', borderRadius: 5, marginBottom: 2, lineHeight: 1.4 }}
+                onClick={() => onSelect('prompt:' + s)}>
+                {s}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// MAIN
+// MAIN COMPONENT
 // ════════════════════════════════════════════════════════════════════════════════
 export default function AiChat() {
-  const [chats,        setChats]        = useState(() => loadChats());
-  const [activeChatId, setActiveChatId] = useState(() => { const c = loadChats(); return c[0]?.id || null; });
-  const [input,        setInput]        = useState('');
-  const [loading,      setLoading]      = useState(false);
-  const [drawerOpen,   setDrawerOpen]   = useState(false);
+  const [sessions, setSessions]       = useState([]);
+  const [activeId, setActiveId]       = useState(null);
+  const [sessionMap, setSessionMap]   = useState({}); // id -> messages[]
+  const [input, setInput]             = useState('');
+  const [loading, setLoading]         = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [includeData, setIncludeData] = useState(true);
+  const [brainMoved, setBrainMoved]   = useState(false); // brain icon state
+
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
 
-  const activeChat = useMemo(() => chats.find(c => c.id === activeChatId) || null, [chats, activeChatId]);
-  const msgs = activeChat?.messages || [];
+  const messages = activeId ? (sessionMap[activeId] || []) : [];
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, loading]);
-  useEffect(() => { saveChats(chats); }, [chats]);
+  // Move brain when first message sent
+  useEffect(() => {
+    if (messages.length > 0 && !brainMoved) setBrainMoved(true);
+  }, [messages.length]);
 
-  const createNewChat = () => {
-    const c = makeChat();
-    setChats(prev => [c, ...prev]);
-    setActiveChatId(c.id);
-  };
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
 
-  const deleteChat = (id, e) => {
-    e.stopPropagation();
-    setChats(prev => {
-      const next = prev.filter(c => c.id !== id);
-      if (activeChatId === id) setActiveChatId(next[0]?.id || null);
-      return next;
-    });
-  };
+  const history = useMemo(() =>
+    messages.map(m => ({ role: m.role, content: m.content })),
+  [messages]);
+
+  const createSession = useCallback((firstMsg) => {
+    const id = 'sess_' + Date.now();
+    const title = firstMsg.length > 36 ? firstMsg.slice(0, 36) + '…' : firstMsg;
+    const date = new Date().toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const session = { id, title, date };
+    setSessions(prev => [session, ...prev]);
+    setActiveId(id);
+    setSessionMap(prev => ({ ...prev, [id]: [] }));
+    return id;
+  }, []);
 
   const send = useCallback(async (text) => {
     const msg = (text || input).trim();
     if (!msg || loading) return;
     setInput('');
 
-    let chatId = activeChatId;
-    if (!chatId) {
-      const c = makeChat();
-      setChats(prev => [c, ...prev]);
-      setActiveChatId(c.id);
-      chatId = c.id;
-    }
+    let sid = activeId;
+    if (!sid) { sid = createSession(msg); }
 
-    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const userMsg = { id: Date.now(), role: 'user', content: msg, ts };
-
-    setChats(prev => prev.map(c => {
-      if (c.id !== chatId) return c;
-      const nm = [...c.messages, userMsg];
-      return { ...c, messages: nm, title: nm.find(m => m.role === 'user')?.content?.slice(0, 40) || c.title };
-    }));
-
+    const userMsg = {
+      id: Date.now(), role: 'user', content: msg,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setSessionMap(prev => ({ ...prev, [sid]: [...(prev[sid] || []), userMsg] }));
     setLoading(true);
 
-    const history = (chats.find(c => c.id === chatId)?.messages || [])
-      .map(m => ({ role: m.role, content: m.content }));
-
     try {
-      const { data } = await aiChatApi.send(msg, history, true);
+      const { data } = await aiChatApi.send(msg, history, includeData);
       const aiMsg = {
-        id: Date.now() + 1,
-        role: 'assistant',
+        id: Date.now() + 1, role: 'assistant',
         content: data.reply || '',
         chartSpec: data.chartSpec || null,
         exportSpec: data.exportSpec || null,
-        ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        filesUsed: data.filesUsed || [],
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      setChats(prev => prev.map(c => c.id !== chatId ? c : { ...c, messages: [...c.messages, aiMsg] }));
+      setSessionMap(prev => ({ ...prev, [sid]: [...(prev[sid] || []), aiMsg] }));
     } catch (e) {
       const errMsg = {
         id: Date.now() + 1, role: 'assistant',
         content: `⚠️ **Error:** ${e.userMessage || e.message || 'Something went wrong.'}`,
-        ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      setChats(prev => prev.map(c => c.id !== chatId ? c : { ...c, messages: [...c.messages, errMsg] }));
+      setSessionMap(prev => ({ ...prev, [sid]: [...(prev[sid] || []), errMsg] }));
     } finally {
       setLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 80);
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [input, loading, activeChatId, chats]);
+  }, [input, loading, history, includeData, activeId, createSession]);
 
-  const handleKey = e => {
+  const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   };
 
-  const hasMessages = msgs.length > 0;
+  const handleSidebarSelect = (id) => {
+    if (id.startsWith('prompt:')) {
+      send(id.replace('prompt:', ''));
+    } else {
+      setActiveId(id);
+    }
+  };
+
+  const handleNew = () => {
+    setActiveId(null);
+    setBrainMoved(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const hasMessages = messages.length > 0;
 
   return (
-    <>
-      <style>{CSS}</style>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0d1117', fontFamily: "'DM Sans', 'Inter', sans-serif", overflow: 'hidden' }}>
 
-      {/* History drawer + backdrop */}
-      {drawerOpen && (
-        <>
-          <div onClick={() => setDrawerOpen(false)} style={{
-            position: 'fixed', inset: 0, zIndex: 190,
-            background: 'rgba(0,0,0,0.55)',
-          }} />
-          <HistoryDrawer
-            chats={chats}
-            activeChatId={activeChatId}
-            onSelect={setActiveChatId}
-            onDelete={deleteChat}
-            onNew={() => { createNewChat(); setDrawerOpen(false); }}
-            onClose={() => setDrawerOpen(false)}
-          />
-        </>
-      )}
+      {/* ── NAVBAR ── */}
+      <Navbar hasMessages={hasMessages} />
 
-      <div style={S.root}>
-        {/* Shared navbar — identical to every other page */}
-        <Navbar />
+      {/* ── BODY ── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* ── PAGE BODY ── */}
-        <div style={S.body}>
+        {/* ── LEFT SIDEBAR: Chat History ── */}
+        <HistorySidebar
+          sessions={sessions}
+          activeId={activeId}
+          onSelect={handleSidebarSelect}
+          onNew={handleNew}
+          open={sidebarOpen}
+          onToggle={() => setSidebarOpen(p => !p)}
+        />
 
-          {/* History toggle button */}
-          <button
-            onClick={() => setDrawerOpen(true)}
-            title="Chat history"
-            style={S.historyBtn}
-            className="history-btn"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="15" y2="18" />
-            </svg>
+        {/* ── MAIN CHAT AREA ── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+
+          {/* Sidebar toggle tab */}
+          <button onClick={() => setSidebarOpen(p => !p)} style={{
+            position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+            zIndex: 10, width: 18, height: 48,
+            background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)',
+            borderLeft: 'none', borderRadius: '0 6px 6px 0',
+            color: '#06b6d4', cursor: 'pointer', fontSize: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {sidebarOpen ? '‹' : '›'}
           </button>
 
-          {/* ── WELCOME (no messages) ── */}
+          {/* ── EMPTY STATE: Brain in center ── */}
           {!hasMessages && (
-            <div style={S.welcome}>
-              <div style={{ marginBottom: 22, animation: 'aiPulse 2.8s ease-in-out infinite' }}>
-                <BrainIcon size={52} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', textAlign: 'center' }}>
+              {/* Animated brain */}
+              <div style={{ marginBottom: 28, animation: 'brainPulse 2.5s ease-in-out infinite' }}>
+                <BrainIcon size={72} color="#06b6d4" glow />
               </div>
-              <h1 style={S.welcomeTitle}>Where should we begin?</h1>
-              <p style={S.welcomeSub}>Mangaluru South · Constituency Intelligence</p>
-
-              <div style={S.suggestGrid}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.18em', marginBottom: 10 }}>SHAASTR AI</div>
+              <h2 style={{ fontSize: 26, fontWeight: 800, color: '#e2e8f0', margin: '0 0 12px', letterSpacing: '-0.03em' }}>
+                Constituency Intelligence
+              </h2>
+              <p style={{ color: '#4b5563', fontSize: 14, maxWidth: 480, lineHeight: 1.8, marginBottom: 32 }}>
+                Ask anything about voters, wards, booth data, schemes, demographics, or election strategy.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 8, maxWidth: 680, width: '100%' }}>
                 {SUGGESTED.map((s, i) => (
-                  <button key={i} style={S.suggestBtn} onClick={() => send(s)}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = '#1a1a1e';
-                      e.currentTarget.style.borderColor = '#2a2a2e';
-                      e.currentTarget.style.color = '#ccc';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = '#111113';
-                      e.currentTarget.style.borderColor = '#1e1e22';
-                      e.currentTarget.style.color = '#555';
-                    }}>
-                    {s}
-                  </button>
+                  <button key={i} onClick={() => send(s)} style={{
+                    background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.15)',
+                    borderRadius: 8, padding: '10px 13px', color: '#64748b',
+                    fontSize: 12, cursor: 'pointer', textAlign: 'left', lineHeight: 1.5,
+                    transition: 'all 0.2s',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.4)'; e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'rgba(6,182,212,0.1)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.15)'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(6,182,212,0.05)'; }}
+                  >{s}</button>
                 ))}
               </div>
             </div>
@@ -523,260 +672,105 @@ export default function AiChat() {
 
           {/* ── MESSAGES ── */}
           {hasMessages && (
-            <div style={S.msgList}>
-              <div style={S.msgInner}>
-                {msgs.map(m => <Bubble key={m.id} msg={m} />)}
-                {loading && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                    <BrainIcon size={28} />
-                    <LoadingDots />
-                  </div>
-                )}
-                <div ref={bottomRef} />
+            <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, scrollbarWidth: 'thin', scrollbarColor: '#1e293b transparent' }}>
+              {/* Brain logo top-left when chat active */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', marginBottom: 16 }}>
+                <BrainIcon size={22} color="#06b6d4" glow />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.1em' }}>SHAASTR AI</span>
+                <div style={{ flex: 1 }} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)} style={{ accentColor: '#06b6d4', width: 13, height: 13 }} />
+                  <span style={{ color: '#4b5563', fontSize: 11 }}>Use data files</span>
+                </label>
+                <button onClick={handleNew} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '4px 10px', color: '#4b5563', fontSize: 11, cursor: 'pointer' }}>
+                  + New
+                </button>
               </div>
+
+              {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
+              {loading && <TypingIndicator />}
+              <div ref={bottomRef} style={{ height: 20 }} />
             </div>
           )}
 
-          {/* ── INPUT BAR ── */}
-          <div style={S.inputWrap}>
-            <div style={S.inputBox} className="input-box">
-              {/* + new chat */}
-              <button onClick={createNewChat} title="New chat" style={S.plusBtn} className="plus-btn">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="2.2" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </button>
-
+          {/* ── INPUT BAR (shorter, centered) ── */}
+          <div style={{ flexShrink: 0, padding: '12px 20px 16px', background: '#0d1117', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {!hasMessages && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', justifyContent: 'center', marginBottom: 8 }}>
+                <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)} style={{ accentColor: '#06b6d4', width: 13, height: 13 }} />
+                <span style={{ color: '#4b5563', fontSize: 11 }}>Include constituency data files</span>
+              </label>
+            )}
+            <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder="Ask anything…"
+                placeholder="Ask about voters, wards, schemes, strategy…"
                 disabled={loading}
                 rows={1}
-                style={S.textarea}
+                style={{
+                  flex: 1, background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(6,182,212,0.2)', borderRadius: 12,
+                  padding: '10px 14px', color: '#e2e8f0', fontSize: 14, lineHeight: 1.5,
+                  resize: 'none', outline: 'none', fontFamily: 'inherit',
+                  minHeight: 42, maxHeight: 120,
+                  scrollbarWidth: 'thin', scrollbarColor: '#1e293b transparent',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => { e.target.style.borderColor = 'rgba(6,182,212,0.5)'; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(6,182,212,0.2)'; }}
                 onInput={e => {
                   e.target.style.height = 'auto';
                   e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                 }}
               />
-
               <button
                 onClick={() => send()}
                 disabled={loading || !input.trim()}
-                style={{ ...S.sendBtn, opacity: (loading || !input.trim()) ? 0.25 : 1 }}
+                style={{
+                  width: 42, height: 42, flexShrink: 0,
+                  background: loading || !input.trim() ? 'rgba(6,182,212,0.15)' : 'linear-gradient(135deg,#06b6d4,#0891b2)',
+                  border: 'none', borderRadius: 10,
+                  color: '#fff', fontSize: 17, cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: loading || !input.trim() ? 'none' : '0 4px 15px rgba(6,182,212,0.35)',
+                  transition: 'all 0.2s',
+                  opacity: loading || !input.trim() ? 0.4 : 1,
+                }}
               >
-                {loading
-                  ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2" strokeLinecap="round" style={{ animation: 'spin .8s linear infinite' }}>
-                      <path d="M12 2a10 10 0 1 1-7.07 2.93" />
-                    </svg>
-                  : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="19" x2="12" y2="5" />
-                      <polyline points="5 12 12 5 19 12" />
-                    </svg>
-                }
+                {loading ? '⏳' : '➤'}
               </button>
             </div>
-
-            <p style={S.hint}>
-              <kbd style={S.kbd}>Enter</kbd> to send &nbsp;·&nbsp; <kbd style={S.kbd}>Shift+Enter</kbd> for new line
-            </p>
+            <div style={{ color: '#1e293b', fontSize: 11, marginTop: 6, textAlign: 'center' }}>
+              <kbd style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, padding: '1px 5px', fontSize: 10, fontFamily: 'monospace', color: '#374151' }}>Enter</kbd> to send ·{' '}
+              <kbd style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, padding: '1px 5px', fontSize: 10, fontFamily: 'monospace', color: '#374151' }}>Shift+Enter</kbd> for new line
+            </div>
           </div>
-
         </div>
       </div>
-    </>
+
+      {/* ── GLOBAL CSS ── */}
+      <style>{`
+        @keyframes bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+          40% { transform: translateY(-5px); opacity: 1; }
+        }
+        @keyframes brainPulse {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.06); opacity: 1; }
+        }
+        .typing-dot {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: #06b6d4; display: inline-block;
+          animation: bounce 1.2s infinite;
+        }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+      `}</style>
+    </div>
   );
 }
-
-// ── CSS ───────────────────────────────────────────────────────────────────────
-const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap');
-
-  @keyframes sai-bounce {
-    0%,80%,100%{ transform:translateY(0); opacity:.28; }
-    40%        { transform:translateY(-5px); opacity:1; }
-  }
-  @keyframes aiPulse {
-    0%,100%{ filter:drop-shadow(0 0 8px rgba(99,102,241,.35)); transform:scale(1); }
-    50%    { filter:drop-shadow(0 0 20px rgba(99,102,241,.7)); transform:scale(1.05); }
-  }
-  @keyframes drawerIn {
-    from{ transform:translateX(-100%); opacity:0; }
-    to  { transform:translateX(0);     opacity:1; }
-  }
-  @keyframes fadeUp {
-    from{ opacity:0; transform:translateY(10px); }
-    to  { opacity:1; transform:translateY(0); }
-  }
-  @keyframes spin {
-    from{ transform:rotate(0deg); }
-    to  { transform:rotate(360deg); }
-  }
-
-  .sai-dot   { animation:sai-bounce 1.3s infinite; }
-  .sai-dot-1 { animation-delay:.15s !important; }
-  .sai-dot-2 { animation-delay:.30s !important; }
-
-  .history-btn:hover { border-color:#2a2a2e !important; color:#888 !important; }
-  .plus-btn:hover    { color:#888 !important; }
-  .input-box:focus-within { border-color:#333 !important; }
-
-  ::-webkit-scrollbar       { width:4px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:#1e1e22; border-radius:4px; }
-`;
-
-// ── Layout styles ─────────────────────────────────────────────────────────────
-const S = {
-  root: {
-    display: 'flex', flexDirection: 'column',
-    height: '100vh', background: '#0a0a0a',
-    fontFamily: "'Sora','system-ui',sans-serif",
-    overflow: 'hidden',
-  },
-
-  body: {
-    flex: 1, display: 'flex', flexDirection: 'column',
-    alignItems: 'center', overflow: 'hidden',
-    position: 'relative',
-  },
-
-  historyBtn: {
-    position: 'absolute', top: 14, left: 16, zIndex: 10,
-    background: 'none', border: '1px solid #1a1a1e',
-    borderRadius: 8, padding: '7px 9px',
-    color: '#333', cursor: 'pointer',
-    display: 'flex', alignItems: 'center',
-    transition: 'color .15s, border-color .15s',
-  },
-
-  // Welcome
-  welcome: {
-    flex: 1, display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center',
-    padding: '0 20px 90px',
-    animation: 'fadeUp .4s ease',
-    width: '100%', maxWidth: 660,
-  },
-  welcomeTitle: {
-    fontSize: 26, fontWeight: 600, color: '#e2e8f0',
-    margin: '0 0 6px', letterSpacing: '-0.02em', textAlign: 'center',
-  },
-  welcomeSub: {
-    color: '#3a3a3e', fontSize: 12, marginBottom: 28,
-    fontWeight: 400, textAlign: 'center',
-  },
-  suggestGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(188px, 1fr))',
-    gap: 8, width: '100%',
-  },
-  suggestBtn: {
-    background: '#111113', border: '1px solid #1e1e22',
-    borderRadius: 10, padding: '11px 14px',
-    color: '#555', fontSize: 12, cursor: 'pointer',
-    textAlign: 'left', lineHeight: 1.5,
-    transition: 'all .15s', fontFamily: 'inherit',
-  },
-
-  // Messages
-  msgList: {
-    flex: 1, width: '100%', overflowY: 'auto',
-    scrollbarWidth: 'thin', scrollbarColor: '#1e1e22 transparent',
-  },
-  msgInner: {
-    maxWidth: 720, margin: '0 auto',
-    padding: '28px 20px 16px',
-  },
-
-  // Input
-  inputWrap: {
-    width: '100%', maxWidth: 720,
-    padding: '6px 20px 14px',
-    flexShrink: 0,
-  },
-  inputBox: {
-    display: 'flex', alignItems: 'center', gap: 6,
-    background: '#111113',
-    border: '1px solid #222',
-    borderRadius: 14,
-    padding: '10px 10px 10px 8px',
-    transition: 'border-color .2s',
-  },
-  plusBtn: {
-    background: 'none', border: 'none',
-    color: '#333', cursor: 'pointer',
-    padding: '4px 6px', borderRadius: 6,
-    display: 'flex', alignItems: 'center', flexShrink: 0,
-    transition: 'color .15s',
-  },
-  textarea: {
-    flex: 1,
-    background: 'transparent',
-    border: 'none', outline: 'none',
-    color: '#e2e8f0', fontSize: 14, lineHeight: 1.6,
-    resize: 'none', fontFamily: 'inherit',
-    minHeight: 24, maxHeight: 120,
-    padding: '0',
-    scrollbarWidth: 'none',
-  },
-  sendBtn: {
-    background: '#fff',
-    border: 'none', borderRadius: 8,
-    width: 32, height: 32, flexShrink: 0,
-    color: '#0a0a0a', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    transition: 'opacity .15s',
-  },
-  hint: {
-    color: '#222', fontSize: 10,
-    textAlign: 'center', marginTop: 7, marginBottom: 0,
-  },
-  kbd: {
-    background: '#111113', border: '1px solid #1e1e22',
-    borderRadius: 3, padding: '1px 5px',
-    fontSize: 10, fontFamily: 'monospace', color: '#2a2a2e',
-  },
-};
-
-// ── Markdown typography ───────────────────────────────────────────────────────
-const T = {
-  h1: { fontSize: 17, fontWeight: 700, color: '#e2e8f0', margin: '10px 0 6px', letterSpacing: '-0.02em' },
-  h2: { fontSize: 15, fontWeight: 600, color: '#c7d2fe', margin: '8px 0 4px' },
-  h3: { fontSize: 11, fontWeight: 700, color: '#6366f1', margin: '8px 0 3px', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  p:  { margin: '4px 0', color: '#9ca3af', fontSize: 14, lineHeight: 1.8 },
-  ul: { margin: '5px 0', paddingLeft: 18 },
-  ol: { margin: '5px 0', paddingLeft: 18 },
-  li: { color: '#9ca3af', fontSize: 13, lineHeight: 1.8, marginBottom: 3 },
-  pre: {
-    background: '#0d0d0f', borderRadius: 8,
-    padding: '10px 14px', overflowX: 'auto',
-    margin: '8px 0', border: '1px solid #1a1a1e',
-    fontSize: 12, color: '#7dd3fc',
-    fontFamily: "'JetBrains Mono',monospace",
-  },
-  inlineCode: {
-    background: '#1a1a1e', borderRadius: 4,
-    padding: '1px 5px', color: '#a5b4fc',
-    fontSize: '0.88em', fontFamily: 'monospace',
-  },
-  hr: { border: 'none', borderTop: '1px solid #1a1a1e', margin: '8px 0' },
-
-  // Bubbles
-  userBubble: {
-    background: '#1a1a1e',
-    border: '1px solid #252528',
-    borderRadius: '14px 14px 4px 14px',
-    padding: '10px 14px',
-    display: 'inline-block',
-  },
-  aiBubble: {
-    padding: '2px 0',
-  },
-};
