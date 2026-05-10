@@ -20,58 +20,135 @@ import Navbar from '../components/Navbar';
 const PALETTE = ['#4f46e5','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 
 const SUGGESTED = [
-  { icon: '🗳️', text: 'Total voter count by ward' },
-  { icon: '🕌', text: 'Religion-wise voter breakdown' },
-  { icon: '📊', text: 'Ward-wise survey completion' },
-  { icon: '🏆', text: 'Top schemes by beneficiaries' },
-  { icon: '📈', text: '2019 vs 2023 polling comparison' },
-  { icon: '🎯', text: 'Strategic priority wards' },
+  { text: 'Total voter count by ward',       icon: 'users' },
+  { text: 'Religion-wise voter breakdown',   icon: 'pie' },
+  { text: 'Ward-wise survey completion',     icon: 'clipboard' },
+  { text: 'Top schemes by beneficiaries',    icon: 'award' },
+  { text: '2019 vs 2023 polling comparison', icon: 'trending' },
+  { text: 'Strategic priority wards',        icon: 'target' },
 ];
 
 // ════════════════════════════════════════════════════════════════════════════════
-// TYPEWRITER HOOK
-// Simulates character-by-character streaming from a complete string.
-// Speed scales with length so long replies don't drag forever.
-// Returns { displayed, done } — render `displayed`, show cursor until `done`.
+// LUCIDE-STYLE SVG ICON LIBRARY  (inline, zero dependency)
 // ════════════════════════════════════════════════════════════════════════════════
-function useTypewriter(fullText, active = true, onTick) {
-  const [displayed, setDisplayed] = useState('');
-  const [done,      setDone]      = useState(false);
-  const rafRef    = useRef(null);
-  const indexRef  = useRef(0);
-
-  useEffect(() => {
-    if (!active || !fullText) {
-      setDisplayed(fullText || '');
-      setDone(true);
-      return;
-    }
-    setDisplayed('');
-    setDone(false);
-    indexRef.current = 0;
-
-    // Chars-per-frame scales with response length so it always feels snappy
-    const cpf = fullText.length > 2000 ? 10
-              : fullText.length > 800  ? 6
-              : fullText.length > 300  ? 4
-              : 2;
-
-    const tick = () => {
-      indexRef.current = Math.min(indexRef.current + cpf, fullText.length);
-      setDisplayed(fullText.slice(0, indexRef.current));
-      onTick?.();
-      if (indexRef.current < fullText.length) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        setDone(true);
-      }
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [fullText, active]);
-
-  return { displayed, done };
-}
+const ICONS = {
+  // Send arrow
+  send: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  ),
+  // Trash / clear
+  trash: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+    </svg>
+  ),
+  // Download / export
+  download: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  ),
+  // Database / sources
+  database: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+    </svg>
+  ),
+  // Users
+  users: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+  // Pie chart
+  pie: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
+    </svg>
+  ),
+  // Clipboard / survey
+  clipboard: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+      <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/>
+      <line x1="9" y1="16" x2="13" y2="16"/>
+    </svg>
+  ),
+  // Award / trophy
+  award: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+    </svg>
+  ),
+  // Trending up
+  trending: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+    </svg>
+  ),
+  // Target / crosshair
+  target: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </svg>
+  ),
+  // User (single, for user avatar)
+  user: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+  ),
+  // Warning / error triangle
+  warning: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  ),
+  // Layers / data-files
+  layers: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+      <polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+    </svg>
+  ),
+  // CSV
+  fileText: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+  ),
+  // Excel / table
+  table: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>
+    </svg>
+  ),
+  // PDF
+  filePdf: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <path d="M9 13h1a1 1 0 0 1 0 2H9v-2zm0 0V11m6 2h-1v4m0-4h1a1 1 0 0 1 0 2h-1"/>
+    </svg>
+  ),
+  // Spark / new chat
+  sparkle: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v1m0 16v1M4.22 4.22l.7.7m12.16 12.16.7.7M3 12h1m16 0h1M4.22 19.78l.7-.7M18.36 5.64l.7-.7"/>
+      <circle cx="12" cy="12" r="4"/>
+    </svg>
+  ),
+};
 
 // ── SVG Circuit-Brain Logo ─────────────────────────────────────────────────────
 function BrainLogo({ size = 72, animated = false }) {
@@ -368,10 +445,18 @@ function ChartRenderer({ spec }) {
 // ════════════════════════════════════════════════════════════════════════════════
 // EXPORT BAR
 // ════════════════════════════════════════════════════════════════════════════════
+const EXPORT_FMT = [
+  { fmt:'csv',  label:'CSV',  icon: ICONS.fileText, color:'#10b981' },
+  { fmt:'xlsx', label:'XLSX', icon: ICONS.table,    color:'#06b6d4' },
+  { fmt:'pdf',  label:'PDF',  icon: ICONS.filePdf,  color:'#f59e0b' },
+];
+
 function ExportBar({ exportSpec }) {
   const [loading, setLoading] = useState(false);
+  const [active,  setActive]  = useState(null);
+
   const dl = async (fmt) => {
-    setLoading(true);
+    setLoading(true); setActive(fmt);
     try {
       const spec={...exportSpec,format:fmt};
       const res=await aiChatApi.export(spec);
@@ -379,37 +464,50 @@ function ExportBar({ exportSpec }) {
       const a=document.createElement('a'); a.href=url; a.download=spec.filename||`export.${fmt}`; a.click();
       URL.revokeObjectURL(url);
     } catch(e) { alert('Export failed: '+(e.userMessage||e.message)); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setActive(null); }
   };
+
   return (
-    <div style={S.exportBar}>
-      <span style={{color:'#94a3b8',fontSize:12,marginRight:8}}>📦 Export:</span>
-      {['csv','xlsx','pdf'].map(f=>(
-        <button key={f} disabled={loading} onClick={()=>dl(f)} style={S.exportBtn}>{f.toUpperCase()}</button>
+    <div style={{
+      display:'flex', alignItems:'center', gap:8, marginTop:12,
+      padding:'10px 14px',
+      background:'rgba(11,17,32,0.8)',
+      borderRadius:10, border:'1px solid rgba(99,102,241,0.18)',
+      flexWrap:'wrap',
+    }}>
+      {/* Left label */}
+      <div style={{display:'flex',alignItems:'center',gap:6,marginRight:4}}>
+        <span style={{width:14,height:14,color:'#475569',display:'flex'}}>{ICONS.download}</span>
+        <span style={{color:'#475569',fontSize:11,fontWeight:600,letterSpacing:'0.05em',textTransform:'uppercase'}}>Export</span>
+      </div>
+      {/* Format buttons */}
+      {EXPORT_FMT.map(({fmt,label,icon,color})=>(
+        <button key={fmt} disabled={loading} onClick={()=>dl(fmt)}
+          style={{
+            display:'flex', alignItems:'center', gap:5,
+            padding:'5px 12px', borderRadius:7,
+            background: active===fmt ? color+'22' : 'rgba(255,255,255,0.04)',
+            border:`1px solid ${active===fmt ? color+'66' : 'rgba(255,255,255,0.08)'}`,
+            color: active===fmt ? color : '#64748b',
+            fontSize:12, fontWeight:600, cursor:loading?'default':'pointer',
+            transition:'all 0.18s', fontFamily:'inherit',
+          }}
+          onMouseEnter={e=>{ if(!loading){ e.currentTarget.style.background=color+'18'; e.currentTarget.style.borderColor=color+'55'; e.currentTarget.style.color=color; } }}
+          onMouseLeave={e=>{ if(active!==fmt){ e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'; e.currentTarget.style.color='#64748b'; } }}
+        >
+          <span style={{width:13,height:13,display:'flex'}}>{icon}</span>
+          {active===fmt && loading ? '…' : label}
+        </button>
       ))}
     </div>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// MESSAGE BUBBLE  — AI messages stream character-by-character via useTypewriter.
-// Charts / exports / sources only appear once the full text is done rendering
-// so they don't flash in before the text catches up.
+// MESSAGE BUBBLE
 // ════════════════════════════════════════════════════════════════════════════════
-function MessageBubble({ msg, onTick }) {
+function MessageBubble({ msg }) {
   const isUser = msg.role === 'user';
-
-  // Only animate the newest AI message (isNew flag set in send()).
-  // All previous messages and user messages render instantly.
-  const { displayed, done } = useTypewriter(
-    msg.content,
-    !isUser && !!msg.isNew,
-    onTick,
-  );
-
-  const visibleText = (isUser || !msg.isNew) ? msg.content : displayed;
-  const isDone      = isUser || !msg.isNew || done;
-
   return (
     <div style={{display:'flex',justifyContent:isUser?'flex-end':'flex-start',marginBottom:20}}>
       {!isUser && (
@@ -419,46 +517,28 @@ function MessageBubble({ msg, onTick }) {
       )}
       <div style={{maxWidth:'75%',minWidth:80}}>
         <div style={isUser ? S.userBubble : S.aiBubble}>
-          {isUser ? (
-            <p style={{margin:0,color:'#fff',lineHeight:1.6,fontSize:14}}>{msg.content}</p>
-          ) : (
-            <div style={{color:'#cbd5e1',lineHeight:1.7}}>
-              {renderMarkdown(visibleText)}
-              {/* Blinking cursor while still typing */}
-              {!isDone && (
-                <span className="shaastra-cursor" style={{
-                  display:'inline-block', width:2, height:'1em',
-                  background:'#818cf8', marginLeft:2, verticalAlign:'text-bottom',
-                  borderRadius:1,
-                }}/>
-              )}
-            </div>
-          )}
+          {isUser
+            ? <p style={{margin:0,color:'#fff',lineHeight:1.6,fontSize:14}}>{msg.content}</p>
+            : <div style={{color:'#cbd5e1',lineHeight:1.7}}>{renderMarkdown(msg.content)}</div>
+          }
         </div>
-
-        {/* Charts, exports, sources only render after typewriter finishes */}
-        {isDone && msg.chartSpec  && <ChartRenderer spec={msg.chartSpec}/>}
-        {isDone && msg.exportSpec && <ExportBar exportSpec={msg.exportSpec}/>}
-        {isDone && msg.filesUsed?.length>0 && (
-          <div style={S.filesUsed}>📁 {msg.filesUsed.join(' · ')}</div>
+        {msg.chartSpec  && <ChartRenderer spec={msg.chartSpec}/>}
+        {msg.exportSpec && <ExportBar exportSpec={msg.exportSpec}/>}
+        {msg.filesUsed?.length>0 && (
+          <div style={S.filesUsed}>
+            <span style={{width:11,height:11,display:'inline-flex',verticalAlign:'middle',marginRight:5,color:'#475569'}}>{ICONS.layers}</span>
+            {msg.filesUsed.join(' · ')}
+          </div>
         )}
-        {isDone && <div style={S.timestamp}>{msg.timestamp}</div>}
+        <div style={S.timestamp}>{msg.timestamp}</div>
       </div>
-
       {isUser && (
         <div style={{...S.avatar,background:'linear-gradient(135deg,#4338ca,#4f46e5)',marginLeft:10,marginRight:0}}>
-          <span style={{fontSize:12,color:'#fff',fontWeight:700}}>U</span>
+          <span style={{fontSize:12,color:'#fff',fontWeight:700}}>
+            <span style={{width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center'}}>{ICONS.user}</span>
+          </span>
         </div>
       )}
-
-      {/* Cursor blink keyframe — injected once, scoped class name */}
-      <style>{`
-        @keyframes shaastraCursorBlink {
-          0%,100% { opacity:1; }
-          50%      { opacity:0; }
-        }
-        .shaastra-cursor { animation: shaastraCursorBlink 0.7s step-start infinite; }
-      `}</style>
     </div>
   );
 }
@@ -574,12 +654,17 @@ function InputBox({ inputRef, input, setInput, loading, send, handleKey, include
             boxShadow:loading||!input.trim()?'none':'0 2px 14px rgba(79,70,229,0.55)',
             transition:'all 0.2s',
           }}
-        >➤</button>
+        >
+          <span style={{width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {ICONS.send}
+          </span>
+        </button>
       </div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:9,padding:'0 6px'}}>
         <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',userSelect:'none'}}>
           <input type="checkbox" checked={includeData} onChange={e=>setIncludeData(e.target.checked)}
             style={{accentColor:'#4f46e5',width:13,height:13}}/>
+          <span style={{width:12,height:12,display:'flex',color:includeData?'#6366f1':'#334155',transition:'color 0.2s'}}>{ICONS.database}</span>
           <span style={{color:'#475569',fontSize:12}}>Use data files</span>
         </label>
         <span style={{color:'#1e293b',fontSize:11}}>
@@ -603,13 +688,9 @@ export default function AiChat() {
 
   const hasMessages = messages.length > 0;
 
-  // scrollTick increments every time a message streams a character,
-  // triggering the auto-scroll useEffect so the view follows the typewriter.
-  const [scrollTick, setScrollTick] = useState(0);
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior:'smooth' });
-  }, [messages, loading, scrollTick]);
+  }, [messages, loading]);
 
   const history = useMemo(() => messages.map(m=>({role:m.role,content:m.content})), [messages]);
 
@@ -630,14 +711,12 @@ export default function AiChat() {
         chartSpec:  data.chartSpec  || null,
         exportSpec: data.exportSpec || null,
         filesUsed:  data.filesUsed  || [],
-        isNew:      true,   // ← flag: animate this message
         timestamp:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
       }]);
     } catch(e) {
       setMessages(prev=>[...prev,{
         id:Date.now()+1, role:'assistant',
-        content:'⚠️ **Error:** '+(e.userMessage||e.message||'Something went wrong.'),
-        isNew: true,
+        content:'**Error:** '+(e.userMessage||e.message||'Something went wrong.'),
         timestamp:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
       }]);
     } finally {
@@ -663,11 +742,11 @@ export default function AiChat() {
           <span style={{color:'#1e293b',fontSize:13}}>·</span>
           <span style={S.subHeaderSub}>Mangaluru South Intelligence</span>
         </div>
-        <button onClick={()=>setMessages([])} style={S.clearBtn}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-          </svg>
-          Clear
+        <button onClick={()=>setMessages([])} style={S.clearBtn}
+          onMouseEnter={e=>{e.currentTarget.style.color='#ef4444';e.currentTarget.style.borderColor='rgba(239,68,68,0.3)';}}
+          onMouseLeave={e=>{e.currentTarget.style.color='#475569';e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';}}>
+          <span style={{width:13,height:13,display:'flex'}}>{ICONS.trash}</span>
+          New Chat
         </button>
       </div>
 
@@ -692,13 +771,17 @@ export default function AiChat() {
                   e.currentTarget.style.background='rgba(99,102,241,0.14)';
                   e.currentTarget.style.borderColor='rgba(99,102,241,0.5)';
                   e.currentTarget.style.color='#c7d2fe';
+                  e.currentTarget.querySelector('.chip-icon').style.color='#818cf8';
                 }}
                 onMouseLeave={e=>{
                   e.currentTarget.style.background='rgba(28,38,58,0.7)';
                   e.currentTarget.style.borderColor='rgba(51,65,85,0.55)';
                   e.currentTarget.style.color='#94a3b8';
+                  e.currentTarget.querySelector('.chip-icon').style.color='#475569';
                 }}>
-                <span style={{fontSize:14,marginRight:8}}>{s.icon}</span>
+                <span className="chip-icon" style={{width:14,height:14,display:'flex',flexShrink:0,color:'#475569',transition:'color 0.2s',marginRight:8}}>
+                  {ICONS[s.icon]}
+                </span>
                 {s.text}
               </button>
             ))}
@@ -714,7 +797,7 @@ export default function AiChat() {
         <>
           <div style={S.chatArea}>
             <div style={S.messagesInner}>
-              {messages.map(msg=><MessageBubble key={msg.id} msg={msg} onTick={()=>setScrollTick(t=>t+1)}/>)}
+              {messages.map(msg=><MessageBubble key={msg.id} msg={msg}/>)}
               {loading && <ThinkingIndicator/>}
               <div ref={bottomRef}/>
             </div>
