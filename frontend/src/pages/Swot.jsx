@@ -373,7 +373,7 @@ function SwotAIOverview({ tab }) {
           </div>
           {state === 'idle' && (
             <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>
-              ShaastraAI · Strategic intelligence grounded in 2023 election data
+              ShaastraAI
             </div>
           )}
           {state === 'done' && overview?.headline && (
