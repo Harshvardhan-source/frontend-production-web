@@ -1,10 +1,8 @@
 /**
- * AiChat.jsx — AI Chat page for Mangaluru South Constituency Intelligence
- * Updated:
- *  • Uses shared <Navbar /> component (same as other pages)
- *  • Removed right-side sidebar (no data sources / quick prompts panel)
- *  • Narrower, rounded chat input box
- *  • Enhanced AI "thinking" animation while loading
+ * AiChat.jsx — ShaastraAI · Mangaluru South Constituency Intelligence
+ *
+ * Design: ChatGPT-style — centred hero on empty state, input pinned bottom-centre,
+ *         SVG circuit-brain logo, full-width chat after first message.
  */
 
 import React, {
@@ -18,91 +16,141 @@ import {
 import { aiChatApi } from '../api/client';
 import Navbar from '../components/Navbar';
 
-// ── colour palette ────────────────────────────────────────────────────────────
-const PALETTE = [
-  '#4f46e5', '#06b6d4', '#10b981', '#f59e0b',
-  '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6',
-];
+// ── palette ───────────────────────────────────────────────────────────────────
+const PALETTE = ['#4f46e5','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 
 const SUGGESTED = [
-  'What is the total voter count by ward?',
-  'Show me religion-wise voter breakdown for all wards',
-  'Which wards have the highest Muslim voter percentage?',
-  'Give me a survey completion status ward-wise',
-  'Which schemes have the most beneficiaries?',
-  'Compare 2019 vs 2023 polling percentages',
-  'What is the booth-wise voter count for ward 28?',
-  'List top 10 wards by total voters as a bar chart',
-  'Export ward-wise voter data as CSV',
-  'What are the strategic priority wards to focus on?',
+  { icon: '🗳️', text: 'Total voter count by ward' },
+  { icon: '🕌', text: 'Religion-wise voter breakdown' },
+  { icon: '📊', text: 'Ward-wise survey completion' },
+  { icon: '🏆', text: 'Top schemes by beneficiaries' },
+  { icon: '📈', text: '2019 vs 2023 polling comparison' },
+  { icon: '🎯', text: 'Strategic priority wards' },
 ];
 
+// ── SVG Circuit-Brain Logo ─────────────────────────────────────────────────────
+function BrainLogo({ size = 72, animated = false }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 100 100"
+      fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={animated ? { animation: 'brainPulse 3s ease-in-out infinite' } : {}}
+    >
+      {/* Left hemisphere */}
+      <path
+        d="M50 15 C35 15 20 22 18 35 C14 38 12 44 14 50 C12 56 14 63 20 67
+           C20 78 30 88 42 88 C46 88 50 86 50 86"
+        stroke="url(#brainGrad)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Right hemisphere */}
+      <path
+        d="M50 15 C65 15 80 22 82 35 C86 38 88 44 86 50 C88 56 86 63 80 67
+           C80 78 70 88 58 88 C54 88 50 86 50 86"
+        stroke="url(#brainGrad)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Centre divider */}
+      <line x1="50" y1="15" x2="50" y2="86" stroke="url(#brainGrad)" strokeWidth="3" strokeLinecap="round" />
+
+      {/* Left circuit traces */}
+      <path d="M50 38 L36 38 L36 52" stroke="#6366f1" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="36" cy="52" r="3.5" fill="#4f46e5" />
+      <path d="M50 60 L32 60 L32 68" stroke="#6366f1" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="32" cy="68" r="3.5" fill="#4f46e5" />
+
+      {/* Right circuit traces */}
+      <path d="M50 38 L64 38 L64 52" stroke="#818cf8" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="64" cy="52" r="3.5" fill="#7c3aed" />
+      <path d="M50 60 L68 60 L68 68" stroke="#818cf8" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="68" cy="68" r="3.5" fill="#7c3aed" />
+
+      {/* Glow dots on spine */}
+      <circle cx="50" cy="30" r="2.5" fill="#a5b4fc" opacity="0.9" />
+      <circle cx="50" cy="55" r="2"   fill="#a5b4fc" opacity="0.7" />
+
+      <defs>
+        <linearGradient id="brainGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stopColor="#4f46e5" />
+          <stop offset="50%"  stopColor="#7c3aed" />
+          <stop offset="100%" stopColor="#06b6d4" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+// ── Small avatar version of brain ─────────────────────────────────────────────
+function BrainAvatar({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 15 C35 15 20 22 18 35 C14 38 12 44 14 50 C12 56 14 63 20 67 C20 78 30 88 42 88 C46 88 50 86 50 86"
+        stroke="#818cf8" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M50 15 C65 15 80 22 82 35 C86 38 88 44 86 50 C88 56 86 63 80 67 C80 78 70 88 58 88 C54 88 50 86 50 86"
+        stroke="#818cf8" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="50" y1="15" x2="50" y2="86" stroke="#6366f1" strokeWidth="4" strokeLinecap="round" />
+      <path d="M50 38 L36 38 L36 52" stroke="#6366f1" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="36" cy="52" r="5" fill="#4f46e5" />
+      <path d="M50 38 L64 38 L64 52" stroke="#818cf8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="64" cy="52" r="5" fill="#7c3aed" />
+    </svg>
+  );
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
-// MARKDOWN-LITE RENDERER
+// MARKDOWN RENDERER
 // ════════════════════════════════════════════════════════════════════════════════
 function renderMarkdown(text) {
   if (!text) return null;
   const lines = text.split('\n');
   const elements = [];
   let i = 0;
-
   while (i < lines.length) {
     const line = lines[i];
-
     if (/^### (.+)/.test(line)) {
-      elements.push(<h3 key={i} style={styles.h3}>{line.replace(/^### /, '')}</h3>);
+      elements.push(<h3 key={i} style={S.h3}>{line.replace(/^### /,'')}</h3>);
     } else if (/^## (.+)/.test(line)) {
-      elements.push(<h2 key={i} style={styles.h2}>{line.replace(/^## /, '')}</h2>);
+      elements.push(<h2 key={i} style={S.h2}>{line.replace(/^## /,'')}</h2>);
     } else if (/^# (.+)/.test(line)) {
-      elements.push(<h1 key={i} style={styles.h1}>{line.replace(/^# /, '')}</h1>);
+      elements.push(<h1 key={i} style={S.h1}>{line.replace(/^# /,'')}</h1>);
     } else if (/^[\-\*] (.+)/.test(line)) {
       const items = [];
       while (i < lines.length && /^[\-\*] (.+)/.test(lines[i])) {
-        items.push(<li key={i} style={styles.li}>{inlineFormat(lines[i].replace(/^[\-\*] /, ''))}</li>);
+        items.push(<li key={i} style={S.li}>{fmt(lines[i].replace(/^[\-\*] /,''))}</li>);
         i++;
       }
-      elements.push(<ul key={`ul-${i}`} style={styles.ul}>{items}</ul>);
+      elements.push(<ul key={'ul'+i} style={S.ul}>{items}</ul>);
       continue;
     } else if (/^\d+\. (.+)/.test(line)) {
       const items = [];
       while (i < lines.length && /^\d+\. (.+)/.test(lines[i])) {
-        items.push(<li key={i} style={styles.li}>{inlineFormat(lines[i].replace(/^\d+\. /, ''))}</li>);
+        items.push(<li key={i} style={S.li}>{fmt(lines[i].replace(/^\d+\. /,''))}</li>);
         i++;
       }
-      elements.push(<ol key={`ol-${i}`} style={styles.ol}>{items}</ol>);
+      elements.push(<ol key={'ol'+i} style={S.ol}>{items}</ol>);
       continue;
     } else if (line.startsWith('```')) {
-      const codeLines = [];
+      const code = [];
       i++;
-      while (i < lines.length && !lines[i].startsWith('```')) {
-        codeLines.push(lines[i]);
-        i++;
-      }
-      elements.push(
-        <pre key={i} style={styles.pre}>
-          <code>{codeLines.join('\n')}</code>
-        </pre>
-      );
+      while (i < lines.length && !lines[i].startsWith('```')) { code.push(lines[i]); i++; }
+      elements.push(<pre key={i} style={S.pre}><code>{code.join('\n')}</code></pre>);
     } else if (/^---+$/.test(line.trim())) {
-      elements.push(<hr key={i} style={styles.hr} />);
-    } else if (line.trim() === '') {
-      elements.push(<div key={i} style={{ height: 8 }} />);
+      elements.push(<hr key={i} style={S.hr} />);
+    } else if (!line.trim()) {
+      elements.push(<div key={i} style={{height:8}} />);
     } else {
-      elements.push(<p key={i} style={styles.p}>{inlineFormat(line)}</p>);
+      elements.push(<p key={i} style={S.p}>{fmt(line)}</p>);
     }
     i++;
   }
   return elements;
 }
 
-function inlineFormat(text) {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-  return parts.map((part, idx) => {
-    if (part.startsWith('**') && part.endsWith('**'))
-      return <strong key={idx} style={{ color: '#e2e8f0', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
-    if (part.startsWith('`') && part.endsWith('`'))
-      return <code key={idx} style={styles.inlineCode}>{part.slice(1, -1)}</code>;
-    return part;
+function fmt(text) {
+  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((p, i) => {
+    if (p.startsWith('**') && p.endsWith('**')) return <strong key={i} style={{color:'#e2e8f0',fontWeight:700}}>{p.slice(2,-2)}</strong>;
+    if (p.startsWith('`')  && p.endsWith('`'))  return <code key={i} style={S.inlineCode}>{p.slice(1,-1)}</code>;
+    return p;
   });
 }
 
@@ -111,121 +159,57 @@ function inlineFormat(text) {
 // ════════════════════════════════════════════════════════════════════════════════
 function ChartRenderer({ spec }) {
   if (!spec) return null;
-  const { type, title, labels = [], datasets = [] } = spec;
+  const { type, title, labels=[], datasets=[] } = spec;
+  const chartData = labels.map((l,i) => { const p={name:l}; datasets.forEach(d=>{ p[d.label]=d.data[i]??0; }); return p; });
+  const pieData   = labels.map((l,i) => ({ name:l, value:(datasets[0]?.data??[])[i]??0 }));
+  const wrap = { background:'rgba(30,41,59,0.6)', borderRadius:12, padding:'16px 8px 8px', marginTop:16, border:'1px solid rgba(99,102,241,0.25)' };
+  const ttip = { contentStyle:{background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#e2e8f0'}, labelStyle:{color:'#94a3b8'} };
+  const titleEl = <div style={{textAlign:'center',color:'#94a3b8',fontSize:13,marginBottom:8,fontWeight:600}}>{title}</div>;
 
-  const chartData = labels.map((label, i) => {
-    const point = { name: label };
-    datasets.forEach((ds) => { point[ds.label] = ds.data[i] ?? 0; });
-    return point;
-  });
+  if (type==='pie'||type==='doughnut') return (
+    <div style={wrap}>{titleEl}
+      <ResponsiveContainer width="100%" height={280}>
+        <PieChart><Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+          innerRadius={type==='doughnut'?60:0} outerRadius={100} paddingAngle={2}
+          label={({name,percent})=>`${name} ${(percent*100).toFixed(1)}%`} labelLine={{stroke:'#475569'}}>
+          {pieData.map((_,idx)=><Cell key={idx} fill={PALETTE[idx%PALETTE.length]}/>)}
+        </Pie><Tooltip {...ttip}/><Legend wrapperStyle={{color:'#94a3b8',fontSize:12}}/></PieChart>
+      </ResponsiveContainer>
+    </div>);
 
-  const pieData = labels.map((label, i) => ({
-    name: label, value: (datasets[0]?.data ?? [])[i] ?? 0,
-  }));
+  if (type==='radar') return (
+    <div style={wrap}>{titleEl}
+      <ResponsiveContainer width="100%" height={280}>
+        <RadarChart data={chartData}><PolarGrid stroke="#334155"/>
+          <PolarAngleAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:11}}/>
+          {datasets.map((d,i)=><Radar key={i} name={d.label} dataKey={d.label} stroke={PALETTE[i%8]} fill={PALETTE[i%8]} fillOpacity={0.2}/>)}
+          <Legend wrapperStyle={{color:'#94a3b8',fontSize:12}}/><Tooltip {...ttip}/>
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>);
 
-  const chartStyle = {
-    background: 'rgba(30,41,59,0.6)', borderRadius: 12,
-    padding: '16px 8px 8px', marginTop: 16,
-    border: '1px solid rgba(99,102,241,0.25)',
-  };
-
-  const titleEl = (
-    <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, marginBottom: 8, fontWeight: 600 }}>
-      {title}
-    </div>
-  );
-
-  const tooltipStyle = {
-    contentStyle: { background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' },
-    labelStyle: { color: '#94a3b8' },
-  };
-
-  if (type === 'pie' || type === 'doughnut') {
-    return (
-      <div style={chartStyle}>
-        {titleEl}
-        <ResponsiveContainer width="100%" height={280}>
-          <PieChart>
-            <Pie data={pieData} dataKey="value" nameKey="name"
-              cx="50%" cy="50%"
-              innerRadius={type === 'doughnut' ? 60 : 0} outerRadius={100} paddingAngle={2}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-              labelLine={{ stroke: '#475569' }}>
-              {pieData.map((_, idx) => <Cell key={idx} fill={PALETTE[idx % PALETTE.length]} />)}
-            </Pie>
-            <Tooltip {...tooltipStyle} />
-            <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  if (type === 'radar') {
-    return (
-      <div style={chartStyle}>
-        {titleEl}
-        <ResponsiveContainer width="100%" height={280}>
-          <RadarChart data={chartData}>
-            <PolarGrid stroke="#334155" />
-            <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-            {datasets.map((ds, idx) => (
-              <Radar key={idx} name={ds.label} dataKey={ds.label}
-                stroke={PALETTE[idx % PALETTE.length]}
-                fill={PALETTE[idx % PALETTE.length]} fillOpacity={0.2} />
-            ))}
-            <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-            <Tooltip {...tooltipStyle} />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  if (type === 'line') {
-    return (
-      <div style={chartStyle}>
-        {titleEl}
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} />
-            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
-            <Tooltip {...tooltipStyle} />
-            <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-            {datasets.map((ds, idx) => (
-              <Line key={idx} type="monotone" dataKey={ds.label}
-                stroke={PALETTE[idx % PALETTE.length]} strokeWidth={2} dot={{ r: 3 }} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
+  if (type==='line') return (
+    <div style={wrap}>{titleEl}
+      <ResponsiveContainer width="100%" height={260}>
+        <LineChart data={chartData}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
+          <XAxis dataKey="name" tick={{fill:'#64748b',fontSize:11}}/><YAxis tick={{fill:'#64748b',fontSize:11}}/>
+          <Tooltip {...ttip}/><Legend wrapperStyle={{color:'#94a3b8',fontSize:12}}/>
+          {datasets.map((d,i)=><Line key={i} type="monotone" dataKey={d.label} stroke={PALETTE[i%8]} strokeWidth={2} dot={{r:3}}/>)}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>);
 
   return (
-    <div style={chartStyle}>
-      {titleEl}
+    <div style={wrap}>{titleEl}
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={chartData} barCategoryGap="30%">
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-          <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }}
-            interval={chartData.length > 15 ? 2 : 0}
-            angle={chartData.length > 10 ? -30 : 0}
-            textAnchor={chartData.length > 10 ? 'end' : 'middle'}
-            height={chartData.length > 10 ? 50 : 30} />
-          <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
-          <Tooltip {...tooltipStyle} />
-          <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-          {datasets.map((ds, idx) => (
-            <Bar key={idx} dataKey={ds.label} fill={PALETTE[idx % PALETTE.length]}
-              stackId={type === 'stackedBar' ? 'stack' : undefined}
-              radius={type !== 'stackedBar' ? [3, 3, 0, 0] : undefined} />
-          ))}
+          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
+          <XAxis dataKey="name" tick={{fill:'#64748b',fontSize:10}} interval={chartData.length>15?2:0} angle={chartData.length>10?-30:0} textAnchor={chartData.length>10?'end':'middle'} height={chartData.length>10?50:30}/>
+          <YAxis tick={{fill:'#64748b',fontSize:11}}/><Tooltip {...ttip}/><Legend wrapperStyle={{color:'#94a3b8',fontSize:12}}/>
+          {datasets.map((d,i)=><Bar key={i} dataKey={d.label} fill={PALETTE[i%8]} stackId={type==='stackedBar'?'stack':undefined} radius={type!=='stackedBar'?[3,3,0,0]:undefined}/>)}
         </BarChart>
       </ResponsiveContainer>
-    </div>
-  );
+    </div>);
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -233,32 +217,22 @@ function ChartRenderer({ spec }) {
 // ════════════════════════════════════════════════════════════════════════════════
 function ExportBar({ exportSpec }) {
   const [loading, setLoading] = useState(false);
-
-  const download = async (fmt) => {
+  const dl = async (fmt) => {
     setLoading(true);
     try {
-      const spec = { ...exportSpec, format: fmt };
-      const res  = await aiChatApi.export(spec);
-      const url  = URL.createObjectURL(new Blob([res.data]));
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = spec.filename || `export.${fmt}`;
-      a.click();
+      const spec={...exportSpec,format:fmt};
+      const res=await aiChatApi.export(spec);
+      const url=URL.createObjectURL(new Blob([res.data]));
+      const a=document.createElement('a'); a.href=url; a.download=spec.filename||`export.${fmt}`; a.click();
       URL.revokeObjectURL(url);
-    } catch (e) {
-      alert('Export failed: ' + (e.userMessage || e.message));
-    } finally {
-      setLoading(false);
-    }
+    } catch(e) { alert('Export failed: '+(e.userMessage||e.message)); }
+    finally { setLoading(false); }
   };
-
   return (
-    <div style={styles.exportBar}>
-      <span style={{ color: '#94a3b8', fontSize: 12, marginRight: 8 }}>📦 Export data:</span>
-      {['csv', 'xlsx', 'pdf'].map((fmt) => (
-        <button key={fmt} disabled={loading} onClick={() => download(fmt)} style={styles.exportBtn}>
-          {fmt.toUpperCase()}
-        </button>
+    <div style={S.exportBar}>
+      <span style={{color:'#94a3b8',fontSize:12,marginRight:8}}>📦 Export:</span>
+      {['csv','xlsx','pdf'].map(f=>(
+        <button key={f} disabled={loading} onClick={()=>dl(f)} style={S.exportBtn}>{f.toUpperCase()}</button>
       ))}
     </div>
   );
@@ -269,31 +243,28 @@ function ExportBar({ exportSpec }) {
 // ════════════════════════════════════════════════════════════════════════════════
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user';
-
   return (
-    <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 18 }}>
+    <div style={{display:'flex',justifyContent:isUser?'flex-end':'flex-start',marginBottom:20}}>
       {!isUser && (
-        <div style={styles.avatar}>
-          <span style={{ fontSize: 16 }}>🤖</span>
+        <div style={S.avatar}>
+          <BrainAvatar size={20} />
         </div>
       )}
-      <div style={{ maxWidth: '72%', minWidth: 80 }}>
-        <div style={isUser ? styles.userBubble : styles.aiBubble}>
+      <div style={{maxWidth:'75%',minWidth:80}}>
+        <div style={isUser ? S.userBubble : S.aiBubble}>
           {isUser
-            ? <p style={{ margin: 0, color: '#fff', lineHeight: 1.6 }}>{msg.content}</p>
-            : <div style={{ color: '#cbd5e1', lineHeight: 1.7 }}>{renderMarkdown(msg.content)}</div>
+            ? <p style={{margin:0,color:'#fff',lineHeight:1.6,fontSize:14}}>{msg.content}</p>
+            : <div style={{color:'#cbd5e1',lineHeight:1.7}}>{renderMarkdown(msg.content)}</div>
           }
         </div>
-        {msg.chartSpec  && <ChartRenderer spec={msg.chartSpec} />}
-        {msg.exportSpec && <ExportBar exportSpec={msg.exportSpec} />}
-        {msg.filesUsed?.length > 0 && (
-          <div style={styles.filesUsed}>📁 Sources: {msg.filesUsed.join(' · ')}</div>
-        )}
-        <div style={styles.timestamp}>{msg.timestamp}</div>
+        {msg.chartSpec  && <ChartRenderer spec={msg.chartSpec}/>}
+        {msg.exportSpec && <ExportBar exportSpec={msg.exportSpec}/>}
+        {msg.filesUsed?.length>0 && <div style={S.filesUsed}>📁 {msg.filesUsed.join(' · ')}</div>}
+        <div style={S.timestamp}>{msg.timestamp}</div>
       </div>
       {isUser && (
-        <div style={{ ...styles.avatar, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', marginLeft: 10, marginRight: 0 }}>
-          <span style={{ fontSize: 14 }}>👤</span>
+        <div style={{...S.avatar,background:'linear-gradient(135deg,#4338ca,#4f46e5)',marginLeft:10,marginRight:0}}>
+          <span style={{fontSize:12,color:'#fff',fontWeight:700}}>U</span>
         </div>
       )}
     </div>
@@ -301,98 +272,128 @@ function MessageBubble({ msg }) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// AI THINKING INDICATOR — orbiting dots + pulsing brain
+// THINKING INDICATOR
 // ════════════════════════════════════════════════════════════════════════════════
 function ThinkingIndicator() {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20 }}>
-      {/* Avatar with pulse ring */}
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <div style={styles.avatar}>
-          <span style={{ fontSize: 16 }}>🤖</span>
-        </div>
-        <span className="pulse-ring" />
+    <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:20}}>
+      <div style={{position:'relative',flexShrink:0}}>
+        <div style={S.avatar}><BrainAvatar size={20}/></div>
+        <span className="shaastra-pulse-ring"/>
       </div>
-
-      {/* Thinking bubble */}
-      <div style={{ ...styles.aiBubble, padding: '14px 20px', minWidth: 160 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Orbiting dot row */}
-          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-            <span className="think-dot td1" />
-            <span className="think-dot td2" />
-            <span className="think-dot td3" />
+      <div style={{...S.aiBubble,padding:'14px 20px',minWidth:180}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{display:'flex',gap:5,alignItems:'center'}}>
+            <span className="shaastra-dot d1"/>
+            <span className="shaastra-dot d2"/>
+            <span className="shaastra-dot d3"/>
           </div>
-          <span style={{ color: '#6366f1', fontSize: 12, fontWeight: 600, letterSpacing: '0.05em' }}
-            className="think-label">
-            AI is thinking…
+          <span className="shaastra-think-label" style={{color:'#818cf8',fontSize:12,fontWeight:600,letterSpacing:'0.04em'}}>
+            ShaastraAI is thinking…
           </span>
         </div>
-
-        {/* Animated shimmer bar */}
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div className="shimmer-bar" style={{ width: '85%' }} />
-          <div className="shimmer-bar" style={{ width: '65%' }} />
-          <div className="shimmer-bar" style={{ width: '75%' }} />
+        <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:6}}>
+          <div className="shaastra-shimmer" style={{width:'88%'}}/>
+          <div className="shaastra-shimmer" style={{width:'66%'}}/>
+          <div className="shaastra-shimmer" style={{width:'78%'}}/>
         </div>
       </div>
-
       <style>{`
-        /* Pulse ring around avatar */
-        .pulse-ring {
-          position: absolute;
-          top: -4px; left: -4px;
-          width: 42px; height: 42px;
-          border-radius: 14px;
-          border: 2px solid rgba(99,102,241,0.7);
-          animation: pulseRing 1.4s ease-out infinite;
-          pointer-events: none;
+        .shaastra-pulse-ring {
+          position:absolute; top:-5px; left:-5px;
+          width:44px; height:44px; border-radius:12px;
+          border:2px solid rgba(99,102,241,0.75);
+          animation:saaRing 1.5s ease-out infinite;
+          pointer-events:none;
         }
-        @keyframes pulseRing {
-          0%   { transform: scale(0.9); opacity: 0.8; }
-          70%  { transform: scale(1.25); opacity: 0; }
-          100% { transform: scale(1.25); opacity: 0; }
+        @keyframes saaRing {
+          0%  { transform:scale(0.88); opacity:0.9; }
+          70% { transform:scale(1.3);  opacity:0;   }
+          100%{ transform:scale(1.3);  opacity:0;   }
         }
-
-        /* Bouncing dots */
-        .think-dot {
-          display: inline-block;
-          width: 8px; height: 8px; border-radius: 50%;
-          background: linear-gradient(135deg,#4f46e5,#7c3aed);
-          animation: thinkBounce 1.3s ease-in-out infinite;
-          box-shadow: 0 0 6px rgba(99,102,241,0.6);
+        .shaastra-dot {
+          display:inline-block; width:8px; height:8px; border-radius:50%;
+          background:linear-gradient(135deg,#4f46e5,#7c3aed);
+          animation:saaDot 1.3s ease-in-out infinite;
+          box-shadow:0 0 8px rgba(99,102,241,0.7);
         }
-        .td2 { animation-delay: 0.18s; }
-        .td3 { animation-delay: 0.36s; }
-        @keyframes thinkBounce {
-          0%, 80%, 100% { transform: translateY(0) scale(1);   opacity: 0.5; }
-          40%            { transform: translateY(-8px) scale(1.15); opacity: 1; }
+        .d2{animation-delay:0.18s;} .d3{animation-delay:0.36s;}
+        @keyframes saaDot {
+          0%,80%,100%{ transform:translateY(0) scale(1);    opacity:0.45; }
+          40%        { transform:translateY(-8px) scale(1.2);opacity:1;    }
         }
-
-        /* Fading "AI is thinking…" text */
-        .think-label {
-          animation: thinkFade 2s ease-in-out infinite;
+        .shaastra-think-label{ animation:saaFade 2s ease-in-out infinite; }
+        @keyframes saaFade{ 0%,100%{opacity:0.45;} 50%{opacity:1;} }
+        .shaastra-shimmer{
+          height:8px; border-radius:6px;
+          background:linear-gradient(90deg,rgba(51,65,85,0.4) 25%,rgba(99,102,241,0.3) 50%,rgba(51,65,85,0.4) 75%);
+          background-size:200% 100%;
+          animation:saaShimmer 1.6s linear infinite;
         }
-        @keyframes thinkFade {
-          0%, 100% { opacity: 0.5; }
-          50%       { opacity: 1; }
-        }
-
-        /* Shimmer skeleton bars */
-        .shimmer-bar {
-          height: 8px; border-radius: 6px;
-          background: linear-gradient(90deg,
-            rgba(51,65,85,0.4) 25%,
-            rgba(99,102,241,0.25) 50%,
-            rgba(51,65,85,0.4) 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.6s linear infinite;
-        }
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
+        @keyframes saaShimmer{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+        @keyframes brainPulse{
+          0%,100%{filter:drop-shadow(0 0 8px rgba(99,102,241,0.4));}
+          50%    {filter:drop-shadow(0 0 26px rgba(99,102,241,0.9));}
         }
       `}</style>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SHARED INPUT BOX
+// ════════════════════════════════════════════════════════════════════════════════
+function InputBox({ inputRef, input, setInput, loading, send, handleKey, includeData, setIncludeData }) {
+  return (
+    <div style={{width:'100%',maxWidth:720,margin:'0 auto'}}>
+      <div style={{
+        display:'flex', alignItems:'flex-end', gap:8,
+        background:'rgba(28,38,58,0.97)',
+        border:'1.5px solid rgba(99,102,241,0.28)',
+        borderRadius:30,
+        padding:'8px 8px 8px 22px',
+        boxShadow:'0 6px 40px rgba(0,0,0,0.45)',
+      }}>
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={e=>setInput(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="Ask anything about voters, wards, schemes, strategy…"
+          disabled={loading}
+          rows={1}
+          style={{
+            flex:1, background:'transparent', border:'none', outline:'none',
+            color:'#e2e8f0', fontSize:15, lineHeight:1.6, fontFamily:'inherit',
+            resize:'none', minHeight:38, maxHeight:140, padding:'4px 0',
+            scrollbarWidth:'thin', scrollbarColor:'#334155 transparent',
+          }}
+          onInput={e=>{ e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,140)+'px'; }}
+        />
+        <button
+          onClick={()=>send()}
+          disabled={loading||!input.trim()}
+          style={{
+            width:42, height:42, borderRadius:21, flexShrink:0,
+            background:loading||!input.trim()?'rgba(99,102,241,0.15)':'linear-gradient(135deg,#4f46e5,#7c3aed)',
+            border:'none', cursor:loading||!input.trim()?'default':'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            color:'#fff', fontSize:17,
+            boxShadow:loading||!input.trim()?'none':'0 2px 14px rgba(79,70,229,0.55)',
+            transition:'all 0.2s',
+          }}
+        >➤</button>
+      </div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:9,padding:'0 6px'}}>
+        <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',userSelect:'none'}}>
+          <input type="checkbox" checked={includeData} onChange={e=>setIncludeData(e.target.checked)}
+            style={{accentColor:'#4f46e5',width:13,height:13}}/>
+          <span style={{color:'#475569',fontSize:12}}>Use data files</span>
+        </label>
+        <span style={{color:'#1e293b',fontSize:11}}>
+          <kbd style={S.kbd}>Enter</kbd> send · <kbd style={S.kbd}>Shift+Enter</kbd> new line
+        </span>
+      </div>
     </div>
   );
 }
@@ -405,153 +406,128 @@ export default function AiChat() {
   const [input,       setInput]       = useState('');
   const [loading,     setLoading]     = useState(false);
   const [includeData, setIncludeData] = useState(true);
-  const bottomRef  = useRef(null);
-  const inputRef   = useRef(null);
+  const bottomRef = useRef(null);
+  const inputRef  = useRef(null);
+
+  const hasMessages = messages.length > 0;
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior:'smooth' });
   }, [messages, loading]);
 
-  const history = useMemo(() =>
-    messages.map(m => ({ role: m.role, content: m.content })),
-  [messages]);
+  const history = useMemo(() => messages.map(m=>({role:m.role,content:m.content})), [messages]);
 
   const send = useCallback(async (text) => {
     const msg = (text || input).trim();
     if (!msg || loading) return;
     setInput('');
-
-    const userMsg = {
-      id: Date.now(), role: 'user', content: msg,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev=>[...prev,{
+      id:Date.now(), role:'user', content:msg,
+      timestamp:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+    }]);
     setLoading(true);
-
     try {
       const { data } = await aiChatApi.send(msg, history, includeData);
-      const aiMsg = {
-        id:         Date.now() + 1,
-        role:       'assistant',
-        content:    data.reply    || '',
+      setMessages(prev=>[...prev,{
+        id:Date.now()+1, role:'assistant',
+        content:    data.reply      || '',
         chartSpec:  data.chartSpec  || null,
         exportSpec: data.exportSpec || null,
         filesUsed:  data.filesUsed  || [],
-        timestamp:  new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev, aiMsg]);
-    } catch (e) {
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1, role: 'assistant',
-        content: `⚠️ **Error:** ${e.userMessage || e.message || 'Something went wrong. Please try again.'}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+      }]);
+    } catch(e) {
+      setMessages(prev=>[...prev,{
+        id:Date.now()+1, role:'assistant',
+        content:'⚠️ **Error:** '+(e.userMessage||e.message||'Something went wrong.'),
+        timestamp:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
       }]);
     } finally {
       setLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setTimeout(()=>inputRef.current?.focus(),100);
     }
   }, [input, loading, history, includeData]);
 
-  const handleKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-  };
+  const handleKey = e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} };
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ════════════════════════════════════════════════════════════════════════════
+  const inputProps = { inputRef, input, setInput, loading, send, handleKey, includeData, setIncludeData };
+
+  // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
-    <div style={styles.root}>
-      {/* ── Shared Navbar (same as all other pages) ── */}
+    <div style={S.root}>
       <Navbar />
 
-      {/* ── Sub-header bar ── */}
-      <div style={styles.subHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={styles.headerIcon}>🧠</div>
-          <div>
-            <div style={styles.headerTitle}>Constituency AI</div>
-            <div style={styles.headerSub}>Mangaluru South · Data-Grounded Intelligence</div>
-          </div>
+      {/* ── Slim sub-header ── */}
+      <div style={S.subHeader}>
+        <div style={{display:'flex',alignItems:'center',gap:9}}>
+          <div style={S.subHeaderIcon}><BrainAvatar size={17}/></div>
+          <span style={S.subHeaderTitle}>ShaastraAI</span>
+          <span style={{color:'#1e293b',fontSize:13}}>·</span>
+          <span style={S.subHeaderSub}>Mangaluru South Intelligence</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={styles.toggleLabel}>
-            <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)}
-              style={{ accentColor: '#4f46e5', width: 14, height: 14 }} />
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>Use data files</span>
-          </label>
-          <button onClick={() => setMessages([])} style={styles.iconBtn} title="Clear chat">🗑️ Clear</button>
-        </div>
+        <button onClick={()=>setMessages([])} style={S.clearBtn}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+          Clear
+        </button>
       </div>
 
-      {/* ── BODY: full-width chat, no sidebar ── */}
-      <div style={styles.body}>
-        <div style={styles.chatArea}>
+      {/* ══ EMPTY STATE — ChatGPT-style hero ════════════════════════════════ */}
+      {!hasMessages && (
+        <div style={S.heroWrap}>
+          {/* Animated circuit-brain logo */}
+          <div style={S.heroLogoWrap}>
+            <BrainLogo size={90} animated />
+          </div>
 
-          {/* Welcome / empty state */}
-          {messages.length === 0 && (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>🏛️</div>
-              <h2 style={styles.emptyTitle}>Constituency Intelligence Assistant</h2>
-              <p style={styles.emptyDesc}>
-                Ask anything about voters, wards, booth data, schemes, demographics, or election strategy.
-                The AI has access to your constituency data files.
-              </p>
-              <div style={styles.suggestedGrid}>
-                {SUGGESTED.map((s, i) => (
-                  <button key={i} style={styles.suggestBtn} onClick={() => send(s)}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.18)'; e.currentTarget.style.color = '#c7d2fe'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; }}>
-                    {s}
-                  </button>
-                ))}
-              </div>
+          <h1 style={S.heroTitle}>What's on your mind today?</h1>
+          <p style={S.heroSub}>
+            Mangaluru South constituency intelligence — voters, wards, schemes &amp; strategy
+          </p>
+
+          {/* Suggestion chips */}
+          <div style={S.chipRow}>
+            {SUGGESTED.map((s,i) => (
+              <button key={i} style={S.chip} onClick={()=>send(s.text)}
+                onMouseEnter={e=>{
+                  e.currentTarget.style.background='rgba(99,102,241,0.14)';
+                  e.currentTarget.style.borderColor='rgba(99,102,241,0.5)';
+                  e.currentTarget.style.color='#c7d2fe';
+                }}
+                onMouseLeave={e=>{
+                  e.currentTarget.style.background='rgba(28,38,58,0.7)';
+                  e.currentTarget.style.borderColor='rgba(51,65,85,0.55)';
+                  e.currentTarget.style.color='#94a3b8';
+                }}>
+                <span style={{fontSize:14,marginRight:8}}>{s.icon}</span>
+                {s.text}
+              </button>
+            ))}
+          </div>
+
+          {/* Input box inside hero */}
+          <InputBox {...inputProps}/>
+        </div>
+      )}
+
+      {/* ══ CHAT MODE ════════════════════════════════════════════════════════ */}
+      {hasMessages && (
+        <>
+          <div style={S.chatArea}>
+            <div style={S.messagesInner}>
+              {messages.map(msg=><MessageBubble key={msg.id} msg={msg}/>)}
+              {loading && <ThinkingIndicator/>}
+              <div ref={bottomRef}/>
             </div>
-          )}
+          </div>
 
-          {/* Messages */}
-          <div style={styles.messagesInner}>
-            {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
-            {loading && <ThinkingIndicator />}
-            <div ref={bottomRef} />
+          {/* Fixed bottom input */}
+          <div style={S.stickyInput}>
+            <InputBox {...inputProps}/>
           </div>
-        </div>
-      </div>
-
-      {/* ── INPUT BAR — narrower, curved ── */}
-      <div style={styles.inputBar}>
-        <div style={styles.inputOuter}>
-          <div style={styles.inputWrapper}>
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKey}
-              placeholder="Ask about voters, wards, schemes, demographics, election strategy…"
-              disabled={loading}
-              rows={1}
-              style={styles.textarea}
-              onInput={e => {
-                e.target.style.height = 'auto';
-                e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
-              }}
-            />
-            <button
-              onClick={() => send()}
-              disabled={loading || !input.trim()}
-              style={{
-                ...styles.sendBtn,
-                opacity: loading || !input.trim() ? 0.4 : 1,
-                transform: loading || !input.trim() ? 'none' : 'scale(1)',
-              }}
-            >
-              ➤
-            </button>
-          </div>
-          <div style={styles.inputHint}>
-            Press <kbd style={styles.kbd}>Enter</kbd> to send · <kbd style={styles.kbd}>Shift+Enter</kbd> for new line
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -559,168 +535,125 @@ export default function AiChat() {
 // ════════════════════════════════════════════════════════════════════════════════
 // STYLES
 // ════════════════════════════════════════════════════════════════════════════════
-const styles = {
+const S = {
   root: {
-    display: 'flex', flexDirection: 'column',
-    height: '100vh', background: '#0f172a',
-    fontFamily: "'DM Sans', 'Inter', sans-serif",
-    overflow: 'hidden',
+    display:'flex', flexDirection:'column',
+    height:'100vh', background:'#0b1120',
+    fontFamily:"'DM Sans','Inter',sans-serif",
+    overflow:'hidden',
   },
 
-  // Sub-header (below Navbar, above chat)
+  // Slim sub-header
   subHeader: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '10px 28px',
-    background: 'linear-gradient(135deg,#1e1b4b 0%,#1e293b 100%)',
-    borderBottom: '1px solid rgba(99,102,241,0.25)',
-    flexShrink: 0,
+    display:'flex', alignItems:'center', justifyContent:'space-between',
+    padding:'7px 22px',
+    background:'rgba(11,17,32,0.98)',
+    borderBottom:'1px solid rgba(99,102,241,0.12)',
+    flexShrink:0,
   },
-  headerIcon: {
-    width: 36, height: 36, borderRadius: 9,
-    background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 18, flexShrink: 0,
-    boxShadow: '0 0 16px rgba(99,102,241,0.4)',
+  subHeaderIcon: {
+    width:28, height:28, borderRadius:7,
+    background:'rgba(79,70,229,0.1)',
+    border:'1px solid rgba(99,102,241,0.25)',
+    display:'flex', alignItems:'center', justifyContent:'center',
   },
-  headerTitle: { fontSize: 15, fontWeight: 800, color: '#e2e8f0', letterSpacing: '-0.02em' },
-  headerSub:   { fontSize: 11, color: '#64748b', marginTop: 1 },
-  toggleLabel: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' },
-  iconBtn: {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13, color: '#94a3b8',
-    transition: 'background 0.2s',
+  subHeaderTitle: { fontSize:14, fontWeight:800, color:'#818cf8', letterSpacing:'-0.01em' },
+  subHeaderSub:   { fontSize:12, color:'#334155' },
+  clearBtn: {
+    display:'flex', alignItems:'center', gap:5,
+    background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)',
+    borderRadius:7, padding:'5px 11px', cursor:'pointer',
+    fontSize:12, color:'#475569', transition:'all 0.2s', fontFamily:'inherit',
   },
 
-  // Body — full width, no sidebar
-  body: { display: 'flex', flex: 1, overflow: 'hidden' },
+  // ── HERO ─────────────────────────────────────────────────────────────────
+  heroWrap: {
+    flex:1, display:'flex', flexDirection:'column',
+    alignItems:'center', justifyContent:'center',
+    padding:'32px 24px 24px',
+    overflowY:'auto',
+    gap:0,
+  },
+  heroLogoWrap: {
+    marginBottom:20,
+    filter:'drop-shadow(0 0 20px rgba(79,70,229,0.4))',
+  },
+  heroTitle: {
+    fontSize:28, fontWeight:700, color:'#e2e8f0',
+    margin:'0 0 8px', textAlign:'center', letterSpacing:'-0.03em',
+  },
+  heroSub: {
+    fontSize:13, color:'#475569', textAlign:'center',
+    maxWidth:480, lineHeight:1.65, margin:'0 0 26px',
+  },
+  chipRow: {
+    display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center',
+    maxWidth:660, marginBottom:28,
+  },
+  chip: {
+    display:'flex', alignItems:'center',
+    background:'rgba(28,38,58,0.7)',
+    border:'1px solid rgba(51,65,85,0.55)',
+    borderRadius:24, padding:'8px 16px',
+    color:'#94a3b8', fontSize:13, cursor:'pointer',
+    transition:'all 0.2s', fontFamily:'inherit',
+    whiteSpace:'nowrap',
+  },
 
+  // ── CHAT MODE ──────────────────────────────────────────────────────────
   chatArea: {
-    flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column',
-    scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent',
+    flex:1, overflowY:'auto',
+    scrollbarWidth:'thin', scrollbarColor:'#1e293b transparent',
   },
-
   messagesInner: {
-    padding: '24px 0',
-    // Centre content with max-width for readability
-    width: '100%',
-    maxWidth: 820,
-    margin: '0 auto',
-    paddingLeft: 24,
-    paddingRight: 24,
-    boxSizing: 'border-box',
+    maxWidth:760, margin:'0 auto',
+    padding:'28px 24px 12px',
+    boxSizing:'border-box',
+  },
+  stickyInput: {
+    flexShrink:0,
+    padding:'10px 24px 18px',
+    background:'linear-gradient(to top,#0b1120 72%,transparent)',
+    display:'flex', justifyContent:'center',
   },
 
-  // Empty / welcome state
-  emptyState: {
-    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', padding: '48px 32px', textAlign: 'center',
-  },
-  emptyIcon:  { fontSize: 56, marginBottom: 16, filter: 'drop-shadow(0 0 20px rgba(99,102,241,0.5))' },
-  emptyTitle: { fontSize: 22, fontWeight: 800, color: '#e2e8f0', margin: '0 0 10px', letterSpacing: '-0.03em' },
-  emptyDesc:  { color: '#64748b', fontSize: 14, maxWidth: 500, lineHeight: 1.7, marginBottom: 28 },
-  suggestedGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))',
-    gap: 8, maxWidth: 720, width: '100%',
-  },
-  suggestBtn: {
-    background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)',
-    borderRadius: 10, padding: '10px 14px', color: '#94a3b8',
-    fontSize: 12, cursor: 'pointer', textAlign: 'left', lineHeight: 1.5,
-    transition: 'background 0.2s, color 0.2s, border-color 0.2s',
-  },
-
-  // Message bubbles
+  // Bubbles
   avatar: {
-    width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-    background: 'linear-gradient(135deg,#1e293b,#334155)',
-    border: '1px solid rgba(99,102,241,0.3)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    marginRight: 10, alignSelf: 'flex-start', marginTop: 2,
+    width:34, height:34, borderRadius:10, flexShrink:0,
+    background:'rgba(17,27,46,1)',
+    border:'1px solid rgba(99,102,241,0.22)',
+    display:'flex', alignItems:'center', justifyContent:'center',
+    marginRight:10, alignSelf:'flex-start', marginTop:2,
   },
   userBubble: {
-    background: 'linear-gradient(135deg,#4338ca,#4f46e5)',
-    borderRadius: '18px 18px 4px 18px',
-    padding: '12px 16px',
-    boxShadow: '0 4px 20px rgba(79,70,229,0.3)',
+    background:'linear-gradient(135deg,#3730a3,#4f46e5)',
+    borderRadius:'18px 18px 4px 18px',
+    padding:'12px 16px',
+    boxShadow:'0 4px 20px rgba(79,70,229,0.28)',
   },
   aiBubble: {
-    background: 'rgba(30,41,59,0.85)',
-    border: '1px solid rgba(51,65,85,0.8)',
-    borderRadius: '4px 18px 18px 18px',
-    padding: '14px 18px',
-    backdropFilter: 'blur(8px)',
+    background:'rgba(17,27,46,0.95)',
+    border:'1px solid rgba(51,65,85,0.6)',
+    borderRadius:'4px 18px 18px 18px',
+    padding:'14px 18px',
+    backdropFilter:'blur(8px)',
   },
-  timestamp: { color: '#334155', fontSize: 10, marginTop: 4, textAlign: 'right' },
-  filesUsed: {
-    color: '#475569', fontSize: 10, marginTop: 6,
-    background: 'rgba(15,23,42,0.5)', borderRadius: 4, padding: '4px 8px',
-  },
-  exportBar: {
-    display: 'flex', alignItems: 'center', marginTop: 10,
-    background: 'rgba(15,23,42,0.6)', borderRadius: 8,
-    padding: '8px 12px', border: '1px solid rgba(99,102,241,0.2)',
-    flexWrap: 'wrap', gap: 6,
-  },
-  exportBtn: {
-    background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
-    border: 'none', borderRadius: 6, padding: '4px 10px',
-    color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-    letterSpacing: '0.05em',
-  },
+  timestamp:  { color:'#1e293b', fontSize:10, marginTop:4, textAlign:'right' },
+  filesUsed:  { color:'#334155', fontSize:10, marginTop:5, background:'rgba(11,17,32,0.6)', borderRadius:4, padding:'3px 8px' },
+  exportBar:  { display:'flex', alignItems:'center', marginTop:10, background:'rgba(11,17,32,0.7)', borderRadius:8, padding:'8px 12px', border:'1px solid rgba(99,102,241,0.18)', flexWrap:'wrap', gap:6 },
+  exportBtn:  { background:'linear-gradient(135deg,#4f46e5,#7c3aed)', border:'none', borderRadius:6, padding:'4px 10px', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer' },
 
-  // Input bar — narrower, centred, more curved
-  inputBar: {
-    flexShrink: 0, padding: '14px 24px 18px',
-    background: '#0f172a',
-    borderTop: '1px solid rgba(99,102,241,0.15)',
-    display: 'flex', justifyContent: 'center',
-  },
-  inputOuter: {
-    width: '100%', maxWidth: 780,   // ← narrower than full width
-  },
-  inputWrapper: { display: 'flex', gap: 10, alignItems: 'flex-end' },
-  textarea: {
-    flex: 1, background: 'rgba(30,41,59,0.95)',
-    border: '1.5px solid rgba(99,102,241,0.35)', borderRadius: 20, // ← curved corners
-    padding: '12px 20px', color: '#e2e8f0', fontSize: 14, lineHeight: 1.6,
-    resize: 'none', outline: 'none', fontFamily: 'inherit',
-    minHeight: 48, maxHeight: 140,
-    scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-    boxShadow: '0 0 0 0 transparent',
-  },
-  sendBtn: {
-    width: 48, height: 48, flexShrink: 0,
-    background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
-    border: 'none', borderRadius: 14,  // ← also curved
-    color: '#fff', fontSize: 18, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 4px 15px rgba(79,70,229,0.4)',
-    transition: 'opacity 0.2s, transform 0.1s',
-  },
-  inputHint: { color: '#334155', fontSize: 11, marginTop: 8, textAlign: 'center' },
-  kbd: {
-    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 4, padding: '1px 5px', fontSize: 10, fontFamily: 'monospace', color: '#64748b',
-  },
+  kbd: { background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.09)', borderRadius:4, padding:'1px 5px', fontSize:10, fontFamily:'monospace', color:'#334155' },
 
   // Markdown
-  h1: { fontSize: 20, fontWeight: 800, color: '#e2e8f0', margin: '12px 0 6px', letterSpacing: '-0.02em' },
-  h2: { fontSize: 17, fontWeight: 700, color: '#c7d2fe', margin: '10px 0 5px' },
-  h3: { fontSize: 14, fontWeight: 700, color: '#a5b4fc', margin: '8px 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  p:  { margin: '4px 0', color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 },
-  ul: { margin: '6px 0', paddingLeft: 20 },
-  ol: { margin: '6px 0', paddingLeft: 20 },
-  li: { color: '#94a3b8', fontSize: 13, lineHeight: 1.7, marginBottom: 2 },
-  pre: {
-    background: 'rgba(15,23,42,0.8)', borderRadius: 8, padding: '10px 14px',
-    overflowX: 'auto', margin: '8px 0',
-    border: '1px solid rgba(51,65,85,0.6)', fontSize: 12,
-    color: '#7dd3fc', fontFamily: "'JetBrains Mono','Fira Code',monospace",
-  },
-  inlineCode: {
-    background: 'rgba(99,102,241,0.15)', borderRadius: 4, padding: '1px 5px',
-    color: '#a5b4fc', fontSize: '0.9em', fontFamily: 'monospace',
-  },
-  hr: { border: 'none', borderTop: '1px solid rgba(51,65,85,0.6)', margin: '10px 0' },
+  h1: { fontSize:20, fontWeight:800, color:'#e2e8f0', margin:'12px 0 6px' },
+  h2: { fontSize:17, fontWeight:700, color:'#c7d2fe', margin:'10px 0 5px' },
+  h3: { fontSize:13, fontWeight:700, color:'#a5b4fc', margin:'8px 0 4px', textTransform:'uppercase', letterSpacing:'0.05em' },
+  p:  { margin:'4px 0', color:'#cbd5e1', fontSize:14, lineHeight:1.7 },
+  ul: { margin:'6px 0', paddingLeft:20 },
+  ol: { margin:'6px 0', paddingLeft:20 },
+  li: { color:'#94a3b8', fontSize:13, lineHeight:1.7, marginBottom:2 },
+  pre: { background:'rgba(7,12,24,0.9)', borderRadius:8, padding:'10px 14px', overflowX:'auto', margin:'8px 0', border:'1px solid rgba(51,65,85,0.5)', fontSize:12, color:'#7dd3fc', fontFamily:"'JetBrains Mono','Fira Code',monospace" },
+  inlineCode: { background:'rgba(99,102,241,0.14)', borderRadius:4, padding:'1px 5px', color:'#a5b4fc', fontSize:'0.9em', fontFamily:'monospace' },
+  hr: { border:'none', borderTop:'1px solid rgba(51,65,85,0.45)', margin:'10px 0' },
 };
