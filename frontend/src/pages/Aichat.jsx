@@ -1,13 +1,7 @@
 /**
  * AiChat.jsx — ShaastrAI
- * Features:
- *  • Left sidebar with persistent chat history (localStorage)
- *  • Top navbar with all app links + ShaastrAI active
- *  • Brain icon: large centered on open → shrinks to top-left on first message
- *  • Dynamic loading dots with constituency-themed words
- *  • Compact chat input bar
- *  • Chart rendering (recharts), export buttons, markdown
- *  • "ShaastrAI" branding next to brain icon
+ * Uses the shared <Navbar /> component (same as every other page).
+ * All data-source / files-used metadata display removed from UI.
  */
 
 import React, {
@@ -15,10 +9,10 @@ import React, {
 } from 'react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { aiChatApi } from '../api/client';
+import Navbar from '../components/Navbar';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PALETTE = ['#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
@@ -42,23 +36,6 @@ const SUGGESTED = [
   'Export ward-wise voter data as CSV',
   'Strategic priority wards to focus on',
 ];
-
-const NAV_LINKS = [
-  { label:'Dashboard', path:'/' },
-  { label:'Survey',    path:'/survey' },
-  { label:'Voters',    path:'/voters' },
-  { label:'Schemes',   path:'/schemes' },
-  { label:'Data',      path:'/data' },
-  { label:'SIR',       path:'/sir' },
-  { label:'SWOT',      path:'/swot' },
-  { label:'Admin',     path:'/admin' },
-];
-
-const FILE_ICONS = {
-  xlsx:'📊', xls:'📊', csv:'📋', pdf:'📄',
-  docx:'📝', doc:'📝', txt:'📃',
-  mongodb:'🗄️', rag_index:'🔍', collection:'🗄️',
-};
 
 const STORAGE_KEY = 'shaastrai_chats_v2';
 
@@ -277,9 +254,6 @@ function Bubble({ msg }) {
         </div>
         {msg.chartSpec  && <ChartRenderer spec={msg.chartSpec}/>}
         {msg.exportSpec && <ExportBar exportSpec={msg.exportSpec}/>}
-        {msg.filesUsed?.length>0 && (
-          <div style={{color:'#1e293b',fontSize:9,marginTop:3}}>📁 {msg.filesUsed.join(' · ')}</div>
-        )}
         <div style={{color:'#1e293b',fontSize:9,marginTop:2,textAlign:isUser?'right':'left'}}>{msg.ts}</div>
       </div>
       {isUser && (
@@ -298,10 +272,6 @@ export default function AiChat() {
   const [input,        setInput]        = useState('');
   const [loading,      setLoading]      = useState(false);
   const [sidebarOpen,  setSidebarOpen]  = useState(true);
-  const [includeData,  setIncludeData]  = useState(true);
-  const [logoMoved,    setLogoMoved]    = useState(() => { const c=loadChats(); return c[0]?.messages?.length>0; });
-  const [dataFiles,    setDataFiles]    = useState([]);
-  const [showFiles,    setShowFiles]    = useState(false);
   const [hoveredChat,  setHoveredChat]  = useState(null);
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
@@ -309,29 +279,21 @@ export default function AiChat() {
   const activeChat = useMemo(() => chats.find(c=>c.id===activeChatId)||null, [chats,activeChatId]);
   const msgs       = activeChat?.messages || [];
 
-  useEffect(() => { if (msgs.length>0 && !logoMoved) setLogoMoved(true); }, [msgs.length]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [msgs, loading]);
   useEffect(() => { saveChats(chats); }, [chats]);
-  useEffect(() => {
-    aiChatApi.dataFiles().then(r=>setDataFiles(r.data.files||[])).catch(()=>{});
-  }, []);
 
   // ── Chat ops ─────────────────────────────────────────────────────────────────
   const createNewChat = () => {
     const c = makeChat();
     setChats(prev => [c, ...prev]);
     setActiveChatId(c.id);
-    setLogoMoved(false);
   };
 
   const deleteChat = (id, e) => {
     e.stopPropagation();
     setChats(prev => {
       const next = prev.filter(c=>c.id!==id);
-      if (activeChatId===id) {
-        setActiveChatId(next[0]?.id||null);
-        setLogoMoved(next[0]?.messages?.length>0||false);
-      }
+      if (activeChatId===id) setActiveChatId(next[0]?.id||null);
       return next;
     });
   };
@@ -360,20 +322,18 @@ export default function AiChat() {
     }));
 
     setLoading(true);
-    setLogoMoved(true);
 
     const history = (chats.find(c=>c.id===chatId)?.messages||[])
       .map(m=>({ role:m.role, content:m.content }));
 
     try {
-      const { data } = await aiChatApi.send(msg, history, includeData);
+      const { data } = await aiChatApi.send(msg, history, true);
       const aiMsg = {
         id:         Date.now()+1,
         role:       'assistant',
         content:    data.reply    || '',
         chartSpec:  data.chartSpec  || null,
         exportSpec: data.exportSpec || null,
-        filesUsed:  data.filesUsed  || [],
         ts:         new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
       };
       setChats(prev => prev.map(c => c.id!==chatId ? c : {...c, messages:[...c.messages, aiMsg]}));
@@ -388,209 +348,165 @@ export default function AiChat() {
       setLoading(false);
       setTimeout(()=>inputRef.current?.focus(), 80);
     }
-  }, [input, loading, activeChatId, chats, includeData]);
+  }, [input, loading, activeChatId, chats]);
 
   const handleKey = e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 
   // ════════════════════════════════════════════════════════════════════════════
   return (
-    <div style={S.root}>
+    <>
       <style>{CSS}</style>
+      <div style={S.root}>
 
-      {/* ── NAVBAR ── */}
-      <nav style={S.navbar}>
-        {/* Brain logo — shrinks in place, no position jump */}
-        <div style={S.navLeft}>
-          <div style={{
-            display:'flex', alignItems:'center', gap:7,
-            transition:'all 0.45s cubic-bezier(.4,0,.2,1)',
-          }}>
-            <div style={{ transition:'transform 0.45s', transform: logoMoved ? 'scale(1)' : 'scale(1)' }}>
-              <BrainIcon size={logoMoved ? 30 : 30} glow={!logoMoved}/>
-            </div>
-            <span style={{
-              ...S.logoText,
-              fontSize: logoMoved ? 14 : 17,
-              transition:'font-size 0.45s ease',
-            }}>ShaastrAI</span>
-          </div>
-        </div>
+        {/* ── SHARED NAVBAR (same as every other page) ── */}
+        <Navbar />
 
-        {/* Nav links — centered */}
-        <div style={S.navLinks}>
-          {NAV_LINKS.map(l=>(
-            <a key={l.label} href={l.path} style={S.navLink}>{l.label}</a>
-          ))}
-          <a href="/ai" style={{...S.navLink, ...S.navLinkActive}}>ShaastrAI</a>
-        </div>
+        {/* ── BODY ── */}
+        <div style={S.body}>
 
-        {/* Right controls */}
-        <div style={S.navRight}>
-          <label style={S.toggleLabel}>
-            <input type="checkbox" checked={includeData} onChange={e=>setIncludeData(e.target.checked)}
-              style={{accentColor:'#6366f1',width:12,height:12}}/>
-            <span style={{color:'#475569',fontSize:11}}>Live data</span>
-          </label>
-          <button onClick={()=>setShowFiles(p=>!p)} title="Data sources" style={S.iconBtn}>🗄️</button>
-          <button onClick={()=>setSidebarOpen(p=>!p)} title="Toggle history" style={S.iconBtn}>
-            {sidebarOpen ? '◀' : '▶'}
-          </button>
-        </div>
-      </nav>
+          {/* ── SIDEBAR TOGGLE (when closed) ── */}
+          {!sidebarOpen && (
+            <button
+              onClick={()=>setSidebarOpen(true)}
+              title="Open chat history"
+              style={S.sidebarToggleBtn}
+            >▶</button>
+          )}
 
-      {/* ── DATA FILES POPOVER ── */}
-      {showFiles && (
-        <div style={S.popover}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-            <span style={{color:'#64748b',fontSize:11,fontWeight:700,letterSpacing:'0.06em'}}>DATA SOURCES</span>
-            <button onClick={()=>setShowFiles(false)} style={{background:'none',border:'none',color:'#475569',cursor:'pointer',fontSize:13}}>✕</button>
-          </div>
-          {dataFiles.length===0
-            ? <div style={{color:'#334155',fontSize:11}}>No files loaded yet.</div>
-            : dataFiles.map(f=>(
-              <div key={f.name} style={S.fileRow}>
-                <span style={{fontSize:15}}>{FILE_ICONS[f.ext]||FILE_ICONS[f.type]||'📄'}</span>
-                <div>
-                  <div style={{color:'#94a3b8',fontSize:11,fontWeight:600}}>{f.name}</div>
-                  <div style={{color:'#334155',fontSize:9}}>
-                    {f.type==='collection'||f.type==='rag_index'
-                      ? `${(f.size||0).toLocaleString()} records · MongoDB`
-                      : `${f.size_mb||'?'} MB · ${(f.ext||'').toUpperCase()}`
-                    }
-                  </div>
-                </div>
+          {/* ── LEFT SIDEBAR ── */}
+          {sidebarOpen && (
+            <aside style={S.sidebar}>
+              {/* Sidebar header */}
+              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+                <button onClick={createNewChat} style={{...S.newChatBtn,flex:1}}>
+                  <span style={{fontSize:16,lineHeight:1}}>+</span> New Chat
+                </button>
+                <button
+                  onClick={()=>setSidebarOpen(false)}
+                  title="Collapse"
+                  style={S.collapseBtn}
+                >◀</button>
               </div>
-          ))}
-        </div>
-      )}
 
-      {/* ── BODY ── */}
-      <div style={S.body}>
-
-        {/* ── LEFT SIDEBAR ── */}
-        {sidebarOpen && (
-          <aside style={S.sidebar}>
-            <button onClick={createNewChat} style={S.newChatBtn}>
-              <span style={{fontSize:16,lineHeight:1}}>+</span> New Chat
-            </button>
-
-            <div style={{flex:1,overflowY:'auto',scrollbarWidth:'thin',scrollbarColor:'#0f172a transparent'}}>
-              {chats.length===0
-                ? <div style={{color:'#1e293b',fontSize:11,textAlign:'center',padding:'20px 8px'}}>
-                    No chats yet.<br/>Start a new conversation.
-                  </div>
-                : chats.map(c=>(
-                  <div key={c.id}
-                    onClick={()=>{ setActiveChatId(c.id); setLogoMoved(c.messages.length>0); }}
-                    onMouseEnter={()=>setHoveredChat(c.id)}
-                    onMouseLeave={()=>setHoveredChat(null)}
-                    style={{
-                      ...S.chatItem,
-                      ...(c.id===activeChatId ? S.chatItemActive : {}),
-                      ...(hoveredChat===c.id && c.id!==activeChatId ? S.chatItemHover : {}),
-                    }}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{
-                        color: c.id===activeChatId ? '#e2e8f0' : '#64748b',
-                        fontSize:11, fontWeight:600,
-                        overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
-                      }}>
-                        {c.title || 'New Chat'}
-                      </div>
-                      <div style={{color:'#1e293b',fontSize:9,marginTop:1}}>
-                        {c.messages.length} msg{c.messages.length!==1?'s':''}
-                        {c.messages.length>0 && ` · ${c.messages[c.messages.length-1].ts||''}`}
-                      </div>
+              <div style={{flex:1,overflowY:'auto',scrollbarWidth:'thin',scrollbarColor:'#0f172a transparent'}}>
+                {chats.length===0
+                  ? <div style={{color:'#1e293b',fontSize:11,textAlign:'center',padding:'20px 8px'}}>
+                      No chats yet.<br/>Start a new conversation.
                     </div>
-                    <button onClick={e=>deleteChat(c.id,e)}
-                      title="Delete"
+                  : chats.map(c=>(
+                    <div key={c.id}
+                      onClick={()=>setActiveChatId(c.id)}
+                      onMouseEnter={()=>setHoveredChat(c.id)}
+                      onMouseLeave={()=>setHoveredChat(null)}
                       style={{
-                        background:'none',border:'none',color:'#334155',cursor:'pointer',
-                        fontSize:11,padding:2,flexShrink:0,
-                        opacity: hoveredChat===c.id ? 1 : 0,
-                        transition:'opacity .15s',
-                      }}>🗑</button>
-                  </div>
-              ))}
-            </div>
-
-            <div style={{display:'flex',alignItems:'center',gap:6,padding:'8px 4px 0',borderTop:'1px solid rgba(99,102,241,0.08)',marginTop:8}}>
-              <BrainIcon size={16}/>
-              <span style={{color:'#1e293b',fontSize:9}}>ShaastrAI — Mangaluru South</span>
-            </div>
-          </aside>
-        )}
-
-        {/* ── CHAT AREA ── */}
-        <div style={S.chatArea}>
-
-          {/* Welcome / center brain */}
-          {msgs.length===0 && (
-            <div style={S.welcome}>
-              <div style={{animation:'sai-pulse 2.4s ease-in-out infinite', marginBottom:18}}>
-                <BrainIcon size={84} glow/>
-              </div>
-              <h1 style={S.welcomeTitle}>ShaastrAI</h1>
-              <p style={S.welcomeSub}>Constituency Intelligence · Mangaluru South (175)</p>
-              <div style={S.grid}>
-                {SUGGESTED.map((s,i)=>(
-                  <button key={i} style={S.suggestBtn} onClick={()=>send(s)}
-                    onMouseEnter={e=>{ e.currentTarget.style.background='rgba(99,102,241,0.14)'; e.currentTarget.style.color='#a5b4fc'; e.currentTarget.style.borderColor='rgba(99,102,241,0.35)'; }}
-                    onMouseLeave={e=>{ e.currentTarget.style.background='rgba(99,102,241,0.06)'; e.currentTarget.style.color='#475569'; e.currentTarget.style.borderColor='rgba(99,102,241,0.15)'; }}>
-                    {s}
-                  </button>
+                        ...S.chatItem,
+                        ...(c.id===activeChatId ? S.chatItemActive : {}),
+                        ...(hoveredChat===c.id && c.id!==activeChatId ? S.chatItemHover : {}),
+                      }}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{
+                          color: c.id===activeChatId ? '#e2e8f0' : '#64748b',
+                          fontSize:11, fontWeight:600,
+                          overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
+                        }}>
+                          {c.title || 'New Chat'}
+                        </div>
+                        <div style={{color:'#1e293b',fontSize:9,marginTop:1}}>
+                          {c.messages.length} msg{c.messages.length!==1?'s':''}
+                          {c.messages.length>0 && ` · ${c.messages[c.messages.length-1].ts||''}`}
+                        </div>
+                      </div>
+                      <button onClick={e=>deleteChat(c.id,e)}
+                        title="Delete"
+                        style={{
+                          background:'none',border:'none',color:'#334155',cursor:'pointer',
+                          fontSize:11,padding:2,flexShrink:0,
+                          opacity: hoveredChat===c.id ? 1 : 0,
+                          transition:'opacity .15s',
+                        }}>🗑</button>
+                    </div>
                 ))}
               </div>
-            </div>
+
+              <div style={{display:'flex',alignItems:'center',gap:6,padding:'8px 4px 0',borderTop:'1px solid rgba(99,102,241,0.08)',marginTop:8}}>
+                <BrainIcon size={16}/>
+                <span style={{color:'#1e293b',fontSize:9}}>ShaastrAI</span>
+              </div>
+            </aside>
           )}
 
-          {/* Messages */}
-          {msgs.length>0 && (
-            <div style={{padding:'14px 18px',flex:1}}>
-              {msgs.map(m=><Bubble key={m.id} msg={m}/>)}
-              {loading && (
-                <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
-                  <div style={{width:26,height:26,borderRadius:7,flexShrink:0,overflow:'hidden'}}>
-                    <BrainIcon size={26}/>
-                  </div>
-                  <LoadingDots/>
+          {/* ── CHAT AREA ── */}
+          <div style={S.chatArea}>
+
+            {/* Welcome screen */}
+            {msgs.length===0 && (
+              <div style={S.welcome}>
+                <div style={{animation:'sai-pulse 2.4s ease-in-out infinite', marginBottom:18}}>
+                  <BrainIcon size={84} glow/>
                 </div>
-              )}
-              <div ref={bottomRef}/>
-            </div>
-          )}
-        </div>
-      </div>
+                <h1 style={S.welcomeTitle}>ShaastrAI</h1>
+                <p style={S.welcomeSub}>Constituency Intelligence · Mangaluru South (175)</p>
+                <div style={S.grid}>
+                  {SUGGESTED.map((s,i)=>(
+                    <button key={i} style={S.suggestBtn} onClick={()=>send(s)}
+                      onMouseEnter={e=>{ e.currentTarget.style.background='rgba(99,102,241,0.14)'; e.currentTarget.style.color='#a5b4fc'; e.currentTarget.style.borderColor='rgba(99,102,241,0.35)'; }}
+                      onMouseLeave={e=>{ e.currentTarget.style.background='rgba(99,102,241,0.06)'; e.currentTarget.style.color='#475569'; e.currentTarget.style.borderColor='rgba(99,102,241,0.15)'; }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-      {/* ── COMPACT INPUT BAR ── */}
-      <div style={S.inputBar}>
-        <div style={S.inputRow}>
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e=>setInput(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="Ask about voters, wards, schemes, election strategy…"
-            disabled={loading}
-            rows={1}
-            style={S.textarea}
-            onInput={e=>{
-              e.target.style.height='auto';
-              e.target.style.height=Math.min(e.target.scrollHeight,96)+'px';
-            }}
-          />
-          <button onClick={()=>send()} disabled={loading||!input.trim()}
-            style={{...S.sendBtn, opacity:(loading||!input.trim())?0.35:1}}>
-            {loading ? '⏳' : '↑'}
-          </button>
+            {/* Messages */}
+            {msgs.length>0 && (
+              <div style={{padding:'14px 18px',flex:1}}>
+                {msgs.map(m=><Bubble key={m.id} msg={m}/>)}
+                {loading && (
+                  <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
+                    <div style={{width:26,height:26,borderRadius:7,flexShrink:0,overflow:'hidden'}}>
+                      <BrainIcon size={26}/>
+                    </div>
+                    <LoadingDots/>
+                  </div>
+                )}
+                <div ref={bottomRef}/>
+              </div>
+            )}
+          </div>
         </div>
-        <div style={S.hint}>
-          <kbd style={S.kbd}>Enter</kbd> send &nbsp;·&nbsp;
-          <kbd style={S.kbd}>Shift+Enter</kbd> newline &nbsp;·&nbsp;
-          Powered by ShaastrAI
+
+        {/* ── COMPACT INPUT BAR ── */}
+        <div style={S.inputBar}>
+          <div style={S.inputRow}>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e=>setInput(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder="Ask about voters, wards, schemes, election strategy…"
+              disabled={loading}
+              rows={1}
+              style={S.textarea}
+              onInput={e=>{
+                e.target.style.height='auto';
+                e.target.style.height=Math.min(e.target.scrollHeight,96)+'px';
+              }}
+            />
+            <button onClick={()=>send()} disabled={loading||!input.trim()}
+              style={{...S.sendBtn, opacity:(loading||!input.trim())?0.35:1}}>
+              {loading ? '⏳' : '↑'}
+            </button>
+          </div>
+          <div style={S.hint}>
+            <kbd style={S.kbd}>Enter</kbd> send &nbsp;·&nbsp;
+            <kbd style={S.kbd}>Shift+Enter</kbd> newline &nbsp;·&nbsp;
+            Powered by ShaastrAI
+          </div>
         </div>
+
       </div>
-    </div>
+    </>
   );
 }
 
@@ -623,61 +539,36 @@ const CSS = `
 // ── Styles ────────────────────────────────────────────────────────────────────
 const S = {
   root:{
-    display:'flex', flexDirection:'column', height:'100vh',
+    display:'flex', flexDirection:'column',
+    height:'calc(100vh)',
     background:'#07091a',
     fontFamily:"'Sora','system-ui',sans-serif",
     overflow:'hidden',
   },
 
-  // Navbar
-  navbar:{
-    display:'flex', alignItems:'center', justifyContent:'space-between',
-    padding:'0 18px', height:50, flexShrink:0,
-    background:'#0a0f24',
-    borderBottom:'1px solid rgba(99,102,241,0.15)',
-    position:'relative', zIndex:30,
-  },
-  navLeft:{ display:'flex', alignItems:'center', minWidth:160 },
-  logoText:{
-    fontWeight:800, letterSpacing:'-0.03em',
-    fontFamily:"'Sora',sans-serif",
-    background:'linear-gradient(135deg,#c7d2fe,#818cf8)',
-    WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
-  },
-  navLinks:{
-    display:'flex', alignItems:'center', gap:1,
-    position:'absolute', left:'50%', transform:'translateX(-50%)',
-  },
-  navLink:{
-    color:'#334155', fontSize:11, fontWeight:600,
-    padding:'5px 9px', borderRadius:6,
-    textDecoration:'none', transition:'color .15s, background .15s',
-    letterSpacing:'0.02em',
-  },
-  navLinkActive:{
-    color:'#818cf8',
-    background:'rgba(99,102,241,0.1)',
-  },
-  navRight:{ display:'flex', alignItems:'center', gap:7, minWidth:160, justifyContent:'flex-end' },
-  toggleLabel:{ display:'flex',alignItems:'center',gap:5,cursor:'pointer',userSelect:'none' },
-  iconBtn:{
-    background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)',
-    borderRadius:6, padding:'4px 8px', cursor:'pointer', fontSize:13, color:'#64748b',
-  },
-
-  // Popover
-  popover:{
-    position:'absolute', top:56, right:80, zIndex:100, width:270,
-    background:'#0d1323', border:'1px solid rgba(99,102,241,.18)',
-    borderRadius:10, padding:14, boxShadow:'0 24px 64px rgba(0,0,0,.7)',
-  },
-  fileRow:{
-    display:'flex', alignItems:'center', gap:8, padding:'6px 0',
-    borderBottom:'1px solid rgba(15,23,42,.9)',
-  },
-
   // Body
-  body:{ display:'flex', flex:1, overflow:'hidden' },
+  body:{ display:'flex', flex:1, overflow:'hidden', position:'relative' },
+
+  // Sidebar toggle (collapsed state)
+  sidebarToggleBtn:{
+    position:'absolute', left:0, top:'50%', transform:'translateY(-50%)',
+    zIndex:20, background:'rgba(99,102,241,0.12)',
+    border:'1px solid rgba(99,102,241,0.2)',
+    borderLeft:'none',
+    borderRadius:'0 6px 6px 0',
+    color:'#818cf8', fontSize:10, fontWeight:700,
+    padding:'10px 5px', cursor:'pointer',
+    writingMode:'vertical-rl',
+  },
+
+  // Sidebar collapse button
+  collapseBtn:{
+    background:'rgba(255,255,255,0.04)',
+    border:'1px solid rgba(255,255,255,0.07)',
+    borderRadius:6, padding:'4px 7px',
+    cursor:'pointer', fontSize:11, color:'#475569',
+    flexShrink:0,
+  },
 
   // Sidebar
   sidebar:{
@@ -691,7 +582,7 @@ const S = {
     display:'flex', alignItems:'center', gap:6, justifyContent:'center',
     background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.2)',
     borderRadius:8, color:'#818cf8', fontSize:12, fontWeight:700,
-    padding:'7px 10px', cursor:'pointer', marginBottom:10,
+    padding:'7px 10px', cursor:'pointer',
     transition:'background .2s',
   },
   chatItem:{
