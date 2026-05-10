@@ -1973,6 +1973,354 @@ function ConstituencySIRSummary() {
   );
 }
 
+// ════════════════════════════════════════════════════════════════════════════════
+// WARD LOCAL PLACES — Add/view clubs, temples, churches, mosques per ward
+// Stored in MongoDB 'WardData' collection via /api/ward-places/
+// ════════════════════════════════════════════════════════════════════════════════
+
+const PLACE_TYPES = [
+  {
+    key: 'club',
+    label: 'Local Club',
+    color: '#f59e0b',
+    accent: 'rgba(245,158,11,0.12)',
+    border: 'rgba(245,158,11,0.25)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'temple',
+    label: 'Temple',
+    color: '#f97316',
+    accent: 'rgba(249,115,22,0.12)',
+    border: 'rgba(249,115,22,0.25)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 7h20L12 2z"/><rect x="4" y="7" width="16" height="13"/><rect x="9" y="12" width="6" height="8"/>
+        <line x1="12" y1="7" x2="12" y2="2"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'church',
+    label: 'Church',
+    color: '#8b5cf6',
+    accent: 'rgba(139,92,246,0.12)',
+    border: 'rgba(139,92,246,0.25)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/>
+        <path d="M5 20v-8l7-5 7 5v8H5z"/><rect x="9" y="14" width="6" height="6"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'mosque',
+    label: 'Mosque',
+    color: '#10b981',
+    accent: 'rgba(16,185,129,0.12)',
+    border: 'rgba(16,185,129,0.25)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/>
+        <path d="M12 3a3 3 0 0 1 3 3"/><path d="M9 6a3 3 0 0 1 3-3"/>
+        <rect x="9" y="14" width="6" height="6"/>
+      </svg>
+    ),
+  },
+];
+
+function WardLocalPlaces({ wardNum }) {
+  const wardName = WARD_NAMES[wardNum] || `Ward ${wardNum}`;
+  const [places,        setPlaces]        = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [saving,        setSaving]        = useState(false);
+  const [error,         setError]         = useState('');
+  const [activeType,    setActiveType]    = useState('club');
+  const [showForm,      setShowForm]      = useState(false);
+  const [deletingId,    setDeletingId]    = useState(null);
+  const [form,          setForm]          = useState({ name: '', address: '' });
+  const [formErr,       setFormErr]       = useState('');
+
+  // Load places for this ward
+  useEffect(() => {
+    setLoading(true); setError('');
+    api.get('/api/ward-places/', { params: { ward: wardNum } })
+      .then(r => { if (r.data.success) setPlaces(r.data.places || []); else setError(r.data.message || 'Failed to load.'); })
+      .catch(e => setError(e.userMessage || 'Network error.'))
+      .finally(() => setLoading(false));
+  }, [wardNum]);
+
+  const groupedPlaces = PLACE_TYPES.reduce((acc, t) => {
+    acc[t.key] = places.filter(p => p.type === t.key);
+    return acc;
+  }, {});
+
+  const handleAdd = async () => {
+    if (!form.name.trim()) { setFormErr('Name is required.'); return; }
+    setSaving(true); setFormErr('');
+    try {
+      const r = await api.post('/api/ward-places/', {
+        ward:     wardNum,
+        wardName: wardName,
+        type:     activeType,
+        name:     form.name.trim(),
+        address:  form.address.trim(),
+      });
+      if (r.data.success) {
+        setPlaces(prev => [...prev, r.data.place]);
+        setForm({ name: '', address: '' });
+        setShowForm(false);
+      } else {
+        setFormErr(r.data.message || 'Save failed.');
+      }
+    } catch (e) {
+      setFormErr(e.userMessage || 'Network error.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (placeId) => {
+    setDeletingId(placeId);
+    try {
+      const r = await api.delete('/api/ward-places/', { data: { id: placeId } });
+      if (r.data.success) setPlaces(prev => prev.filter(p => p._id !== placeId));
+    } catch {} finally { setDeletingId(null); }
+  };
+
+  const activeCfg   = PLACE_TYPES.find(t => t.key === activeType);
+  const activePlaces = groupedPlaces[activeType] || [];
+
+  return (
+    <div style={{
+      background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 18, overflow: 'hidden', marginBottom: 20,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+    }}>
+      {/* Header */}
+      <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            Local Places
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Ward {wardNum} · {wardName}</div>
+        </div>
+        <button
+          onClick={() => { setShowForm(!showForm); setFormErr(''); setForm({ name:'', address:'' }); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: showForm ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.14)',
+            border: `1px solid ${showForm ? 'rgba(239,68,68,0.3)' : 'rgba(99,102,241,0.35)'}`,
+            borderRadius: 10, padding: '7px 14px',
+            color: showForm ? '#f87171' : '#a5b4fc',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            transition: 'all 0.18s',
+          }}
+        >
+          {showForm ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Cancel
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Place
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Type selector tabs */}
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto' }}>
+        {PLACE_TYPES.map(t => {
+          const isActive = activeType === t.key;
+          const count    = groupedPlaces[t.key]?.length || 0;
+          return (
+            <button key={t.key}
+              onClick={() => { setActiveType(t.key); setShowForm(false); setForm({ name:'', address:'' }); }}
+              style={{
+                flex: 1, minWidth: 72, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                padding: '10px 8px',
+                background: isActive ? t.accent : 'transparent',
+                borderBottom: isActive ? `2px solid ${t.color}` : '2px solid transparent',
+                border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                color: isActive ? t.color : 'rgba(255,255,255,0.35)',
+              }}
+            >
+              <span style={{ color: isActive ? t.color : 'rgba(255,255,255,0.3)', transition: 'color 0.15s' }}>{t.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.03em' }}>{t.label}</span>
+              {count > 0 && (
+                <span style={{ fontSize: 9, fontWeight: 800, background: isActive ? t.color : 'rgba(255,255,255,0.08)', color: isActive ? '#0f172a' : 'rgba(255,255,255,0.4)', borderRadius: 10, padding: '1px 5px', minWidth: 16, textAlign: 'center' }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Add form (inline) */}
+      {showForm && (
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: activeCfg.accent, animation: 'fadeSlideIn 0.2s ease' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: activeCfg.color, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: activeCfg.color }}>{activeCfg.icon}</span>
+            Add {activeCfg.label} to Ward {wardNum}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Name field */}
+            <div>
+              <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                {activeCfg.label} Name *
+              </label>
+              <input
+                value={form.name}
+                onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErr(''); }}
+                placeholder={`e.g. ${activeType === 'club' ? 'Padavu Youth Club' : activeType === 'temple' ? 'Sri Vinayaka Temple' : activeType === 'church' ? 'St. Joseph Church' : 'Masjid-e-Noor'}`}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: 'rgba(15,23,42,0.8)', border: `1px solid ${formErr ? '#ef4444' : activeCfg.border}`,
+                  borderRadius: 10, padding: '10px 14px',
+                  color: '#e2e8f0', fontSize: 14, fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+            </div>
+            {/* Address field */}
+            <div>
+              <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                Address <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 400 }}>(optional)</span>
+              </label>
+              <input
+                value={form.address}
+                onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                placeholder="Street, area or landmark"
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`,
+                  borderRadius: 10, padding: '10px 14px',
+                  color: '#e2e8f0', fontSize: 14, fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+            </div>
+            {formErr && <div style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}>⚠ {formErr}</div>}
+            {/* Save button */}
+            <button
+              onClick={handleAdd}
+              disabled={saving}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                background: saving ? 'rgba(255,255,255,0.05)' : `linear-gradient(135deg,${activeCfg.color}cc,${activeCfg.color})`,
+                border: 'none', borderRadius: 10, padding: '11px 0',
+                color: '#fff', fontSize: 13, fontWeight: 700,
+                cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit',
+                boxShadow: saving ? 'none' : `0 4px 16px ${activeCfg.color}44`,
+                transition: 'all 0.18s',
+              }}
+            >
+              {saving ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" strokeOpacity="0.3"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Save {activeCfg.label}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Places list */}
+      <div style={{ padding: '12px 18px 16px' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[1,2].map(i => <div key={i} style={{ height: 56, borderRadius: 10, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.5s ease infinite' }} />)}
+          </div>
+        ) : error ? (
+          <div style={{ fontSize: 12, color: '#f87171', textAlign: 'center', padding: '16px 0' }}>⚠ {error}</div>
+        ) : activePlaces.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <div style={{ color: activeCfg.color, opacity: 0.3, marginBottom: 8 }}>{activeCfg.icon}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', fontWeight: 600 }}>No {activeCfg.label}s added yet</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.15)', marginTop: 4 }}>Tap "Add Place" to record one</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {activePlaces.map((place, idx) => (
+              <div key={place._id || idx} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                background: activeCfg.accent,
+                border: `1px solid ${activeCfg.border}`,
+                borderRadius: 12, padding: '11px 14px',
+                animation: 'fadeSlideIn 0.2s ease',
+              }}>
+                {/* Icon badge */}
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                  background: `${activeCfg.color}18`,
+                  border: `1px solid ${activeCfg.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: activeCfg.color,
+                }}>
+                  {activeCfg.icon}
+                </div>
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {place.name}
+                  </div>
+                  {place.address && (
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      {place.address}
+                    </div>
+                  )}
+                </div>
+                {/* Delete */}
+                <button
+                  onClick={() => handleDelete(place._id)}
+                  disabled={deletingId === place._id}
+                  style={{
+                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
+                    color: deletingId === place._id ? 'rgba(239,68,68,0.3)' : '#f87171',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {deletingId === place._id ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" strokeOpacity="0.3"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes fadeSlideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+        @keyframes pulse { 0%,100%{opacity:0.5;} 50%{opacity:0.9;} }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Member Row ───────────────────────────────────────────────────────────────
 function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData, query, onSurveyDone, user }) {
   const navigate = useNavigate();
@@ -3003,6 +3351,11 @@ export default function Dashboard() {
               {/* ── NEW: Ward vs Constituency Comparison ── */}
               {selectedWard && !wardStatsLoading && (
                 <WardVsConstituency wardNum={selectedWard} />
+              )}
+
+              {/* ── Local Places: Clubs, Temples, Churches, Mosques ── */}
+              {selectedWard && !wardStatsLoading && (
+                <WardLocalPlaces wardNum={selectedWard} />
               )}
 
               {/* ── Bottom rounded border on full card ── */}
