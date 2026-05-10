@@ -489,16 +489,6 @@ function HistorySidebar({ sessions, activeId, onSelect, onNew, open, onToggle })
             ))}
           </div>
 
-          {/* Quick prompts */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '10px 10px', flexShrink: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#374151', letterSpacing: '0.07em', marginBottom: 7 }}>QUICK PROMPTS</div>
-            {SUGGESTED.slice(0, 4).map((s, i) => (
-              <div key={i} style={{ color: '#4b5563', fontSize: 11, padding: '4px 6px', cursor: 'pointer', borderRadius: 5, marginBottom: 2, lineHeight: 1.4 }}
-                onClick={() => onSelect('prompt:' + s)}>
-                {s}
-              </div>
-            ))}
-          </div>
         </>
       )}
     </div>
@@ -515,6 +505,7 @@ export default function AiChat() {
   const [input, setInput]             = useState('');
   const [loading, setLoading]         = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [includeData, setIncludeData] = useState(true);
   const [brainMoved, setBrainMoved]   = useState(false); // brain icon state
 
   const bottomRef = useRef(null);
@@ -562,7 +553,7 @@ export default function AiChat() {
     setLoading(true);
 
     try {
-      const { data } = await aiChatApi.send(msg, history, true);
+      const { data } = await aiChatApi.send(msg, history, includeData);
       const aiMsg = {
         id: Date.now() + 1, role: 'assistant',
         content: data.reply || '',
@@ -583,7 +574,7 @@ export default function AiChat() {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [input, loading, history, activeId, createSession]);
+  }, [input, loading, history, includeData, activeId, createSession]);
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
@@ -677,6 +668,10 @@ export default function AiChat() {
                 <BrainIcon size={22} color="#06b6d4" glow />
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.1em' }}>SHAASTR AI</span>
                 <div style={{ flex: 1 }} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)} style={{ accentColor: '#06b6d4', width: 13, height: 13 }} />
+                  <span style={{ color: '#4b5563', fontSize: 11 }}>Use data files</span>
+                </label>
                 <button onClick={handleNew} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '4px 10px', color: '#4b5563', fontSize: 11, cursor: 'pointer' }}>
                   + New
                 </button>
@@ -690,6 +685,12 @@ export default function AiChat() {
 
           {/* ── INPUT BAR (shorter, centered) ── */}
           <div style={{ flexShrink: 0, padding: '12px 20px 16px', background: '#0d1117', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {!hasMessages && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', justifyContent: 'center', marginBottom: 8 }}>
+                <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)} style={{ accentColor: '#06b6d4', width: 13, height: 13 }} />
+                <span style={{ color: '#4b5563', fontSize: 11 }}>Include constituency data files</span>
+              </label>
+            )}
             <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea
                 ref={inputRef}
