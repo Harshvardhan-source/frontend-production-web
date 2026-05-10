@@ -1,20 +1,10 @@
 /**
- * AiChat.jsx — AI Chat page for Mangaluru South Constituency Intelligence
- *
- * Features:
- *  • Multi-turn chat with Anthropic (claude-opus-4-5) backed by constituency data files
- *  • Inline chart rendering (Chart.js via recharts) when AI returns a chartspec block
- *  • One-click export of AI-generated tables to CSV / Excel / PDF
- *  • Data files sidebar showing what documents the AI has access to
- *  • Suggested prompts / quick questions
- *  • Markdown-style rendering (bold, bullets, numbered lists, code blocks)
- *  • Streaming typing indicator
- *
- * Add to App.jsx:
- *   import AiChat from './pages/AiChat';
- *   <Route path="/ai" element={<Protected><AiChat /></Protected>} />
- *
- * Add to your nav wherever the "AI" menu item is.
+ * AiChat.jsx — Redesigned AI Chat page
+ * • ChatGPT-style layout: chat history in LEFT sidebar
+ * • App navbar matching Constituency Connect design
+ * • Brain icon animates from center → top-left on first message
+ * • Dynamic loading dots with political vocabulary words
+ * • Shorter, centered chat input box
  */
 
 import React, {
@@ -26,10 +16,12 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { aiChatApi } from '../api/client';
+import { useAuth } from '../App';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // ── colour palette ────────────────────────────────────────────────────────────
 const PALETTE = [
-  '#4f46e5', '#06b6d4', '#10b981', '#f59e0b',
+  '#f59e0b', '#06b6d4', '#10b981', '#4f46e5',
   '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6',
 ];
 
@@ -40,82 +32,247 @@ const FILE_ICONS = {
 
 const SUGGESTED = [
   'What is the total voter count by ward?',
-  'Show me religion-wise voter breakdown for all wards',
-  'Which wards have the highest Muslim voter percentage?',
-  'Give me a survey completion status ward-wise',
+  'Show religion-wise voter breakdown for all wards',
+  'Which wards have the highest Muslim voter %?',
+  'Give survey completion status ward-wise',
   'Which schemes have the most beneficiaries?',
   'Compare 2019 vs 2023 polling percentages',
-  'What is the booth-wise voter count for ward 28?',
-  'List top 10 wards by total voters as a bar chart',
-  'Export ward-wise voter data as CSV',
-  'What are the strategic priority wards to focus on?',
+  'Booth-wise voter count for ward 28?',
+  'Top 10 wards by total voters as bar chart',
+  'What are the strategic priority wards?',
+];
+
+// Political words for loading animation
+const POLITICAL_WORDS = [
+  'Analysing', 'Strategising', 'Computing', 'Mapping', 'Forecasting',
+  'Calculating', 'Researching', 'Processing', 'Evaluating', 'Decoding',
+];
+
+// ── Nav items ──────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { label: 'Dashboard', path: '/', icon: '⊞' },
+  { label: 'Survey',    path: '/survey', icon: '◎' },
+  { label: 'Schemes',   path: '/schemes', icon: '◇' },
+  { label: 'Data',      path: '/data', icon: '▤' },
+  { label: 'SIR',       path: '/sir', icon: '✓' },
+  { label: 'SWOT',      path: '/swot', icon: '⊞', highlight: 'swot' },
+  { label: 'AI',        path: '/ai', icon: null, highlight: 'ai' },
+  { label: 'Admin',     path: '/admin', icon: '⚙' },
 ];
 
 // ════════════════════════════════════════════════════════════════════════════════
-// MARKDOWN-LITE RENDERER
+// BRAIN SVG ICON
+// ════════════════════════════════════════════════════════════════════════════════
+function BrainIcon({ size = 48, color = '#f59e0b', glow = false }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={glow ? { filter: `drop-shadow(0 0 12px ${color})` } : {}}>
+      <path d="M24 6C19 6 15 10 15 14.5C15 15.2 15.1 15.9 15.3 16.5C13.4 17.4 12 19.3 12 21.5C12 22.5 12.3 23.4 12.8 24.2C11.1 25.1 10 26.9 10 29C10 32.3 12.7 35 16 35C16.7 35 17.4 34.9 18 34.6V36C18 39.3 20.7 42 24 42C27.3 42 30 39.3 30 36V34.6C30.6 34.9 31.3 35 32 35C35.3 35 38 32.3 38 29C38 26.9 36.9 25.1 35.2 24.2C35.7 23.4 36 22.5 36 21.5C36 19.3 34.6 17.4 32.7 16.5C32.9 15.9 33 15.2 33 14.5C33 10 29 6 24 6Z"
+        stroke={color} strokeWidth="2" fill="none"/>
+      <path d="M24 14V28M18 18L24 22M30 18L24 22M20 30L24 28M28 30L24 28"
+        stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="24" cy="22" r="2" fill={color} opacity="0.8"/>
+    </svg>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// TOP NAVBAR
+// ════════════════════════════════════════════════════════════════════════════════
+function Navbar({ hasMessages }) {
+  const { user, logout } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+
+  return (
+    <nav style={navStyles.root}>
+      {/* Logo */}
+      <div style={navStyles.logo} onClick={() => navigate('/')}>
+        <div style={navStyles.logoIcon}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="#f59e0b" strokeWidth="1.5"/>
+            <path d="M12 7v10M7 9.5l5 2.5 5-2.5" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div style={navStyles.logoText}>Constituency</div>
+          <div style={navStyles.logoSub}>CONNECT</div>
+        </div>
+      </div>
+
+      {/* Nav links */}
+      <div style={navStyles.links}>
+        {NAV_ITEMS.map(item => {
+          const active = location.pathname === item.path ||
+            (item.path !== '/' && location.pathname.startsWith(item.path));
+          return (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              style={{
+                ...navStyles.link,
+                ...(item.highlight === 'swot' ? navStyles.swotLink : {}),
+                ...(item.highlight === 'ai' ? navStyles.aiLink : {}),
+                ...(active && item.highlight !== 'swot' && item.highlight !== 'ai'
+                  ? navStyles.activeLink : {}),
+              }}
+            >
+              {item.icon && <span style={{ fontSize: 12 }}>{item.icon}</span>}
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* User */}
+      <div style={navStyles.userArea}>
+        <div style={navStyles.avatar}>
+          {user?.username?.[0]?.toUpperCase() || 'U'}
+        </div>
+        <div>
+          <div style={navStyles.userName}>{user?.username || 'User'}</div>
+          <div style={navStyles.userRole}>{user?.role?.toUpperCase() || 'USER'}</div>
+        </div>
+        <button onClick={logout} style={navStyles.logoutBtn}>
+          ⏻ Logout
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+const navStyles = {
+  root: {
+    display: 'flex', alignItems: 'center', gap: 0,
+    height: 52, flexShrink: 0,
+    background: '#0d1117',
+    borderBottom: '1px solid rgba(255,255,255,0.06)',
+    padding: '0 20px',
+    zIndex: 100,
+  },
+  logo: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    cursor: 'pointer', marginRight: 28, flexShrink: 0,
+  },
+  logoIcon: {
+    width: 30, height: 30, borderRadius: 8,
+    background: 'rgba(245,158,11,0.1)',
+    border: '1px solid rgba(245,158,11,0.3)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  logoText: { fontSize: 13, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 },
+  logoSub: { fontSize: 9, color: '#f59e0b', fontWeight: 700, letterSpacing: '0.12em', lineHeight: 1.4 },
+  links: { display: 'flex', alignItems: 'center', gap: 2, flex: 1 },
+  link: {
+    display: 'flex', alignItems: 'center', gap: 5,
+    background: 'transparent', border: 'none',
+    color: '#94a3b8', fontSize: 13, fontWeight: 500,
+    padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
+    transition: 'color 0.15s, background 0.15s',
+    whiteSpace: 'nowrap',
+  },
+  activeLink: { color: '#e2e8f0', background: 'rgba(255,255,255,0.07)' },
+  swotLink: {
+    background: 'rgba(245,158,11,0.15)',
+    border: '1px solid rgba(245,158,11,0.3)',
+    color: '#f59e0b', fontWeight: 700,
+  },
+  aiLink: {
+    background: 'rgba(6,182,212,0.12)',
+    border: '1px solid rgba(6,182,212,0.3)',
+    color: '#06b6d4', fontWeight: 700,
+  },
+  userArea: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 },
+  avatar: {
+    width: 30, height: 30, borderRadius: '50%',
+    background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0,
+  },
+  userName: { color: '#e2e8f0', fontSize: 13, fontWeight: 600, lineHeight: 1 },
+  userRole: { color: '#f59e0b', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1.6 },
+  logoutBtn: {
+    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)',
+    borderRadius: 6, padding: '5px 12px', color: '#f87171',
+    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+  },
+};
+
+// ════════════════════════════════════════════════════════════════════════════════
+// TYPING INDICATOR with political words
+// ════════════════════════════════════════════════════════════════════════════════
+function TypingIndicator() {
+  const [wordIdx, setWordIdx] = useState(0);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setWordIdx(i => (i + 1) % POLITICAL_WORDS.length);
+    }, 800);
+    return () => clearInterval(iv);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20, padding: '0 20px' }}>
+      <div style={chatStyles.aiAvatar}>
+        <BrainIcon size={20} color="#06b6d4" />
+      </div>
+      <div style={{ ...chatStyles.aiBubble, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: '#64748b', fontSize: 13, fontStyle: 'italic', minWidth: 100 }}>
+          {POLITICAL_WORDS[wordIdx]}…
+        </span>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <span className="typing-dot" />
+          <span className="typing-dot" style={{ animationDelay: '0.15s' }} />
+          <span className="typing-dot" style={{ animationDelay: '0.30s' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MARKDOWN RENDERER
 // ════════════════════════════════════════════════════════════════════════════════
 function renderMarkdown(text) {
   if (!text) return null;
   const lines = text.split('\n');
   const elements = [];
   let i = 0;
-
   while (i < lines.length) {
     const line = lines[i];
-
-    // Heading
     if (/^### (.+)/.test(line)) {
-      elements.push(<h3 key={i} style={styles.h3}>{line.replace(/^### /, '')}</h3>);
+      elements.push(<h3 key={i} style={mdStyles.h3}>{line.replace(/^### /, '')}</h3>);
     } else if (/^## (.+)/.test(line)) {
-      elements.push(<h2 key={i} style={styles.h2}>{line.replace(/^## /, '')}</h2>);
+      elements.push(<h2 key={i} style={mdStyles.h2}>{line.replace(/^## /, '')}</h2>);
     } else if (/^# (.+)/.test(line)) {
-      elements.push(<h1 key={i} style={styles.h1}>{line.replace(/^# /, '')}</h1>);
-    }
-    // Bullet
-    else if (/^[\-\*] (.+)/.test(line)) {
+      elements.push(<h1 key={i} style={mdStyles.h1}>{line.replace(/^# /, '')}</h1>);
+    } else if (/^[\-\*] (.+)/.test(line)) {
       const items = [];
       while (i < lines.length && /^[\-\*] (.+)/.test(lines[i])) {
-        items.push(<li key={i} style={styles.li}>{inlineFormat(lines[i].replace(/^[\-\*] /, ''))}</li>);
+        items.push(<li key={i} style={mdStyles.li}>{inlineFormat(lines[i].replace(/^[\-\*] /, ''))}</li>);
         i++;
       }
-      elements.push(<ul key={`ul-${i}`} style={styles.ul}>{items}</ul>);
+      elements.push(<ul key={`ul-${i}`} style={mdStyles.ul}>{items}</ul>);
       continue;
-    }
-    // Numbered list
-    else if (/^\d+\. (.+)/.test(line)) {
+    } else if (/^\d+\. (.+)/.test(line)) {
       const items = [];
       while (i < lines.length && /^\d+\. (.+)/.test(lines[i])) {
-        items.push(<li key={i} style={styles.li}>{inlineFormat(lines[i].replace(/^\d+\. /, ''))}</li>);
+        items.push(<li key={i} style={mdStyles.li}>{inlineFormat(lines[i].replace(/^\d+\. /, ''))}</li>);
         i++;
       }
-      elements.push(<ol key={`ol-${i}`} style={styles.ol}>{items}</ol>);
+      elements.push(<ol key={`ol-${i}`} style={mdStyles.ol}>{items}</ol>);
       continue;
-    }
-    // Code block
-    else if (line.startsWith('```')) {
+    } else if (line.startsWith('```')) {
       const codeLines = [];
       i++;
-      while (i < lines.length && !lines[i].startsWith('```')) {
-        codeLines.push(lines[i]);
-        i++;
-      }
-      elements.push(
-        <pre key={i} style={styles.pre}>
-          <code>{codeLines.join('\n')}</code>
-        </pre>
-      );
-    }
-    // Horizontal rule
-    else if (/^---+$/.test(line.trim())) {
-      elements.push(<hr key={i} style={styles.hr} />);
-    }
-    // Empty line
-    else if (line.trim() === '') {
-      elements.push(<div key={i} style={{ height: 8 }} />);
-    }
-    // Paragraph
-    else {
-      elements.push(<p key={i} style={styles.p}>{inlineFormat(line)}</p>);
+      while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
+      elements.push(<pre key={i} style={mdStyles.pre}><code>{codeLines.join('\n')}</code></pre>);
+    } else if (/^---+$/.test(line.trim())) {
+      elements.push(<hr key={i} style={mdStyles.hr} />);
+    } else if (line.trim() === '') {
+      elements.push(<div key={i} style={{ height: 6 }} />);
+    } else {
+      elements.push(<p key={i} style={mdStyles.p}>{inlineFormat(line)}</p>);
     }
     i++;
   }
@@ -123,149 +280,68 @@ function renderMarkdown(text) {
 }
 
 function inlineFormat(text) {
-  // bold **text**
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
   return parts.map((part, idx) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
+    if (part.startsWith('**') && part.endsWith('**'))
       return <strong key={idx} style={{ color: '#e2e8f0', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
-    }
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <code key={idx} style={styles.inlineCode}>{part.slice(1, -1)}</code>;
-    }
+    if (part.startsWith('`') && part.endsWith('`'))
+      return <code key={idx} style={mdStyles.inlineCode}>{part.slice(1, -1)}</code>;
     return part;
   });
 }
+
+const mdStyles = {
+  h1: { fontSize: 19, fontWeight: 800, color: '#e2e8f0', margin: '10px 0 5px', letterSpacing: '-0.02em' },
+  h2: { fontSize: 16, fontWeight: 700, color: '#c7d2fe', margin: '8px 0 4px' },
+  h3: { fontSize: 13, fontWeight: 700, color: '#06b6d4', margin: '7px 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  p: { margin: '3px 0', color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 },
+  ul: { margin: '5px 0', paddingLeft: 18 },
+  ol: { margin: '5px 0', paddingLeft: 18 },
+  li: { color: '#94a3b8', fontSize: 13, lineHeight: 1.7, marginBottom: 2 },
+  pre: { background: 'rgba(15,23,42,0.9)', borderRadius: 8, padding: '10px 14px', overflowX: 'auto', margin: '8px 0', border: '1px solid rgba(51,65,85,0.6)', fontSize: 12, color: '#7dd3fc', fontFamily: 'monospace' },
+  inlineCode: { background: 'rgba(6,182,212,0.15)', borderRadius: 4, padding: '1px 5px', color: '#67e8f9', fontSize: '0.9em', fontFamily: 'monospace' },
+  hr: { border: 'none', borderTop: '1px solid rgba(51,65,85,0.6)', margin: '10px 0' },
+};
 
 // ════════════════════════════════════════════════════════════════════════════════
 // CHART RENDERER
 // ════════════════════════════════════════════════════════════════════════════════
 function ChartRenderer({ spec }) {
   if (!spec) return null;
-
   const { type, title, labels = [], datasets = [] } = spec;
-
-  // Normalize recharts data format
   const chartData = labels.map((label, i) => {
     const point = { name: label };
-    datasets.forEach((ds) => {
-      point[ds.label] = ds.data[i] ?? 0;
-    });
+    datasets.forEach(ds => { point[ds.label] = ds.data[i] ?? 0; });
     return point;
   });
+  const pieData = labels.map((label, i) => ({ name: label, value: (datasets[0]?.data ?? [])[i] ?? 0 }));
+  const chartStyle = { background: 'rgba(15,23,42,0.7)', borderRadius: 12, padding: '16px 8px 8px', marginTop: 12, border: '1px solid rgba(245,158,11,0.15)' };
+  const titleEl = <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, marginBottom: 8, fontWeight: 600 }}>{title}</div>;
+  const tooltipStyle = { contentStyle: { background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }, labelStyle: { color: '#94a3b8' } };
 
-  // For pie/doughnut — single dataset
-  const pieData = labels.map((label, i) => ({
-    name: label,
-    value: (datasets[0]?.data ?? [])[i] ?? 0,
-  }));
-
-  const chartStyle = {
-    background: 'rgba(30,41,59,0.6)',
-    borderRadius: 12,
-    padding: '16px 8px 8px',
-    marginTop: 16,
-    border: '1px solid rgba(99,102,241,0.25)',
-  };
-
-  const titleEl = (
-    <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, marginBottom: 8, fontWeight: 600 }}>
-      {title}
+  if (type === 'pie' || type === 'doughnut') return (
+    <div style={chartStyle}>{titleEl}
+      <ResponsiveContainer width="100%" height={260}>
+        <PieChart><Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={type === 'doughnut' ? 60 : 0} outerRadius={95} paddingAngle={2} label={({ name, percent }) => `${name} ${(percent*100).toFixed(1)}%`} labelLine={{ stroke: '#475569' }}>
+          {pieData.map((_, idx) => <Cell key={idx} fill={PALETTE[idx % PALETTE.length]} />)}
+        </Pie><Tooltip {...tooltipStyle} /><Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} /></PieChart>
+      </ResponsiveContainer>
     </div>
   );
-
-  const tooltipStyle = {
-    contentStyle: { background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' },
-    labelStyle: { color: '#94a3b8' },
-  };
-
-  if (type === 'pie' || type === 'doughnut') {
-    return (
-      <div style={chartStyle}>
-        {titleEl}
-        <ResponsiveContainer width="100%" height={280}>
-          <PieChart>
-            <Pie
-              data={pieData} dataKey="value" nameKey="name"
-              cx="50%" cy="50%"
-              innerRadius={type === 'doughnut' ? 60 : 0}
-              outerRadius={100}
-              paddingAngle={2}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-              labelLine={{ stroke: '#475569' }}
-            >
-              {pieData.map((_, idx) => (
-                <Cell key={idx} fill={PALETTE[idx % PALETTE.length]} />
-              ))}
-            </Pie>
-            <Tooltip {...tooltipStyle} />
-            <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  if (type === 'radar') {
-    return (
-      <div style={chartStyle}>
-        {titleEl}
-        <ResponsiveContainer width="100%" height={280}>
-          <RadarChart data={chartData}>
-            <PolarGrid stroke="#334155" />
-            <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-            {datasets.map((ds, idx) => (
-              <Radar key={idx} name={ds.label} dataKey={ds.label}
-                stroke={PALETTE[idx % PALETTE.length]}
-                fill={PALETTE[idx % PALETTE.length]} fillOpacity={0.2} />
-            ))}
-            <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-            <Tooltip {...tooltipStyle} />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  if (type === 'line') {
-    return (
-      <div style={chartStyle}>
-        {titleEl}
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} />
-            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
-            <Tooltip {...tooltipStyle} />
-            <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-            {datasets.map((ds, idx) => (
-              <Line key={idx} type="monotone" dataKey={ds.label}
-                stroke={PALETTE[idx % PALETTE.length]} strokeWidth={2} dot={{ r: 3 }} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  // Default: bar / stackedBar
+  if (type === 'line') return (
+    <div style={chartStyle}>{titleEl}
+      <ResponsiveContainer width="100%" height={240}>
+        <LineChart data={chartData}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" /><XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} /><YAxis tick={{ fill: '#64748b', fontSize: 11 }} /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+          {datasets.map((ds, idx) => <Line key={idx} type="monotone" dataKey={ds.label} stroke={PALETTE[idx % PALETTE.length]} strokeWidth={2} dot={{ r: 3 }} />)}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
   return (
-    <div style={chartStyle}>
-      {titleEl}
-      <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={chartData} barCategoryGap="30%">
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-          <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }}
-            interval={chartData.length > 15 ? 2 : 0} angle={chartData.length > 10 ? -30 : 0}
-            textAnchor={chartData.length > 10 ? 'end' : 'middle'} height={chartData.length > 10 ? 50 : 30} />
-          <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
-          <Tooltip {...tooltipStyle} />
-          <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
-          {datasets.map((ds, idx) => (
-            <Bar key={idx} dataKey={ds.label}
-              fill={PALETTE[idx % PALETTE.length]}
-              stackId={type === 'stackedBar' ? 'stack' : undefined}
-              radius={type !== 'stackedBar' ? [3, 3, 0, 0] : undefined} />
-          ))}
+    <div style={chartStyle}>{titleEl}
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart data={chartData} barCategoryGap="30%"><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" /><XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} interval={chartData.length > 15 ? 2 : 0} angle={chartData.length > 10 ? -30 : 0} textAnchor={chartData.length > 10 ? 'end' : 'middle'} height={chartData.length > 10 ? 50 : 30} /><YAxis tick={{ fill: '#64748b', fontSize: 11 }} /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+          {datasets.map((ds, idx) => <Bar key={idx} dataKey={ds.label} fill={PALETTE[idx % PALETTE.length]} stackId={type === 'stackedBar' ? 'stack' : undefined} radius={type !== 'stackedBar' ? [3,3,0,0] : undefined} />)}
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -273,34 +349,25 @@ function ChartRenderer({ spec }) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// EXPORT BUTTON
+// EXPORT BAR
 // ════════════════════════════════════════════════════════════════════════════════
 function ExportBar({ exportSpec }) {
   const [loading, setLoading] = useState(false);
-
   const download = async (fmt) => {
     setLoading(true);
     try {
       const spec = { ...exportSpec, format: fmt };
-      const res  = await aiChatApi.export(spec);
-      const url  = URL.createObjectURL(new Blob([res.data]));
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = spec.filename || `export.${fmt}`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      alert('Export failed: ' + (e.userMessage || e.message));
-    } finally {
-      setLoading(false);
-    }
+      const res = await aiChatApi.export(spec);
+      const url = URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a'); a.href = url; a.download = spec.filename || `export.${fmt}`; a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('Export failed: ' + (e.userMessage || e.message)); }
+    finally { setLoading(false); }
   };
-
   return (
-    <div style={styles.exportBar}>
-      <span style={{ color: '#94a3b8', fontSize: 12, marginRight: 8 }}>📦 Export data:</span>
-      {['csv', 'xlsx', 'pdf'].map((fmt) => (
-        <button key={fmt} disabled={loading} onClick={() => download(fmt)} style={styles.exportBtn}>
+    <div style={{ display: 'flex', alignItems: 'center', marginTop: 10, background: 'rgba(15,23,42,0.6)', borderRadius: 8, padding: '8px 12px', border: '1px solid rgba(245,158,11,0.2)', flexWrap: 'wrap', gap: 6 }}>
+      <span style={{ color: '#94a3b8', fontSize: 12, marginRight: 8 }}>📦 Export:</span>
+      {['csv', 'xlsx', 'pdf'].map(fmt => (
+        <button key={fmt} disabled={loading} onClick={() => download(fmt)} style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#0d1117', fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.05em' }}>
           {fmt.toUpperCase()}
         </button>
       ))}
@@ -313,402 +380,43 @@ function ExportBar({ exportSpec }) {
 // ════════════════════════════════════════════════════════════════════════════════
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user';
-
   return (
-    <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 18 }}>
+    <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 20, padding: '0 20px' }}>
       {!isUser && (
-        <div style={styles.avatar}>
-          <span style={{ fontSize: 16 }}>🤖</span>
+        <div style={chatStyles.aiAvatar}>
+          <BrainIcon size={20} color="#06b6d4" />
         </div>
       )}
-      <div style={{ maxWidth: '78%', minWidth: 80 }}>
-        <div style={isUser ? styles.userBubble : styles.aiBubble}>
+      <div style={{ maxWidth: '76%', minWidth: 60 }}>
+        <div style={isUser ? chatStyles.userBubble : chatStyles.aiBubble}>
           {isUser
-            ? <p style={{ margin: 0, color: '#fff', lineHeight: 1.6 }}>{msg.content}</p>
+            ? <p style={{ margin: 0, color: '#fff', lineHeight: 1.6, fontSize: 14 }}>{msg.content}</p>
             : <div style={{ color: '#cbd5e1', lineHeight: 1.7 }}>{renderMarkdown(msg.content)}</div>
           }
         </div>
-
-        {/* Chart if present */}
         {msg.chartSpec && <ChartRenderer spec={msg.chartSpec} />}
-
-        {/* Export bar if present */}
         {msg.exportSpec && <ExportBar exportSpec={msg.exportSpec} />}
-
-        {/* Files used */}
         {msg.filesUsed?.length > 0 && (
-          <div style={styles.filesUsed}>
+          <div style={{ color: '#475569', fontSize: 10, marginTop: 6, background: 'rgba(15,23,42,0.5)', borderRadius: 4, padding: '4px 8px' }}>
             📁 Sources: {msg.filesUsed.join(' · ')}
           </div>
         )}
-
-        <div style={styles.timestamp}>{msg.timestamp}</div>
+        <div style={{ color: '#334155', fontSize: 10, marginTop: 4, textAlign: isUser ? 'right' : 'left' }}>{msg.timestamp}</div>
       </div>
       {isUser && (
-        <div style={{ ...styles.avatar, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', marginLeft: 10, marginRight: 0 }}>
-          <span style={{ fontSize: 14 }}>👤</span>
+        <div style={{ ...chatStyles.aiAvatar, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', marginLeft: 10, marginRight: 0, border: 'none' }}>
+          <span style={{ fontSize: 13 }}>👤</span>
         </div>
       )}
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// TYPING INDICATOR
-// ════════════════════════════════════════════════════════════════════════════════
-function TypingIndicator() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-      <div style={styles.avatar}><span style={{ fontSize: 16 }}>🤖</span></div>
-      <div style={{ ...styles.aiBubble, padding: '12px 18px' }}>
-        <div style={styles.typingDots}>
-          <span /><span /><span />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════════
-// DATA FILES PANEL
-// ════════════════════════════════════════════════════════════════════════════════
-function DataFilesPanel({ files, loading }) {
-  if (loading) return <div style={{ color: '#64748b', fontSize: 12, padding: 12 }}>Loading files…</div>;
-  if (!files.length) return (
-    <div style={{ color: '#64748b', fontSize: 12, padding: 12 }}>
-      No files in <code style={styles.inlineCode}>backend/data/</code> yet.<br />
-      Drop .xlsx .csv .pdf .docx files there to give the AI context.
-    </div>
-  );
-
-  return (
-    <div style={{ overflowY: 'auto', flex: 1 }}>
-      {files.map((f) => (
-        <div key={f.name} style={styles.fileItem}>
-          <span style={{ fontSize: 18 }}>{FILE_ICONS[f.ext] || '📄'}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: '#cbd5e1', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
-            <div style={{ color: '#475569', fontSize: 10 }}>{(f.size / 1024).toFixed(1)} KB · {f.ext.toUpperCase()}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ════════════════════════════════════════════════════════════════════════════════
-export default function AiChat() {
-  const [messages,    setMessages]    = useState([]);
-  const [input,       setInput]       = useState('');
-  const [loading,     setLoading]     = useState(false);
-  const [dataFiles,   setDataFiles]   = useState([]);
-  const [filesLoading,setFilesLoading]= useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [includeData, setIncludeData] = useState(true);
-  const bottomRef  = useRef(null);
-  const inputRef   = useRef(null);
-
-  // ── Load data files list ───────────────────────────────────────────────────
-  useEffect(() => {
-    aiChatApi.dataFiles()
-      .then(r => setDataFiles(r.data.files || []))
-      .catch(() => {})
-      .finally(() => setFilesLoading(false));
-  }, []);
-
-  // ── Auto-scroll ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
-
-  // ── Build history for API ──────────────────────────────────────────────────
-  const history = useMemo(() =>
-    messages.map(m => ({ role: m.role, content: m.content })),
-  [messages]);
-
-  // ── Send message ───────────────────────────────────────────────────────────
-  const send = useCallback(async (text) => {
-    const msg = (text || input).trim();
-    if (!msg || loading) return;
-    setInput('');
-
-    const userMsg = {
-      id: Date.now(), role: 'user', content: msg,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages(prev => [...prev, userMsg]);
-    setLoading(true);
-
-    try {
-      const { data } = await aiChatApi.send(msg, history, includeData);
-
-      const aiMsg = {
-        id:         Date.now() + 1,
-        role:       'assistant',
-        content:    data.reply    || '',
-        chartSpec:  data.chartSpec  || null,
-        exportSpec: data.exportSpec || null,
-        filesUsed:  data.filesUsed  || [],
-        timestamp:  new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev, aiMsg]);
-    } catch (e) {
-      const errMsg = {
-        id: Date.now() + 1, role: 'assistant',
-        content: `⚠️ **Error:** ${e.userMessage || e.message || 'Something went wrong. Please try again.'}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev, errMsg]);
-    } finally {
-      setLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [input, loading, history, includeData]);
-
-  const handleKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-  };
-
-  const clearChat = () => setMessages([]);
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ════════════════════════════════════════════════════════════════════════════
-  return (
-    <div style={styles.root}>
-      {/* ── HEADER ── */}
-      <div style={styles.header}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={styles.headerIcon}>🧠</div>
-          <div>
-            <div style={styles.headerTitle}>Constituency AI</div>
-            <div style={styles.headerSub}>Mangaluru South · Data-Grounded Intelligence</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Toggle data context */}
-          <label style={styles.toggleLabel}>
-            <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)}
-              style={{ accentColor: '#4f46e5', width: 14, height: 14 }} />
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>Use data files</span>
-          </label>
-          <button onClick={clearChat} style={styles.iconBtn} title="Clear chat">🗑️</button>
-          <button onClick={() => setSidebarOpen(p => !p)} style={styles.iconBtn} title="Toggle sidebar">
-            {sidebarOpen ? '◀' : '▶'}
-          </button>
-        </div>
-      </div>
-
-      {/* ── BODY ── */}
-      <div style={styles.body}>
-        {/* ── CHAT AREA ── */}
-        <div style={styles.chatArea}>
-          {/* Welcome / empty state */}
-          {messages.length === 0 && (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>🏛️</div>
-              <h2 style={styles.emptyTitle}>Constituency Intelligence Assistant</h2>
-              <p style={styles.emptyDesc}>
-                Ask anything about voters, wards, booth data, schemes, demographics, or election strategy.
-                The AI has access to your constituency data files.
-              </p>
-              {/* Suggested prompts */}
-              <div style={styles.suggestedGrid}>
-                {SUGGESTED.map((s, i) => (
-                  <button key={i} style={styles.suggestBtn} onClick={() => send(s)}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Messages */}
-          <div style={{ padding: '20px 24px' }}>
-            {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
-            {loading && <TypingIndicator />}
-            <div ref={bottomRef} />
-          </div>
-        </div>
-
-        {/* ── SIDEBAR ── */}
-        {sidebarOpen && (
-          <div style={styles.sidebar}>
-            <div style={styles.sidebarHeader}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em' }}>
-                📁 DATA SOURCES
-              </span>
-              <span style={{ color: '#4f46e5', fontSize: 11, fontWeight: 600 }}>
-                {dataFiles.length} files
-              </span>
-            </div>
-            <DataFilesPanel files={dataFiles} loading={filesLoading} />
-
-            <div style={styles.sidebarSection}>
-              <div style={styles.sidebarSectionTitle}>💡 QUICK PROMPTS</div>
-              {SUGGESTED.slice(0, 5).map((s, i) => (
-                <button key={i} style={styles.sideQuickBtn} onClick={() => send(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── INPUT BAR ── */}
-      <div style={styles.inputBar}>
-        <div style={styles.inputWrapper}>
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="Ask about voters, wards, schemes, demographics, election strategy…"
-            disabled={loading}
-            rows={1}
-            style={styles.textarea}
-            onInput={e => {
-              e.target.style.height = 'auto';
-              e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
-            }}
-          />
-          <button
-            onClick={() => send()}
-            disabled={loading || !input.trim()}
-            style={{
-              ...styles.sendBtn,
-              opacity: loading || !input.trim() ? 0.4 : 1,
-            }}
-          >
-            {loading ? '⏳' : '➤'}
-          </button>
-        </div>
-        <div style={styles.inputHint}>
-          Press <kbd style={styles.kbd}>Enter</kbd> to send · <kbd style={styles.kbd}>Shift+Enter</kbd> for new line
-        </div>
-      </div>
-
-      {/* ── TYPING ANIMATION CSS ── */}
-      <style>{`
-        @keyframes bounce {
-          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-          40%            { transform: translateY(-6px); opacity: 1; }
-        }
-        .typing-dot { width:7px; height:7px; border-radius:50%; background:#4f46e5; display:inline-block; animation: bounce 1.2s infinite; }
-        .typing-dot:nth-child(2) { animation-delay:0.15s; }
-        .typing-dot:nth-child(3) { animation-delay:0.30s; }
-      `}</style>
-    </div>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════════
-// STYLES
-// ════════════════════════════════════════════════════════════════════════════════
-const styles = {
-  root: {
-    display: 'flex', flexDirection: 'column',
-    height: '100vh', background: '#0f172a',
-    fontFamily: "'DM Sans', 'Inter', sans-serif",
-    overflow: 'hidden',
-  },
-  header: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '14px 24px',
-    background: 'linear-gradient(135deg,#1e1b4b 0%,#1e293b 100%)',
-    borderBottom: '1px solid rgba(99,102,241,0.3)',
-    flexShrink: 0,
-    zIndex: 10,
-  },
-  headerIcon: {
-    width: 40, height: 40, borderRadius: 10,
-    background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 20, flexShrink: 0,
-    boxShadow: '0 0 20px rgba(99,102,241,0.4)',
-  },
-  headerTitle: {
-    fontSize: 16, fontWeight: 800, color: '#e2e8f0', letterSpacing: '-0.02em',
-  },
-  headerSub: { fontSize: 11, color: '#64748b', marginTop: 1 },
-  toggleLabel: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' },
-  iconBtn: {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 14, color: '#94a3b8',
-    transition: 'background 0.2s',
-  },
-
-  body: {
-    display: 'flex', flex: 1, overflow: 'hidden',
-  },
-
-  chatArea: {
-    flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column',
-    scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent',
-  },
-
-  sidebar: {
-    width: 280, flexShrink: 0,
-    background: '#111827',
-    borderLeft: '1px solid rgba(99,102,241,0.15)',
-    display: 'flex', flexDirection: 'column',
-    overflowY: 'auto',
-    scrollbarWidth: 'thin', scrollbarColor: '#1e293b transparent',
-  },
-  sidebarHeader: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '14px 16px 10px',
-    borderBottom: '1px solid rgba(99,102,241,0.15)',
-    flexShrink: 0,
-  },
-  fileItem: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '9px 14px',
-    borderBottom: '1px solid rgba(30,41,59,0.8)',
-    transition: 'background 0.15s',
-    cursor: 'default',
-  },
-  sidebarSection: {
-    borderTop: '1px solid rgba(99,102,241,0.15)',
-    padding: '12px 14px',
-    flexShrink: 0,
-  },
-  sidebarSectionTitle: {
-    fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.07em', marginBottom: 8,
-  },
-  sideQuickBtn: {
-    display: 'block', width: '100%', textAlign: 'left',
-    background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)',
-    borderRadius: 6, padding: '7px 10px', marginBottom: 5,
-    color: '#94a3b8', fontSize: 11, cursor: 'pointer',
-    lineHeight: 1.4, transition: 'background 0.15s, color 0.15s',
-  },
-
-  emptyState: {
-    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', padding: '40px 32px', textAlign: 'center',
-  },
-  emptyIcon: { fontSize: 56, marginBottom: 16, filter: 'drop-shadow(0 0 20px rgba(99,102,241,0.5))' },
-  emptyTitle: { fontSize: 22, fontWeight: 800, color: '#e2e8f0', margin: '0 0 10px', letterSpacing: '-0.03em' },
-  emptyDesc: { color: '#64748b', fontSize: 14, maxWidth: 480, lineHeight: 1.7, marginBottom: 28 },
-  suggestedGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))',
-    gap: 8, maxWidth: 720, width: '100%',
-  },
-  suggestBtn: {
-    background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)',
-    borderRadius: 8, padding: '10px 14px', color: '#94a3b8',
-    fontSize: 12, cursor: 'pointer', textAlign: 'left', lineHeight: 1.5,
-    transition: 'background 0.2s, color 0.2s, border-color 0.2s',
-  },
-
-  avatar: {
+const chatStyles = {
+  aiAvatar: {
     width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-    background: 'linear-gradient(135deg,#1e293b,#334155)',
-    border: '1px solid rgba(99,102,241,0.3)',
+    background: 'rgba(6,182,212,0.1)',
+    border: '1px solid rgba(6,182,212,0.25)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     marginRight: 10, alignSelf: 'flex-start', marginTop: 2,
   },
@@ -719,79 +427,350 @@ const styles = {
     boxShadow: '0 4px 20px rgba(79,70,229,0.3)',
   },
   aiBubble: {
-    background: 'rgba(30,41,59,0.8)',
-    border: '1px solid rgba(51,65,85,0.8)',
+    background: 'rgba(15,23,42,0.9)',
+    border: '1px solid rgba(51,65,85,0.7)',
     borderRadius: '4px 16px 16px 16px',
     padding: '14px 18px',
-    backdropFilter: 'blur(8px)',
   },
-  timestamp: { color: '#334155', fontSize: 10, marginTop: 4, textAlign: 'right' },
-  filesUsed: {
-    color: '#475569', fontSize: 10, marginTop: 6,
-    background: 'rgba(15,23,42,0.5)', borderRadius: 4, padding: '4px 8px',
-  },
-  exportBar: {
-    display: 'flex', alignItems: 'center', marginTop: 10,
-    background: 'rgba(15,23,42,0.6)', borderRadius: 8,
-    padding: '8px 12px', border: '1px solid rgba(99,102,241,0.2)',
-    flexWrap: 'wrap', gap: 6,
-  },
-  exportBtn: {
-    background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
-    border: 'none', borderRadius: 6, padding: '4px 10px',
-    color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-    letterSpacing: '0.05em',
-  },
-
-  typingDots: { display: 'flex', gap: 4, alignItems: 'center', height: 18 },
-
-  inputBar: {
-    flexShrink: 0, padding: '14px 24px 18px',
-    background: '#0f172a',
-    borderTop: '1px solid rgba(99,102,241,0.2)',
-  },
-  inputWrapper: { display: 'flex', gap: 10, alignItems: 'flex-end' },
-  textarea: {
-    flex: 1, background: 'rgba(30,41,59,0.9)',
-    border: '1px solid rgba(99,102,241,0.3)', borderRadius: 12,
-    padding: '12px 16px', color: '#e2e8f0', fontSize: 14, lineHeight: 1.6,
-    resize: 'none', outline: 'none', fontFamily: 'inherit',
-    minHeight: 46, maxHeight: 140,
-    scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent',
-    transition: 'border-color 0.2s',
-  },
-  sendBtn: {
-    width: 46, height: 46, flexShrink: 0,
-    background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
-    border: 'none', borderRadius: 12,
-    color: '#fff', fontSize: 18, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 4px 15px rgba(79,70,229,0.4)',
-    transition: 'opacity 0.2s, transform 0.1s',
-  },
-  inputHint: { color: '#334155', fontSize: 11, marginTop: 8, textAlign: 'center' },
-  kbd: {
-    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 4, padding: '1px 5px', fontSize: 10, fontFamily: 'monospace', color: '#64748b',
-  },
-
-  // Markdown styles
-  h1: { fontSize: 20, fontWeight: 800, color: '#e2e8f0', margin: '12px 0 6px', letterSpacing: '-0.02em' },
-  h2: { fontSize: 17, fontWeight: 700, color: '#c7d2fe', margin: '10px 0 5px' },
-  h3: { fontSize: 14, fontWeight: 700, color: '#a5b4fc', margin: '8px 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  p:  { margin: '4px 0', color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 },
-  ul: { margin: '6px 0', paddingLeft: 20 },
-  ol: { margin: '6px 0', paddingLeft: 20 },
-  li: { color: '#94a3b8', fontSize: 13, lineHeight: 1.7, marginBottom: 2 },
-  pre: {
-    background: 'rgba(15,23,42,0.8)', borderRadius: 8, padding: '10px 14px',
-    overflowX: 'auto', margin: '8px 0',
-    border: '1px solid rgba(51,65,85,0.6)', fontSize: 12,
-    color: '#7dd3fc', fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-  },
-  inlineCode: {
-    background: 'rgba(99,102,241,0.15)', borderRadius: 4, padding: '1px 5px',
-    color: '#a5b4fc', fontSize: '0.9em', fontFamily: 'monospace',
-  },
-  hr: { border: 'none', borderTop: '1px solid rgba(51,65,85,0.6)', margin: '10px 0' },
 };
+
+// ════════════════════════════════════════════════════════════════════════════════
+// HISTORY SIDEBAR (LEFT)
+// ════════════════════════════════════════════════════════════════════════════════
+function HistorySidebar({ sessions, activeId, onSelect, onNew, open, onToggle }) {
+  return (
+    <div style={{
+      width: open ? 240 : 0,
+      flexShrink: 0,
+      background: '#080d14',
+      borderRight: open ? '1px solid rgba(255,255,255,0.06)' : 'none',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+      transition: 'width 0.25s ease',
+    }}>
+      {open && (
+        <>
+          {/* Sidebar header */}
+          <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <BrainIcon size={18} color="#06b6d4" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.04em' }}>ShaastrAI</span>
+            </div>
+            <button onClick={onNew} style={{
+              width: '100%', padding: '8px 12px',
+              background: 'rgba(6,182,212,0.08)', border: '1px dashed rgba(6,182,212,0.25)',
+              borderRadius: 8, color: '#94a3b8', fontSize: 12,
+              cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{ fontSize: 16, color: '#06b6d4' }}>+</span> New conversation
+            </button>
+          </div>
+
+          {/* Session list */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px', scrollbarWidth: 'thin', scrollbarColor: '#1e293b transparent' }}>
+            {sessions.length === 0 && (
+              <div style={{ color: '#374151', fontSize: 12, padding: '20px 8px', textAlign: 'center' }}>
+                No conversations yet
+              </div>
+            )}
+            {sessions.map(s => (
+              <button key={s.id} onClick={() => onSelect(s.id)} style={{
+                width: '100%', textAlign: 'left', padding: '9px 10px',
+                background: s.id === activeId ? 'rgba(6,182,212,0.1)' : 'transparent',
+                border: s.id === activeId ? '1px solid rgba(6,182,212,0.2)' : '1px solid transparent',
+                borderRadius: 7, marginBottom: 2, cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}>
+                <div style={{ color: s.id === activeId ? '#e2e8f0' : '#64748b', fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.title}
+                </div>
+                <div style={{ color: '#334155', fontSize: 10, marginTop: 2 }}>{s.date}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Quick prompts */}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '10px 10px', flexShrink: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#374151', letterSpacing: '0.07em', marginBottom: 7 }}>QUICK PROMPTS</div>
+            {SUGGESTED.slice(0, 4).map((s, i) => (
+              <div key={i} style={{ color: '#4b5563', fontSize: 11, padding: '4px 6px', cursor: 'pointer', borderRadius: 5, marginBottom: 2, lineHeight: 1.4 }}
+                onClick={() => onSelect('prompt:' + s)}>
+                {s}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════════════════════════
+export default function AiChat() {
+  const [sessions, setSessions]       = useState([]);
+  const [activeId, setActiveId]       = useState(null);
+  const [sessionMap, setSessionMap]   = useState({}); // id -> messages[]
+  const [input, setInput]             = useState('');
+  const [loading, setLoading]         = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [includeData, setIncludeData] = useState(true);
+  const [brainMoved, setBrainMoved]   = useState(false); // brain icon state
+
+  const bottomRef = useRef(null);
+  const inputRef  = useRef(null);
+
+  const messages = activeId ? (sessionMap[activeId] || []) : [];
+
+  // Move brain when first message sent
+  useEffect(() => {
+    if (messages.length > 0 && !brainMoved) setBrainMoved(true);
+  }, [messages.length]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  const history = useMemo(() =>
+    messages.map(m => ({ role: m.role, content: m.content })),
+  [messages]);
+
+  const createSession = useCallback((firstMsg) => {
+    const id = 'sess_' + Date.now();
+    const title = firstMsg.length > 36 ? firstMsg.slice(0, 36) + '…' : firstMsg;
+    const date = new Date().toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const session = { id, title, date };
+    setSessions(prev => [session, ...prev]);
+    setActiveId(id);
+    setSessionMap(prev => ({ ...prev, [id]: [] }));
+    return id;
+  }, []);
+
+  const send = useCallback(async (text) => {
+    const msg = (text || input).trim();
+    if (!msg || loading) return;
+    setInput('');
+
+    let sid = activeId;
+    if (!sid) { sid = createSession(msg); }
+
+    const userMsg = {
+      id: Date.now(), role: 'user', content: msg,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setSessionMap(prev => ({ ...prev, [sid]: [...(prev[sid] || []), userMsg] }));
+    setLoading(true);
+
+    try {
+      const { data } = await aiChatApi.send(msg, history, includeData);
+      const aiMsg = {
+        id: Date.now() + 1, role: 'assistant',
+        content: data.reply || '',
+        chartSpec: data.chartSpec || null,
+        exportSpec: data.exportSpec || null,
+        filesUsed: data.filesUsed || [],
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setSessionMap(prev => ({ ...prev, [sid]: [...(prev[sid] || []), aiMsg] }));
+    } catch (e) {
+      const errMsg = {
+        id: Date.now() + 1, role: 'assistant',
+        content: `⚠️ **Error:** ${e.userMessage || e.message || 'Something went wrong.'}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setSessionMap(prev => ({ ...prev, [sid]: [...(prev[sid] || []), errMsg] }));
+    } finally {
+      setLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [input, loading, history, includeData, activeId, createSession]);
+
+  const handleKey = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  };
+
+  const handleSidebarSelect = (id) => {
+    if (id.startsWith('prompt:')) {
+      send(id.replace('prompt:', ''));
+    } else {
+      setActiveId(id);
+    }
+  };
+
+  const handleNew = () => {
+    setActiveId(null);
+    setBrainMoved(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const hasMessages = messages.length > 0;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0d1117', fontFamily: "'DM Sans', 'Inter', sans-serif", overflow: 'hidden' }}>
+
+      {/* ── NAVBAR ── */}
+      <Navbar hasMessages={hasMessages} />
+
+      {/* ── BODY ── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+        {/* ── LEFT SIDEBAR: Chat History ── */}
+        <HistorySidebar
+          sessions={sessions}
+          activeId={activeId}
+          onSelect={handleSidebarSelect}
+          onNew={handleNew}
+          open={sidebarOpen}
+          onToggle={() => setSidebarOpen(p => !p)}
+        />
+
+        {/* ── MAIN CHAT AREA ── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+
+          {/* Sidebar toggle tab */}
+          <button onClick={() => setSidebarOpen(p => !p)} style={{
+            position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+            zIndex: 10, width: 18, height: 48,
+            background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)',
+            borderLeft: 'none', borderRadius: '0 6px 6px 0',
+            color: '#06b6d4', cursor: 'pointer', fontSize: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {sidebarOpen ? '‹' : '›'}
+          </button>
+
+          {/* ── EMPTY STATE: Brain in center ── */}
+          {!hasMessages && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', textAlign: 'center' }}>
+              {/* Animated brain */}
+              <div style={{ marginBottom: 28, animation: 'brainPulse 2.5s ease-in-out infinite' }}>
+                <BrainIcon size={72} color="#06b6d4" glow />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.18em', marginBottom: 10 }}>SHAASTR AI</div>
+              <h2 style={{ fontSize: 26, fontWeight: 800, color: '#e2e8f0', margin: '0 0 12px', letterSpacing: '-0.03em' }}>
+                Constituency Intelligence
+              </h2>
+              <p style={{ color: '#4b5563', fontSize: 14, maxWidth: 480, lineHeight: 1.8, marginBottom: 32 }}>
+                Ask anything about voters, wards, booth data, schemes, demographics, or election strategy.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 8, maxWidth: 680, width: '100%' }}>
+                {SUGGESTED.map((s, i) => (
+                  <button key={i} onClick={() => send(s)} style={{
+                    background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.15)',
+                    borderRadius: 8, padding: '10px 13px', color: '#64748b',
+                    fontSize: 12, cursor: 'pointer', textAlign: 'left', lineHeight: 1.5,
+                    transition: 'all 0.2s',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.4)'; e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'rgba(6,182,212,0.1)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.15)'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(6,182,212,0.05)'; }}
+                  >{s}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── MESSAGES ── */}
+          {hasMessages && (
+            <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, scrollbarWidth: 'thin', scrollbarColor: '#1e293b transparent' }}>
+              {/* Brain logo top-left when chat active */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', marginBottom: 16 }}>
+                <BrainIcon size={22} color="#06b6d4" glow />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.1em' }}>SHAASTR AI</span>
+                <div style={{ flex: 1 }} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)} style={{ accentColor: '#06b6d4', width: 13, height: 13 }} />
+                  <span style={{ color: '#4b5563', fontSize: 11 }}>Use data files</span>
+                </label>
+                <button onClick={handleNew} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '4px 10px', color: '#4b5563', fontSize: 11, cursor: 'pointer' }}>
+                  + New
+                </button>
+              </div>
+
+              {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
+              {loading && <TypingIndicator />}
+              <div ref={bottomRef} style={{ height: 20 }} />
+            </div>
+          )}
+
+          {/* ── INPUT BAR (shorter, centered) ── */}
+          <div style={{ flexShrink: 0, padding: '12px 20px 16px', background: '#0d1117', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {!hasMessages && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', justifyContent: 'center', marginBottom: 8 }}>
+                <input type="checkbox" checked={includeData} onChange={e => setIncludeData(e.target.checked)} style={{ accentColor: '#06b6d4', width: 13, height: 13 }} />
+                <span style={{ color: '#4b5563', fontSize: 11 }}>Include constituency data files</span>
+              </label>
+            )}
+            <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKey}
+                placeholder="Ask about voters, wards, schemes, strategy…"
+                disabled={loading}
+                rows={1}
+                style={{
+                  flex: 1, background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(6,182,212,0.2)', borderRadius: 12,
+                  padding: '10px 14px', color: '#e2e8f0', fontSize: 14, lineHeight: 1.5,
+                  resize: 'none', outline: 'none', fontFamily: 'inherit',
+                  minHeight: 42, maxHeight: 120,
+                  scrollbarWidth: 'thin', scrollbarColor: '#1e293b transparent',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => { e.target.style.borderColor = 'rgba(6,182,212,0.5)'; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(6,182,212,0.2)'; }}
+                onInput={e => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                }}
+              />
+              <button
+                onClick={() => send()}
+                disabled={loading || !input.trim()}
+                style={{
+                  width: 42, height: 42, flexShrink: 0,
+                  background: loading || !input.trim() ? 'rgba(6,182,212,0.15)' : 'linear-gradient(135deg,#06b6d4,#0891b2)',
+                  border: 'none', borderRadius: 10,
+                  color: '#fff', fontSize: 17, cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: loading || !input.trim() ? 'none' : '0 4px 15px rgba(6,182,212,0.35)',
+                  transition: 'all 0.2s',
+                  opacity: loading || !input.trim() ? 0.4 : 1,
+                }}
+              >
+                {loading ? '⏳' : '➤'}
+              </button>
+            </div>
+            <div style={{ color: '#1e293b', fontSize: 11, marginTop: 6, textAlign: 'center' }}>
+              <kbd style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, padding: '1px 5px', fontSize: 10, fontFamily: 'monospace', color: '#374151' }}>Enter</kbd> to send ·{' '}
+              <kbd style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, padding: '1px 5px', fontSize: 10, fontFamily: 'monospace', color: '#374151' }}>Shift+Enter</kbd> for new line
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── GLOBAL CSS ── */}
+      <style>{`
+        @keyframes bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+          40% { transform: translateY(-5px); opacity: 1; }
+        }
+        @keyframes brainPulse {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.06); opacity: 1; }
+        }
+        .typing-dot {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: #06b6d4; display: inline-block;
+          animation: bounce 1.2s infinite;
+        }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+      `}</style>
+    </div>
+  );
+}
