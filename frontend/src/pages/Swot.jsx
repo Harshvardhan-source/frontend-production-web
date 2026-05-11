@@ -397,9 +397,13 @@ const DEFAULT_BULLET_COLOR = { accent: '#94a3b8', bg: 'rgba(148,163,184,0.06)', 
 // ── Client-side JSON recovery: if backend sent raw JSON as the summary ────────
 // ── Extract a quoted string value for a given key from (possibly truncated) JSON ─
 function _rxStr(raw, key) {
-  const m = raw.match(new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"'));
-  if (!m) return null;
-  try { return JSON.parse('"' + m[1] + '"'); } catch { return m[1]; }
+  // Full match: closing quote present
+  const full = raw.match(new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"'));
+  if (full) { try { return JSON.parse('"' + full[1] + '"'); } catch { return full[1]; } }
+  // Partial match: string was truncated — grab everything after the opening quote
+  const partial = raw.match(new RegExp('"' + key + '"\\s*:\\s*"([\\s\\S]*)'));
+  if (partial) return partial[1].replace(/\\n/g, ' ').replace(/\\"/g, '"').trim();
+  return null;
 }
 
 function recoverOverview(ov) {
@@ -412,16 +416,16 @@ function recoverOverview(ov) {
 
   const raw = typeof ov.summary === 'string' ? ov.summary.trim() : '';
 
-  // No leakage — use as-is
+  // No leakage — use as-is (includes the clean error message from the new backend fallback)
   if (!raw.startsWith('{')) return ov;
 
-  // Case 2: summary contains the entire valid JSON (backend lstrip worked)
+  // Case 2: summary contains the full valid JSON (backend parse succeeded differently)
   try {
     const full = JSON.parse(raw);
     if (full?.headline) return full;
   } catch { /* truncated — fall through to regex extraction */ }
 
-  // Case 3: truncated JSON — regex-mine what we can ─────────────────────────
+  // Case 3: truncated JSON — regex-mine each field individually ──────────────
   const headline = _rxStr(raw, 'headline') || ov.headline || '';
   const summary  = _rxStr(raw, 'summary')  || '';
 
@@ -635,7 +639,7 @@ function SwotAIOverview({ tab }) {
           {/* ── Sparse-content fallback (recovery yielded only a headline) ─── */}
           {!overview.summary && !(overview.bullets?.length) && !overview.callout && (
             <div style={{
-              padding: '18px 20px 20px',
+              padding: '20px 20px 22px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center',
             }}>
               <div style={{
@@ -646,10 +650,10 @@ function SwotAIOverview({ tab }) {
               }}>⚡</div>
               <div>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: '#e2e8f0', marginBottom: 5 }}>
-                  Analysis incomplete — server returned a partial response
+                  Response incomplete — please regenerate
                 </div>
                 <div style={{ fontSize: 11.5, color: 'rgba(148,163,184,0.75)', lineHeight: 1.6, maxWidth: 340 }}>
-                  The AI model response couldn't be parsed fully. Tap <span style={{ color: '#fbbf24', fontWeight: 700 }}>Regenerate</span> to try again — this usually resolves on the next attempt.
+                  The AI model returned a partial response this time. Tap <span style={{ color: '#fbbf24', fontWeight: 700 }}>Retry Now</span> — it resolves on the next attempt.
                 </div>
               </div>
               <button
