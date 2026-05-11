@@ -2599,6 +2599,235 @@ function HouseMembersPanel({ house, onBack }) {
 }
 
 // ─── Large Families Modal ─────────────────────────────────────────────────────
+// ─── Local Places Modal ───────────────────────────────────────────────────────
+const PLACE_TYPE_CFG = {
+  club:    { label:'Local Club',  color:'#f59e0b', icon:(
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  )},
+  temple:  { label:'Temple',     color:'#f97316', icon:(
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7h20L12 2z"/><rect x="4" y="7" width="16" height="13"/><rect x="9" y="12" width="6" height="8"/><line x1="12" y1="7" x2="12" y2="2"/></svg>
+  )},
+  church:  { label:'Church',     color:'#8b5cf6', icon:(
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/><path d="M5 20v-8l7-5 7 5v8H5z"/><rect x="9" y="14" width="6" height="6"/></svg>
+  )},
+  mosque:  { label:'Mosque',     color:'#10b981', icon:(
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/><path d="M12 3a3 3 0 0 1 3 3"/><path d="M9 6a3 3 0 0 1 3-3"/><rect x="9" y="14" width="6" height="6"/></svg>
+  )},
+};
+
+function LocalPlacesModal({ onClose }) {
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState('');
+  const [total,        setTotal]        = useState(0);
+  const [counts,       setCounts]       = useState({ club:0, temple:0, church:0, mosque:0 });
+  const [byWard,       setByWard]       = useState([]);
+  const [search,       setSearch]       = useState('');
+  const [activeType,   setActiveType]   = useState('all');
+  const [expandedWard, setExpandedWard] = useState(null);
+
+  useEffect(() => {
+    api.get('/api/local-places-summary/')
+      .then(r => {
+        if (r.data.success) {
+          setTotal(r.data.total || 0);
+          setCounts(r.data.counts || {});
+          setByWard(r.data.byWard || []);
+          if (r.data.byWard?.length) setExpandedWard(r.data.byWard[0].ward);
+        } else { setError(r.data.message || 'Failed to load.'); }
+      })
+      .catch(e => setError(e.userMessage || 'Network error.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Filter wards by search + active type
+  const filtered = byWard
+    .map(w => ({
+      ...w,
+      places: w.places.filter(p =>
+        (activeType === 'all' || p.type === activeType) &&
+        (!search || p.name.toLowerCase().includes(search.toLowerCase()) ||
+          w.wardName.toLowerCase().includes(search.toLowerCase()) ||
+          (p.address || '').toLowerCase().includes(search.toLowerCase()))
+      ),
+    }))
+    .filter(w => w.places.length > 0);
+
+  const PIN_ICON = (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  );
+
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', overflowY:'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:780, background:'linear-gradient(160deg, #0d1b30 0%, #090e1c 100%)', border:'1px solid rgba(245,158,11,0.18)', borderRadius:20, overflow:'hidden', boxShadow:'0 32px 80px rgba(0,0,0,0.65)', display:'flex', flexDirection:'column', maxHeight:'88vh' }}>
+
+        {/* ── Header ── */}
+        <div style={{ padding:'20px 24px 16px', background:'rgba(245,158,11,0.05)', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <div style={{ width:40, height:40, borderRadius:10, background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.25)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <div>
+                <div style={{ fontSize:16, fontWeight:800, color:'#e2e8f0' }}>
+                  Local Places
+                  {!loading && <span style={{ marginLeft:8, fontSize:12, fontWeight:400, color:'rgba(255,255,255,0.35)' }}>{total} places across {byWard.length} wards</span>}
+                </div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Clubs · Temples · Churches · Mosques</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32, cursor:'pointer', fontSize:15, color:'rgba(255,255,255,0.45)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+          </div>
+
+          {/* Type count badges */}
+          {!loading && (
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {[{ key:'all', label:'All', count:total, color:'#94a3b8' },
+                ...Object.entries(PLACE_TYPE_CFG).map(([k,v]) => ({ key:k, label:v.label, count:counts[k]||0, color:v.color }))
+              ].map(t => (
+                <button key={t.key} onClick={() => setActiveType(t.key)}
+                  style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 10px', borderRadius:8,
+                    background: activeType===t.key ? `${t.color}18` : 'rgba(255,255,255,0.04)',
+                    border:`1px solid ${activeType===t.key ? t.color+'44' : 'rgba(255,255,255,0.08)'}`,
+                    color: activeType===t.key ? t.color : 'rgba(255,255,255,0.4)',
+                    fontSize:11, fontWeight:700, cursor:'pointer', transition:'all 0.15s', fontFamily:'inherit',
+                  }}>
+                  {t.key !== 'all' && <span style={{ color: activeType===t.key ? t.color : 'rgba(255,255,255,0.3)', display:'flex' }}>{PLACE_TYPE_CFG[t.key].icon}</span>}
+                  {t.label}
+                  <span style={{ background:`${t.color}18`, color:t.color, borderRadius:5, padding:'1px 6px', fontSize:10, fontWeight:800, minWidth:18, textAlign:'center' }}>{t.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Search ── */}
+        <div style={{ padding:'10px 24px 0', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'7px 12px' }}>
+            <span style={{ color:'rgba(255,255,255,0.28)', fontSize:14 }}>⌕</span>
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Filter by ward, place name or address…"
+              style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'#fff' }} />
+            {search && <button onClick={() => setSearch('')} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.3)', fontSize:12, padding:0 }}>✕</button>}
+          </div>
+        </div>
+
+        {/* ── Body ── */}
+        <div style={{ flex:1, overflowY:'auto', padding:'12px 24px 24px' }}>
+          {loading && (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {[1,2,3].map(i => <div key={i} style={{ height:64, borderRadius:12, background:'rgba(255,255,255,0.04)', animation:'pulse 1.6s ease-in-out infinite' }} />)}
+            </div>
+          )}
+          {error && <div style={{ padding:'20px 0', color:'#f87171', textAlign:'center', fontSize:14 }}>⚠ {error}</div>}
+          {!loading && !error && total === 0 && (
+            <div style={{ textAlign:'center', padding:'48px 0', color:'rgba(255,255,255,0.25)' }}>
+              <div style={{ fontSize:34, marginBottom:8 }}>📍</div>
+              <div style={{ fontWeight:600 }}>No local places added yet</div>
+              <div style={{ fontSize:12, marginTop:6, color:'rgba(255,255,255,0.15)' }}>Add clubs, temples, churches & mosques from the Ward dashboard</div>
+            </div>
+          )}
+          {!loading && total > 0 && filtered.length === 0 && (
+            <div style={{ textAlign:'center', padding:'32px 0', color:'rgba(255,255,255,0.25)' }}>
+              <div style={{ fontSize:28, marginBottom:8 }}>🔍</div>
+              <div style={{ fontWeight:600 }}>No results found</div>
+            </div>
+          )}
+          {!loading && filtered.map(ward => {
+            const isOpen = expandedWard === ward.ward;
+            const typeCounts = Object.entries(PLACE_TYPE_CFG)
+              .map(([k,v]) => ({ key:k, ...v, n: ward.places.filter(p=>p.type===k).length }))
+              .filter(t => t.n > 0);
+            return (
+              <div key={ward.ward} style={{ marginBottom:10 }}>
+                {/* Ward header row */}
+                <div onClick={() => setExpandedWard(isOpen ? null : ward.ward)}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 16px',
+                    background: isOpen ? 'rgba(245,158,11,0.07)' : 'rgba(255,255,255,0.025)',
+                    border:`1px solid ${isOpen ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                    borderRadius: isOpen ? '12px 12px 0 0' : 12, cursor:'pointer', transition:'all 0.15s',
+                  }}>
+                  <div style={{ width:38, height:38, borderRadius:9, flexShrink:0,
+                    background: isOpen ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)',
+                    border:`1px solid ${isOpen ? 'rgba(245,158,11,0.28)' : 'rgba(255,255,255,0.09)'}`,
+                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ fontSize:8, fontWeight:700, color: isOpen ? '#f59e0b' : 'rgba(255,255,255,0.25)', letterSpacing:'0.4px', textTransform:'uppercase' }}>Ward</span>
+                    <span style={{ fontSize:13, fontWeight:900, color: isOpen ? '#f59e0b' : 'rgba(255,255,255,0.45)', lineHeight:1 }}>{ward.ward}</span>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color: isOpen ? '#e2e8f0' : 'rgba(255,255,255,0.7)' }}>{ward.wardName}</div>
+                    <div style={{ display:'flex', gap:5, marginTop:4, flexWrap:'wrap' }}>
+                      {typeCounts.map(t => (
+                        <span key={t.key} style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, fontWeight:700,
+                          color:t.color, background:`${t.color}14`, border:`1px solid ${t.color}28`, borderRadius:5, padding:'1px 6px' }}>
+                          <span style={{ display:'flex', color:t.color }}>{t.icon}</span>
+                          {t.n} {t.label}{t.n>1?'s':''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:12, fontWeight:800, color: isOpen ? '#f59e0b' : 'rgba(255,255,255,0.3)',
+                      background: isOpen ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)',
+                      borderRadius:6, padding:'3px 8px' }}>{ward.places.length} places</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" strokeLinecap="round"
+                      style={{ flexShrink:0, transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition:'transform 0.2s' }}>
+                      <path d="M9 6l6 6-6 6"/>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Expanded place list */}
+                {isOpen && (
+                  <div style={{ background:'rgba(10,18,35,0.6)', border:'1px solid rgba(245,158,11,0.12)', borderTop:'none', borderRadius:'0 0 12px 12px', padding:'8px 12px 12px' }}>
+                    {/* Group by type */}
+                    {Object.entries(PLACE_TYPE_CFG).map(([typeKey, typeCfg]) => {
+                      const places = ward.places.filter(p => p.type === typeKey);
+                      if (!places.length) return null;
+                      return (
+                        <div key={typeKey} style={{ marginTop:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6, paddingLeft:4 }}>
+                            <span style={{ color:typeCfg.color, display:'flex' }}>{typeCfg.icon}</span>
+                            <span style={{ fontSize:10, fontWeight:800, color:typeCfg.color, textTransform:'uppercase', letterSpacing:'0.06em' }}>{typeCfg.label}s ({places.length})</span>
+                          </div>
+                          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                            {places.map(p => (
+                              <div key={p._id} style={{ display:'flex', alignItems:'center', gap:10,
+                                background:`${typeCfg.color}08`, border:`1px solid ${typeCfg.color}18`,
+                                borderRadius:9, padding:'8px 12px' }}>
+                                <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
+                                  background:`${typeCfg.color}14`, border:`1px solid ${typeCfg.color}25`,
+                                  display:'flex', alignItems:'center', justifyContent:'center', color:typeCfg.color }}>
+                                  {typeCfg.icon}
+                                </div>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
+                                  {p.address && (
+                                    <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:2, display:'flex', alignItems:'center', gap:4 }}>
+                                      <span style={{ color:'rgba(255,255,255,0.2)' }}>{PIN_ICON}</span>
+                                      {p.address}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Large Families Modal ─────────────────────────────────────────────────────
 function LargeFamiliesModal({ onClose }) {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState('');
@@ -2744,6 +2973,9 @@ export default function Dashboard() {
   const [boothError,        setBoothError]        = useState('');
 
   const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
+  const [localPlacesOpen,   setLocalPlacesOpen]   = useState(false);
+  const [localPlacesTotal,  setLocalPlacesTotal]  = useState(null);
+  const [localPlacesCounts, setLocalPlacesCounts] = useState({});
 
   const [query, setQuery]         = useState('');
   const [searching, setSearching] = useState(false);
@@ -2761,6 +2993,16 @@ export default function Dashboard() {
 
     dashboardApi.serialNumber()
       .then(r => setNextSerial(r.data.serialNumber || 1))
+      .catch(() => {});
+
+    // Local Places — constituency-wide count for stat card
+    api.get('/api/local-places-summary/')
+      .then(r => {
+        if (r.data.success) {
+          setLocalPlacesTotal(r.data.total || 0);
+          setLocalPlacesCounts(r.data.counts || {});
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -2855,6 +3097,16 @@ export default function Dashboard() {
       value: RISK_WARD_NUMS.length.toString(),
       icon: '⚠', color: '#ef4444', sub: 'SIR action required',
       isRisk: true,
+    },
+    {
+      label: 'Local Places',
+      value: localPlacesTotal != null ? localPlacesTotal.toString() : null,
+      icon: '📍',
+      color: '#f59e0b',
+      sub: localPlacesTotal != null
+        ? `${localPlacesCounts.temple||0} temples · ${localPlacesCounts.church||0} churches · ${localPlacesCounts.mosque||0} mosques · ${localPlacesCounts.club||0} clubs`
+        : 'Clubs, temples, churches, mosques',
+      isLocalPlaces: true,
     },
   ];
 
@@ -3389,14 +3641,18 @@ export default function Dashboard() {
                 <StatCardSkeleton key={c.label} />
               ) : (
                 <div key={c.label}
-                  onClick={c.label === 'Large Families' ? () => setLargeFamiliesOpen(true) : undefined}
+                  onClick={
+                    c.label === 'Large Families' ? () => setLargeFamiliesOpen(true) :
+                    c.isLocalPlaces             ? () => setLocalPlacesOpen(true)   :
+                    undefined
+                  }
                   className="touch-btn"
                   style={{
                     background: 'linear-gradient(145deg, rgba(17,28,52,0.95) 0%, rgba(10,18,35,0.98) 100%)',
                     border: `1px solid ${c.color}28`, borderRadius: 16, padding: '16px 14px',
                     position: 'relative', overflow: 'hidden',
                     boxShadow: `0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)`,
-                    cursor: (c.label === 'Large Families' || c.label === 'Risk Wards') ? 'pointer' : 'default',
+                    cursor: (c.label === 'Large Families' || c.label === 'Risk Wards' || c.isLocalPlaces) ? 'pointer' : 'default',
                     minHeight: 100,
                   }}
                 >
@@ -3408,7 +3664,7 @@ export default function Dashboard() {
                   <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 7 }}>{c.value ?? '—'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', fontWeight: 500, lineHeight: 1.3 }}>{c.sub}</div>
-                    {(c.label === 'Large Families' || c.label === 'Risk Wards') && (
+                    {(c.label === 'Large Families' || c.label === 'Risk Wards' || c.isLocalPlaces) && (
                       <span style={{ fontSize: 10, color: `${c.color}95`, background: `${c.color}15`, border: `1px solid ${c.color}28`, borderRadius: 6, padding: '3px 7px', fontWeight: 700, flexShrink: 0 }}>View ›</span>
                     )}
                   </div>
@@ -3697,6 +3953,7 @@ export default function Dashboard() {
       </div>
     </div>
     {largeFamiliesOpen && <LargeFamiliesModal onClose={() => setLargeFamiliesOpen(false)} />}
+    {localPlacesOpen   && <LocalPlacesModal   onClose={() => setLocalPlacesOpen(false)} />}
     </>
   );
 }
