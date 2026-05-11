@@ -262,40 +262,500 @@ const TABS = [
   { id: 'election',   label: 'Prev. Election',       Icon: HistoryIcon },
   { id: 'ml',         label: 'Shaastra SWOT',        Icon: Crosshair   },
 ];
+// ════════════════════════════════════════════════════════════════════════════════
+// TAB DATA SERIALISERS
+// Each function converts the tab's hardcoded JS constants into a compact
+// structured text block sent to the backend as the AI's sole data source.
+// The AI analyses ONLY what the user is seeing — no MongoDB, no Files API.
+// ════════════════════════════════════════════════════════════════════════════════
+
+function serializeSwotData() {
+  const lines = [
+    '=== POLITICAL SWOT — Mangaluru City South 2023 ===',
+    'Total wards: 38 | BJP won: 25 (65.8%) | Congress won: 13 (34.2%)',
+    'BJP total votes: 66,451 | Congress total votes: 89,998',
+    'BJP overall vote share: 56.1% | Congress: 42.0%',
+    '',
+  ];
+  for (const [k, q] of Object.entries(swotPoints)) {
+    lines.push(`--- ${q.title.toUpperCase()} (${q.subtitle}) ---`);
+    q.items.forEach(it => lines.push(`• [${it.stat}] ${it.label}: ${it.detail}`));
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+function serializeWardData() {
+  const lines = [
+    '=== WARD STRENGTH — Mangaluru City South 2023 ===',
+    'Ward                   Voters  BJP%   INC%   Lead%   Category  PollStatus  Turnout%',
+  ];
+  wardData.forEach(w => {
+    const lead = (w.lead >= 0 ? '+' : '') + w.lead.toFixed(1) + '%';
+    lines.push(`${w.ward.padEnd(22)} ${String(w.voters).padStart(6)} ${String(w.bjpPct.toFixed(1)).padStart(6)} ${String(w.congPct.toFixed(1)).padStart(6)} ${lead.padStart(7)}  ${w.cat.padEnd(9)} ${w.ps.padEnd(11)} ${w.turnout.toFixed(1)}%`);
+  });
+  const bjpW  = wardData.filter(w => w.winner === 'BJP');
+  const conW  = wardData.filter(w => w.winner === 'CONGRESS');
+  const narrow = bjpW.filter(w => w.cat === 'NARROW');
+  const strong = bjpW.filter(w => w.cat === 'STRONG');
+  const avgPS  = wardData.filter(w => w.ps === 'AVG');
+  lines.push('');
+  lines.push(`BJP wards: ${bjpW.length} | Congress: ${conW.length}`);
+  lines.push(`STRONG BJP (>40% lead): ${strong.map(w => `${w.ward}(${w.bjpPct.toFixed(0)}%)`).join(', ')}`);
+  lines.push(`NARROW BJP (<10% lead): ${narrow.map(w => `${w.ward} +${w.lead.toFixed(1)}%`).join(', ')}`);
+  lines.push(`AVG polling wards (low turnout): ${avgPS.map(w => `${w.ward} ${w.turnout.toFixed(1)}%`).join(', ')}`);
+  return lines.join('\n');
+}
+
+function serializeDemographicData() {
+  const lines = [
+    '=== DEMOGRAPHIC ANALYSIS — Mangaluru City South ===',
+    '',
+    '--- Muslim-Dominant Booths ---',
+    'Ward             Booth  Voters  Muslim%  BJP%   INC%   Risk',
+  ];
+  muslimBooths.forEach(b => {
+    lines.push(`${b.ward.padEnd(16)} ${String(b.booth).padStart(5)} ${String(b.voters).padStart(6)} ${String(b.muslimPct.toFixed(1)).padStart(7)}% ${String(b.bjpPct.toFixed(1)).padStart(5)}% ${String(b.congPct.toFixed(1)).padStart(5)}% ${b.risk}`);
+  });
+  lines.push('');
+  lines.push('--- Christian-Dominant Booths ---');
+  lines.push('Ward             Booth  Voters  Christ%  BJP%   INC%   Risk');
+  christianBooths.forEach(b => {
+    lines.push(`${b.ward.padEnd(16)} ${String(b.booth).padStart(5)} ${String(b.voters).padStart(6)} ${String(b.christianPct.toFixed(1)).padStart(7)}% ${String(b.bjpPct.toFixed(1)).padStart(5)}% ${String(b.congPct.toFixed(1)).padStart(5)}% ${b.risk}`);
+  });
+  lines.push('');
+  lines.push('--- Ward-Level Religion & Viability ---');
+  lines.push('Ward             Dominant       Muslim   Christ   BJP%   INC%   Lead%   Viability');
+  [
+    { ward:'BENGRE',      dominant:'MUSLIM',      muslim:'~65%', christian:'~5%',  bjp:36.37, inc:61.32, lead:-24.96, viability:'None' },
+    { ward:'KUDROLI',     dominant:'MUSLIM',      muslim:'~55%', christian:'~3%',  bjp:28.95, inc:70.17, lead:-41.21, viability:'None' },
+    { ward:'BENDOOR',     dominant:'MUSLIM+CHR',  muslim:'~35%', christian:'~35%', bjp:29.4,  inc:68.82, lead:-39.41, viability:'None' },
+    { ward:'FALNIR',      dominant:'MUSLIM+CHR',  muslim:'~35%', christian:'~30%', bjp:32.07, inc:66.12, lead:-34.04, viability:'Low' },
+    { ward:'BUNDER',      dominant:'MUSLIM',      muslim:'~55%', christian:'~5%',  bjp:36.06, inc:61.71, lead:-25.65, viability:'Low' },
+    { ward:'KANNUR',      dominant:'MUSLIM',      muslim:'~60%', christian:'~5%',  bjp:40.63, inc:57.02, lead:-16.39, viability:'Low' },
+    { ward:'MILAGRESS',   dominant:'MIXED',       muslim:'~20%', christian:'~20%', bjp:38.13, inc:60.08, lead:-21.95, viability:'Low' },
+    { ward:'BAJAL',       dominant:'MIXED',       muslim:'~25%', christian:'~10%', bjp:44.54, inc:52.93, lead:-11.36, viability:'Medium (JDS+)' },
+    { ward:'JEPPU',       dominant:'MIXED',       muslim:'~20%', christian:'~20%', bjp:44.83, inc:52.90, lead:-8.07,  viability:'Medium' },
+    { ward:'PORT',        dominant:'MIXED',       muslim:'~25%', christian:'~10%', bjp:44.71, inc:53.96, lead:-9.25,  viability:'Medium' },
+    { ward:'COURT',       dominant:'MIXED',       muslim:'~30%', christian:'~10%', bjp:43.76, inc:54.80, lead:-11.03, viability:'Medium (turnout)' },
+    { ward:'VALENCIA',    dominant:'CHR+MIXED',   muslim:'~10%', christian:'~30%', bjp:44.64, inc:53.49, lead:-8.85,  viability:'Medium' },
+    { ward:'SHIVABAGH',   dominant:'MIXED',       muslim:'~15%', christian:'~25%', bjp:46.74, inc:51.56, lead:-4.83,  viability:'High' },
+    { ward:'BEJAI',       dominant:'HINDU',       muslim:'~5%',  christian:'~25%', bjp:59.44, inc:38.33, lead:21.11,  viability:'Safe' },
+    { ward:'ALAPE NORTH', dominant:'MIXED',       muslim:'~5%',  christian:'~30%', bjp:57.13, inc:41.39, lead:15.74,  viability:'Safe' },
+  ].forEach(w => {
+    const lead = (w.lead >= 0 ? '+' : '') + w.lead.toFixed(1) + '%';
+    lines.push(`${w.ward.padEnd(16)} ${w.dominant.padEnd(14)} ${w.muslim.padStart(7)} ${w.christian.padStart(7)} ${String(w.bjp.toFixed(1)).padStart(6)} ${String(w.inc.toFixed(1)).padStart(6)} ${lead.padStart(7)} ${w.viability}`);
+  });
+  return lines.join('\n');
+}
+
+function serializeElectionData() {
+  const lines = [
+    '=== PREVIOUS ELECTION ANALYSIS — Mangaluru City South ===',
+    '',
+    '--- Election Scorecard (2013-2023) ---',
+  ];
+  ELECTION_SCORECARD.forEach(e => {
+    lines.push(`${e.election}: Winner=${e.winner} | BJP=${e.bjpWards} | INC=${e.conWards} | ${e.narrative}`);
+  });
+  lines.push('');
+  lines.push('--- Ward Swing Analysis (BJP% across elections) ---');
+  lines.push('Ward               Class2023           BJP14   BJP18   BJP19LS  BJP23   19→23    SwingType              Driver');
+  SWING_DATA.forEach(r => {
+    const cls = r.class23.replace(/[🟢🔴🟡]/g,'').trim();
+    const sw  = r.swType.replace(/[🟢🔴🟡]/g,'').trim();
+    lines.push(`${r.ward.padEnd(18)} ${cls.padEnd(19)} ${String(r.bjp14||'—').padStart(6)} ${String(r.bjp18||'—').padStart(6)} ${String(r.bjp19||'—').padStart(8)} ${String(r.bjp23||'—').padStart(7)} ${(r.sw1923||'—').padStart(7)} ${sw.padEnd(23)} ${r.driver}`);
+  });
+  lines.push('');
+  lines.push('--- Statistical Variance (2028 prediction) ---');
+  lines.push('Ward               Mean_BJP%  StdDev  Min   Max   Stability  Pred2028  Rating');
+  STAT_DATA.forEach(r => {
+    const rat = r.rating.replace(/[🟢🔴🟡]/g,'').trim();
+    lines.push(`${r.ward.padEnd(18)} ${String(r.mean+'%').padStart(9)} ${String(r.std+'%').padStart(7)} ${String(r.min).padStart(5)} ${String(r.max).padStart(5)} ${String(r.stability+'/100').padStart(10)} ${String(r.pred2028+'%').padStart(9)} ${rat}`);
+  });
+  lines.push('');
+  lines.push('--- 5-Election Ward Trends ---');
+  lines.push('Ward             Status       2013   2014   2018   2019LS   2023  Poll23   Trend    Unpolled');
+  TRENDS5_DATA.forEach(r => {
+    const st = r.status.replace(/[🟢🔴🟡]/g,'').trim();
+    lines.push(`${r.ward.padEnd(16)} ${st.padEnd(12)} ${String(r.b13||'—').padStart(5)} ${String(r.b14||'—').padStart(6)} ${String(r.b18||'—').padStart(6)} ${String(r.b19||'—').padStart(8)} ${String(r.b23||'—').padStart(6)} ${String(r.poll23).padStart(6)}% ${((r.trend>=0?'+':'')+r.trend+'%').padStart(8)} ${String(r.unpolled?.toLocaleString()||'—').padStart(9)}`);
+  });
+  lines.push('');
+  lines.push('--- Booth Flips BJP→Congress (2018→2023) ---');
+  lines.push('Ward           Booth  BJP18   BJP23   Change    Cong23  Cause');
+  FLIP_DATA.forEach(r => {
+    lines.push(`${r.ward.padEnd(14)} ${String(r.booth).padStart(5)} ${String(r.bjp18+'%').padStart(6)} ${String(r.bjp23+'%').padStart(6)} ${String(r.change+'%').padStart(8)} ${String(r.con23+'%').padStart(7)} ${r.cause}`);
+  });
+  lines.push('');
+  lines.push('--- Vote Leakage / 3rd Party Spoilers ---');
+  lines.push('Ward             Booth  Gap(votes)  3rdParty  JDS  Implication');
+  LEAKAGE_DATA.forEach(r => {
+    lines.push(`${r.ward.padEnd(16)} ${String(r.booth).padStart(5)} ${String(r.gap).padStart(10)} ${String(r.thirdPty).padStart(9)} ${String(r.jds).padStart(4)} ${r.implication}`);
+  });
+  return lines.join('\n');
+}
+
+// Map tab id → its serialiser
+const TAB_DATA_SERIALISERS = {
+  swot:        serializeSwotData,
+  wards:       serializeWardData,
+  demographic: serializeDemographicData,
+  election:    serializeElectionData,
+};
+
 // ─── AI Overview Panel ────────────────────────────────────────────────────────
-// Shown at the top of each tab. Calls /api/ai/swot-overview/ with the tab id.
-// Caches results per tab so switching back doesn't re-fetch.
-const overviewCache = {};   // module-level so persists across tab switches
+// Shown at the top of each tab. Sends the tab's own data arrays to the backend
+// so Claude analyses exactly what is displayed on screen — no hardcoded strings,
+// no MongoDB roundtrip for this overview.
+
+const overviewCache = {};   // module-level — persists across tab switches
+
+// ── Serialise each tab's visible data into compact text ──────────────────────
+function buildTabPayload(tab) {
+  switch (tab) {
+
+    case 'swot': {
+      const bjpWards  = wardData.filter(w => w.winner === 'BJP');
+      const conWards  = wardData.filter(w => w.winner === 'CONGRESS');
+      const narrow    = bjpWards.filter(w => w.cat === 'NARROW');
+      const strong    = bjpWards.filter(w => w.cat === 'STRONG');
+      const totalBjp  = wardData.reduce((s, w) => s + w.bjp,  0);
+      const totalCon  = wardData.reduce((s, w) => s + w.cong, 0);
+      const avgTurnout= (wardData.reduce((s,w)=>s+w.turnout,0)/wardData.length).toFixed(1);
+
+      // Full SWOT items (S/W/O/T labels + all detail text)
+      const swotLines = Object.entries(SWOT_DATA).flatMap(([key, quad]) =>
+        quad.items.map(it => `[${key}] ${it.label} | ${it.stat} | ${it.detail}`)
+      );
+
+      return [
+        `=== POLITICAL SWOT — ${wardData.length} wards, 2023 MCC Election ===`,
+        `BJP wins: ${bjpWards.length} | Congress wins: ${conWards.length}`,
+        `Total BJP votes: ${totalBjp.toLocaleString()} | Total Congress votes: ${totalCon.toLocaleString()}`,
+        `Avg turnout: ${avgTurnout}%`,
+        '',
+        'WARD-LEVEL RESULTS (all 38 wards):',
+        wardData.map(w =>
+          `${w.ward}: ${w.winner}, BJP ${w.bjpPct}%, INC ${w.congPct}%, lead ${w.lead>0?'+':''}${w.lead}%, ` +
+          `turnout ${w.turnout}%, voters ${w.voters}, cat ${w.cat}, polling ${w.ps}`
+        ).join('\n'),
+        '',
+        'SWOT QUADRANT DETAIL:',
+        ...swotLines,
+        '',
+        `STRONGHOLDS (cat=STRONG BJP, lead>40%): ${strong.map(w=>`${w.ward} ${w.bjpPct}%`).join(', ')}`,
+        `NARROW wins (lead<10%): ${narrow.map(w=>`${w.ward} +${w.lead}%`).join(', ')}`,
+        `Lost wards: ${conWards.map(w=>`${w.ward} ${w.lead}%`).join(', ')}`,
+      ].join('\n');
+    }
+
+    case 'wards': {
+      const byCategory = ['STRONG','MEDIUM','NARROW','LOST'].map(cat => {
+        const ws = wardData.filter(w => w.cat === cat);
+        return `${cat} (${ws.length}): ${ws.map(w=>`${w.ward} BJP${w.bjpPct}% T${w.turnout}%`).join(', ')}`;
+      });
+      const byPolling = ['STRONG','AVG'].map(ps => {
+        const ws = wardData.filter(w => w.ps === ps);
+        return `Polling-${ps} (${ws.length}): ${ws.map(w=>w.ward).join(', ')}`;
+      });
+      return [
+        `=== WARD STRENGTH — ${wardData.length} wards ===`,
+        '',
+        'ALL WARD DATA (ward | winner | BJP% | INC% | lead | turnout | voters | cat | polling_strength):',
+        wardData.map(w =>
+          `${w.ward} | ${w.winner} | ${w.bjpPct}% | ${w.congPct}% | ${w.lead>0?'+':''}${w.lead}% | ${w.turnout}% | ${w.voters}`
+        ).join('\n'),
+        '',
+        'BY CATEGORY:',
+        ...byCategory,
+        '',
+        'BY POLLING STRENGTH:',
+        ...byPolling,
+      ].join('\n');
+    }
+
+    case 'demographic': {
+      // Ward-level religion table (from DemographicTab's inline data)
+      const wardReligionTable = [
+        { ward:'BENGRE',    dominant:'MUSLIM',    muslim:'~65%', christian:'~5%',  bjp:36.37, inc:61.32, lead:-24.96, winner:'CONGRESS', viability:'None' },
+        { ward:'KUDROLI',   dominant:'MUSLIM',    muslim:'~55%', christian:'~3%',  bjp:28.95, inc:70.17, lead:-41.21, winner:'CONGRESS', viability:'None' },
+        { ward:'BENDOOR',   dominant:'MUSLIM+CHR',muslim:'~35%', christian:'~35%', bjp:29.4,  inc:68.82, lead:-39.41, winner:'CONGRESS', viability:'None' },
+        { ward:'FALNIR',    dominant:'MUSLIM+CHR',muslim:'~35%', christian:'~30%', bjp:32.07, inc:66.12, lead:-34.04, winner:'CONGRESS', viability:'Low'  },
+        { ward:'BUNDER',    dominant:'MUSLIM',    muslim:'~55%', christian:'~5%',  bjp:36.06, inc:61.71, lead:-25.65, winner:'CONGRESS', viability:'Low'  },
+        { ward:'KANNUR',    dominant:'MUSLIM',    muslim:'~60%', christian:'~5%',  bjp:40.63, inc:57.02, lead:-16.39, winner:'CONGRESS', viability:'Low'  },
+        { ward:'MILAGRESS', dominant:'MIXED',     muslim:'~20%', christian:'~20%', bjp:38.13, inc:60.08, lead:-21.95, winner:'CONGRESS', viability:'Low'  },
+        { ward:'BAJAL',     dominant:'MIXED',     muslim:'~25%', christian:'~10%', bjp:44.54, inc:52.93, lead:-11.36, winner:'CONGRESS', viability:'Medium (JDS+)' },
+        { ward:'JEPPU',     dominant:'MIXED',     muslim:'~20%', christian:'~20%', bjp:44.83, inc:52.90, lead:-8.07,  winner:'CONGRESS', viability:'Medium' },
+        { ward:'PORT',      dominant:'MIXED',     muslim:'~25%', christian:'~10%', bjp:44.71, inc:53.96, lead:-9.25,  winner:'CONGRESS', viability:'Medium' },
+        { ward:'COURT',     dominant:'MIXED',     muslim:'~30%', christian:'~10%', bjp:43.76, inc:54.80, lead:-11.03, winner:'CONGRESS', viability:'Medium (turnout)' },
+        { ward:'VALENCIA',  dominant:'CHR+MIXED', muslim:'~10%', christian:'~30%', bjp:44.64, inc:53.49, lead:-8.85,  winner:'CONGRESS', viability:'Medium' },
+        { ward:'SHIVABAGH', dominant:'MIXED',     muslim:'~15%', christian:'~25%', bjp:46.74, inc:51.56, lead:-4.83,  winner:'CONGRESS', viability:'High'  },
+        { ward:'BEJAI',     dominant:'HINDU',     muslim:'~5%',  christian:'~25%', bjp:59.44, inc:38.33, lead:21.11,  winner:'BJP',       viability:'Safe'  },
+        { ward:'ALAPE NORTH',dominant:'MIXED',    muslim:'~5%',  christian:'~30%', bjp:57.13, inc:41.39, lead:15.74,  winner:'BJP',       viability:'Safe'  },
+      ];
+
+      const muslimLines = muslimBooths.map(b =>
+        `  ${b.ward} Booth#${b.booth}: Muslim ${b.muslimPct}%, BJP ${b.bjpPct}%, INC ${b.congPct}%, ${b.voters} voters, risk=${b.risk}`
+      );
+      const christianLines = christianBooths.map(b =>
+        `  ${b.ward} Booth#${b.booth}: Christian ${b.christianPct}%, BJP ${b.bjpPct}%, INC ${b.congPct}%, ${b.voters} voters, risk=${b.risk}`
+      );
+      const wardLines = wardReligionTable.map(w =>
+        `  ${w.ward}: dominant=${w.dominant}, Muslim${w.muslim}, Chr${w.christian}, BJP ${w.bjp}%, INC ${w.inc}%, lead ${w.lead}%, winner=${w.winner}, viability=${w.viability}`
+      );
+
+      return [
+        `=== DEMOGRAPHIC ANALYSIS — Religion-wise booth data ===`,
+        '',
+        `Muslim-dominant booths (${muslimBooths.length} total):`,
+        ...muslimLines,
+        '',
+        `Christian-dominant booths (${christianBooths.length} total):`,
+        ...christianLines,
+        '',
+        'Ward-level religion & BJP performance:',
+        ...wardLines,
+      ].join('\n');
+    }
+
+    case 'election': {
+      const scoreLines = ELECTION_SCORECARD.map(r =>
+        `${r.election}: winner=${r.winner}, BJP wards=${r.bjpWards}, INC wards=${r.conWards} | ${r.narrative}`
+      );
+      const swingLines = SWING_DATA.map(r =>
+        `${r.ward}: class=${r.class23}, BJP'14=${r.bjp14}% '18=${r.bjp18}% '19=${r.bjp19}% '23=${r.bjp23}%, ` +
+        `14→18=${r.sw1418}, 19→23=${r.sw1923}, H=${r.h}% M=${r.m}% C=${r.c}%, type=${r.swType} | ${r.driver}`
+      );
+      const statLines = STAT_DATA.map(r =>
+        `${r.ward}: mean=${r.mean}%, stdDev=${r.std}%, min=${r.min}% max=${r.max}%, poll=${r.poll}%, stability=${r.stability}/100, pred2028=${r.pred2028}%, rating=${r.rating}`
+      );
+      const trend5Lines = TRENDS5_DATA.map(r =>
+        `${r.ward}: ${r.status}, 2013=${r.b13??'—'} 2014=${r.b14??'—'} 2018=${r.b18??'—'} 2019=${r.b19??'—'} 2023=${r.b23??'—'}, poll=${r.poll23}%, trend=${r.trend}%, unpolled=${r.unpolled?.toLocaleString()}`
+      );
+      const flipLines = FLIP_DATA.map(r =>
+        `${r.ward} Booth#${r.booth}: BJP'18=${r.bjp18}%→BJP'23=${r.bjp23}% (${r.change}%), INC'23=${r.con23}%, Cath=${r.cath}% Musl=${r.musl}% | ${r.cause}`
+      );
+      const leakLines = LEAKAGE_DATA.map(r =>
+        `${r.ward} Booth#${r.booth}: gap=${r.gap} votes, 3rdPty=${r.thirdPty} votes (JDS=${r.jds} AAP=${r.aap} IND=${r.ind}), BJP=${r.bjp}% INC=${r.con}% | ${r.implication}`
+      );
+
+      return [
+        '=== PREVIOUS ELECTION ANALYSIS — 2013–2023, 5 elections, 38 wards ===',
+        '',
+        'ELECTION HISTORY SCORECARD:',
+        ...scoreLines,
+        '',
+        `WARD SWING ANALYSIS (${SWING_DATA.length} wards — BJP% across elections):`,
+        ...swingLines,
+        '',
+        `STATISTICAL VARIANCE (${STAT_DATA.length} wards — consistency & 2028 prediction):`,
+        ...statLines,
+        '',
+        `5-ELECTION WARD TRENDS (${TRENDS5_DATA.length} wards):`,
+        ...trend5Lines,
+        '',
+        `BOOTH FLIPS BJP→CONGRESS 2018→2023 (top ${FLIP_DATA.length}):`,
+        ...flipLines,
+        '',
+        `VOTE LEAKAGE / 3RD-PARTY SPOILERS (${LEAKAGE_DATA.length} critical booths):`,
+        ...leakLines,
+      ].join('\n');
+    }
+
+    default:
+      return '';
+  }
+}
 
 function SwotAIOverview({ tab }) {
-  const [state,    setState]    = useState('idle');  // idle | loading | done | error
+  const [state,    setState]    = useState('idle');
   const [overview, setOverview] = useState(overviewCache[tab] || null);
   const [open,     setOpen]     = useState(false);
-  const abortRef = useRef(null);
+
+  const TAB_LABELS = { swot:'Political SWOT', wards:'Ward Strength', demographic:'Demographics', election:'Prev. Election' };
 
   const fetch = useCallback(async () => {
     if (overviewCache[tab]) {
-      setOverview(overviewCache[tab]);
-      setState('done');
-      setOpen(true);
-      return;
+      setOverview(overviewCache[tab]); setState('done'); setOpen(true); return;
     }
-    setState('loading');
-    setOpen(true);
+    setState('loading'); setOpen(true);
     try {
-      const { data } = await swotApi.overview(tab);
+      // Serialise the exact data the tab is showing — no MongoDB, no Files API
+      const serialiser = TAB_DATA_SERIALISERS[tab];
+      const tabData    = serialiser ? serialiser() : `Tab: ${tab}`;
+      const { data }   = await swotApi.overview(tab, tabData);
       if (data?.success && data?.overview) {
         overviewCache[tab] = data.overview;
-        setOverview(data.overview);
-        setState('done');
-      } else {
-        setState('error');
-      }
-    } catch {
-      setState('error');
-    }
+        setOverview(data.overview); setState('done');
+      } else { setState('error'); }
+    } catch { setState('error'); }
   }, [tab]);
 
+  useEffect(() => {
+    if (overviewCache[tab]) { setOverview(overviewCache[tab]); setState('done'); }
+    else { setState('idle'); setOverview(null); }
+    setOpen(false);
+  }, [tab]);
+
+  return (
+    <div style={{ marginBottom: 18, animation: 'fadeUp 0.3s ease both' }}>
+
+      {/* Trigger button */}
+      <button
+        onClick={state === 'loading' ? undefined : (open && state === 'done' ? () => setOpen(o => !o) : fetch)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '11px 16px', borderRadius: 12,
+          background: state === 'done' && open
+            ? 'linear-gradient(135deg,rgba(99,102,241,0.14),rgba(79,70,229,0.08))'
+            : 'rgba(255,255,255,0.03)',
+          border: `1px solid ${state==='done' ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.08)'}`,
+          cursor: state === 'loading' ? 'default' : 'pointer',
+          transition: 'all 0.2s', fontFamily: 'Sora, sans-serif', textAlign: 'left',
+        }}
+      >
+        {/* Icon */}
+        <div style={{
+          width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+          background: state === 'loading'
+            ? 'rgba(99,102,241,0.2)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: state === 'done' ? '0 0 16px rgba(99,102,241,0.5)' : 'none',
+          transition: 'all 0.3s',
+        }}>
+          {state === 'loading' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round"
+              style={{ animation: 'spin 1s linear infinite' }}>
+              <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" strokeOpacity="0.25"/>
+              <path d="M21 12a9 9 0 0 0-9-9"/>
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c7d2fe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          )}
+        </div>
+
+        {/* Text */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: state === 'done' ? '#c7d2fe' : 'rgba(255,255,255,0.55)', lineHeight: 1.2 }}>
+            {state === 'loading' ? 'ShaastraAI is analysing this tab…'
+              : state === 'done'  ? `AI Overview — ${TAB_LABELS[tab]}`
+              : state === 'error' ? 'Analysis failed — tap to retry'
+              : `Get AI Overview — ${TAB_LABELS[tab]}`}
+          </div>
+          {state === 'idle' && (
+            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>
+              ShaastraAI · Analyses the exact data shown in this tab
+            </div>
+          )}
+          {state === 'done' && overview?.headline && (
+            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {overview.headline}
+            </div>
+          )}
+        </div>
+
+        {/* Badge / chevron */}
+        {state === 'idle' && (
+          <span style={{ fontSize: 10, fontWeight: 700, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', borderRadius: 6, padding: '3px 9px', flexShrink: 0 }}>
+            Analyse
+          </span>
+        )}
+        {state === 'done' && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(165,180,252,0.6)" strokeWidth="2.5" strokeLinecap="round"
+            style={{ flexShrink: 0, transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+            <path d="M9 6l6 6-6 6"/>
+          </svg>
+        )}
+      </button>
+
+      {/* Loading shimmer */}
+      {state === 'loading' && (
+        <div style={{ marginTop: 10, background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, padding: '16px 18px' }}>
+          {[90, 70, 82, 60].map((w, i) => (
+            <div key={i} className="swot-ai-shimmer" style={{ width: `${w}%`, height: 10, borderRadius: 6, marginBottom: i < 3 ? 10 : 0 }} />
+          ))}
+          <style>{`
+            .swot-ai-shimmer {
+              background: linear-gradient(90deg, rgba(51,65,85,0.5) 25%, rgba(99,102,241,0.3) 50%, rgba(51,65,85,0.5) 75%);
+              background-size: 200% 100%;
+              animation: swotShimmer 1.5s linear infinite;
+            }
+            @keyframes swotShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+            @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+          `}</style>
+        </div>
+      )}
+
+      {/* Result panel */}
+      {state === 'done' && open && overview && (
+        <div style={{
+          marginTop: 8,
+          background: 'linear-gradient(145deg,rgba(15,23,42,0.97),rgba(10,18,40,0.99))',
+          border: '1px solid rgba(99,102,241,0.25)', borderRadius: 14, overflow: 'hidden',
+          animation: 'fadeUp 0.25s ease both', boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}>
+          {/* Header */}
+          <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid rgba(99,102,241,0.12)', background: 'linear-gradient(135deg,rgba(79,70,229,0.1),transparent)' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#818cf8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 5, fontFamily: 'Space Mono, monospace' }}>
+              ShaastraAI · {TAB_LABELS[tab]}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#e2e8f0', lineHeight: 1.3, letterSpacing: '-0.02em' }}>
+              {overview.headline}
+            </div>
+          </div>
+          {/* Summary */}
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', lineHeight: 1.7 }}>{overview.summary}</p>
+          </div>
+          {/* Bullets */}
+          {overview.bullets?.length > 0 && (
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {overview.bullets.map((b, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>{b.icon}</span>
+                    <span style={{ fontSize: 12.5, color: '#cbd5e1', lineHeight: 1.6 }}>{b.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Callout */}
+          {overview.callout && (
+            <div style={{ padding: '12px 18px', background: `${overview.callout.color||'#f59e0b'}09`, borderTop: `1px solid ${overview.callout.color||'#f59e0b'}20` }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ width: 3, minHeight: 36, borderRadius: 2, background: overview.callout.color||'#f59e0b', flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, color: overview.callout.color||'#f59e0b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: 'Space Mono, monospace' }}>
+                    {overview.callout.label}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, fontWeight: 600 }}>{overview.callout.text}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Footer */}
+          <div style={{ padding: '8px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.2)' }}>
+            <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>
+              Powered by Claude · Analysing this tab's data
+            </span>
+            <button onClick={() => { overviewCache[tab] = null; setOverview(null); setState('idle'); setOpen(false); }}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: 10, cursor: 'pointer', fontFamily: 'Sora, sans-serif', padding: 0 }}>
+              Regenerate
+            </button>
+          </div>
+        </div>
+      )}
+
+      {state === 'error' && open && (
+        <div style={{ marginTop: 8, padding: '12px 16px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10 }}>
+          <span style={{ fontSize: 12, color: '#f87171' }}>⚠ Could not generate overview. Check your connection and try again.</span>
+        </div>
+      )}
+    </div>
+  );
   // Reset when tab changes
   useEffect(() => {
     if (overviewCache[tab]) {
