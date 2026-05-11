@@ -3654,47 +3654,72 @@ export default function Dashboard() {
                     boxShadow: `0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)`,
                     cursor: (c.label === 'Large Families' || c.label === 'Risk Wards' || c.isLocalPlaces) ? 'pointer' : 'default',
                     minHeight: 100,
+                    ...(c.isLocalPlaces ? { gridColumn: '1 / -1' } : {}),
                   }}
                 >
                   <div style={{ position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: '50%', background: `radial-gradient(circle, ${c.color}20 0%, transparent 70%)`, pointerEvents: 'none' }} />
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.4, maxWidth: '65%' }}>{c.label}</div>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${c.color}18`, border: `1px solid ${c.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{c.icon}</div>
-                  </div>
-                  <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 7 }}>{c.value ?? '—'}</div>
-                  {c.isLocalPlaces && localPlacesTotal != null ? (
-                    <div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 6px', marginBottom: 6 }}>
+
+                  {c.isLocalPlaces ? (
+                    /* ── Full-width horizontal layout for Local Places ── */
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                      {/* Left: label + count */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 9, background: `${c.color}18`, border: `1px solid ${c.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{c.icon}</div>
+                        <div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>{c.label}</div>
+                          <div style={{ fontSize: 28, fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1 }}>{c.value ?? '—'}</div>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ width: 1, alignSelf: 'stretch', background: `${c.color}18`, flexShrink: 0 }} />
+
+                      {/* Centre: 4 category chips in a row */}
+                      <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
                         {[
-                          { key: 'temple',  label: 'Temple',  color: '#f97316', icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7h20L12 2z"/><rect x="4" y="7" width="16" height="13"/><rect x="9" y="12" width="6" height="8"/></svg> },
-                          { key: 'church',  label: 'Church',  color: '#8b5cf6', icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/><path d="M5 20v-8l7-5 7 5v8H5z"/><rect x="9" y="14" width="6" height="6"/></svg> },
-                          { key: 'mosque',  label: 'Mosque',  color: '#10b981', icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/><rect x="9" y="14" width="6" height="6"/></svg> },
-                          { key: 'club',    label: 'Club',    color: '#f59e0b', icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+                          { key: 'temple', label: 'Temple',  color: '#f97316', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7h20L12 2z"/><rect x="4" y="7" width="16" height="13"/><rect x="9" y="12" width="6" height="8"/></svg> },
+                          { key: 'church', label: 'Church',  color: '#8b5cf6', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/><path d="M5 20v-8l7-5 7 5v8H5z"/><rect x="9" y="14" width="6" height="6"/></svg> },
+                          { key: 'mosque', label: 'Mosque',  color: '#10b981', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/><rect x="9" y="14" width="6" height="6"/></svg> },
+                          { key: 'club',   label: 'Club',    color: '#f59e0b', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
                         ].map(t => {
                           const n = localPlacesCounts[t.key] || 0;
                           return (
                             <div key={t.key} style={{
-                              display: 'flex', alignItems: 'center', gap: 4,
-                              background: n > 0 ? `${t.color}12` : 'rgba(255,255,255,0.03)',
-                              border: `1px solid ${n > 0 ? t.color + '30' : 'rgba(255,255,255,0.07)'}`,
-                              borderRadius: 6, padding: '3px 6px',
+                              display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 120,
+                              background: n > 0 ? `${t.color}10` : 'rgba(255,255,255,0.025)',
+                              border: `1px solid ${n > 0 ? t.color + '30' : 'rgba(255,255,255,0.06)'}`,
+                              borderRadius: 10, padding: '10px 14px',
                             }}>
-                              <span style={{ color: n > 0 ? t.color : 'rgba(255,255,255,0.2)', display: 'flex', flexShrink: 0 }}>{t.icon}</span>
-                              <span style={{ fontSize: 9, fontWeight: 700, color: n > 0 ? t.color : 'rgba(255,255,255,0.2)', letterSpacing: '0.02em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
-                              <span style={{ fontSize: 10, fontWeight: 900, color: n > 0 ? t.color : 'rgba(255,255,255,0.18)', background: n > 0 ? `${t.color}18` : 'transparent', borderRadius: 4, padding: '0 4px', minWidth: 14, textAlign: 'center', flexShrink: 0 }}>{n}</span>
+                              <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: n > 0 ? `${t.color}15` : 'rgba(255,255,255,0.04)', border: `1px solid ${n > 0 ? t.color + '25' : 'rgba(255,255,255,0.06)'}`, color: n > 0 ? t.color : 'rgba(255,255,255,0.2)' }}>
+                                {t.icon}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: n > 0 ? t.color : 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{t.label}</div>
+                                <div style={{ fontSize: 20, fontWeight: 900, color: n > 0 ? t.color : 'rgba(255,255,255,0.15)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>{n}</div>
+                              </div>
                             </div>
                           );
                         })}
                       </div>
-                      <span style={{ fontSize: 10, color: `${c.color}95`, background: `${c.color}15`, border: `1px solid ${c.color}28`, borderRadius: 6, padding: '3px 8px', fontWeight: 700, display: 'inline-block' }}>View ›</span>
+
+                      {/* Right: View button */}
+                      <span style={{ fontSize: 11, color: `${c.color}95`, background: `${c.color}15`, border: `1px solid ${c.color}28`, borderRadius: 8, padding: '6px 12px', fontWeight: 700, flexShrink: 0, alignSelf: 'center' }}>View ›</span>
                     </div>
                   ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', fontWeight: 500, lineHeight: 1.3 }}>{c.sub}</div>
-                    {(c.label === 'Large Families' || c.label === 'Risk Wards' || c.isLocalPlaces) && (
-                      <span style={{ fontSize: 10, color: `${c.color}95`, background: `${c.color}15`, border: `1px solid ${c.color}28`, borderRadius: 6, padding: '3px 7px', fontWeight: 700, flexShrink: 0 }}>View ›</span>
-                    )}
-                  </div>
+                    /* ── Standard vertical card layout ── */
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.4, maxWidth: '65%' }}>{c.label}</div>
+                        <div style={{ width: 32, height: 32, borderRadius: 9, background: `${c.color}18`, border: `1px solid ${c.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{c.icon}</div>
+                      </div>
+                      <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 900, color: c.color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 7 }}>{c.value ?? '—'}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', fontWeight: 500, lineHeight: 1.3 }}>{c.sub}</div>
+                        {(c.label === 'Large Families' || c.label === 'Risk Wards') && (
+                          <span style={{ fontSize: 10, color: `${c.color}95`, background: `${c.color}15`, border: `1px solid ${c.color}28`, borderRadius: 6, padding: '3px 7px', fontWeight: 700, flexShrink: 0 }}>View ›</span>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               )
