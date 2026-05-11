@@ -677,8 +677,6 @@ function SwotAIOverview({ tab }) {
   const [overview, setOverview] = useState(overviewCache[tab] || null);
   const [open,     setOpen]     = useState(false);
 
-  const TAB_LABELS = { swot:'Political SWOT', wards:'Ward Strength', demographic:'Demographics', election:'Prev. Election' };
-
   const fetch = useCallback(async () => {
     if (overviewCache[tab]) {
       setOverview(overviewCache[tab]); setState('done'); setOpen(true); return;
