@@ -395,17 +395,59 @@ const BULLET_COLORS = {
 const DEFAULT_BULLET_COLOR = { accent: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.18)' };
 
 // ── Client-side JSON recovery: if backend sent raw JSON as the summary ────────
+// ── Extract a quoted string value for a given key from (possibly truncated) JSON ─
+function _rxStr(raw, key) {
+  const m = raw.match(new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"'));
+  if (!m) return null;
+  try { return JSON.parse('"' + m[1] + '"'); } catch { return m[1]; }
+}
+
 function recoverOverview(ov) {
   if (!ov) return ov;
-  const sum = typeof ov.summary === 'string' ? ov.summary.trim() : '';
-  if (!sum.startsWith('{')) return ov;            // looks fine
-  // Try to parse the raw JSON that leaked into summary
+
+  // Case 1: overview itself was double-serialised as a string
+  if (typeof ov === 'string') {
+    try { ov = JSON.parse(ov); } catch { return null; }
+  }
+
+  const raw = typeof ov.summary === 'string' ? ov.summary.trim() : '';
+
+  // No leakage — use as-is
+  if (!raw.startsWith('{')) return ov;
+
+  // Case 2: summary contains the entire valid JSON (backend lstrip worked)
   try {
-    const recovered = JSON.parse(sum);
-    if (recovered && recovered.headline) return recovered;
-  } catch { /* partial / truncated JSON — fall through */ }
-  // Can't recover: blank out the garbled summary so nothing ugly renders
-  return { ...ov, summary: '' };
+    const full = JSON.parse(raw);
+    if (full?.headline) return full;
+  } catch { /* truncated — fall through to regex extraction */ }
+
+  // Case 3: truncated JSON — regex-mine what we can ─────────────────────────
+  const headline = _rxStr(raw, 'headline') || ov.headline || '';
+  const summary  = _rxStr(raw, 'summary')  || '';
+
+  // Extract bullets: match each { "icon": "...", "text": "..." } object
+  const bullets = [];
+  const bSection = raw.match(/"bullets"\s*:\s*\[([\s\S]*)/);
+  if (bSection) {
+    const iter = bSection[1].matchAll(/\{\s*"icon"\s*:\s*"([^"]+)"\s*,\s*"text"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g);
+    for (const m of iter) {
+      try { bullets.push({ icon: m[1], text: JSON.parse('"' + m[2] + '"') }); }
+      catch { bullets.push({ icon: m[1], text: m[2] }); }
+    }
+  }
+
+  // Extract callout block
+  let callout = null;
+  const cSection = raw.match(/"callout"\s*:\s*\{([\s\S]*)/);
+  if (cSection) {
+    const cs    = cSection[1];
+    const label = _rxStr(cs, 'label');
+    const text  = _rxStr(cs, 'text');
+    const color = _rxStr(cs, 'color');
+    if (label || text) callout = { label: label || 'Bottom Line', text: text || '', color: color || '#f59e0b' };
+  }
+
+  return { headline, summary, bullets, callout };
 }
 
 function SwotAIOverview({ tab }) {
@@ -589,6 +631,40 @@ function SwotAIOverview({ tab }) {
               <HL text={overview.headline} color="#fbbf24" />
             </div>
           </div>
+
+          {/* ── Sparse-content fallback (recovery yielded only a headline) ─── */}
+          {!overview.summary && !(overview.bullets?.length) && !overview.callout && (
+            <div style={{
+              padding: '18px 20px 20px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center',
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(251,191,36,0.08))',
+                border: '1px solid rgba(245,158,11,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+              }}>⚡</div>
+              <div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#e2e8f0', marginBottom: 5 }}>
+                  Analysis incomplete — server returned a partial response
+                </div>
+                <div style={{ fontSize: 11.5, color: 'rgba(148,163,184,0.75)', lineHeight: 1.6, maxWidth: 340 }}>
+                  The AI model response couldn't be parsed fully. Tap <span style={{ color: '#fbbf24', fontWeight: 700 }}>Regenerate</span> to try again — this usually resolves on the next attempt.
+                </div>
+              </div>
+              <button
+                onClick={() => { overviewCache[tab] = null; setOverview(null); setState('idle'); setOpen(false); setTimeout(load, 80); }}
+                style={{
+                  padding: '8px 22px', borderRadius: 8, border: '1px solid rgba(245,158,11,0.4)',
+                  background: 'rgba(245,158,11,0.1)', color: '#fbbf24',
+                  fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+                  transition: 'all 0.2s',
+                }}
+              >
+                ↺ Retry Now
+              </button>
+            </div>
+          )}
 
           {/* ── Summary ──────────────────────────────────────────────────── */}
           {overview.summary && !overview.summary.trim().startsWith('{') && (
