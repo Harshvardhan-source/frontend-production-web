@@ -367,15 +367,55 @@ function buildTabData(tab) {
   }
 }
 
+// ── Highlight numbers / percentages inside a text string ─────────────────────
+function HL({ text, color = '#f59e0b' }) {
+  if (!text || typeof text !== 'string') return null;
+  // Split on: optional-minus + digits + optional-decimal + optional-%
+  const parts = text.split(/([-+]?\d+\.?\d*%?)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        /^[-+]?\d/.test(p)
+          ? <span key={i} style={{ color, fontWeight: 700 }}>{p}</span>
+          : p
+      )}
+    </>
+  );
+}
+
+// ── Per-icon accent colours for bullet cards ──────────────────────────────────
+const BULLET_COLORS = {
+  '🎯': { accent: '#60a5fa', bg: 'rgba(96,165,250,0.07)',  border: 'rgba(96,165,250,0.22)'  },
+  '⚠️': { accent: '#f87171', bg: 'rgba(248,113,113,0.07)', border: 'rgba(248,113,113,0.22)' },
+  '📈': { accent: '#34d399', bg: 'rgba(52,211,153,0.07)',  border: 'rgba(52,211,153,0.22)'  },
+  '🔑': { accent: '#f59e0b', bg: 'rgba(245,158,11,0.07)',  border: 'rgba(245,158,11,0.22)'  },
+  '💡': { accent: '#a78bfa', bg: 'rgba(167,139,250,0.07)', border: 'rgba(167,139,250,0.22)' },
+  '🔍': { accent: '#e879f9', bg: 'rgba(232,121,249,0.07)', border: 'rgba(232,121,249,0.22)' },
+};
+const DEFAULT_BULLET_COLOR = { accent: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.18)' };
+
+// ── Client-side JSON recovery: if backend sent raw JSON as the summary ────────
+function recoverOverview(ov) {
+  if (!ov) return ov;
+  const sum = typeof ov.summary === 'string' ? ov.summary.trim() : '';
+  if (!sum.startsWith('{')) return ov;            // looks fine
+  // Try to parse the raw JSON that leaked into summary
+  try {
+    const recovered = JSON.parse(sum);
+    if (recovered && recovered.headline) return recovered;
+  } catch { /* partial / truncated JSON — fall through */ }
+  // Can't recover: blank out the garbled summary so nothing ugly renders
+  return { ...ov, summary: '' };
+}
+
 function SwotAIOverview({ tab }) {
   const [state,    setState]    = useState('idle');  // idle | loading | done | error
   const [overview, setOverview] = useState(overviewCache[tab] || null);
   const [open,     setOpen]     = useState(false);
-  const abortRef = useRef(null);
 
   const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
 
-  const fetch = useCallback(async () => {
+  const load = useCallback(async () => {
     if (overviewCache[tab]) {
       setOverview(overviewCache[tab]);
       setState('done');
@@ -396,8 +436,9 @@ function SwotAIOverview({ tab }) {
       });
       const data = await res.json();
       if (data?.success && data?.overview) {
-        overviewCache[tab] = data.overview;
-        setOverview(data.overview);
+        const safe = recoverOverview(data.overview);
+        overviewCache[tab] = safe;
+        setOverview(safe);
         setState('done');
       } else {
         setState('error');
@@ -426,32 +467,39 @@ function SwotAIOverview({ tab }) {
     election:    'Prev. Election',
   };
 
-  const ICON_PATHS = {
-    thinking: 'M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z M8 12h.01 M12 12h.01 M16 12h.01',
-    brain:    'M9.5 2a2.5 2.5 0 0 1 5 0M12 7v5l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
-    spark:    'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
-    close:    'M18 6 6 18 M6 6l12 12',
-  };
+  const calloutColor = overview?.callout?.color || '#f59e0b';
 
   return (
     <div style={{ marginBottom: 18, animation: 'fadeUp 0.3s ease both' }}>
+      <style>{`
+        .swot-ai-shimmer {
+          background: linear-gradient(90deg,rgba(51,65,85,0.5) 25%,rgba(99,102,241,0.3) 50%,rgba(51,65,85,0.5) 75%);
+          background-size: 200% 100%;
+          animation: swotShimmer 1.5s linear infinite;
+        }
+        @keyframes swotShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        .ai-bullet-card { transition: background 0.18s, transform 0.18s; }
+        .ai-bullet-card:hover { transform: translateX(2px); }
+        .ai-regen-btn { transition: color 0.2s; }
+        .ai-regen-btn:hover { color: rgba(165,180,252,0.7) !important; }
+      `}</style>
 
-      {/* Trigger button — always visible */}
+      {/* ── Trigger button ─────────────────────────────────────────────────── */}
       <button
-        onClick={state === 'loading' ? undefined : (open && state === 'done' ? () => setOpen(o => !o) : fetch)}
+        onClick={state === 'loading' ? undefined : (open && state === 'done' ? () => setOpen(o => !o) : load)}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', gap: 10,
           padding: '11px 16px', borderRadius: 12,
           background: state === 'done' && open
             ? 'linear-gradient(135deg,rgba(99,102,241,0.14),rgba(79,70,229,0.08))'
             : 'rgba(255,255,255,0.03)',
-          border: `1px solid ${state==='done' ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.08)'}`,
+          border: `1px solid ${state === 'done' ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.08)'}`,
           cursor: state === 'loading' ? 'default' : 'pointer',
-          transition: 'all 0.2s', fontFamily: 'Sora, sans-serif',
-          textAlign: 'left',
+          transition: 'all 0.2s', fontFamily: 'Sora, sans-serif', textAlign: 'left',
         }}
       >
-        {/* Animated brain icon */}
+        {/* Icon */}
         <div style={{
           width: 32, height: 32, borderRadius: 9, flexShrink: 0,
           background: state === 'loading'
@@ -474,7 +522,7 @@ function SwotAIOverview({ tab }) {
           )}
         </div>
 
-        {/* Text */}
+        {/* Label */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: state === 'done' ? '#c7d2fe' : 'rgba(255,255,255,0.55)', lineHeight: 1.2 }}>
             {state === 'loading' ? 'ShaastraAI is analysing…'
@@ -483,18 +531,15 @@ function SwotAIOverview({ tab }) {
               : `Get AI Overview — ${TAB_LABELS[tab]}`}
           </div>
           {state === 'idle' && (
-            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>
-              ShaastraAI
-            </div>
+            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>ShaastraAI</div>
           )}
           {state === 'done' && overview?.headline && (
-            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.32)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {overview.headline}
             </div>
           )}
         </div>
 
-        {/* Right badge / chevron */}
         {state === 'idle' && (
           <span style={{ fontSize: 10, fontWeight: 700, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', borderRadius: 6, padding: '3px 9px', flexShrink: 0, letterSpacing: '0.04em' }}>
             Generate
@@ -508,98 +553,143 @@ function SwotAIOverview({ tab }) {
         )}
       </button>
 
-      {/* Loading shimmer */}
+      {/* ── Loading shimmer ────────────────────────────────────────────────── */}
       {state === 'loading' && (
-        <div style={{ marginTop: 10, background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, padding: '16px 18px' }}>
-          {[90, 70, 80, 60].map((w, i) => (
-            <div key={i} className="swot-ai-shimmer" style={{ width: `${w}%`, height: 10, borderRadius: 6, marginBottom: i < 3 ? 10 : 0 }} />
+        <div style={{ marginTop: 10, background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, padding: '18px 20px' }}>
+          {[78, 55, 68, 42].map((w, i) => (
+            <div key={i} className="swot-ai-shimmer" style={{ width: `${w}%`, height: i === 0 ? 13 : 10, borderRadius: 6, marginBottom: i < 3 ? 12 : 0 }} />
           ))}
-          <style>{`
-            .swot-ai-shimmer {
-              background: linear-gradient(90deg, rgba(51,65,85,0.5) 25%, rgba(99,102,241,0.3) 50%, rgba(51,65,85,0.5) 75%);
-              background-size: 200% 100%;
-              animation: swotShimmer 1.5s linear infinite;
-            }
-            @keyframes swotShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-            @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-          `}</style>
         </div>
       )}
 
-      {/* Result panel */}
+      {/* ── Result panel ───────────────────────────────────────────────────── */}
       {state === 'done' && open && overview && (
         <div style={{
           marginTop: 8,
-          background: 'linear-gradient(145deg,rgba(15,23,42,0.97),rgba(10,18,40,0.99))',
-          border: '1px solid rgba(99,102,241,0.25)',
+          background: 'linear-gradient(160deg,rgba(13,20,40,0.98),rgba(8,14,32,0.99))',
+          border: '1px solid rgba(99,102,241,0.28)',
           borderRadius: 14, overflow: 'hidden',
           animation: 'fadeUp 0.25s ease both',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.08) inset',
         }}>
-          {/* Header */}
-          <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid rgba(99,102,241,0.12)', background: 'linear-gradient(135deg,rgba(79,70,229,0.1),transparent)' }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#818cf8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 5, fontFamily: 'Space Mono, monospace' }}>
-              ShaastraAI · {TAB_LABELS[tab]}
+
+          {/* ── Header: eyebrow + headline ───────────────────────────────── */}
+          <div style={{
+            padding: '16px 20px 14px',
+            borderBottom: '1px solid rgba(99,102,241,0.13)',
+            background: 'linear-gradient(135deg,rgba(79,70,229,0.12),rgba(124,58,237,0.06),transparent)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 6px #818cf8' }} />
+              <span style={{ fontSize: 9.5, fontWeight: 800, color: '#818cf8', letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Space Mono, monospace' }}>
+                ShaastraAI · {TAB_LABELS[tab]}
+              </span>
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#e2e8f0', lineHeight: 1.3, letterSpacing: '-0.02em' }}>
-              {overview.headline}
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#f1f5f9', lineHeight: 1.35, letterSpacing: '-0.025em' }}>
+              <HL text={overview.headline} color="#fbbf24" />
             </div>
           </div>
 
-          {/* Summary */}
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', lineHeight: 1.7 }}>
-              {overview.summary}
-            </p>
-          </div>
-
-          {/* Bullets */}
-          {overview.bullets?.length > 0 && (
-            <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {overview.bullets.map((b, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>{b.icon}</span>
-                    <span style={{ fontSize: 12.5, color: '#cbd5e1', lineHeight: 1.6 }}>{b.text}</span>
-                  </div>
-                ))}
-              </div>
+          {/* ── Summary ──────────────────────────────────────────────────── */}
+          {overview.summary && !overview.summary.trim().startsWith('{') && (
+            <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', lineHeight: 1.78, letterSpacing: '0.005em' }}>
+                <HL text={overview.summary} color="#fbbf24" />
+              </p>
             </div>
           )}
 
-          {/* Callout */}
+          {/* ── Bullet insight cards ─────────────────────────────────────── */}
+          {overview.bullets?.length > 0 && (
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {overview.bullets.map((b, i) => {
+                const { accent, bg, border } = BULLET_COLORS[b.icon] || DEFAULT_BULLET_COLOR;
+                return (
+                  <div key={i} className="ai-bullet-card" style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 11,
+                    background: bg, border: `1px solid ${border}`,
+                    borderLeft: `3px solid ${accent}`,
+                    borderRadius: 9, padding: '10px 13px',
+                  }}>
+                    {/* Icon badge */}
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+                      background: `${accent}18`, border: `1px solid ${accent}30`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14, lineHeight: 1,
+                    }}>
+                      {b.icon}
+                    </div>
+                    {/* Text */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 12.5, color: '#dde4f0', lineHeight: 1.65, display: 'block' }}>
+                        <HL text={b.text} color={accent} />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Callout / bottom-line verdict ────────────────────────────── */}
           {overview.callout && (
-            <div style={{ padding: '12px 18px', background: `${overview.callout.color || '#f59e0b'}09`, borderTop: `1px solid ${overview.callout.color || '#f59e0b'}20` }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ width: 3, minHeight: 36, borderRadius: 2, background: overview.callout.color || '#f59e0b', flexShrink: 0, marginTop: 2 }} />
-                <div>
-                  <div style={{ fontSize: 9.5, fontWeight: 800, color: overview.callout.color || '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: 'Space Mono, monospace' }}>
-                    {overview.callout.label}
-                  </div>
-                  <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, fontWeight: 600 }}>
-                    {overview.callout.text}
-                  </div>
+            <div style={{
+              margin: '14px 20px 16px',
+              padding: '12px 16px',
+              background: `${calloutColor}12`,
+              border: `1px solid ${calloutColor}35`,
+              borderRadius: 10,
+              display: 'flex', alignItems: 'flex-start', gap: 12,
+            }}>
+              <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: `linear-gradient(to bottom,${calloutColor},${calloutColor}44)`, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, color: calloutColor,
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    fontFamily: 'Space Mono, monospace',
+                    background: `${calloutColor}18`, border: `1px solid ${calloutColor}30`,
+                    borderRadius: 4, padding: '2px 7px',
+                  }}>
+                    {overview.callout.label || 'Bottom Line'}
+                  </span>
+                </div>
+                <div style={{ fontSize: 13.5, color: '#f1f5f9', lineHeight: 1.6, fontWeight: 600, letterSpacing: '-0.01em' }}>
+                  <HL text={overview.callout.text} color={calloutColor} />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Footer */}
-          <div style={{ padding: '8px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.2)' }}>
-            <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>
-              Powered by Claude · Mangaluru South 2023 Data
-            </span>
-            <button onClick={() => { overviewCache[tab] = null; setOverview(null); setState('idle'); setOpen(false); }}
-              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: 10, cursor: 'pointer', fontFamily: 'Sora, sans-serif', padding: 0 }}>
-              Regenerate
+          {/* ── Footer ───────────────────────────────────────────────────── */}
+          <div style={{
+            padding: '9px 20px 10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'rgba(0,0,0,0.25)', borderTop: '1px solid rgba(255,255,255,0.04)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', animation: 'pulse 2.5s ease-in-out infinite' }} />
+              <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace' }}>
+                Powered by Claude · Mangaluru South 2023 Data
+              </span>
+            </div>
+            <button
+              className="ai-regen-btn"
+              onClick={() => { overviewCache[tab] = null; setOverview(null); setState('idle'); setOpen(false); }}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.18)', fontSize: 10, cursor: 'pointer', fontFamily: 'Sora, sans-serif', padding: 0 }}
+            >
+              ↺ Regenerate
             </button>
           </div>
         </div>
       )}
 
+      {/* ── Error state ────────────────────────────────────────────────────── */}
       {state === 'error' && open && (
-        <div style={{ marginTop: 8, padding: '12px 16px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10 }}>
-          <span style={{ fontSize: 12, color: '#f87171' }}>⚠ Could not generate overview. Check your connection and try again.</span>
+        <div style={{ marginTop: 8, padding: '13px 16px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.22)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <span style={{ fontSize: 12, color: '#fca5a5', lineHeight: 1.5 }}>Could not generate overview. Check your connection and try again.</span>
         </div>
       )}
     </div>
