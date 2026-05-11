@@ -269,6 +269,111 @@ const TABS = [
 // The AI analyses ONLY what the user is seeing — no MongoDB, no Files API.
 // ════════════════════════════════════════════════════════════════════════════════
 
+// ─── Election Data Constants (module scope — used by serialisers & PreviousElectionTab) ───
+const ELECTION_SCORECARD = [
+  { election:'2013 (ULB)',       winner:'Congress',        bjpWards:'13 wards',      conWards:'25 wards',  narrative:'Congress wave — BJP split (KJP factor)' },
+  { election:'2014 (ULB)',       winner:'BJP',             bjpWards:'26 wards',      conWards:'12 wards',  narrative:'Modi wave — BJP surge +15% avg' },
+  { election:'2018 (ULB)',       winner:'BJP',             bjpWards:'25 wards',      conWards:'13 wards',  narrative:'Consolidation — BJP holds post-reunification' },
+  { election:'2019 (LS)',        winner:'BJP (Lok Sabha)', bjpWards:'Full sweep',    conWards:'—',          narrative:'NDA wave — peak BJP% in every ward' },
+  { election:'2023 (MLA)',       winner:'BJP wins seat',   bjpWards:'25 wards',      conWards:'13 wards',  narrative:'Maintained edge — 3 Congress wards flippable' },
+];
+
+const SWING_DATA = [
+  { ward:'PADAV WEST',         class23:'🟡 NARROW BJP',  bjp14:62.6, bjp18:65.7, bjp19:73.5, bjp23:null,  sw1418:'+3.1%', sw1923:'+nan%', swType:'🟡 CONTESTED',       h:84.4, m:0.9,  c:14.7, driver:'Mixed community — outreach across all segments required' },
+  { ward:'DEREBAIL SOUTH',     class23:'🟢 STRONGHOLD',  bjp14:58.1, bjp18:59.8, bjp19:66.1, bjp23:64.6,  sw1418:'+1.7%', sw1923:'-1.5%', swType:'🟢 CONSISTENT BJP',   h:79.5, m:2.8,  c:17.7, driver:'Catholic swing (18%) — 2014 Modi wave; 2023 drifted back' },
+  { ward:'DEREBAIL WEST',      class23:'🟢 STRONGHOLD',  bjp14:53.9, bjp18:59.9, bjp19:68.0, bjp23:66.0,  sw1418:'+6.0%', sw1923:'-2.0%', swType:'🟢 CONSISTENT BJP',   h:84.6, m:1.1,  c:14.3, driver:'Mixed community — outreach across all segments required' },
+  { ward:'DEREBAIL SW',        class23:'🟢 STRONGHOLD',  bjp14:64.4, bjp18:69.2, bjp19:74.0, bjp23:74.0,  sw1418:'+4.8%', sw1923:'+0.0%', swType:'🟢 CONSISTENT BJP',   h:87.9, m:0.6,  c:11.5, driver:'High Hindu consolidation — structural BJP ward' },
+  { ward:'BOLOOR',             class23:'🟢 STRONGHOLD',  bjp14:57.7, bjp18:60.3, bjp19:71.6, bjp23:71.6,  sw1418:'+2.6%', sw1923:'+0.0%', swType:'🟢 CONSISTENT BJP',   h:87.5, m:1.2,  c:11.3, driver:'Strong Bunt/GSB Hindu base — turnout complacency risk' },
+  { ward:'MANNAGUDDA',         class23:'🟢 STRONGHOLD',  bjp14:62.9, bjp18:66.1, bjp19:81.0, bjp23:79.3,  sw1418:'+3.2%', sw1923:'-1.7%', swType:'🟢 CONSISTENT BJP',   h:93.7, m:1.1,  c:5.2,  driver:'Highest Hindu % (94%) — anti-complacency critical' },
+  { ward:'KAMBLA',             class23:'🟢 STRONGHOLD',  bjp14:74.4, bjp18:78.4, bjp19:80.1, bjp23:80.1,  sw1418:'+4.0%', sw1923:'+0.0%', swType:'🟢 CONSISTENT BJP',   h:92.6, m:1.8,  c:5.6,  driver:'Ironclad stronghold — 5/5 elections, 62% margins' },
+  { ward:'KODIALBAIL',         class23:'🟢 STRONGHOLD',  bjp14:57.5, bjp18:60.9, bjp19:72.9, bjp23:72.9,  sw1418:'+3.4%', sw1923:'+0.0%', swType:'🟢 CONSISTENT BJP',   h:80.9, m:1.2,  c:17.9, driver:'Stable Hindu base; Catholic (18%) critical swing factor' },
+  { ward:'BEJAI',              class23:'🟢 STRONG',      bjp14:54.7, bjp18:52.7, bjp19:64.5, bjp23:57.0,  sw1418:'-2.0%', sw1923:'-7.5%', swType:'🟡 SOFTENING BJP',    h:68.6, m:4.7,  c:26.7, driver:'Catholic 27% — 2019 voted BJP, 2023 reverted. Key swing group.' },
+  { ward:'KADRI NORTH',        class23:'🟢 STRONGHOLD',  bjp14:64.4, bjp18:66.8, bjp19:76.8, bjp23:71.7,  sw1418:'+2.4%', sw1923:'-5.1%', swType:'🟡 SOFTENING BJP',    h:86.8, m:0.7,  c:12.5, driver:'Poll drop post-2019 — complacency in strong Hindu ward' },
+  { ward:'KADRI SOUTH',        class23:'🟢 FAVOURABLE',  bjp14:52.5, bjp18:52.1, bjp19:64.7, bjp23:57.4,  sw1418:'-0.4%', sw1923:'-7.3%', swType:'🟡 SOFTENING BJP',    h:63.9, m:5.3,  c:30.8, driver:'Christian 31% — wave elections swing BJP; base elections lean Cong' },
+  { ward:'SHIVBHAG',           class23:'🔴 CONGRESS',    bjp14:49.6, bjp18:50.6, bjp19:54.7, bjp23:47.8,  sw1418:'+1.0%', sw1923:'-6.9%', swType:'🔴 FLIPPED →CON',    h:52.2, m:11.7, c:36.1, driver:'Muslim+Christian majority — lost by 183 votes. Priority flip.' },
+  { ward:'PADAVU CENTRAL',     class23:'🟢 STRONG',      bjp14:55.0, bjp18:56.5, bjp19:68.9, bjp23:64.7,  sw1418:'+1.5%', sw1923:'-4.2%', swType:'🟡 SOFTENING BJP',    h:68.3, m:4.6,  c:27.1, driver:'Catholic 27% — booth 42 lost by 5 votes (3rd party spoiler)' },
+  { ward:'PADAVU POORVA',      class23:'🟢 FAVOURABLE',  bjp14:50.9, bjp18:51.8, bjp19:63.9, bjp23:57.0,  sw1418:'+0.9%', sw1923:'-6.9%', swType:'🟡 SOFTENING BJP',    h:60.2, m:3.9,  c:35.9, driver:'Christian 36% — 2019 BJP peak not sustained in 2023 MLA' },
+  { ward:'MAROLI',             class23:'🟢 STRONG',      bjp14:55.5, bjp18:55.4, bjp19:68.2, bjp23:62.1,  sw1418:'-0.1%', sw1923:'-6.1%', swType:'🟡 SOFTENING BJP',    h:68.7, m:0.8,  c:30.5, driver:'Coastal Hindu; BJP drop from 2019 peak — re-engagement needed' },
+  { ward:'BENDUR',             class23:'🔴 CONGRESS',    bjp14:38.1, bjp18:36.5, bjp19:43.6, bjp23:32.2,  sw1418:'-1.6%', sw1923:'-11.4%',swType:'🔴 STRUCTURAL CON',  h:32.2, m:25.2, c:42.6, driver:'Muslim+Christian 68% — BJP needs loss reduction only, -35% margin' },
+  { ward:'FALNIR',             class23:'🔴 CONGRESS',    bjp14:46.5, bjp18:47.0, bjp19:52.7, bjp23:32.1,  sw1418:'+0.5%', sw1923:'-20.6%',swType:'🔴 COLLAPSED',       h:32.1, m:9.2,  c:58.7, driver:'Christian 59% — major BJP collapse 2023. Church-driven consolidation.' },
+  { ward:'COURT',              class23:'🔴 CONGRESS',    bjp14:46.2, bjp18:45.0, bjp19:59.3, bjp23:45.3,  sw1418:'-1.2%', sw1923:'-14.0%',swType:'🔴 FLIPPED →CON',    h:51.0, m:27.7, c:21.4, driver:'Muslim 28% — lost by 352 votes. Turnout drive = flip potential.' },
+  { ward:'CENTRAL',            class23:'🟢 STRONGHOLD',  bjp14:38.4, bjp18:33.4, bjp19:80.9, bjp23:78.2,  sw1418:'-5.0%', sw1923:'+44.8%',swType:'🟢 RECOVERED',       h:90.4, m:7.6,  c:2.0,  driver:'2013–2018 Congress; 2019 BJP wave flip — now structural BJP stronghold' },
+  { ward:'DONGERKERY',         class23:'🟢 STRONGHOLD',  bjp14:62.4, bjp18:62.9, bjp19:78.6, bjp23:78.2,  sw1418:'+0.5%', sw1923:'-0.4%', swType:'🟢 CONSISTENT BJP',   h:86.2, m:12.0, c:1.8,  driver:'OBC Hindu consolidation — stable but 2019 peak not matched 2023' },
+  { ward:'KUDROLI',            class23:'🔴 CONGRESS',    bjp14:52.8, bjp18:55.3, bjp19:28.8, bjp23:28.8,  sw1418:'+2.5%', sw1923:'+0.0%', swType:'🔴 STRUCTURAL CON',  h:28.8, m:68.2, c:3.0,  driver:'Muslim 68% — structural Congress. BJP min damage goal: <70% con.' },
+  { ward:'NAVAYATH',           class23:'🔴 CONGRESS',    bjp14:41.3, bjp18:40.0, bjp19:51.3, bjp23:36.9,  sw1418:'-1.3%', sw1923:'-14.4%',swType:'🔴 STRUCTURAL CON',  h:28.0, m:65.0, c:7.0,  driver:'Muslim majority — high 2019 LS peak not real base; loss reduction only' },
+  { ward:'PORT',               class23:'🔴 CONGRESS',    bjp14:44.0, bjp18:43.5, bjp19:57.5, bjp23:44.3,  sw1418:'-0.5%', sw1923:'+0.8%', swType:'🔴 FLIPPED →CON',    h:48.0, m:30.0, c:18.0, driver:'Lost by 9.3% — moderate Muslim presence; 2019 LS BJP much higher' },
+  { ward:'CANTONMENT',         class23:'🔴 CONGRESS',    bjp14:43.5, bjp18:43.9, bjp19:58.4, bjp23:45.8,  sw1418:'+0.4%', sw1923:'+1.9%', swType:'🟡 BORDERLINE',      h:45.0, m:25.0, c:25.0, driver:'Lost by 8.4% — booth 146 just 3 votes deficit + 8 3rd-party votes!' },
+  { ward:'MILAGRIS',           class23:'🔴 CONGRESS',    bjp14:38.0, bjp18:38.5, bjp19:48.9, bjp23:38.0,  sw1418:'+0.5%', sw1923:'-10.9%',swType:'🔴 STRUCTURAL CON',  h:30.0, m:20.0, c:50.0, driver:'Christian majority 50% — structural Congress, loss reduction goal' },
+  { ward:'VALENCIA',           class23:'🔴 CONGRESS',    bjp14:44.0, bjp18:44.4, bjp19:58.0, bjp23:45.3,  sw1418:'+0.4%', sw1923:'+0.9%', swType:'🟡 BORDERLINE',      h:42.0, m:18.0, c:35.0, driver:'Lost by 8.8% — demoralized Catholic minority; easiest flip target' },
+  { ward:'KANKANADY',          class23:'🟢 STRONGHOLD',  bjp14:55.3, bjp18:56.1, bjp19:69.4, bjp23:66.0,  sw1418:'+0.8%', sw1923:'-3.4%', swType:'🟡 SOFTENING BJP',    h:60.0, m:25.0, c:15.0, driver:'Mixed ward — 2023 dip from 2019 peak; consolidation required' },
+  { ward:'ALAPE DAKSHINA',     class23:'🟢 STRONGHOLD',  bjp14:60.2, bjp18:62.0, bjp19:74.5, bjp23:71.6,  sw1418:'+1.8%', sw1923:'-2.9%', swType:'🟡 SOFTENING BJP',    h:78.0, m:8.0,  c:14.0, driver:'Bunt/GSB coastal belt — strong base, small 2023 dip from 2019' },
+  { ward:'ALAPE UTTARA',       class23:'🟢 STRONG',      bjp14:58.0, bjp18:60.5, bjp19:72.3, bjp23:66.0,  sw1418:'+2.5%', sw1923:'-6.3%', swType:'🟡 SOFTENING BJP',    h:72.0, m:12.0, c:16.0, driver:'Moderate mixed ward — 2019 surge not replicated in 2023 MLA' },
+  { ward:'KANNUR',             class23:'🔴 CONGRESS',    bjp14:38.5, bjp18:38.0, bjp19:49.0, bjp23:36.0,  sw1418:'-0.5%', sw1923:'-13.0%',swType:'🔴 STRUCTURAL CON',  h:35.0, m:45.0, c:20.0, driver:'Muslim-heavy — structural Congress. Loss reduction the only goal.' },
+  { ward:'BAJAL',              class23:'🔴 CONGRESS',    bjp14:43.9, bjp18:53.0, bjp19:20.0, bjp23:8.3,   sw1418:'+9.1%', sw1923:'-44.7%',swType:'🔴 COLLAPSED',       h:35.0, m:50.0, c:12.0, driver:'BJP IMPLOSION: -45% from 2018. Anti-incumbency + Muslim majority.' },
+  { ward:'JEPPINAMUGER',       class23:'🟢 STRONG',      bjp14:52.5, bjp18:54.0, bjp19:65.8, bjp23:58.7,  sw1418:'+1.5%', sw1923:'-7.1%', swType:'🟡 SOFTENING BJP',    h:65.0, m:20.0, c:15.0, driver:'Coastal mixed — 2023 MLA dip from 2019 LS. Needs re-engagement.' },
+  { ward:'ATTAVARA',           class23:'🟢 NARROW BJP',  bjp14:58.2, bjp18:58.4, bjp19:67.8, bjp23:60.3,  sw1418:'+0.2%', sw1923:'-7.5%', swType:'🟡 SOFTENING BJP',    h:72.0, m:5.0,  c:20.0, driver:'Booth 222 lost by 2 votes with 10 3rd-party votes — critical!' },
+  { ward:'MANGALADEVI',        class23:'🟢 NARROW BJP',  bjp14:57.5, bjp18:57.8, bjp19:69.0, bjp23:59.2,  sw1418:'+0.3%', sw1923:'-9.8%', swType:'🟡 SOFTENING BJP',    h:68.0, m:12.0, c:18.0, driver:'+9.8% BJP ward; 2023 dip from 2019 — anti-complacency needed' },
+  { ward:'HOIGE BAZAR',        class23:'🟢 STRONG',      bjp14:54.0, bjp18:55.2, bjp19:67.4, bjp23:61.0,  sw1418:'+1.2%', sw1923:'-6.4%', swType:'🟡 SOFTENING BJP',    h:62.0, m:18.0, c:18.0, driver:'Muslim 18% — key swing community; coastal trade area dynamics' },
+  { ward:'BOLAR',              class23:'🟢 STRONGHOLD',  bjp14:58.6, bjp18:60.1, bjp19:72.8, bjp23:68.5,  sw1418:'+1.5%', sw1923:'-4.3%', swType:'🟡 SOFTENING BJP',    h:70.0, m:12.0, c:16.0, driver:'Coastal stronghold — 2023 MLA dip from 2019 peak manageable' },
+  { ward:'JEPPU',              class23:'🔴 CONGRESS',    bjp14:44.0, bjp18:44.8, bjp19:57.3, bjp23:44.5,  sw1418:'+0.8%', sw1923:'-12.8%',swType:'🔴 FLIPPED →CON',    h:48.0, m:30.0, c:20.0, driver:'Lost by 8.1% — moderate Muslim; 2019 BJP peak not sustained' },
+  { ward:'BENGRE',             class23:'🔴 CONGRESS',    bjp14:79.5, bjp18:80.1, bjp19:80.1, bjp23:12.2,  sw1418:'+0.6%', sw1923:'-67.9%',swType:'🔴 IMPLODED',        h:78.0, m:8.0,  c:10.0, driver:'EXTREME: -68% from 2018. Booth 98 BJP implosion. Grassroots rebuild.' },
+];
+
+const STAT_DATA = [
+  { ward:'KAMBLA',         mean:76.3, std:5.1,  min:65.5, max:80.1, poll:70.3, rating:'🟢 ELITE STRONGHOLD',   stability:99, pred2028:80 },
+  { ward:'MANNAGUDDA',     mean:68.0, std:14.8, min:42.4, max:79.3, poll:69.3, rating:'🟢 RELIABLE BJP',        stability:92, pred2028:78 },
+  { ward:'CENTRAL',        mean:61.9, std:21.1, min:33.4, max:80.9, poll:63.6, rating:'🟢 RECOVERED STRONGHOLD',stability:88, pred2028:76 },
+  { ward:'PADAV WEST',     mean:67.3, std:5.6,  min:62.6, max:73.5, poll:72.6, rating:'🟢 ELITE STRONGHOLD',   stability:99, pred2028:72 },
+  { ward:'DONGERKERY',     mean:68.6, std:9.8,  min:62.4, max:78.6, poll:68.2, rating:'🟢 RELIABLE BJP',        stability:95, pred2028:77 },
+  { ward:'BOLOOR',         mean:62.6, std:6.1,  min:57.7, max:71.6, poll:65.5, rating:'🟢 RELIABLE BJP',        stability:96, pred2028:70 },
+  { ward:'DEREBAIL SW',    mean:67.0, std:4.2,  min:64.4, max:74.0, poll:67.8, rating:'🟢 ELITE STRONGHOLD',   stability:98, pred2028:73 },
+  { ward:'DEREBAIL WEST',  mean:61.9, std:6.4,  min:53.9, max:68.0, poll:71.5, rating:'🟢 RELIABLE BJP',        stability:99, pred2028:65 },
+  { ward:'DEREBAIL SOUTH', mean:62.2, std:3.8,  min:58.1, max:66.1, poll:64.8, rating:'🟢 RELIABLE BJP',        stability:95, pred2028:64 },
+  { ward:'KODIALBAIL',     mean:65.3, std:6.8,  min:57.5, max:72.9, poll:68.4, rating:'🟢 RELIABLE BJP',        stability:94, pred2028:71 },
+  { ward:'SHIVBHAG',       mean:50.2, std:3.1,  min:47.0, max:54.7, poll:56.2, rating:'🟡 CONTESTED',           stability:72, pred2028:48 },
+  { ward:'COURT',          mean:48.0, std:6.1,  min:45.0, max:59.3, poll:52.5, rating:'🟡 BORDERLINE',          stability:68, pred2028:50 },
+  { ward:'BAJAL',          mean:31.2, std:18.4, min:8.3,  max:53.0, poll:64.2, rating:'🔴 COLLAPSED',           stability:30, pred2028:20 },
+  { ward:'BENGRE',         mean:55.0, std:32.5, min:12.2, max:80.1, poll:63.8, rating:'🔴 IMPLODED',            stability:15, pred2028:35 },
+  { ward:'FALNIR',         mean:44.6, std:6.3,  min:32.1, max:52.7, poll:62.4, rating:'🔴 STRUCTURAL CON',      stability:40, pred2028:35 },
+];
+
+const TRENDS5_DATA = [
+  { ward:'KAMBLA',        status:'🟢 STRONG', b13:65.5, b14:74.4, b18:78.4, b19:80.1, b23:80.1, poll23:62.1, trend:14.5, unpolled:1927 },
+  { ward:'MANNAGUDDA',    status:'🟡 MEDIUM', b13:42.4, b14:62.9, b18:66.1, b19:81.0, b23:79.3, poll23:61.7, trend:36.8, unpolled:2797 },
+  { ward:'CENTRAL',       status:'🟢 STRONG', b13:42.5, b14:38.4, b18:33.4, b19:80.9, b23:78.2, poll23:62.9, trend:35.7, unpolled:1939 },
+  { ward:'SHIVBHAG',      status:'🔴 WEAK',   b13:null, b14:49.6, b18:50.6, b19:54.7, b23:47.8, poll23:54.2, trend:-1.8, unpolled:1842 },
+  { ward:'BENGRE',        status:'🔴 WEAK',   b13:null, b14:79.5, b18:80.1, b19:null,  b23:12.2, poll23:64.1, trend:-67.9,unpolled:3200 },
+  { ward:'BAJAL',         status:'🔴 WEAK',   b13:49.4, b14:43.9, b18:53.0, b19:9.5,  b23:8.3,  poll23:65.2, trend:-44.7,unpolled:2800 },
+  { ward:'BEJAI',         status:'🟡 MEDIUM', b13:null, b14:54.7, b18:52.7, b19:64.5, b23:57.0, poll23:60.3, trend:2.3,  unpolled:2100 },
+  { ward:'COURT',         status:'🔴 WEAK',   b13:null, b14:46.2, b18:45.0, b19:59.3, b23:45.3, poll23:51.2, trend:-0.9, unpolled:2800 },
+  { ward:'FALNIR',        status:'🔴 WEAK',   b13:null, b14:46.5, b18:47.0, b19:52.7, b23:32.1, poll23:62.4, trend:-14.9,unpolled:2100 },
+  { ward:'ATTAVARA',      status:'🟡 MEDIUM', b13:null, b14:58.2, b18:58.4, b19:67.8, b23:60.3, poll23:59.1, trend:2.1,  unpolled:2800 },
+  { ward:'MANGALADEVI',   status:'🟡 MEDIUM', b13:null, b14:57.5, b18:57.8, b19:69.0, b23:59.2, poll23:56.8, trend:1.7,  unpolled:2200 },
+  { ward:'VALENCIA',      status:'🔴 WEAK',   b13:null, b14:44.0, b18:44.4, b19:58.0, b23:45.3, poll23:55.1, trend:1.3,  unpolled:1900 },
+];
+
+const FLIP_DATA = [
+  { ward:'BENGRE',      booth:98,  change:-67.9, bjp18:80.1, bjp23:12.2, con23:84.6, cath:0.9,  musl:0.0,  cause:'BJP IMPLOSION −68%: Grassroots rebellion. Personal revisit by candidate MANDATORY.' },
+  { ward:'FALNIR',      booth:159, change:-53.2, bjp18:61.0, bjp23:7.8,  con23:91.2, cath:32.9, musl:0.1,  cause:'CATHOLIC SURGE (33%): Church-driven anti-BJP. Parish meeting + project delivery essential.' },
+  { ward:'KUDROLI',     booth:109, change:-53.1, bjp18:55.3, bjp23:2.2,  con23:96.5, cath:0.5,  musl:15.0, cause:'BJP IMPLOSION −53%: Muslim+Congress consolidation. Not winnable without structural work.' },
+  { ward:'BAJAL',       booth:201, change:-44.7, bjp18:53.0, bjp23:8.3,  con23:89.8, cath:0.0,  musl:9.5,  cause:'BJP COLLAPSED −45%: Muslim majority + anti-incumbency. Urgent door-to-door recovery.' },
+  { ward:'BAJAL',       booth:207, change:-42.1, bjp18:55.0, bjp23:12.9, con23:83.9, cath:0.0,  musl:8.0,  cause:'BJP COLLAPSED: Consistent Muslim consolidation. Loss reduction focus only.' },
+  { ward:'BAJAL',       booth:203, change:-41.3, bjp18:66.3, bjp23:24.9, con23:70.9, cath:0.3,  musl:10.6, cause:'BJP COLLAPSE −41%: Was 66% BJP in 2018! Recovery possible with Hindu re-engagement.' },
+  { ward:'FALNIR',      booth:164, change:-35.8, bjp18:55.0, bjp23:19.2, con23:80.0, cath:28.0, musl:1.0,  cause:'CATHOLIC SURGE: Church consolidation. Specific ward-level project delivery required.' },
+  { ward:'CANTONMENT',  booth:149, change:-28.4, bjp18:52.0, bjp23:23.6, con23:76.0, cath:15.0, musl:18.0, cause:'Mixed community swing. Ward welfare + candidate relationship: key lever.' },
+  { ward:'SHIVBHAG',    booth:135, change:-22.0, bjp18:52.0, bjp23:30.0, con23:68.0, cath:22.0, musl:14.0, cause:'Multi-community anti-BJP. Shivabagh lost by 183 votes — 3-booth intensive needed.' },
+  { ward:'COURT',       booth:131, change:-19.5, bjp18:50.0, bjp23:30.5, con23:68.0, cath:10.0, musl:30.0, cause:'Muslim consolidation + turnout drive could flip this. High unpolled voters (2,800).' },
+];
+
+const LEAKAGE_DATA = [
+  { ward:'ATHAVARA',    booth:222, gap:-2,  thirdPty:10, jds:2, aap:5, ind:3, bjp:48.9, con:49.2, implication:'WINNABLE: 2 vote deficit. 10 3rd-party votes. JDS→BJP = flip.' },
+  { ward:'CONTONMENT',  booth:146, gap:-3,  thirdPty:8,  jds:3, aap:2, ind:3, bjp:48.9, con:49.3, implication:'WINNABLE: 3 vote deficit. 8 3rd-party votes. Anti-Congress JDS = flip.' },
+  { ward:'PADAV CENTRAL',booth:42, gap:-5,  thirdPty:6,  jds:3, aap:3, ind:0, bjp:49.0, con:49.6, implication:'WINNABLE: 5 vote deficit. 6 3rd-party (JDS+AAP) votes available.' },
+  { ward:'VALENCIA',    booth:137, gap:-85, thirdPty:12, jds:8, aap:0, ind:4, bjp:47.2, con:49.8, implication:'CLOSE: Large deficit. JDS consolidation + Catholic demoralization = possible flip.' },
+  { ward:'SHIVBHAG',    booth:134, gap:-42, thirdPty:9,  jds:5, aap:2, ind:2, bjp:47.0, con:49.5, implication:'ATTACK: High unpolled. 3rd-party + turnout drive = meaningful vote gain.' },
+];
+
+
 function serializeSwotData() {
   const lines = [
     '=== POLITICAL SWOT — Mangaluru City South 2023 ===',
@@ -2251,114 +2356,11 @@ function MLIntelligenceTab() {
 // Data extracted from Mangaluru_DEEP_Analytics_v3.xlsx & Mangaluru_RazorSharp_Analytics.xlsx
 
 // ── Election Scorecard (DEEP v3 — Longitudinal) ──────────────────────────────
-const ELECTION_SCORECARD = [
-  { election:'2013 (ULB)',       winner:'Congress',        bjpWards:'13 wards',      conWards:'25 wards',  narrative:'Congress wave — BJP split (KJP factor)' },
-  { election:'2014 (ULB)',       winner:'BJP',             bjpWards:'26 wards',      conWards:'12 wards',  narrative:'Modi wave — BJP surge +15% avg' },
-  { election:'2018 (ULB)',       winner:'BJP',             bjpWards:'25 wards',      conWards:'13 wards',  narrative:'Consolidation — BJP holds post-reunification' },
-  { election:'2019 (LS)',        winner:'BJP (Lok Sabha)', bjpWards:'Full sweep',    conWards:'—',          narrative:'NDA wave — peak BJP% in every ward' },
-  { election:'2023 (MLA)',       winner:'BJP wins seat',   bjpWards:'25 wards',      conWards:'13 wards',  narrative:'Maintained edge — 3 Congress wards flippable' },
-];
-
 // ── Ward Swing Analysis (DEEP v3 — Swing sheet, 38 wards) ────────────────────
-const SWING_DATA = [
-  { ward:'PADAV WEST',         class23:'🟡 NARROW BJP',  bjp14:62.6, bjp18:65.7, bjp19:73.5, bjp23:null,  sw1418:'+3.1%', sw1923:'+nan%', swType:'🟡 CONTESTED',       h:84.4, m:0.9,  c:14.7, driver:'Mixed community — outreach across all segments required' },
-  { ward:'DEREBAIL SOUTH',     class23:'🟢 STRONGHOLD',  bjp14:58.1, bjp18:59.8, bjp19:66.1, bjp23:64.6,  sw1418:'+1.7%', sw1923:'-1.5%', swType:'🟢 CONSISTENT BJP',   h:79.5, m:2.8,  c:17.7, driver:'Catholic swing (18%) — 2014 Modi wave; 2023 drifted back' },
-  { ward:'DEREBAIL WEST',      class23:'🟢 STRONGHOLD',  bjp14:53.9, bjp18:59.9, bjp19:68.0, bjp23:66.0,  sw1418:'+6.0%', sw1923:'-2.0%', swType:'🟢 CONSISTENT BJP',   h:84.6, m:1.1,  c:14.3, driver:'Mixed community — outreach across all segments required' },
-  { ward:'DEREBAIL SW',        class23:'🟢 STRONGHOLD',  bjp14:64.4, bjp18:69.2, bjp19:74.0, bjp23:74.0,  sw1418:'+4.8%', sw1923:'+0.0%', swType:'🟢 CONSISTENT BJP',   h:87.9, m:0.6,  c:11.5, driver:'High Hindu consolidation — structural BJP ward' },
-  { ward:'BOLOOR',             class23:'🟢 STRONGHOLD',  bjp14:57.7, bjp18:60.3, bjp19:71.6, bjp23:71.6,  sw1418:'+2.6%', sw1923:'+0.0%', swType:'🟢 CONSISTENT BJP',   h:87.5, m:1.2,  c:11.3, driver:'Strong Bunt/GSB Hindu base — turnout complacency risk' },
-  { ward:'MANNAGUDDA',         class23:'🟢 STRONGHOLD',  bjp14:62.9, bjp18:66.1, bjp19:81.0, bjp23:79.3,  sw1418:'+3.2%', sw1923:'-1.7%', swType:'🟢 CONSISTENT BJP',   h:93.7, m:1.1,  c:5.2,  driver:'Highest Hindu % (94%) — anti-complacency critical' },
-  { ward:'KAMBLA',             class23:'🟢 STRONGHOLD',  bjp14:74.4, bjp18:78.4, bjp19:80.1, bjp23:80.1,  sw1418:'+4.0%', sw1923:'+0.0%', swType:'🟢 CONSISTENT BJP',   h:92.6, m:1.8,  c:5.6,  driver:'Ironclad stronghold — 5/5 elections, 62% margins' },
-  { ward:'KODIALBAIL',         class23:'🟢 STRONGHOLD',  bjp14:57.5, bjp18:60.9, bjp19:72.9, bjp23:72.9,  sw1418:'+3.4%', sw1923:'+0.0%', swType:'🟢 CONSISTENT BJP',   h:80.9, m:1.2,  c:17.9, driver:'Stable Hindu base; Catholic (18%) critical swing factor' },
-  { ward:'BEJAI',              class23:'🟢 STRONG',      bjp14:54.7, bjp18:52.7, bjp19:64.5, bjp23:57.0,  sw1418:'-2.0%', sw1923:'-7.5%', swType:'🟡 SOFTENING BJP',    h:68.6, m:4.7,  c:26.7, driver:'Catholic 27% — 2019 voted BJP, 2023 reverted. Key swing group.' },
-  { ward:'KADRI NORTH',        class23:'🟢 STRONGHOLD',  bjp14:64.4, bjp18:66.8, bjp19:76.8, bjp23:71.7,  sw1418:'+2.4%', sw1923:'-5.1%', swType:'🟡 SOFTENING BJP',    h:86.8, m:0.7,  c:12.5, driver:'Poll drop post-2019 — complacency in strong Hindu ward' },
-  { ward:'KADRI SOUTH',        class23:'🟢 FAVOURABLE',  bjp14:52.5, bjp18:52.1, bjp19:64.7, bjp23:57.4,  sw1418:'-0.4%', sw1923:'-7.3%', swType:'🟡 SOFTENING BJP',    h:63.9, m:5.3,  c:30.8, driver:'Christian 31% — wave elections swing BJP; base elections lean Cong' },
-  { ward:'SHIVBHAG',           class23:'🔴 CONGRESS',    bjp14:49.6, bjp18:50.6, bjp19:54.7, bjp23:47.8,  sw1418:'+1.0%', sw1923:'-6.9%', swType:'🔴 FLIPPED →CON',    h:52.2, m:11.7, c:36.1, driver:'Muslim+Christian majority — lost by 183 votes. Priority flip.' },
-  { ward:'PADAVU CENTRAL',     class23:'🟢 STRONG',      bjp14:55.0, bjp18:56.5, bjp19:68.9, bjp23:64.7,  sw1418:'+1.5%', sw1923:'-4.2%', swType:'🟡 SOFTENING BJP',    h:68.3, m:4.6,  c:27.1, driver:'Catholic 27% — booth 42 lost by 5 votes (3rd party spoiler)' },
-  { ward:'PADAVU POORVA',      class23:'🟢 FAVOURABLE',  bjp14:50.9, bjp18:51.8, bjp19:63.9, bjp23:57.0,  sw1418:'+0.9%', sw1923:'-6.9%', swType:'🟡 SOFTENING BJP',    h:60.2, m:3.9,  c:35.9, driver:'Christian 36% — 2019 BJP peak not sustained in 2023 MLA' },
-  { ward:'MAROLI',             class23:'🟢 STRONG',      bjp14:55.5, bjp18:55.4, bjp19:68.2, bjp23:62.1,  sw1418:'-0.1%', sw1923:'-6.1%', swType:'🟡 SOFTENING BJP',    h:68.7, m:0.8,  c:30.5, driver:'Coastal Hindu; BJP drop from 2019 peak — re-engagement needed' },
-  { ward:'BENDUR',             class23:'🔴 CONGRESS',    bjp14:38.1, bjp18:36.5, bjp19:43.6, bjp23:32.2,  sw1418:'-1.6%', sw1923:'-11.4%',swType:'🔴 STRUCTURAL CON',  h:32.2, m:25.2, c:42.6, driver:'Muslim+Christian 68% — BJP needs loss reduction only, -35% margin' },
-  { ward:'FALNIR',             class23:'🔴 CONGRESS',    bjp14:46.5, bjp18:47.0, bjp19:52.7, bjp23:32.1,  sw1418:'+0.5%', sw1923:'-20.6%',swType:'🔴 COLLAPSED',       h:32.1, m:9.2,  c:58.7, driver:'Christian 59% — major BJP collapse 2023. Church-driven consolidation.' },
-  { ward:'COURT',              class23:'🔴 CONGRESS',    bjp14:46.2, bjp18:45.0, bjp19:59.3, bjp23:45.3,  sw1418:'-1.2%', sw1923:'-14.0%',swType:'🔴 FLIPPED →CON',    h:51.0, m:27.7, c:21.4, driver:'Muslim 28% — lost by 352 votes. Turnout drive = flip potential.' },
-  { ward:'CENTRAL',            class23:'🟢 STRONGHOLD',  bjp14:38.4, bjp18:33.4, bjp19:80.9, bjp23:78.2,  sw1418:'-5.0%', sw1923:'+44.8%',swType:'🟢 RECOVERED',       h:90.4, m:7.6,  c:2.0,  driver:'2013–2018 Congress; 2019 BJP wave flip — now structural BJP stronghold' },
-  { ward:'DONGERKERY',         class23:'🟢 STRONGHOLD',  bjp14:62.4, bjp18:62.9, bjp19:78.6, bjp23:78.2,  sw1418:'+0.5%', sw1923:'-0.4%', swType:'🟢 CONSISTENT BJP',   h:86.2, m:12.0, c:1.8,  driver:'OBC Hindu consolidation — stable but 2019 peak not matched 2023' },
-  { ward:'KUDROLI',            class23:'🔴 CONGRESS',    bjp14:52.8, bjp18:55.3, bjp19:28.8, bjp23:28.8,  sw1418:'+2.5%', sw1923:'+0.0%', swType:'🔴 STRUCTURAL CON',  h:28.8, m:68.2, c:3.0,  driver:'Muslim 68% — structural Congress. BJP min damage goal: <70% con.' },
-  { ward:'NAVAYATH',           class23:'🔴 CONGRESS',    bjp14:41.3, bjp18:40.0, bjp19:51.3, bjp23:36.9,  sw1418:'-1.3%', sw1923:'-14.4%',swType:'🔴 STRUCTURAL CON',  h:28.0, m:65.0, c:7.0,  driver:'Muslim majority — high 2019 LS peak not real base; loss reduction only' },
-  { ward:'PORT',               class23:'🔴 CONGRESS',    bjp14:44.0, bjp18:43.5, bjp19:57.5, bjp23:44.3,  sw1418:'-0.5%', sw1923:'+0.8%', swType:'🔴 FLIPPED →CON',    h:48.0, m:30.0, c:18.0, driver:'Lost by 9.3% — moderate Muslim presence; 2019 LS BJP much higher' },
-  { ward:'CANTONMENT',         class23:'🔴 CONGRESS',    bjp14:43.5, bjp18:43.9, bjp19:58.4, bjp23:45.8,  sw1418:'+0.4%', sw1923:'+1.9%', swType:'🟡 BORDERLINE',      h:45.0, m:25.0, c:25.0, driver:'Lost by 8.4% — booth 146 just 3 votes deficit + 8 3rd-party votes!' },
-  { ward:'MILAGRIS',           class23:'🔴 CONGRESS',    bjp14:38.0, bjp18:38.5, bjp19:48.9, bjp23:38.0,  sw1418:'+0.5%', sw1923:'-10.9%',swType:'🔴 STRUCTURAL CON',  h:30.0, m:20.0, c:50.0, driver:'Christian majority 50% — structural Congress, loss reduction goal' },
-  { ward:'VALENCIA',           class23:'🔴 CONGRESS',    bjp14:44.0, bjp18:44.4, bjp19:58.0, bjp23:45.3,  sw1418:'+0.4%', sw1923:'+0.9%', swType:'🟡 BORDERLINE',      h:42.0, m:18.0, c:35.0, driver:'Lost by 8.8% — demoralized Catholic minority; easiest flip target' },
-  { ward:'KANKANADY',          class23:'🟢 STRONGHOLD',  bjp14:55.3, bjp18:56.1, bjp19:69.4, bjp23:66.0,  sw1418:'+0.8%', sw1923:'-3.4%', swType:'🟡 SOFTENING BJP',    h:60.0, m:25.0, c:15.0, driver:'Mixed ward — 2023 dip from 2019 peak; consolidation required' },
-  { ward:'ALAPE DAKSHINA',     class23:'🟢 STRONGHOLD',  bjp14:60.2, bjp18:62.0, bjp19:74.5, bjp23:71.6,  sw1418:'+1.8%', sw1923:'-2.9%', swType:'🟡 SOFTENING BJP',    h:78.0, m:8.0,  c:14.0, driver:'Bunt/GSB coastal belt — strong base, small 2023 dip from 2019' },
-  { ward:'ALAPE UTTARA',       class23:'🟢 STRONG',      bjp14:58.0, bjp18:60.5, bjp19:72.3, bjp23:66.0,  sw1418:'+2.5%', sw1923:'-6.3%', swType:'🟡 SOFTENING BJP',    h:72.0, m:12.0, c:16.0, driver:'Moderate mixed ward — 2019 surge not replicated in 2023 MLA' },
-  { ward:'KANNUR',             class23:'🔴 CONGRESS',    bjp14:38.5, bjp18:38.0, bjp19:49.0, bjp23:36.0,  sw1418:'-0.5%', sw1923:'-13.0%',swType:'🔴 STRUCTURAL CON',  h:35.0, m:45.0, c:20.0, driver:'Muslim-heavy — structural Congress. Loss reduction the only goal.' },
-  { ward:'BAJAL',              class23:'🔴 CONGRESS',    bjp14:43.9, bjp18:53.0, bjp19:20.0, bjp23:8.3,   sw1418:'+9.1%', sw1923:'-44.7%',swType:'🔴 COLLAPSED',       h:35.0, m:50.0, c:12.0, driver:'BJP IMPLOSION: -45% from 2018. Anti-incumbency + Muslim majority.' },
-  { ward:'JEPPINAMUGER',       class23:'🟢 STRONG',      bjp14:52.5, bjp18:54.0, bjp19:65.8, bjp23:58.7,  sw1418:'+1.5%', sw1923:'-7.1%', swType:'🟡 SOFTENING BJP',    h:65.0, m:20.0, c:15.0, driver:'Coastal mixed — 2023 MLA dip from 2019 LS. Needs re-engagement.' },
-  { ward:'ATTAVARA',           class23:'🟢 NARROW BJP',  bjp14:58.2, bjp18:58.4, bjp19:67.8, bjp23:60.3,  sw1418:'+0.2%', sw1923:'-7.5%', swType:'🟡 SOFTENING BJP',    h:72.0, m:5.0,  c:20.0, driver:'Booth 222 lost by 2 votes with 10 3rd-party votes — critical!' },
-  { ward:'MANGALADEVI',        class23:'🟢 NARROW BJP',  bjp14:57.5, bjp18:57.8, bjp19:69.0, bjp23:59.2,  sw1418:'+0.3%', sw1923:'-9.8%', swType:'🟡 SOFTENING BJP',    h:68.0, m:12.0, c:18.0, driver:'+9.8% BJP ward; 2023 dip from 2019 — anti-complacency needed' },
-  { ward:'HOIGE BAZAR',        class23:'🟢 STRONG',      bjp14:54.0, bjp18:55.2, bjp19:67.4, bjp23:61.0,  sw1418:'+1.2%', sw1923:'-6.4%', swType:'🟡 SOFTENING BJP',    h:62.0, m:18.0, c:18.0, driver:'Muslim 18% — key swing community; coastal trade area dynamics' },
-  { ward:'BOLAR',              class23:'🟢 STRONGHOLD',  bjp14:58.6, bjp18:60.1, bjp19:72.8, bjp23:68.5,  sw1418:'+1.5%', sw1923:'-4.3%', swType:'🟡 SOFTENING BJP',    h:70.0, m:12.0, c:16.0, driver:'Coastal stronghold — 2023 MLA dip from 2019 peak manageable' },
-  { ward:'JEPPU',              class23:'🔴 CONGRESS',    bjp14:44.0, bjp18:44.8, bjp19:57.3, bjp23:44.5,  sw1418:'+0.8%', sw1923:'-12.8%',swType:'🔴 FLIPPED →CON',    h:48.0, m:30.0, c:20.0, driver:'Lost by 8.1% — moderate Muslim; 2019 BJP peak not sustained' },
-  { ward:'BENGRE',             class23:'🔴 CONGRESS',    bjp14:79.5, bjp18:80.1, bjp19:80.1, bjp23:12.2,  sw1418:'+0.6%', sw1923:'-67.9%',swType:'🔴 IMPLODED',        h:78.0, m:8.0,  c:10.0, driver:'EXTREME: -68% from 2018. Booth 98 BJP implosion. Grassroots rebuild.' },
-];
-
 // ── Statistical Variance (DEEP v3 — top 15 by 2028 prediction) ───────────────
-const STAT_DATA = [
-  { ward:'KAMBLA',         mean:76.3, std:5.1,  min:65.5, max:80.1, poll:70.3, rating:'🟢 ELITE STRONGHOLD',   stability:99, pred2028:80 },
-  { ward:'MANNAGUDDA',     mean:68.0, std:14.8, min:42.4, max:79.3, poll:69.3, rating:'🟢 RELIABLE BJP',        stability:92, pred2028:78 },
-  { ward:'CENTRAL',        mean:61.9, std:21.1, min:33.4, max:80.9, poll:63.6, rating:'🟢 RECOVERED STRONGHOLD',stability:88, pred2028:76 },
-  { ward:'PADAV WEST',     mean:67.3, std:5.6,  min:62.6, max:73.5, poll:72.6, rating:'🟢 ELITE STRONGHOLD',   stability:99, pred2028:72 },
-  { ward:'DONGERKERY',     mean:68.6, std:9.8,  min:62.4, max:78.6, poll:68.2, rating:'🟢 RELIABLE BJP',        stability:95, pred2028:77 },
-  { ward:'BOLOOR',         mean:62.6, std:6.1,  min:57.7, max:71.6, poll:65.5, rating:'🟢 RELIABLE BJP',        stability:96, pred2028:70 },
-  { ward:'DEREBAIL SW',    mean:67.0, std:4.2,  min:64.4, max:74.0, poll:67.8, rating:'🟢 ELITE STRONGHOLD',   stability:98, pred2028:73 },
-  { ward:'DEREBAIL WEST',  mean:61.9, std:6.4,  min:53.9, max:68.0, poll:71.5, rating:'🟢 RELIABLE BJP',        stability:99, pred2028:65 },
-  { ward:'DEREBAIL SOUTH', mean:62.2, std:3.8,  min:58.1, max:66.1, poll:64.8, rating:'🟢 RELIABLE BJP',        stability:95, pred2028:64 },
-  { ward:'KODIALBAIL',     mean:65.3, std:6.8,  min:57.5, max:72.9, poll:68.4, rating:'🟢 RELIABLE BJP',        stability:94, pred2028:71 },
-  { ward:'SHIVBHAG',       mean:50.2, std:3.1,  min:47.0, max:54.7, poll:56.2, rating:'🟡 CONTESTED',           stability:72, pred2028:48 },
-  { ward:'COURT',          mean:48.0, std:6.1,  min:45.0, max:59.3, poll:52.5, rating:'🟡 BORDERLINE',          stability:68, pred2028:50 },
-  { ward:'BAJAL',          mean:31.2, std:18.4, min:8.3,  max:53.0, poll:64.2, rating:'🔴 COLLAPSED',           stability:30, pred2028:20 },
-  { ward:'BENGRE',         mean:55.0, std:32.5, min:12.2, max:80.1, poll:63.8, rating:'🔴 IMPLODED',            stability:15, pred2028:35 },
-  { ward:'FALNIR',         mean:44.6, std:6.3,  min:32.1, max:52.7, poll:62.4, rating:'🔴 STRUCTURAL CON',      stability:40, pred2028:35 },
-];
-
 // ── 5-Election Ward Trends (RazorSharp — key wards) ──────────────────────────
-const TRENDS5_DATA = [
-  { ward:'KAMBLA',        status:'🟢 STRONG', b13:65.5, b14:74.4, b18:78.4, b19:80.1, b23:80.1, poll23:62.1, trend:14.5, unpolled:1927 },
-  { ward:'MANNAGUDDA',    status:'🟡 MEDIUM', b13:42.4, b14:62.9, b18:66.1, b19:81.0, b23:79.3, poll23:61.7, trend:36.8, unpolled:2797 },
-  { ward:'CENTRAL',       status:'🟢 STRONG', b13:42.5, b14:38.4, b18:33.4, b19:80.9, b23:78.2, poll23:62.9, trend:35.7, unpolled:1939 },
-  { ward:'SHIVBHAG',      status:'🔴 WEAK',   b13:null, b14:49.6, b18:50.6, b19:54.7, b23:47.8, poll23:54.2, trend:-1.8, unpolled:1842 },
-  { ward:'BENGRE',        status:'🔴 WEAK',   b13:null, b14:79.5, b18:80.1, b19:null,  b23:12.2, poll23:64.1, trend:-67.9,unpolled:3200 },
-  { ward:'BAJAL',         status:'🔴 WEAK',   b13:49.4, b14:43.9, b18:53.0, b19:9.5,  b23:8.3,  poll23:65.2, trend:-44.7,unpolled:2800 },
-  { ward:'BEJAI',         status:'🟡 MEDIUM', b13:null, b14:54.7, b18:52.7, b19:64.5, b23:57.0, poll23:60.3, trend:2.3,  unpolled:2100 },
-  { ward:'COURT',         status:'🔴 WEAK',   b13:null, b14:46.2, b18:45.0, b19:59.3, b23:45.3, poll23:51.2, trend:-0.9, unpolled:2800 },
-  { ward:'FALNIR',        status:'🔴 WEAK',   b13:null, b14:46.5, b18:47.0, b19:52.7, b23:32.1, poll23:62.4, trend:-14.9,unpolled:2100 },
-  { ward:'ATTAVARA',      status:'🟡 MEDIUM', b13:null, b14:58.2, b18:58.4, b19:67.8, b23:60.3, poll23:59.1, trend:2.1,  unpolled:2800 },
-  { ward:'MANGALADEVI',   status:'🟡 MEDIUM', b13:null, b14:57.5, b18:57.8, b19:69.0, b23:59.2, poll23:56.8, trend:1.7,  unpolled:2200 },
-  { ward:'VALENCIA',      status:'🔴 WEAK',   b13:null, b14:44.0, b18:44.4, b19:58.0, b23:45.3, poll23:55.1, trend:1.3,  unpolled:1900 },
-];
-
 // ── Booth Flips (RazorSharp — BJP→Congress, top severity) ────────────────────
-const FLIP_DATA = [
-  { ward:'BENGRE',      booth:98,  change:-67.9, bjp18:80.1, bjp23:12.2, con23:84.6, cath:0.9,  musl:0.0,  cause:'BJP IMPLOSION −68%: Grassroots rebellion. Personal revisit by candidate MANDATORY.' },
-  { ward:'FALNIR',      booth:159, change:-53.2, bjp18:61.0, bjp23:7.8,  con23:91.2, cath:32.9, musl:0.1,  cause:'CATHOLIC SURGE (33%): Church-driven anti-BJP. Parish meeting + project delivery essential.' },
-  { ward:'KUDROLI',     booth:109, change:-53.1, bjp18:55.3, bjp23:2.2,  con23:96.5, cath:0.5,  musl:15.0, cause:'BJP IMPLOSION −53%: Muslim+Congress consolidation. Not winnable without structural work.' },
-  { ward:'BAJAL',       booth:201, change:-44.7, bjp18:53.0, bjp23:8.3,  con23:89.8, cath:0.0,  musl:9.5,  cause:'BJP COLLAPSED −45%: Muslim majority + anti-incumbency. Urgent door-to-door recovery.' },
-  { ward:'BAJAL',       booth:207, change:-42.1, bjp18:55.0, bjp23:12.9, con23:83.9, cath:0.0,  musl:8.0,  cause:'BJP COLLAPSED: Consistent Muslim consolidation. Loss reduction focus only.' },
-  { ward:'BAJAL',       booth:203, change:-41.3, bjp18:66.3, bjp23:24.9, con23:70.9, cath:0.3,  musl:10.6, cause:'BJP COLLAPSE −41%: Was 66% BJP in 2018! Recovery possible with Hindu re-engagement.' },
-  { ward:'FALNIR',      booth:164, change:-35.8, bjp18:55.0, bjp23:19.2, con23:80.0, cath:28.0, musl:1.0,  cause:'CATHOLIC SURGE: Church consolidation. Specific ward-level project delivery required.' },
-  { ward:'CANTONMENT',  booth:149, change:-28.4, bjp18:52.0, bjp23:23.6, con23:76.0, cath:15.0, musl:18.0, cause:'Mixed community swing. Ward welfare + candidate relationship: key lever.' },
-  { ward:'SHIVBHAG',    booth:135, change:-22.0, bjp18:52.0, bjp23:30.0, con23:68.0, cath:22.0, musl:14.0, cause:'Multi-community anti-BJP. Shivabagh lost by 183 votes — 3-booth intensive needed.' },
-  { ward:'COURT',       booth:131, change:-19.5, bjp18:50.0, bjp23:30.5, con23:68.0, cath:10.0, musl:30.0, cause:'Muslim consolidation + turnout drive could flip this. High unpolled voters (2,800).' },
-];
-
 // ── Vote Leakage / 3rd Party Spoilers (RazorSharp) ────────────────────────────
-const LEAKAGE_DATA = [
-  { ward:'ATHAVARA',    booth:222, gap:-2,  thirdPty:10, jds:2, aap:5, ind:3, bjp:48.9, con:49.2, implication:'WINNABLE: 2 vote deficit. 10 3rd-party votes. JDS→BJP = flip.' },
-  { ward:'CONTONMENT',  booth:146, gap:-3,  thirdPty:8,  jds:3, aap:2, ind:3, bjp:48.9, con:49.3, implication:'WINNABLE: 3 vote deficit. 8 3rd-party votes. Anti-Congress JDS = flip.' },
-  { ward:'PADAV CENTRAL',booth:42, gap:-5,  thirdPty:6,  jds:3, aap:3, ind:0, bjp:49.0, con:49.6, implication:'WINNABLE: 5 vote deficit. 6 3rd-party (JDS+AAP) votes available.' },
-  { ward:'VALENCIA',    booth:137, gap:-85, thirdPty:12, jds:8, aap:0, ind:4, bjp:47.2, con:49.8, implication:'CLOSE: Large deficit. JDS consolidation + Catholic demoralization = possible flip.' },
-  { ward:'SHIVBHAG',    booth:134, gap:-42, thirdPty:9,  jds:5, aap:2, ind:2, bjp:47.0, con:49.5, implication:'ATTACK: High unpolled. 3rd-party + turnout drive = meaningful vote gain.' },
-];
-
 // Sub-tabs inside the election tab
 const ELEC_SUBTABS = [
   { id:'scorecard', label:'History',       icon:'📅' },
