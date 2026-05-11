@@ -263,15 +263,117 @@ const TABS = [
   { id: 'ml',         label: 'Shaastra SWOT',        Icon: Crosshair   },
 ];
 // ─── AI Overview Panel ────────────────────────────────────────────────────────
-// Shown at the top of each tab. Calls /api/ai/swot-overview/ with the tab id.
+// Shown at the top of each tab. Calls /api/ai/swot-overview/ with the tab id
+// AND the serialised data currently visible in that tab.
 // Caches results per tab so switching back doesn't re-fetch.
 const overviewCache = {};   // module-level so persists across tab switches
+
+// ── Serialise each tab's data so the backend has real numbers to analyse ──────
+function buildTabData(tab) {
+  switch (tab) {
+
+    case 'swot': {
+      // Full SWOT points (S/W/O/T), each item label + stat + detail
+      const lines = [];
+      for (const [key, q] of Object.entries(swotPoints)) {
+        lines.push(`=== ${q.title} (${q.subtitle}) ===`);
+        q.items.forEach(it => {
+          lines.push(`  • [${it.stat}] ${it.label}`);
+          lines.push(`    ${it.detail}`);
+        });
+      }
+      // Also include overall ward summary
+      lines.push('\n=== Ward Summary ===');
+      lines.push('25/38 wards won by BJP | 13 by Congress');
+      lines.push('STRONG (lead >40%): 8 wards, avg lead 47.8%');
+      lines.push('MEDIUM (lead 15-40%): 14 wards, avg lead 24.6%');
+      lines.push('NARROW (lead <15%): 3 wards (Attavara +9.9%, Mangaladevi +9.8%, Padav East +7.5%)');
+      lines.push('LOST: 13 wards — avg Congress lead 19.8%');
+      return lines.join('\n');
+    }
+
+    case 'wards': {
+      // All 38 wards with every numeric field
+      const header = 'Ward | Voters | BJP | INC | BJP% | INC% | Lead% | Turnout% | Category | PS | Winner';
+      const rows = wardData.map(w =>
+        `${w.ward} | ${w.voters} | ${w.bjp} | ${w.cong} | ${w.bjpPct} | ${w.congPct} | ${w.lead.toFixed(2)} | ${w.turnout} | ${w.cat} | ${w.ps} | ${w.winner}`
+      );
+      return [header, ...rows].join('\n');
+    }
+
+    case 'demographic': {
+      // Muslim-dominant booths
+      const mHeader = '=== Muslim-Dominant Booths ===\nWard | Booth | Voters | Muslim% | BJP% | INC% | Risk';
+      const mRows = muslimBooths.map(b =>
+        `${b.ward} | ${b.booth} | ${b.voters} | ${b.muslimPct} | ${b.bjpPct} | ${b.congPct} | ${b.risk}`
+      );
+      // Christian-dominant booths
+      const cHeader = '\n=== Christian-Dominant Booths ===\nWard | Booth | Voters | Christian% | BJP% | INC% | Risk';
+      const cRows = christianBooths.map(b =>
+        `${b.ward} | ${b.booth} | ${b.voters} | ${b.christianPct} | ${b.bjpPct} | ${b.congPct} | ${b.risk}`
+      );
+      // Ward-level demographic summary (inline data from DemographicTab table)
+      const wHeader = '\n=== Ward-Level Demographic & BJP Performance ===\nWard | Dominant | Muslim% | Christian% | BJP% | INC% | Lead% | Winner | Viability';
+      const wardDemoRows = [
+        'BENGRE | MUSLIM | ~65% | ~5% | 36.37 | 61.32 | -24.96 | CONGRESS | None',
+        'KUDROLI | MUSLIM | ~55% | ~3% | 28.95 | 70.17 | -41.21 | CONGRESS | None',
+        'BENDOOR | MUSLIM+CHR | ~35% | ~35% | 29.4 | 68.82 | -39.41 | CONGRESS | None',
+        'FALNIR | MUSLIM+CHR | ~35% | ~30% | 32.07 | 66.12 | -34.04 | CONGRESS | Low',
+        'BUNDER | MUSLIM | ~55% | ~5% | 36.06 | 61.71 | -25.65 | CONGRESS | Low',
+        'KANNUR | MUSLIM | ~60% | ~5% | 40.63 | 57.02 | -16.39 | CONGRESS | Low',
+        'MILAGRESS | MIXED | ~20% | ~20% | 38.13 | 60.08 | -21.95 | CONGRESS | Low',
+        'BAJAL | MIXED | ~25% | ~10% | 44.54 | 52.93 | -11.36 | CONGRESS | Medium (JDS+)',
+        'JEPPU | MIXED | ~20% | ~20% | 44.83 | 52.90 | -8.07 | CONGRESS | Medium',
+        'PORT | MIXED | ~25% | ~10% | 44.71 | 53.96 | -9.25 | CONGRESS | Medium',
+        'COURT | MIXED | ~30% | ~10% | 43.76 | 54.80 | -11.03 | CONGRESS | Medium (turnout)',
+        'VALENCIA | CHR+MIXED | ~10% | ~30% | 44.64 | 53.49 | -8.85 | CONGRESS | Medium',
+        'SHIVABAGH | MIXED | ~15% | ~25% | 46.74 | 51.56 | -4.83 | CONGRESS | High',
+        'BEJAI | HINDU | ~5% | ~25% | 59.44 | 38.33 | +21.11 | BJP | Safe',
+        'ALAPE NORTH | MIXED | ~5% | ~30% | 57.13 | 41.39 | +15.74 | BJP | Safe',
+      ];
+      return [mHeader, ...mRows, cHeader, ...cRows, wHeader, ...wardDemoRows].join('\n');
+    }
+
+    case 'election': {
+      const sc = '=== Election Scorecard (2013–2023) ===\nElection | Winner | BJP Wards | Congress Wards | Narrative';
+      const scRows = ELECTION_SCORECARD.map(e =>
+        `${e.election} | ${e.winner} | ${e.bjpWards} | ${e.conWards} | ${e.narrative}`
+      );
+      const sw = '\n=== Ward Swing Analysis ===\nWard | Class23 | BJP14% | BJP18% | BJP19% | BJP23% | Swing14-18 | Swing19-23 | SwingType | Hindu% | Muslim% | Christian% | Driver';
+      const swRows = SWING_DATA.map(w =>
+        `${w.ward} | ${w.class23} | ${w.bjp14} | ${w.bjp18} | ${w.bjp19 ?? '—'} | ${w.bjp23 ?? '—'} | ${w.sw1418} | ${w.sw1923} | ${w.swType} | ${w.h} | ${w.m} | ${w.c} | ${w.driver}`
+      );
+      const st = '\n=== Statistical Variance (top 15) ===\nWard | Mean% | StdDev | Min% | Max% | Turnout% | Rating | Stability | Pred2028%';
+      const stRows = STAT_DATA.map(w =>
+        `${w.ward} | ${w.mean} | ${w.std} | ${w.min} | ${w.max} | ${w.poll} | ${w.rating} | ${w.stability} | ${w.pred2028}`
+      );
+      const tr = '\n=== 5-Election Trends (key wards) ===\nWard | Status | 2013% | 2014% | 2018% | 2019% | 2023% | Turnout23% | Trend | Unpolled';
+      const trRows = TRENDS5_DATA.map(w =>
+        `${w.ward} | ${w.status} | ${w.b13 ?? '—'} | ${w.b14} | ${w.b18} | ${w.b19 ?? '—'} | ${w.b23} | ${w.poll23} | ${w.trend > 0 ? '+' : ''}${w.trend} | ${w.unpolled}`
+      );
+      const fl = '\n=== Booth Flips (BJP→Congress, top severity) ===\nWard | Booth | Change% | BJP18% | BJP23% | CON23% | Cath% | Musl% | Cause';
+      const flRows = FLIP_DATA.map(f =>
+        `${f.ward} | ${f.booth} | ${f.change} | ${f.bjp18} | ${f.bjp23} | ${f.con23} | ${f.cath} | ${f.musl} | ${f.cause}`
+      );
+      const lk = '\n=== Vote Leakage / 3rd-Party Spoilers ===\nWard | Booth | Gap | 3rdParty | JDS | AAP | Ind | BJP% | CON% | Implication';
+      const lkRows = LEAKAGE_DATA.map(l =>
+        `${l.ward} | ${l.booth} | ${l.gap} | ${l.thirdPty} | ${l.jds} | ${l.aap} | ${l.ind} | ${l.bjp} | ${l.con} | ${l.implication}`
+      );
+      return [sc, ...scRows, sw, ...swRows, st, ...stRows, tr, ...trRows, fl, ...flRows, lk, ...lkRows].join('\n');
+    }
+
+    default:
+      return '';
+  }
+}
 
 function SwotAIOverview({ tab }) {
   const [state,    setState]    = useState('idle');  // idle | loading | done | error
   const [overview, setOverview] = useState(overviewCache[tab] || null);
   const [open,     setOpen]     = useState(false);
   const abortRef = useRef(null);
+
+  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
 
   const fetch = useCallback(async () => {
     if (overviewCache[tab]) {
@@ -283,7 +385,16 @@ function SwotAIOverview({ tab }) {
     setState('loading');
     setOpen(true);
     try {
-      const { data } = await swotApi.overview(tab);
+      const token = sessionStorage.getItem('cc_token');
+      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const tabData = buildTabData(tab);
+      const res = await window.fetch(`${BASE}/api/ai/swot-overview/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ tab, tabData }),
+      });
+      const data = await res.json();
       if (data?.success && data?.overview) {
         overviewCache[tab] = data.overview;
         setOverview(data.overview);
