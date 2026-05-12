@@ -602,6 +602,10 @@ function SwotAIOverview({ tab }) {
       {/* ── Loading shimmer ────────────────────────────────────────────────── */}
       {state === 'loading' && (
         <div style={{ marginTop: 10, background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, padding: '18px 20px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: 'rgba(99,102,241,0.6)', fontFamily: 'Sora, sans-serif', marginBottom: 10 }}>ShaastraAI is generating insight…</div>
+            <AIGeneratingSteps />
+          </div>
           {[78, 55, 68, 42].map((w, i) => (
             <div key={i} className="swot-ai-shimmer" style={{ width: `${w}%`, height: i === 0 ? 13 : 10, borderRadius: 6, marginBottom: i < 3 ? 12 : 0 }} />
           ))}
@@ -632,7 +636,7 @@ function SwotAIOverview({ tab }) {
               </span>
             </div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#f1f5f9', lineHeight: 1.35, letterSpacing: '-0.025em' }}>
-              <HL text={overview.headline} color="#fbbf24" />
+              <TypewriterText text={overview.headline} speed={18} style={{ display: 'block' }} tag="span" />
             </div>
           </div>
 
@@ -674,7 +678,7 @@ function SwotAIOverview({ tab }) {
           {overview.summary && !overview.summary.trim().startsWith('{') && (
             <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', lineHeight: 1.78, letterSpacing: '0.005em' }}>
-                <HL text={overview.summary} color="#fbbf24" />
+                <TypewriterText text={overview.summary} speed={7} />
               </p>
             </div>
           )}
@@ -703,7 +707,7 @@ function SwotAIOverview({ tab }) {
                     {/* Text */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ fontSize: 12.5, color: '#dde4f0', lineHeight: 1.65, display: 'block' }}>
-                        <HL text={b.text} color={accent} />
+                        <TypewriterText text={b.text} speed={9} />
                       </span>
                     </div>
                   </div>
@@ -736,7 +740,7 @@ function SwotAIOverview({ tab }) {
                   </span>
                 </div>
                 <div style={{ fontSize: 13.5, color: '#f1f5f9', lineHeight: 1.6, fontWeight: 600, letterSpacing: '-0.01em' }}>
-                  <HL text={overview.callout.text} color={calloutColor} />
+                  <TypewriterText text={overview.callout.text} speed={12} />
                 </div>
               </div>
             </div>
@@ -1245,6 +1249,46 @@ const CONTEXT_KEYS = [
   { key: 'Administrative_context', label: 'Administrative',    color: '#fbbf24', IconPaths: PATHS.Admin       },
 ];
 
+// ─── Step-by-step generation indicator ───────────────────────────────────────
+function AIGeneratingSteps() {
+  const steps = [
+    'Reading voter demographics…',
+    'Mapping SWOT signals…',
+    'Identifying scheme relevance…',
+    'Generating strategic insight…',
+  ];
+  const [step, setStep] = React.useState(0);
+  const [dots, setDots] = React.useState('');
+
+  React.useEffect(() => {
+    const iv = setInterval(() => setStep(s => (s + 1) % steps.length), 900);
+    const dv = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 280);
+    return () => { clearInterval(iv); clearInterval(dv); };
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 240, margin: '0 auto' }}>
+      {steps.map((s, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px',
+          borderRadius: 6,
+          background: i === step ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.02)',
+          border: `1px solid ${i === step ? 'rgba(167,139,250,0.3)' : 'rgba(255,255,255,0.04)'}`,
+          transition: 'all 0.3s',
+          opacity: i < step ? 0.35 : i === step ? 1 : 0.4,
+        }}>
+          <span style={{ fontSize: 9, fontFamily: 'Space Mono, monospace', color: i < step ? '#10b981' : i === step ? '#a78bfa' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
+            {i < step ? '✓' : i === step ? '▶' : '○'}
+          </span>
+          <span style={{ fontSize: 9, fontFamily: 'Sora, sans-serif', color: i === step ? 'rgba(167,139,250,0.85)' : 'rgba(255,255,255,0.25)' }}>
+            {s}{i === step ? dots : ''}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── New label system: Dominant / Major / Moderate / Minor ───────────────────
 const LABEL_META = {
   Dominant: { color: '#f59e0b', bg: 'rgba(245,158,11,0.09)',  border: 'rgba(245,158,11,0.28)',  glow: 'rgba(245,158,11,0.18)'  },
@@ -1282,11 +1326,51 @@ function swotColors(swot) {
   return { color: 'rgba(255,255,255,0.2)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)' };
 }
 
+// ─── Typewriter hook ──────────────────────────────────────────────────────────
+function useTypewriter(targetText, speed = 18, enabled = true) {
+  const [displayed, setDisplayed] = React.useState('');
+  const rafRef = React.useRef(null);
+  const indexRef = React.useRef(0);
+
+  React.useEffect(() => {
+    if (!enabled || !targetText) { setDisplayed(targetText || ''); return; }
+    indexRef.current = 0;
+    setDisplayed('');
+
+    const tick = () => {
+      indexRef.current += 1;
+      setDisplayed(targetText.slice(0, indexRef.current));
+      if (indexRef.current < targetText.length) {
+        rafRef.current = setTimeout(tick, speed);
+      }
+    };
+    rafRef.current = setTimeout(tick, speed);
+    return () => clearTimeout(rafRef.current);
+  }, [targetText, speed, enabled]);
+
+  return displayed;
+}
+
+// ─── Typewriter text component ────────────────────────────────────────────────
+function TypewriterText({ text, speed = 14, style = {}, tag = 'span' }) {
+  const displayed = useTypewriter(text, speed, Boolean(text));
+  const Tag = tag;
+  return (
+    <Tag style={style}>
+      {displayed}
+      {displayed.length < (text || '').length && (
+        <span style={{ display: 'inline-block', width: 2, height: '1em', background: 'rgba(167,139,250,0.7)', marginLeft: 1, verticalAlign: 'text-bottom', animation: 'twBlink 0.7s step-end infinite' }} />
+      )}
+    </Tag>
+  );
+}
+
 function QueryCard({ q, ctxKey, ctxColor }) {
   const [open, setOpen] = React.useState(false);
   const [aiOpen, setAiOpen] = React.useState(false);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [aiText, setAiText] = React.useState('');
+  const [aiReveal, setAiReveal] = React.useState(false); // triggers typewriter start
 
   const ctx = q.predictedContext || {};
   const label = q.label || 'None';
@@ -1302,6 +1386,7 @@ function QueryCard({ q, ctxKey, ctxColor }) {
     setAiOpen(true);
     if (aiText) return; // already loaded
     setAiLoading(true);
+    setAiReveal(false);
 
     try {
       // Route through Django backend to avoid CORS — never call Anthropic directly from browser
@@ -1333,6 +1418,7 @@ function QueryCard({ q, ctxKey, ctxColor }) {
       setAiText({ _raw: 'Failed to fetch AI insight. Please try again.' });
     }
     setAiLoading(false);
+    setAiReveal(true);
   };
 
   return (
@@ -1386,6 +1472,11 @@ function QueryCard({ q, ctxKey, ctxColor }) {
       {/* AI insight panel — rich structured */}
       {aiOpen && (
         <div style={{ marginTop: 10, borderRadius: 10, background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.22)', overflow: 'hidden' }}>
+          <style>{`
+            @keyframes twBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+            @keyframes aiStepIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+            .ai-section-anim { animation: aiStepIn 0.35s ease both; }
+          `}</style>
           {/* Header */}
           <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(167,139,250,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 8.5, color: '#a78bfa', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', fontFamily: 'Space Mono, monospace', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1400,29 +1491,39 @@ function QueryCard({ q, ctxKey, ctxColor }) {
 
           {aiLoading ? (
             <div style={{ padding: '18px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 22, animation: 'spin 1.2s linear infinite', display: 'inline-block', marginBottom: 6 }}>✦</div>
-              <div style={{ fontSize: 10.5, color: 'rgba(167,139,250,0.55)', fontFamily: 'Sora, sans-serif' }}>Analysing voter segment…</div>
+              {/* Step-by-step generation indicator */}
+              <div style={{ fontSize: 22, animation: 'spin 1.2s linear infinite', display: 'inline-block', marginBottom: 10 }}>✦</div>
+              <div style={{ fontSize: 10.5, color: 'rgba(167,139,250,0.7)', fontFamily: 'Sora, sans-serif', marginBottom: 8 }}>Analysing voter segment…</div>
+              <AIGeneratingSteps />
             </div>
           ) : aiText && aiText._raw ? (
             <p style={{ padding: '10px 12px', fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, margin: 0, fontFamily: 'Sora, sans-serif' }}>{aiText._raw}</p>
           ) : aiText ? (
             <div style={{ padding: '10px 12px' }}>
-              {/* Headline */}
+              {/* Headline — typewriter */}
               {aiText.headline && (
-                <div style={{ fontSize: 12.5, fontWeight: 800, color: '#e8eeff', lineHeight: 1.3, marginBottom: 7, fontFamily: 'Sora, sans-serif' }}>{aiText.headline}</div>
+                <div className="ai-section-anim" style={{ fontSize: 12.5, fontWeight: 800, color: '#e8eeff', lineHeight: 1.3, marginBottom: 7, fontFamily: 'Sora, sans-serif', minHeight: 18 }}>
+                  <TypewriterText text={aiText.headline} speed={22} />
+                </div>
               )}
-              {/* Summary */}
+              {/* Summary — typewriter with slight delay feel */}
               {aiText.summary && (
-                <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, margin: '0 0 10px', fontFamily: 'Sora, sans-serif' }}>{aiText.summary}</p>
+                <div className="ai-section-anim" style={{ animationDelay: '0.1s' }}>
+                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, margin: '0 0 10px', fontFamily: 'Sora, sans-serif' }}>
+                    <TypewriterText text={aiText.summary} speed={8} />
+                  </p>
+                </div>
               )}
 
               {/* Key Figures */}
               {aiText.keyFigures && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 5, marginBottom: 10 }}>
+                <div className="ai-section-anim" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 5, marginBottom: 10, animationDelay: '0.15s' }}>
                   {aiText.keyFigures.map((f, i) => (
                     <div key={i} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '7px 9px' }}>
                       <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>{f.label}</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#a78bfa', fontFamily: 'Space Mono, monospace', lineHeight: 1.1 }}>{f.value}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#a78bfa', fontFamily: 'Space Mono, monospace', lineHeight: 1.1 }}>
+                        <TypewriterText text={String(f.value)} speed={30} />
+                      </div>
                       {f.note && <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.28)', marginTop: 2, fontFamily: 'Sora, sans-serif' }}>{f.note}</div>}
                     </div>
                   ))}
@@ -1431,7 +1532,7 @@ function QueryCard({ q, ctxKey, ctxColor }) {
 
               {/* Bar Chart */}
               {aiText.barChart && (
-                <div style={{ marginBottom: 10 }}>
+                <div className="ai-section-anim" style={{ marginBottom: 10, animationDelay: '0.2s' }}>
                   <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>{aiText.barChart.title}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {(aiText.barChart.bars || []).map((b, i) => (
@@ -1442,7 +1543,7 @@ function QueryCard({ q, ctxKey, ctxColor }) {
                             width: `${Math.max(2, Math.min(100, b.pct))}%`, height: '100%',
                             background: b.color || '#a78bfa',
                             borderRadius: 4,
-                            transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
+                            transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
                           }} />
                         </div>
                         <div style={{ width: 30, fontSize: 8.5, fontWeight: 700, color: b.color || '#a78bfa', fontFamily: 'Space Mono, monospace', textAlign: 'right', flexShrink: 0 }}>{b.pct}%</div>
@@ -1454,7 +1555,7 @@ function QueryCard({ q, ctxKey, ctxColor }) {
 
               {/* SWOT Breakdown */}
               {aiText.swotBreakdown && (
-                <div style={{ marginBottom: 10 }}>
+                <div className="ai-section-anim" style={{ marginBottom: 10, animationDelay: '0.25s' }}>
                   <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', fontFamily: 'Space Mono, monospace', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>{aiText.swotBreakdown.title}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {(aiText.swotBreakdown.items || []).map((it, i) => {
@@ -1472,11 +1573,39 @@ function QueryCard({ q, ctxKey, ctxColor }) {
                 </div>
               )}
 
-              {/* Recommendation */}
+              {/* ── Suggested Schemes ── */}
+              {aiText.suggestedSchemes && aiText.suggestedSchemes.length > 0 && (
+                <div className="ai-section-anim" style={{ marginBottom: 10, animationDelay: '0.3s' }}>
+                  <div style={{ fontSize: 8.5, color: '#10b981', fontFamily: 'Space Mono, monospace', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span>⊕</span> Applicable Government Schemes
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {(aiText.suggestedSchemes || []).map((sc, i) => {
+                      const impactColor = sc.impact === 'High' ? '#10b981' : sc.impact === 'Medium' ? '#f59e0b' : '#6b7280';
+                      return (
+                        <div key={i} style={{ background: 'rgba(16,185,129,0.04)', border: '1px solid rgba(16,185,129,0.18)', borderRadius: 7, padding: '7px 10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                            <div style={{ fontSize: 9.5, fontWeight: 800, color: '#34d399', fontFamily: 'Sora, sans-serif' }}>
+                              <TypewriterText text={sc.name} speed={20} />
+                            </div>
+                            <span style={{ fontSize: 7.5, fontWeight: 800, color: impactColor, background: `${impactColor}18`, border: `1px solid ${impactColor}30`, borderRadius: 3, padding: '1px 6px', fontFamily: 'Space Mono, monospace', flexShrink: 0, marginLeft: 6 }}>{sc.impact}</span>
+                          </div>
+                          {sc.ministry && <div style={{ fontSize: 8, color: 'rgba(52,211,153,0.5)', fontFamily: 'Space Mono, monospace', marginBottom: 3, letterSpacing: 0.3 }}>{sc.ministry}</div>}
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'Sora, sans-serif', lineHeight: 1.5 }}>{sc.relevance}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendation — typewriter */}
               {aiText.recommendation && (
-                <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.22)', borderRadius: 7, padding: '7px 10px' }}>
+                <div className="ai-section-anim" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.22)', borderRadius: 7, padding: '7px 10px', animationDelay: '0.35s' }}>
                   <div style={{ fontSize: 8, color: '#a78bfa', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4, fontFamily: 'Space Mono, monospace' }}>✦ Strategic Recommendation</div>
-                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, margin: 0, fontFamily: 'Sora, sans-serif' }}>{aiText.recommendation}</p>
+                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, margin: 0, fontFamily: 'Sora, sans-serif' }}>
+                    <TypewriterText text={aiText.recommendation} speed={10} />
+                  </p>
                 </div>
               )}
             </div>
@@ -1806,15 +1935,18 @@ function BirdsEyeAIPanel({ queries, selectedCtx }) {
           <div style={{ borderTop: '1px solid rgba(167,139,250,0.15)', padding: '14px 16px' }}>
             {loading ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: 26, animation: 'spin 1.2s linear infinite', display: 'inline-block', marginBottom: 8 }}>✦</div>
-                <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.5)', fontFamily: 'Sora, sans-serif' }}>Synthesising {queries.length} voter segments…</div>
+                <div style={{ fontSize: 26, animation: 'spin 1.2s linear infinite', display: 'inline-block', marginBottom: 10 }}>✦</div>
+                <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.5)', fontFamily: 'Sora, sans-serif', marginBottom: 10 }}>Synthesising {queries.length} voter segments…</div>
+                <AIGeneratingSteps />
               </div>
             ) : insight && insight._raw ? (
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, margin: 0, fontFamily: 'Sora, sans-serif' }}>{insight._raw}</p>
             ) : insight ? (
               <>
-                {/* Headline */}
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#eef2ff', marginBottom: 8, fontFamily: 'Sora, sans-serif', lineHeight: 1.3 }}>{insight.headline}</div>
+                {/* Headline — typewriter */}
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#eef2ff', marginBottom: 8, fontFamily: 'Sora, sans-serif', lineHeight: 1.3 }}>
+                  <TypewriterText text={insight.headline} speed={20} />
+                </div>
 
                 {/* Key Metrics row */}
                 {insight.keyMetrics && (
