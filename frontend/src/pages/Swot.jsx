@@ -269,11 +269,17 @@ const TABS = [
 const overviewCache = {};   // module-level so persists across tab switches
 
 // ── Serialise each tab's data so the backend has real numbers to analyse ──────
+// NOTE: Each case reads directly from the tab's own data arrays (swotPoints,
+// wardData, muslimBooths, christianBooths, ELECTION_SCORECARD, etc.) so the AI
+// overview is always grounded in exactly what the user sees in that tab.
+// Payloads are kept compact (label/stat only, no long detail strings) to stay
+// well under Render's request-size limits and avoid 502 Bad Gateway errors.
 function buildTabData(tab) {
   switch (tab) {
 
     case 'swot': {
-      // Compact SWOT — label + stat only (no long detail strings) to keep payload small
+      // Reads from: swotPoints (the S/W/O/T bullet arrays rendered in SwotTab)
+      // Sends: label + stat per bullet (no long detail text) + key ward summary
       const lines = [];
       lines.push('=== Mangaluru City South — Political SWOT 2023 ===');
       lines.push('Total wards: 38 | BJP won: 25 | Congress won: 13');
@@ -283,6 +289,7 @@ function buildTabData(tab) {
       lines.push('LOST: 13 wards, avg Congress lead 19.8%');
       lines.push('Total BJP votes: 66,451 | Total Congress votes: 89,998');
       lines.push('');
+      // Iterate swotPoints directly — same data the SwotTab renders
       for (const [key, q] of Object.entries(swotPoints)) {
         lines.push(`--- ${q.title} (${key}) ---`);
         q.items.forEach(it => {
@@ -290,14 +297,14 @@ function buildTabData(tab) {
         });
       }
       lines.push('');
-      lines.push('Key narrow wins (flip risk): Attavara +9.9% (~415 votes), Mangaladevi +9.8% (~370 votes), Padav East +7.5% (~265 votes)');
-      lines.push('Key flip opportunities: Court (turnout +352 net votes), Shivabagh (183-vote gap), Bajal (JDS alliance)');
-      lines.push('Key threats: Muslim block ~18% electorate (85-95% Congress), minority turnout rise = +8,000-10,000 INC votes');
+      lines.push('Narrow wins at flip risk: Attavara +9.9% (~415 votes), Mangaladevi +9.8% (~370 votes), Padav East +7.5% (~265 votes)');
+      lines.push('Priority flips: Court (turnout gap +352 net votes), Shivabagh (183-vote gap), Bajal (JDS alliance)');
+      lines.push('Key threat: Muslim block ~18% of electorate (Congress captures 85-95%), minority turnout rise = +8,000-10,000 INC net votes');
       return lines.join('\n');
     }
 
     case 'wards': {
-      // All 38 wards with every numeric field
+      // Reads from: wardData (all 38 wards rendered in WardStrengthTab table)
       const header = 'Ward | Voters | BJP | INC | BJP% | INC% | Lead% | Turnout% | Category | PS | Winner';
       const rows = wardData.map(w =>
         `${w.ward} | ${w.voters} | ${w.bjp} | ${w.cong} | ${w.bjpPct} | ${w.congPct} | ${w.lead.toFixed(2)} | ${w.turnout} | ${w.cat} | ${w.ps} | ${w.winner}`
@@ -306,17 +313,16 @@ function buildTabData(tab) {
     }
 
     case 'demographic': {
-      // Muslim-dominant booths
+      // Reads from: muslimBooths + christianBooths (rendered in DemographicTab)
+      // + inline ward-level demographic summary table
       const mHeader = '=== Muslim-Dominant Booths ===\nWard | Booth | Voters | Muslim% | BJP% | INC% | Risk';
       const mRows = muslimBooths.map(b =>
         `${b.ward} | ${b.booth} | ${b.voters} | ${b.muslimPct} | ${b.bjpPct} | ${b.congPct} | ${b.risk}`
       );
-      // Christian-dominant booths
       const cHeader = '\n=== Christian-Dominant Booths ===\nWard | Booth | Voters | Christian% | BJP% | INC% | Risk';
       const cRows = christianBooths.map(b =>
         `${b.ward} | ${b.booth} | ${b.voters} | ${b.christianPct} | ${b.bjpPct} | ${b.congPct} | ${b.risk}`
       );
-      // Ward-level demographic summary (inline data from DemographicTab table)
       const wHeader = '\n=== Ward-Level Demographic & BJP Performance ===\nWard | Dominant | Muslim% | Christian% | BJP% | INC% | Lead% | Winner | Viability';
       const wardDemoRows = [
         'BENGRE | MUSLIM | ~65% | ~5% | 36.37 | 61.32 | -24.96 | CONGRESS | None',
@@ -339,6 +345,9 @@ function buildTabData(tab) {
     }
 
     case 'election': {
+      // Reads from: ELECTION_SCORECARD, SWING_DATA, STAT_DATA, TRENDS5_DATA,
+      // FLIP_DATA, LEAKAGE_DATA (all rendered in PreviousElectionTab sub-tabs)
+      // Long free-text cause/driver/implication columns are omitted — numerics only
       const sc = '=== Election Scorecard (2013–2023) ===\nElection | Winner | BJP Wards | Congress Wards | Narrative';
       const scRows = ELECTION_SCORECARD.map(e =>
         `${e.election} | ${e.winner} | ${e.bjpWards} | ${e.conWards} | ${e.narrative}`
@@ -477,7 +486,7 @@ function SwotAIOverview({ tab }) {
     try {
       const token = sessionStorage.getItem('cc_token');
       const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const tabData = buildTabData(tab).slice(0, 5000); // strict cap — prevents 502s on Render free tier
+      const tabData = buildTabData(tab).slice(0, 5000); // hard cap — prevents 502 on Render
       const res = await window.fetch(`${BASE}/api/ai/swot-overview/`, {
         method: 'POST',
         credentials: 'include',
