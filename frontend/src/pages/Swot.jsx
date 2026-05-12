@@ -279,7 +279,8 @@ function buildTabData(tab) {
         lines.push(`=== ${q.title} (${q.subtitle}) ===`);
         q.items.forEach(it => {
           lines.push(`  • [${it.stat}] ${it.label}`);
-          lines.push(`    ${it.detail}`);
+          // Cap detail at 200 chars to keep payload size manageable
+          lines.push(`    ${it.detail.slice(0, 200)}`);
         });
       }
       // Also include overall ward summary
@@ -473,7 +474,7 @@ function SwotAIOverview({ tab }) {
     try {
       const token = sessionStorage.getItem('cc_token');
       const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const tabData = buildTabData(tab);
+      const tabData = buildTabData(tab).slice(0, 10000); // hard cap — prevents 500s on large tabs
       const res = await window.fetch(`${BASE}/api/ai/swot-overview/`, {
         method: 'POST',
         credentials: 'include',
