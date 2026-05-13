@@ -712,7 +712,8 @@ function ThinkingIndicator() {
 // ════════════════════════════════════════════════════════════════════════════════
 // SHARED INPUT BOX
 // ════════════════════════════════════════════════════════════════════════════════
-function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
+function InputBox({ inputRef, input, setInput, loading, send, handleKey, isMobile }) {
+  const m = isMobile;
   const handleChange = (e) => {
     setInput(e.target.value);
     e.target.style.height = 'auto';
@@ -720,21 +721,22 @@ function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
   };
 
   return (
-    <div style={{width:'100%',maxWidth:720,margin:'0 auto'}} className="sai-input-wrap">
+    <div style={{width:'100%', maxWidth: m ? '100%' : 720, margin:'0 auto', boxSizing:'border-box'}}>
       <div style={{
-        display:'flex', alignItems:'flex-end', gap:8,
+        display:'flex', alignItems:'flex-end', gap: m?6:8,
         background:'rgba(28,38,58,0.97)',
         border:'1.5px solid rgba(99,102,241,0.28)',
         borderRadius:30,
-        padding:'8px 8px 8px 22px',
+        padding: m ? '6px 6px 6px 16px' : '8px 8px 8px 22px',
         boxShadow:'0 6px 40px rgba(0,0,0,0.45)',
+        boxSizing:'border-box',
       }}>
         <textarea
           ref={inputRef}
           value={input}
           onChange={handleChange}
           onKeyDown={handleKey}
-          placeholder="Ask anything about voters, wards, schemes, strategy…"
+          placeholder={m ? 'Ask about voters, wards, schemes…' : 'Ask anything about voters, wards, schemes, strategy…'}
           disabled={loading}
           rows={1}
           style={{
@@ -742,8 +744,8 @@ function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
             color:'#e2e8f0', fontSize:15, lineHeight:1.6, fontFamily:'inherit',
             resize:'none', minHeight:38, maxHeight:140, padding:'4px 0',
             scrollbarWidth:'thin', scrollbarColor:'#334155 transparent',
-            WebkitAppearance:'none',
-            touchAction:'manipulation',
+            WebkitAppearance:'none', touchAction:'manipulation',
+            minWidth:0,
           }}
         />
         <button
@@ -767,11 +769,13 @@ function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
           </span>
         </button>
       </div>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:9,padding:'0 6px'}} className="sai-kbd-hint">
-        <span style={{color:'#1e293b',fontSize:11}}>
-          <kbd style={S.kbd}>Enter</kbd> send · <kbd style={S.kbd}>Shift+Enter</kbd> new line
-        </span>
-      </div>
+      {!m && (
+        <div style={{display:'flex',justifyContent:'flex-end',marginTop:9,padding:'0 6px'}}>
+          <span style={{color:'#1e293b',fontSize:11}}>
+            <kbd style={S.kbd}>Enter</kbd> send · <kbd style={S.kbd}>Shift+Enter</kbd> new line
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -785,6 +789,15 @@ export default function AiChat() {
   const [loading,     setLoading]     = useState(false);
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
+
+  // ── Responsive: detect mobile (≤768px) ──────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const hasMessages = messages.length > 0;
 
@@ -827,22 +840,54 @@ export default function AiChat() {
 
   const handleKey = e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} };
 
-  const inputProps = { inputRef, input, setInput, loading, send, handleKey };
+  const inputProps = { inputRef, input, setInput, loading, send, handleKey, isMobile };
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
+  const m = isMobile; // shorthand
+
   return (
-    <div style={S.root} data-sai-root="1">
+    <div style={{
+      display:'flex', flexDirection:'column',
+      height: m ? '100svh' : '100vh',
+      background:'#0b1120',
+      fontFamily:"'DM Sans','Inter',sans-serif",
+      overflow:'hidden',
+      WebkitFontSmoothing:'antialiased',
+      MozOsxFontSmoothing:'grayscale',
+      overscrollBehavior: m ? 'none' : undefined,
+      maxWidth:'100vw',
+      boxSizing:'border-box',
+    }}>
       <Navbar />
 
       {/* ── Slim sub-header ── */}
-      <div style={S.subHeader} data-sai-subheader>
-        <div style={{display:'flex',alignItems:'center',gap:7,minWidth:0,overflow:'hidden'}}>
-          <div style={S.subHeaderIcon} data-sai-subheader-icon><BrainAvatar size={17}/></div>
-          <span style={S.subHeaderTitle} data-sai-subheader-title>ShaastraAI</span>
-          <span style={{color:'#1e293b',fontSize:13,flexShrink:0}}>·</span>
-          <span style={{...S.subHeaderSub,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} data-sai-subheader-sub>Mangaluru South Intelligence</span>
+      <div style={{
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding: m ? '6px 12px' : '7px 22px',
+        background:'rgba(11,17,32,0.98)',
+        borderBottom:'1px solid rgba(99,102,241,0.12)',
+        flexShrink:0,
+        minHeight: m ? 44 : undefined,
+      }}>
+        <div style={{display:'flex',alignItems:'center',gap: m?6:7, minWidth:0, overflow:'hidden'}}>
+          <div style={{
+            width: m?24:28, height: m?24:28, borderRadius:7,
+            background:'rgba(79,70,229,0.1)',
+            border:'1px solid rgba(99,102,241,0.25)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            flexShrink:0,
+          }}><BrainAvatar size={m?14:17}/></div>
+          <span style={{fontSize: m?13:14, fontWeight:800, color:'#818cf8', letterSpacing:'-0.01em', flexShrink:0}}>ShaastraAI</span>
+          <span style={{color:'#1e293b', fontSize:13, flexShrink:0}}>·</span>
+          <span style={{fontSize: m?10:12, color:'#334155', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Mangaluru South Intelligence</span>
         </div>
-        <button onClick={()=>setMessages([])} style={S.clearBtn} data-sai-clear-btn
+        <button onClick={()=>setMessages([])} style={{
+          display:'flex', alignItems:'center', gap:4,
+          background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)',
+          borderRadius:7, padding: m?'5px 9px':'5px 11px', cursor:'pointer',
+          fontSize: m?11:12, color:'#475569', transition:'all 0.2s', fontFamily:'inherit',
+          WebkitTapHighlightColor:'transparent', touchAction:'manipulation', flexShrink:0,
+        }}
           onMouseEnter={e=>{e.currentTarget.style.color='#ef4444';e.currentTarget.style.borderColor='rgba(239,68,68,0.3)';}}
           onMouseLeave={e=>{e.currentTarget.style.color='#475569';e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';}}
           onTouchStart={e=>{e.currentTarget.style.color='#ef4444';e.currentTarget.style.borderColor='rgba(239,68,68,0.3)';}}
@@ -854,19 +899,55 @@ export default function AiChat() {
 
       {/* ══ EMPTY STATE — ChatGPT-style hero ════════════════════════════════ */}
       {!hasMessages && (
-        <div style={S.heroWrap} data-sai-herowrap>
-          {/* Animated circuit-brain logo */}
-          <div style={S.heroLogoWrap} data-sai-herologo>
-            <BrainLogo size={90} animated />
+        <div style={{
+          flex:1, display:'flex', flexDirection:'column',
+          alignItems:'center',
+          justifyContent: m ? 'flex-start' : 'center',
+          padding: m ? '14px 12px 8px' : '32px 24px 24px',
+          overflowY:'auto', overflowX:'hidden',
+          WebkitOverflowScrolling:'touch',
+          overscrollBehavior:'contain',
+          boxSizing:'border-box',
+          width:'100%',
+        }}>
+          {/* Logo */}
+          <div style={{
+            marginBottom: m ? 10 : 20,
+            filter:'drop-shadow(0 0 20px rgba(79,70,229,0.4))',
+            flexShrink:0,
+          }}>
+            <BrainLogo size={m ? 52 : 90} animated />
           </div>
 
-          <h1 style={S.heroTitle} data-sai-herotitle>What's on your mind today?</h1>
-          <p style={S.heroSub} data-sai-herosub>
+          <h1 style={{
+            fontSize: m ? 22 : 28, fontWeight:700, color:'#e2e8f0',
+            margin: m ? '0 0 6px' : '0 0 8px',
+            textAlign:'center', letterSpacing:'-0.03em',
+            flexShrink:0,
+          }}>What's on your mind today?</h1>
+
+          <p style={{
+            fontSize: m ? 12 : 13, color:'#475569', textAlign:'center',
+            maxWidth: m ? '100%' : 480,
+            lineHeight: m ? 1.5 : 1.65,
+            margin: m ? '0 0 14px' : '0 0 26px',
+            flexShrink:0,
+            padding: m ? '0 4px' : 0,
+          }}>
             Mangaluru South constituency intelligence — voters, wards, schemes &amp; strategy
           </p>
 
           {/* 4 pre-defined question cards — 2×2 grid */}
-          <div style={S.cardGrid} data-sai-cardgrid>
+          <div style={{
+            display:'grid',
+            gridTemplateColumns:'1fr 1fr',
+            gap: m ? 8 : 12,
+            width:'100%',
+            maxWidth: m ? '100%' : 660,
+            marginBottom: m ? 12 : 28,
+            boxSizing:'border-box',
+            flexShrink:0,
+          }}>
             {SUGGESTED.map((s, i) => {
               const rgb = s.color === '#4f46e5' ? '79,70,229'
                         : s.color === '#06b6d4' ? '6,182,212'
@@ -887,8 +968,20 @@ export default function AiChat() {
               return (
               <button
                 key={i}
-                style={S.qCard}
-                data-sai-qcard
+                style={{
+                  display:'flex', flexDirection:'column',
+                  background:'rgba(17,27,46,0.85)',
+                  border:'1px solid rgba(51,65,85,0.5)',
+                  borderRadius: m ? 11 : 14,
+                  padding: m ? '10px 10px' : '14px 16px',
+                  cursor:'pointer', textAlign:'left',
+                  transition:'all 0.2s', fontFamily:'inherit',
+                  minHeight: m ? 0 : 130,
+                  boxSizing:'border-box',
+                  overflow:'hidden',
+                  WebkitTapHighlightColor:'transparent',
+                  touchAction:'manipulation',
+                }}
                 onClick={() => send(s.text)}
                 onMouseEnter={e => applyHover(e.currentTarget)}
                 onMouseLeave={e => removeHover(e.currentTarget)}
@@ -897,40 +990,34 @@ export default function AiChat() {
                 onTouchCancel={e => removeHover(e.currentTarget)}
               >
                 {/* Top row: icon + label */}
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-                  <span
-                    className="qcard-icon"
-                    style={{width:16,height:16,display:'flex',flexShrink:0,color:'#475569',transition:'color 0.2s'}}
-                  >
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom: m?6:8}}>
+                  <span className="qcard-icon" style={{width:16,height:16,display:'flex',flexShrink:0,color:'#475569',transition:'color 0.2s'}}>
                     {ICONS[s.icon]}
                   </span>
-                  <span
-                    className="qcard-label"
-                    data-sai-qcard-label
-                    style={{fontSize:12,fontWeight:700,color:'#c7d2fe',letterSpacing:'0.02em',transition:'color 0.2s',textAlign:'left'}}
-                  >
+                  <span className="qcard-label" style={{fontSize: m?11:12, fontWeight:700, color:'#c7d2fe', letterSpacing:'0.02em', transition:'color 0.2s', textAlign:'left', lineHeight:1.3}}>
                     {s.label}
                   </span>
                 </div>
                 {/* Question text */}
-                <p data-sai-qcard-text style={{
-                  margin:'0 0 10px',color:'#94a3b8',fontSize:12,
-                  lineHeight:1.55,textAlign:'left',
-                  display:'-webkit-box',WebkitLineClamp:3,
-                  WebkitBoxOrient:'vertical',overflow:'hidden',
+                <p style={{
+                  margin: m ? '0 0 8px' : '0 0 10px',
+                  color:'#94a3b8', fontSize: m?11:12,
+                  lineHeight:1.55, textAlign:'left',
+                  display:'-webkit-box', WebkitLineClamp:3,
+                  WebkitBoxOrient:'vertical', overflow:'hidden',
                 }}>
                   {s.text}
                 </p>
                 {/* Data source badge */}
                 <div style={{
-                  display:'flex',alignItems:'center',gap:5,
-                  padding:'3px 8px',borderRadius:20,
+                  display:'flex', alignItems:'center', gap:5,
+                  padding:'3px 8px', borderRadius:20,
                   background:'rgba(99,102,241,0.07)',
                   border:'1px solid rgba(99,102,241,0.15)',
                   alignSelf:'flex-start',
                 }}>
                   <span style={{width:10,height:10,display:'flex',color:'#334155',flexShrink:0}}>{ICONS.database}</span>
-                  <span style={{fontSize:10,color:'#334155',whiteSpace:'nowrap'}}>{s.sub}</span>
+                  <span style={{fontSize:10,color:'#334155',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth: m?90:200}}>{s.sub}</span>
                 </div>
               </button>
               );
@@ -946,7 +1033,10 @@ export default function AiChat() {
       {hasMessages && (
         <>
           <div style={S.chatArea}>
-            <div style={S.messagesInner} data-sai-messages>
+            <div style={{
+              ...S.messagesInner,
+              padding: m ? '16px 12px 12px' : '28px 24px 12px',
+            }}>
               {messages.map(msg=><MessageBubble key={msg.id} msg={msg}/>)}
               {loading && <ThinkingIndicator/>}
               <div ref={bottomRef}/>
@@ -954,7 +1044,11 @@ export default function AiChat() {
           </div>
 
           {/* Fixed bottom input */}
-          <div style={S.stickyInput} data-sai-stickyinput>
+          <div style={{
+            ...S.stickyInput,
+            padding: m ? '6px 12px' : '10px 24px 18px',
+            paddingBottom: m ? 'calc(10px + env(safe-area-inset-bottom, 0px))' : undefined,
+          }}>
             <InputBox {...inputProps}/>
           </div>
         </>
@@ -964,7 +1058,7 @@ export default function AiChat() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// STYLES  — original desktop values restored; mobile via CSS classes only
+// STYLES  — desktop values; mobile overrides applied inline via isMobile flag
 // ════════════════════════════════════════════════════════════════════════════════
 const S = {
   root: {
@@ -977,75 +1071,18 @@ const S = {
     MozOsxFontSmoothing:'grayscale',
   },
 
-  // Slim sub-header
-  subHeader: {
-    display:'flex', alignItems:'center', justifyContent:'space-between',
-    padding:'7px 22px',
-    background:'rgba(11,17,32,0.98)',
-    borderBottom:'1px solid rgba(99,102,241,0.12)',
-    flexShrink:0,
-  },
-  subHeaderIcon: {
-    width:28, height:28, borderRadius:7,
-    background:'rgba(79,70,229,0.1)',
-    border:'1px solid rgba(99,102,241,0.25)',
-    display:'flex', alignItems:'center', justifyContent:'center',
-    flexShrink:0,
-  },
-  subHeaderTitle: { fontSize:14, fontWeight:800, color:'#818cf8', letterSpacing:'-0.01em' },
-  subHeaderSub:   { fontSize:12, color:'#334155' },
-  clearBtn: {
-    display:'flex', alignItems:'center', gap:5,
-    background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)',
-    borderRadius:7, padding:'5px 11px', cursor:'pointer',
-    fontSize:12, color:'#475569', transition:'all 0.2s', fontFamily:'inherit',
-    WebkitTapHighlightColor:'transparent',
-    touchAction:'manipulation',
-  },
-
-  // ── HERO ─────────────────────────────────────────────────────────────────
-  heroWrap: {
-    flex:1, display:'flex', flexDirection:'column',
-    alignItems:'center', justifyContent:'center',
-    padding:'32px 24px 24px',
-    overflowY:'auto',
-    WebkitOverflowScrolling:'touch',
-    overscrollBehavior:'contain',
-    gap:0,
-  },
-  heroLogoWrap: {
-    marginBottom:20,
-    filter:'drop-shadow(0 0 20px rgba(79,70,229,0.4))',
-    flexShrink:0,
-  },
-  heroTitle: {
-    fontSize:28, fontWeight:700, color:'#e2e8f0',
-    margin:'0 0 8px', textAlign:'center', letterSpacing:'-0.03em',
-  },
-  heroSub: {
-    fontSize:13, color:'#475569', textAlign:'center',
-    maxWidth:480, lineHeight:1.65, margin:'0 0 26px',
-  },
-  // 2x2 question card grid
-  cardGrid: {
-    display:'grid',
-    gridTemplateColumns:'repeat(2, 1fr)',
-    gap:12,
-    width:'100%',
-    maxWidth:660,
-    marginBottom:28,
-  },
-  qCard: {
-    display:'flex', flexDirection:'column',
-    background:'rgba(17,27,46,0.85)',
-    border:'1px solid rgba(51,65,85,0.5)',
-    borderRadius:14, padding:'14px 16px',
-    cursor:'pointer', textAlign:'left',
-    transition:'all 0.2s', fontFamily:'inherit',
-    minHeight:130,
-    WebkitTapHighlightColor:'transparent',
-    touchAction:'manipulation',
-  },
+  // Slim sub-header — now fully inlined in render with isMobile
+  subHeader: {},
+  subHeaderIcon: {},
+  subHeaderTitle: {},
+  subHeaderSub: {},
+  clearBtn: {},
+  heroWrap: {},
+  heroLogoWrap: {},
+  heroTitle: {},
+  heroSub: {},
+  cardGrid: {},
+  qCard: {},
 
   // ── CHAT MODE ──────────────────────────────────────────────────────────
   chatArea: {
