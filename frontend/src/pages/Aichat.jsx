@@ -519,6 +519,9 @@ function ExportBar({ exportSpec }) {
             color: active===fmt ? color : '#64748b',
             fontSize:12, fontWeight:600, cursor:loading?'default':'pointer',
             transition:'all 0.18s', fontFamily:'inherit',
+            WebkitTapHighlightColor:'transparent',
+            touchAction:'manipulation',
+            minHeight:40,
           }}
           onMouseEnter={e=>{ if(!loading){ e.currentTarget.style.background=color+'18'; e.currentTarget.style.borderColor=color+'55'; e.currentTarget.style.color=color; } }}
           onMouseLeave={e=>{ if(active!==fmt){ e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'; e.currentTarget.style.color='#64748b'; } }}
@@ -599,6 +602,15 @@ function ThinkingIndicator() {
         </div>
       </div>
       <style>{`
+        /* ── Android viewport fix ── */
+        * { box-sizing: border-box; }
+        html, body, #root { height: 100%; overflow: hidden; }
+
+        /* ── Scrollbar hide on Android Chrome ── */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+
         .shaastra-pulse-ring {
           position:absolute; top:-5px; left:-5px;
           width:44px; height:44px; border-radius:12px;
@@ -644,6 +656,14 @@ function ThinkingIndicator() {
 // SHARED INPUT BOX
 // ════════════════════════════════════════════════════════════════════════════════
 function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
+  // Auto-resize textarea: works reliably on Android via state-driven onChange
+  const handleChange = (e) => {
+    setInput(e.target.value);
+    // Reset height then grow to scrollHeight (works on Android Chrome)
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
+  };
+
   return (
     <div style={{width:'100%',maxWidth:720,margin:'0 auto'}}>
       <div style={{
@@ -657,7 +677,7 @@ function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
         <textarea
           ref={inputRef}
           value={input}
-          onChange={e=>setInput(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKey}
           placeholder="Ask anything about voters, wards, schemes, strategy…"
           disabled={loading}
@@ -667,20 +687,27 @@ function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
             color:'#e2e8f0', fontSize:15, lineHeight:1.6, fontFamily:'inherit',
             resize:'none', minHeight:38, maxHeight:140, padding:'4px 0',
             scrollbarWidth:'thin', scrollbarColor:'#334155 transparent',
+            // Android: prevent zoom on focus (font-size >= 16px prevents auto-zoom)
+            WebkitAppearance:'none',
+            touchAction:'manipulation',
           }}
-          onInput={e=>{ e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,140)+'px'; }}
         />
         <button
           onClick={()=>send()}
           disabled={loading||!input.trim()}
+          // onTouchEnd for faster response on Android (avoids 300ms tap delay)
+          onTouchEnd={(e)=>{ e.preventDefault(); if(!loading&&input.trim()) send(); }}
           style={{
-            width:42, height:42, borderRadius:21, flexShrink:0,
+            width:46, height:46, borderRadius:23, flexShrink:0,
             background:loading||!input.trim()?'rgba(99,102,241,0.15)':'linear-gradient(135deg,#4f46e5,#7c3aed)',
             border:'none', cursor:loading||!input.trim()?'default':'pointer',
             display:'flex', alignItems:'center', justifyContent:'center',
             color:'#fff', fontSize:17,
             boxShadow:loading||!input.trim()?'none':'0 2px 14px rgba(79,70,229,0.55)',
             transition:'all 0.2s',
+            // Larger touch target
+            touchAction:'manipulation',
+            WebkitTapHighlightColor:'transparent',
           }}
         >
           <span style={{width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -765,7 +792,9 @@ export default function AiChat() {
         </div>
         <button onClick={()=>setMessages([])} style={S.clearBtn}
           onMouseEnter={e=>{e.currentTarget.style.color='#ef4444';e.currentTarget.style.borderColor='rgba(239,68,68,0.3)';}}
-          onMouseLeave={e=>{e.currentTarget.style.color='#475569';e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';}}>
+          onMouseLeave={e=>{e.currentTarget.style.color='#475569';e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';}}
+          onTouchStart={e=>{e.currentTarget.style.color='#ef4444';e.currentTarget.style.borderColor='rgba(239,68,68,0.3)';}}
+          onTouchEnd={e=>{e.currentTarget.style.color='#475569';e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';}}>
           <span style={{width:13,height:13,display:'flex'}}>{ICONS.trash}</span>
           New Chat
         </button>
@@ -786,27 +815,33 @@ export default function AiChat() {
 
           {/* 4 pre-defined question cards — 2×2 grid */}
           <div style={S.cardGrid}>
-            {SUGGESTED.map((s, i) => (
+            {SUGGESTED.map((s, i) => {
+              const rgb = s.color === '#4f46e5' ? '79,70,229'
+                        : s.color === '#06b6d4' ? '6,182,212'
+                        : s.color === '#10b981' ? '16,185,129'
+                        : '245,158,11';
+              const applyHover = (el) => {
+                el.style.background  = `rgba(${rgb},0.1)`;
+                el.style.borderColor = s.color + '55';
+                el.querySelector('.qcard-label').style.color = s.color;
+                el.querySelector('.qcard-icon').style.color  = s.color;
+              };
+              const removeHover = (el) => {
+                el.style.background  = 'rgba(17,27,46,0.85)';
+                el.style.borderColor = 'rgba(51,65,85,0.5)';
+                el.querySelector('.qcard-label').style.color = '#c7d2fe';
+                el.querySelector('.qcard-icon').style.color  = '#475569';
+              };
+              return (
               <button
                 key={i}
                 style={S.qCard}
                 onClick={() => send(s.text)}
-                onMouseEnter={e => {
-                  const rgb = s.color === '#4f46e5' ? '79,70,229'
-                            : s.color === '#06b6d4' ? '6,182,212'
-                            : s.color === '#10b981' ? '16,185,129'
-                            : '245,158,11';
-                  e.currentTarget.style.background  = `rgba(${rgb},0.1)`;
-                  e.currentTarget.style.borderColor = s.color + '55';
-                  e.currentTarget.querySelector('.qcard-label').style.color = s.color;
-                  e.currentTarget.querySelector('.qcard-icon').style.color  = s.color;
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background  = 'rgba(17,27,46,0.85)';
-                  e.currentTarget.style.borderColor = 'rgba(51,65,85,0.5)';
-                  e.currentTarget.querySelector('.qcard-label').style.color = '#c7d2fe';
-                  e.currentTarget.querySelector('.qcard-icon').style.color  = '#475569';
-                }}
+                onMouseEnter={e => applyHover(e.currentTarget)}
+                onMouseLeave={e => removeHover(e.currentTarget)}
+                onTouchStart={e => applyHover(e.currentTarget)}
+                onTouchEnd={e => { removeHover(e.currentTarget); }}
+                onTouchCancel={e => removeHover(e.currentTarget)}
               >
                 {/* Top row: icon + label */}
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
@@ -844,7 +879,8 @@ export default function AiChat() {
                   <span style={{fontSize:10,color:'#334155',whiteSpace:'nowrap'}}>{s.sub}</span>
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
 
           {/* Input box inside hero */}
@@ -879,9 +915,16 @@ export default function AiChat() {
 const S = {
   root: {
     display:'flex', flexDirection:'column',
-    height:'100vh', background:'#0b1120',
+    height:'100vh', // fallback
+    // eslint-disable-next-line no-dupe-keys
+    height:'100dvh', // Android: avoids URL-bar collapse bug
+    background:'#0b1120',
     fontFamily:"'DM Sans','Inter',sans-serif",
     overflow:'hidden',
+    WebkitFontSmoothing:'antialiased',
+    MozOsxFontSmoothing:'grayscale',
+    // Prevent Android pull-to-refresh overscroll on root
+    overscrollBehavior:'none',
   },
 
   // Slim sub-header
@@ -905,6 +948,10 @@ const S = {
     background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)',
     borderRadius:7, padding:'5px 11px', cursor:'pointer',
     fontSize:12, color:'#475569', transition:'all 0.2s', fontFamily:'inherit',
+    WebkitTapHighlightColor:'transparent',
+    touchAction:'manipulation',
+    // Minimum 44px touch target height for Android accessibility
+    minHeight:44, minWidth:44,
   },
 
   // ── HERO ─────────────────────────────────────────────────────────────────
@@ -912,7 +959,9 @@ const S = {
     flex:1, display:'flex', flexDirection:'column',
     alignItems:'center', justifyContent:'center',
     padding:'32px 24px 24px',
+    paddingBottom:'calc(24px + env(safe-area-inset-bottom, 0px))',
     overflowY:'auto',
+    WebkitOverflowScrolling:'touch', // smooth momentum scrolling on Android/iOS
     gap:0,
   },
   heroLogoWrap: {
@@ -944,12 +993,16 @@ const S = {
     cursor:'pointer', textAlign:'left',
     transition:'all 0.2s', fontFamily:'inherit',
     minHeight:130,
+    WebkitTapHighlightColor:'transparent',
+    touchAction:'manipulation',
   },
 
   // ── CHAT MODE ──────────────────────────────────────────────────────────
   chatArea: {
     flex:1, overflowY:'auto',
     scrollbarWidth:'thin', scrollbarColor:'#1e293b transparent',
+    WebkitOverflowScrolling:'touch', // momentum scroll on Android
+    overscrollBehavior:'contain',
   },
   messagesInner: {
     maxWidth:760, margin:'0 auto',
@@ -958,9 +1011,13 @@ const S = {
   },
   stickyInput: {
     flexShrink:0,
-    padding:'10px 24px 18px',
+    padding:'10px 24px',
+    paddingBottom:'calc(18px + env(safe-area-inset-bottom, 0px))',
     background:'linear-gradient(to top,#0b1120 72%,transparent)',
     display:'flex', justifyContent:'center',
+    // Prevent input from being hidden behind Android nav bar
+    position:'sticky',
+    bottom:0,
   },
 
   // Bubbles
@@ -978,11 +1035,11 @@ const S = {
     boxShadow:'0 4px 20px rgba(79,70,229,0.28)',
   },
   aiBubble: {
-    background:'rgba(17,27,46,0.95)',
+    background:'rgba(17,27,46,0.98)',
     border:'1px solid rgba(51,65,85,0.6)',
     borderRadius:'4px 18px 18px 18px',
     padding:'14px 18px',
-    backdropFilter:'blur(8px)',
+    // backdropFilter removed: unsupported on Android WebView
   },
   timestamp:  { color:'#1e293b', fontSize:10, marginTop:4, textAlign:'right' },
   filesUsed:  { color:'#334155', fontSize:10, marginTop:5, background:'rgba(11,17,32,0.6)', borderRadius:4, padding:'3px 8px' },
