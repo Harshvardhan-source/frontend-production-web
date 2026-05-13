@@ -472,7 +472,7 @@ function SwotAIOverview({ tab }) {
   const [overview, setOverview] = useState(overviewCache[tab] || null);
   const [open,     setOpen]     = useState(false);
 
-  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-e2h8.onrender.com';
+  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
 
   const load = useCallback(async () => {
     if (overviewCache[tab]) {
@@ -1405,7 +1405,7 @@ function QueryCard({ q, ctxKey, ctxColor }) {
       // Route through Django backend to avoid CORS — never call Anthropic directly from browser
       const token = sessionStorage.getItem('cc_token');
       const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-e2h8.onrender.com';
+      const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
 
       const res = await fetch(`${BASE}/api/ai/query-insight/`, {
         method: 'POST',
@@ -1910,7 +1910,7 @@ function BirdsEyeAIPanel({ queries, selectedCtx }) {
 
     try {
       // Route through Django backend to avoid CORS — never call Anthropic directly from browser
-      const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-e2h8.onrender.com';
+      const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
       const token = sessionStorage.getItem('cc_token');
       const headers = token
         ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -2078,7 +2078,7 @@ function MLIntelligenceTab() {
     return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
   };
 
-  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-e2h8.onrender.com';
+  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com';
 
   // Load ward list once
   React.useEffect(() => {
