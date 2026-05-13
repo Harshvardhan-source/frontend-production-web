@@ -23,7 +23,7 @@ load_dotenv()
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
-MONGO_URI   = "mongodb+srv://ravindraacharya0512:ZKWbloCMIzsi3xyV@cluster0.ynaiaut.mongodb.net/"
+MONGO_URI   = os.getenv("MONGODB_URL")
 DB_NAME     = "SurveyDataBase"
 JWT_SECRET  = os.getenv("JWT_SECRET")
 JWT_ALG     = "HS256"
@@ -68,6 +68,8 @@ if not ALLOWED_ORIGINS:
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "https://production-web-conn-2.onrender.com",
+        "https://frontend-production-web-ux7k.onrender.com"
     ]
 
 app.add_middleware(
@@ -171,6 +173,9 @@ class RegisterBody(BaseModel):
     username: str
     email:    EmailStr
     password: str
+    role:     str = ""
+    ward:     str = ""
+    booth:    str = ""
 
     @field_validator("username")
     @classmethod
@@ -216,26 +221,40 @@ def register(body: RegisterBody, response: Response):
     hashed = _bcrypt.hashpw(body.password.encode(), _bcrypt.gensalt(rounds=10)).decode()
 
     db["UserReg"].insert_one({
-        "Time_stamp": datetime.utcnow(),
+        "Time_stamp": datetime.now(timezone.utc),   # utcnow() is deprecated
         "Username":   body.username,
         "Email":      body.email,
         "Password":   hashed,
+        "status":     "pending",                    # always pending until admin approves
+        "role":       body.role,                    # from signup form
+        "ward":       body.ward,                    # from signup form
+        "booth":      body.booth,                   # from signup form
     })
 
     token = create_token(body.username, body.email)
     _set_cookie(response, token)
-    return {"success": True, "username": body.username, "email": body.email, "token": token}
+    return {
+        "success":  True,
+        "username": body.username,
+        "email":    body.email,
+        "role":     body.role,
+        "ward":     body.ward,
+        "booth":    body.booth,
+        "status":   "pending",
+        "token":    token,
+    }
 
 
 @app.post("/auth/login")
 def login(body: LoginBody, response: Response):
     db   = get_db()
-    user = db["UserReg"].find_one({"Email": body.email}, {"Username": 1, "Password": 1})
+    # Fetch full document — need Password, role, status, ward, booth
+    user = db["UserReg"].find_one({"Email": body.email})
 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-    stored = user["Password"]
+    stored = user.get("Password", "")
     if stored.startswith("pbkdf2_") or stored.startswith("bcrypt_django"):
         from django.contrib.auth.hashers import check_password as django_check
         pwd_ok = django_check(body.password, stored)
@@ -248,9 +267,27 @@ def login(body: LoginBody, response: Response):
     if not pwd_ok:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
+    # ── Check account approval status ────────────────────────────────────────
+    acct_status = user.get("status", "approved")  # legacy accounts have no status → treat as approved
+    if acct_status == "pending":
+        raise HTTPException(status_code=403, detail="Your account is pending admin approval.")
+    if acct_status == "rejected":
+        raise HTTPException(status_code=403, detail="Your registration was rejected. Contact the admin.")
+    if acct_status == "disabled":
+        raise HTTPException(status_code=403, detail="Your account has been disabled by an admin. Contact the office.")
+
     token = create_token(user["Username"], body.email)
     _set_cookie(response, token)
-    return {"success": True, "username": user["Username"], "email": body.email, "token": token}
+    return {
+        "success":  True,
+        "username": user["Username"],
+        "email":    body.email,
+        "role":     user.get("role",   ""),
+        "ward":     user.get("ward",   ""),
+        "booth":    user.get("booth",  ""),
+        "status":   acct_status,
+        "token":    token,
+    }
 
 
 @app.post("/auth/logout")
@@ -259,20 +296,67 @@ def logout(response: Response):
     return {"success": True}
 
 
+@app.post("/auth/verify-admin")
+def verify_admin(body: LoginBody):
+    """
+    Re-authentication gate for the Admin Panel.
+    Verifies the currently logged-in admin's password without issuing a new token.
+    Returns 200 on success, 401 on wrong password, 403 if not an admin role.
+    """
+    db   = get_db()
+    user = db["UserReg"].find_one({"Email": body.email})
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect password.")
+
+    # Role check — only mla and pa can pass
+    if user.get("role", "") not in ("mla", "pa"):
+        raise HTTPException(status_code=403, detail="You do not have admin privileges.")
+
+    # Password check
+    stored = user.get("Password", "")
+    try:
+        pwd_ok = _bcrypt.checkpw(body.password.encode(), stored.encode())
+    except Exception:
+        pwd_ok = (stored == body.password)
+
+    if not pwd_ok:
+        raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
+
+    return {"success": True, "message": "Verified."}
+
+
 @app.get("/auth/me")
-def me(user: dict = Depends(get_current_user)):
-    return {"success": True, "username": user["username"], "email": user["sub"]}
+def me(response: Response, user: dict = Depends(get_current_user)):
+    db      = get_db()
+    profile = db["UserReg"].find_one({"Email": user["sub"]}) or {}
+    # Issue a fresh token — frontend stores it for Django Authorization header
+    fresh_token = create_token(user["username"], user["sub"])
+    _set_cookie(response, fresh_token)
+    return {
+        "success":  True,
+        "username": user["username"],
+        "email":    user["sub"],
+        "role":     profile.get("role",   ""),   # always return exactly what UserReg has
+        "ward":     profile.get("ward",   ""),
+        "booth":    profile.get("booth",  ""),
+        "status":   profile.get("status", "pending"),
+        "token":    fresh_token,
+    }
 
 
 # ─── Cookie helper ────────────────────────────────────────────────────────────
 
 def _set_cookie(response: Response, token: str):
+    # secure=True + samesite="none" required for cross-origin cookie on HTTPS
+    # frontend (frontend-production-web.onrender.com) and auth service
+    # (production-web-conn-1.onrender.com) are different origins
     response.set_cookie(
         key="cc_token",
         value=token,
         httponly=True,
-        secure=False,       # set True in production (HTTPS only)
-        samesite="lax",
+        secure=True,        # required for samesite=none on HTTPS
+        samesite="none",    # allows cross-origin requests with withCredentials
         max_age=TOKEN_EXP_H * 3600,
         path="/",
     )

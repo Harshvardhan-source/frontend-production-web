@@ -19,13 +19,41 @@ import Navbar from '../components/Navbar';
 // ── palette ───────────────────────────────────────────────────────────────────
 const PALETTE = ['#4f46e5','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 
+// ── 4 pre-defined questions tied to live loaded data ─────────────────────────
+// Each maps to a real collection / file loaded in the RAG pipeline:
+//   q1 → 2025 voter roll (WardReference) + 2023_polled_notpolled
+//   q2 → Polled_NotPolled_caste_2023 + Community_caste_based_count_2023
+//   q3 → SIR_NewAdditions + SIR_Suspicious + genuine_voters + 2002 roll
+//   q4 → Mangaluru_FULLSCALE_Analysis_v2 + Mangaluru_Election_Strategy_Report
 const SUGGESTED = [
-  { text: 'Total voter count by ward',       icon: 'users' },
-  { text: 'Religion-wise voter breakdown',   icon: 'pie' },
-  { text: 'Ward-wise survey completion',     icon: 'clipboard' },
-  { text: 'Top schemes by beneficiaries',    icon: 'award' },
-  { text: '2019 vs 2023 polling comparison', icon: 'trending' },
-  { text: 'Strategic priority wards',        icon: 'target' },
+  {
+    icon:    'users',
+    label:   'Voter & polling snapshot',
+    text:    'Give me a ward-wise voter count table for all 40 wards showing total voters, Hindu, Muslim and Christian breakdown, and 2023 polling percentage for each ward.',
+    sub:     '2025 voter roll · 2023 polling data',
+    color:   '#4f46e5',
+  },
+  {
+    icon:    'pie',
+    label:   'Caste & community turnout',
+    text:    'Show a community-wise breakdown of polled vs non-polled voters in the 2023 election. Which communities had the highest and lowest turnout?',
+    sub:     'Community_caste_count · Polled_NotPolled_caste',
+    color:   '#06b6d4',
+  },
+  {
+    icon:    'clipboard',
+    label:   'SIR roll health check',
+    text:    'Compare the 2002 and 2025 voter rolls. Show net change, new additions, suspicious entries and not-found records ward-wise. Which wards have the most suspicious voters?',
+    sub:     'SIR_NewAdditions · SIR_Suspicious · 2002 roll',
+    color:   '#10b981',
+  },
+  {
+    icon:    'target',
+    label:   'Booth strategy & flip targets',
+    text:    'Which booths are classified as WEAK or MEDIUM in the 2023 election? Show the top 10 priority booths that need intervention with BJP%, Congress%, margin and recommended action.',
+    sub:     'Mangaluru_FULLSCALE · Election_Strategy_Report',
+    color:   '#f59e0b',
+  },
 ];
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -756,26 +784,65 @@ export default function AiChat() {
             Mangaluru South constituency intelligence — voters, wards, schemes &amp; strategy
           </p>
 
-          {/* Suggestion chips */}
-          <div style={S.chipRow}>
-            {SUGGESTED.map((s,i) => (
-              <button key={i} style={S.chip} onClick={()=>send(s.text)}
-                onMouseEnter={e=>{
-                  e.currentTarget.style.background='rgba(99,102,241,0.14)';
-                  e.currentTarget.style.borderColor='rgba(99,102,241,0.5)';
-                  e.currentTarget.style.color='#c7d2fe';
-                  e.currentTarget.querySelector('.chip-icon').style.color='#818cf8';
+          {/* 4 pre-defined question cards — 2×2 grid */}
+          <div style={S.cardGrid}>
+            {SUGGESTED.map((s, i) => (
+              <button
+                key={i}
+                style={S.qCard}
+                onClick={() => send(s.text)}
+                onMouseEnter={e => {
+                  const rgb = s.color === '#4f46e5' ? '79,70,229'
+                            : s.color === '#06b6d4' ? '6,182,212'
+                            : s.color === '#10b981' ? '16,185,129'
+                            : '245,158,11';
+                  e.currentTarget.style.background  = `rgba(${rgb},0.1)`;
+                  e.currentTarget.style.borderColor = s.color + '55';
+                  e.currentTarget.querySelector('.qcard-label').style.color = s.color;
+                  e.currentTarget.querySelector('.qcard-icon').style.color  = s.color;
                 }}
-                onMouseLeave={e=>{
-                  e.currentTarget.style.background='rgba(28,38,58,0.7)';
-                  e.currentTarget.style.borderColor='rgba(51,65,85,0.55)';
-                  e.currentTarget.style.color='#94a3b8';
-                  e.currentTarget.querySelector('.chip-icon').style.color='#475569';
+                onMouseLeave={e => {
+                  e.currentTarget.style.background  = 'rgba(17,27,46,0.85)';
+                  e.currentTarget.style.borderColor = 'rgba(51,65,85,0.5)';
+                  e.currentTarget.querySelector('.qcard-label').style.color = '#c7d2fe';
+                  e.currentTarget.querySelector('.qcard-icon').style.color  = '#475569';
+                }}
+              >
+                {/* Top row: icon + label */}
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                  <span
+                    className="qcard-icon"
+                    style={{width:16,height:16,display:'flex',flexShrink:0,color:'#475569',transition:'color 0.2s'}}
+                  >
+                    {ICONS[s.icon]}
+                  </span>
+                  <span
+                    className="qcard-label"
+                    style={{fontSize:12,fontWeight:700,color:'#c7d2fe',letterSpacing:'0.02em',transition:'color 0.2s',textAlign:'left'}}
+                  >
+                    {s.label}
+                  </span>
+                </div>
+                {/* Question text */}
+                <p style={{
+                  margin:'0 0 10px',color:'#94a3b8',fontSize:12,
+                  lineHeight:1.55,textAlign:'left',
+                  display:'-webkit-box',WebkitLineClamp:3,
+                  WebkitBoxOrient:'vertical',overflow:'hidden',
                 }}>
-                <span className="chip-icon" style={{width:14,height:14,display:'flex',flexShrink:0,color:'#475569',transition:'color 0.2s',marginRight:8}}>
-                  {ICONS[s.icon]}
-                </span>
-                {s.text}
+                  {s.text}
+                </p>
+                {/* Data source badge */}
+                <div style={{
+                  display:'flex',alignItems:'center',gap:5,
+                  padding:'3px 8px',borderRadius:20,
+                  background:'rgba(99,102,241,0.07)',
+                  border:'1px solid rgba(99,102,241,0.15)',
+                  alignSelf:'flex-start',
+                }}>
+                  <span style={{width:10,height:10,display:'flex',color:'#334155',flexShrink:0}}>{ICONS.database}</span>
+                  <span style={{fontSize:10,color:'#334155',whiteSpace:'nowrap'}}>{s.sub}</span>
+                </div>
               </button>
             ))}
           </div>
@@ -860,18 +927,23 @@ const S = {
     fontSize:13, color:'#475569', textAlign:'center',
     maxWidth:480, lineHeight:1.65, margin:'0 0 26px',
   },
-  chipRow: {
-    display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center',
-    maxWidth:660, marginBottom:28,
+  // 2x2 question card grid
+  cardGrid: {
+    display:'grid',
+    gridTemplateColumns:'repeat(2, 1fr)',
+    gap:12,
+    width:'100%',
+    maxWidth:660,
+    marginBottom:28,
   },
-  chip: {
-    display:'flex', alignItems:'center',
-    background:'rgba(28,38,58,0.7)',
-    border:'1px solid rgba(51,65,85,0.55)',
-    borderRadius:24, padding:'8px 16px',
-    color:'#94a3b8', fontSize:13, cursor:'pointer',
+  qCard: {
+    display:'flex', flexDirection:'column',
+    background:'rgba(17,27,46,0.85)',
+    border:'1px solid rgba(51,65,85,0.5)',
+    borderRadius:14, padding:'14px 16px',
+    cursor:'pointer', textAlign:'left',
     transition:'all 0.2s', fontFamily:'inherit',
-    whiteSpace:'nowrap',
+    minHeight:130,
   },
 
   // ── CHAT MODE ──────────────────────────────────────────────────────────
