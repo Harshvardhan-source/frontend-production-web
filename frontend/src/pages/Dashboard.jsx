@@ -2828,6 +2828,177 @@ function LocalPlacesModal({ onClose }) {
 }
 
 // ─── Large Families Modal ─────────────────────────────────────────────────────
+// ─── Risk Wards Modal ─────────────────────────────────────────────────────────
+function RiskWardsModal({ onClose, onSelectWard }) {
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('priority'); // 'priority' | 'ward' | 'margin' | 'pollRate'
+
+  const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, WATCH: 3 };
+  const PRIORITY_COLOR = { CRITICAL: '#ef4444', HIGH: '#f97316', MEDIUM: '#f59e0b', WATCH: '#8b5cf6' };
+  const PRIORITY_BG    = { CRITICAL: 'rgba(239,68,68,0.12)', HIGH: 'rgba(249,115,22,0.12)', MEDIUM: 'rgba(245,158,11,0.1)', WATCH: 'rgba(139,92,246,0.1)' };
+
+  const riskWards = Object.entries(SIR_WARD_DATA)
+    .filter(([, d]) => d.priority !== 'NORMAL')
+    .map(([num, d]) => ({ num: Number(num), ...d, wardName: WARD_FULL_DATA[Number(num)]?.name || `Ward ${num}`, booths: WARD_FULL_DATA[Number(num)]?.booths || [] }));
+
+  const filtered = riskWards.filter(w => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return w.wardName.toLowerCase().includes(q) || String(w.num).includes(q) || w.priority.toLowerCase().includes(q) || w.classification.toLowerCase().includes(q);
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'priority') return (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9);
+    if (sortBy === 'ward')     return a.num - b.num;
+    if (sortBy === 'margin')   return Math.abs(b.margin) - Math.abs(a.margin);
+    if (sortBy === 'pollRate') return a.pollRate - b.pollRate; // lowest first = most at-risk
+    return 0;
+  });
+
+  const critCount   = riskWards.filter(w => w.priority === 'CRITICAL').length;
+  const highCount   = riskWards.filter(w => w.priority === 'HIGH').length;
+  const medCount    = riskWards.filter(w => w.priority === 'MEDIUM').length;
+  const watchCount  = riskWards.filter(w => w.priority === 'WATCH').length;
+
+  const modal = (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 16px', overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 820, background: 'linear-gradient(160deg, #0d1b30 0%, #090e1c 100%)', border: '1px solid rgba(239,68,68,0.22)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+
+        {/* ── Header ── */}
+        <div style={{ padding: '20px 24px 16px', background: 'rgba(239,68,68,0.06)', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>⚠</div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>Risk Wards — SIR Action Required</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{riskWards.length} wards · Low turnout + incomplete SIR surveys · Click any ward to drill down</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 15, color: 'rgba(255,255,255,0.45)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          </div>
+
+          {/* ── Priority summary chips ── */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            {[['CRITICAL', critCount], ['HIGH', highCount], ['MEDIUM', medCount], ['WATCH', watchCount]].map(([p, n]) => n > 0 && (
+              <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, background: PRIORITY_BG[p], border: `1px solid ${PRIORITY_COLOR[p]}35` }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: PRIORITY_COLOR[p], flexShrink: 0 }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: PRIORITY_COLOR[p] }}>{p}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{n}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Search + Sort ── */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, padding: '7px 12px' }}>
+              <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 14 }}>⌕</span>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ward name, number, priority…" style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 13, color: '#fff' }} />
+              {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0 }}>✕</button>}
+            </div>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 10px', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
+              <option value="priority">Sort: Priority</option>
+              <option value="ward">Sort: Ward No.</option>
+              <option value="pollRate">Sort: Lowest Turnout</option>
+              <option value="margin">Sort: Biggest Margin</option>
+            </select>
+          </div>
+        </div>
+
+        {/* ── Ward list ── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 24px' }}>
+          {sorted.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}>
+              <div style={{ fontSize: 34, marginBottom: 8 }}>🔍</div>
+              <div style={{ fontWeight: 600 }}>No wards match your search</div>
+            </div>
+          )}
+          {sorted.map((w, idx) => {
+            const pc = PRIORITY_COLOR[w.priority] || '#64748b';
+            const pb = PRIORITY_BG[w.priority]    || 'rgba(100,116,139,0.1)';
+            const isBJPRisk  = w.alert?.includes('BJP');
+            const isCongRisk = w.alert?.includes('CONG');
+            const marginAbs  = Math.abs(w.margin);
+            return (
+              <div key={w.num}
+                onClick={() => onSelectWard(w.num)}
+                style={{ display: 'flex', alignItems: 'stretch', gap: 0, marginBottom: 10, borderRadius: 14, overflow: 'hidden', border: `1px solid ${pc}28`, background: 'rgba(17,28,52,0.7)', cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = pb; e.currentTarget.style.borderColor = `${pc}50`; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(17,28,52,0.7)'; e.currentTarget.style.borderColor = `${pc}28`; }}
+              >
+                {/* Left accent bar */}
+                <div style={{ width: 4, flexShrink: 0, background: pc, opacity: 0.8 }} />
+
+                {/* Main content */}
+                <div style={{ flex: 1, padding: '13px 16px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                    {/* Ward name + number */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 9, flexShrink: 0, background: pb, border: `1px solid ${pc}30`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 8, fontWeight: 700, color: pc, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Ward</span>
+                        <span style={{ fontSize: 14, fontWeight: 900, color: pc, lineHeight: 1.1 }}>{w.num}</span>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.wardName}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.classification}</div>
+                      </div>
+                    </div>
+
+                    {/* Priority badge + chevron */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: pc, background: pb, border: `1px solid ${pc}35`, borderRadius: 6, padding: '3px 8px', letterSpacing: '0.04em' }}>{w.priority}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>›</span>
+                    </div>
+                  </div>
+
+                  {/* Stats row */}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {/* Poll rate */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Turnout</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: w.pollRate < 50 ? '#f87171' : w.pollRate < 60 ? '#f59e0b' : '#10b981' }}>{w.pollRate}%</span>
+                    </div>
+                    {/* Margin */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Margin</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: isBJPRisk ? '#22d3ee' : '#f87171' }}>{w.margin > 0 ? '+' : ''}{w.margin}%</span>
+                    </div>
+                    {/* Hindu% */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>H</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#f97316' }}>{w.hindu}%</span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>M {w.muslim}%</span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>C {w.christian}%</span>
+                    </div>
+                    {/* Electors */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Electors</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>{w.totalElectors.toLocaleString()}</span>
+                    </div>
+                    {/* Alert badge */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: isBJPRisk ? 'rgba(34,211,238,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${isBJPRisk ? 'rgba(34,211,238,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: isBJPRisk ? '#22d3ee' : '#f87171' }}>{w.alert}</span>
+                    </div>
+                  </div>
+
+                  {/* Booths */}
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>Booths:</span>
+                    {w.booths.map(b => (
+                      <span key={b} style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 6px' }}>{b}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(modal, document.body);
+}
+
 function LargeFamiliesModal({ onClose }) {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState('');
@@ -2974,6 +3145,7 @@ export default function Dashboard() {
 
   const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
   const [localPlacesOpen,   setLocalPlacesOpen]   = useState(false);
+  const [riskWardsOpen,     setRiskWardsOpen]     = useState(false);
   const [localPlacesTotal,  setLocalPlacesTotal]  = useState(null);
   const [localPlacesCounts, setLocalPlacesCounts] = useState({});
 
@@ -3644,6 +3816,7 @@ export default function Dashboard() {
                   onClick={
                     c.label === 'Large Families' ? () => setLargeFamiliesOpen(true) :
                     c.isLocalPlaces             ? () => setLocalPlacesOpen(true)   :
+                    c.label === 'Risk Wards'    ? () => setRiskWardsOpen(true)     :
                     undefined
                   }
                   className="touch-btn"
@@ -4007,6 +4180,7 @@ export default function Dashboard() {
     </div>
     {largeFamiliesOpen && <LargeFamiliesModal onClose={() => setLargeFamiliesOpen(false)} />}
     {localPlacesOpen   && <LocalPlacesModal   onClose={() => setLocalPlacesOpen(false)} />}
+    {riskWardsOpen     && <RiskWardsModal     onClose={() => setRiskWardsOpen(false)} onSelectWard={(w) => { setRiskWardsOpen(false); setSelectedWard(String(w)); }} />}
     </>
   );
 }
