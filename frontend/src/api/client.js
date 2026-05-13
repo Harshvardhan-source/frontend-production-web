@@ -201,4 +201,16 @@ export const aiChatApi = {
 };
  
 
+// ── SWOT Beneficiary List ─────────────────────────────────────────────────────
+export const beneficiaryApi = {
+  /**
+   * Fetch voters matching a SWOT query filter from the Data collection.
+   * @param {Object} query  - e.g. { economicStatus: "APL", religion: "Buddhist" }
+   * @param {number} page   - 1-based page number
+   * @param {number} limit  - rows per page (max 100)
+   */
+  list: (query, page = 1, limit = 50) =>
+    api.post('/api/swot/beneficiaries/', { query, page, limit }),
+};
+
 export default api;

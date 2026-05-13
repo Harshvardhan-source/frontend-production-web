@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navbar from '../components/Navbar';
-import { swotApi } from '../api/client';
+import { swotApi, beneficiaryApi } from '../api/client';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
 const Icon = ({ path, size = 14, color = 'currentColor', strokeWidth = 1.75, fill = 'none', style = {} }) => (
@@ -1378,12 +1378,292 @@ function TypewriterText({ text, speed = 14, style = {}, tag = 'span' }) {
   );
 }
 
+// ─── Beneficiary Modal ────────────────────────────────────────────────────────
+function BeneficiaryModal({ query, queryLabel, onClose }) {
+  const [voters, setVoters]   = React.useState([]);
+  const [total,  setTotal]    = React.useState(0);
+  const [pages,  setPages]    = React.useState(1);
+  const [page,   setPage]     = React.useState(1);
+  const [loading,setLoading]  = React.useState(true);
+  const [error,  setError]    = React.useState('');
+  const [search, setSearch]   = React.useState('');
+  const [expanded, setExpanded] = React.useState(null);
+
+  const LIMIT = 50;
+
+  const fetchPage = React.useCallback(async (p) => {
+    setLoading(true); setError('');
+    try {
+      const { data } = await beneficiaryApi.list(query, p, LIMIT);
+      if (data.success) {
+        setVoters(data.voters || []);
+        setTotal(data.total  || 0);
+        setPages(data.pages  || 1);
+        setPage(p);
+      } else {
+        setError(data.error || 'Failed to load beneficiaries.');
+      }
+    } catch(e) {
+      setError(e.userMessage || 'Network error.');
+    }
+    setLoading(false);
+  }, [query]);
+
+  React.useEffect(() => { fetchPage(1); }, [fetchPage]);
+
+  const filterTags = Object.entries(query).filter(([,v]) => v && v !== 'Unknown');
+
+  const displayed = search
+    ? voters.filter(v => {
+        const s = search.toLowerCase();
+        return (v.firstName + ' ' + (v.middleName||'') + ' ' + v.lastName).toLowerCase().includes(s)
+          || (v.voterid||'').toLowerCase().includes(s)
+          || String(v.wardNumber||'').includes(s)
+          || (v.houseNumber||'').toLowerCase().includes(s);
+      })
+    : voters;
+
+  const ACCENT = '#22d3ee';
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.82)',
+        backdropFilter:'blur(7px)', display:'flex', alignItems:'flex-start',
+        justifyContent:'center', padding:'32px 16px', overflowY:'auto' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ width:'100%', maxWidth:860,
+          background:'linear-gradient(160deg,#0a1628 0%,#060d1a 100%)',
+          border:'1px solid rgba(34,211,238,0.2)', borderRadius:20, overflow:'hidden',
+          boxShadow:'0 32px 80px rgba(0,0,0,0.7)', display:'flex', flexDirection:'column',
+          maxHeight:'88vh' }}
+      >
+        {/* ── Header ── */}
+        <div style={{ padding:'18px 22px 14px', background:'rgba(34,211,238,0.05)',
+          borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:40, height:40, borderRadius:10, background:'rgba(34,211,238,0.12)',
+                border:'1px solid rgba(34,211,238,0.28)', display:'flex', alignItems:'center',
+                justifyContent:'center', fontSize:18, flexShrink:0 }}>👥</div>
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, color:'#e2e8f0', fontFamily:'Sora,sans-serif' }}>
+                  Beneficiary List
+                  {!loading && <span style={{ marginLeft:8, fontSize:11, fontWeight:400,
+                    color:'rgba(255,255,255,0.35)' }}>{total.toLocaleString()} voters matched</span>}
+                </div>
+                <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', marginTop:1, fontFamily:'Space Mono,monospace' }}>
+                  Data → SurveyDataBase · {queryLabel}
+                </div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background:'rgba(255,255,255,0.05)',
+              border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32,
+              cursor:'pointer', color:'rgba(255,255,255,0.45)', display:'flex',
+              alignItems:'center', justifyContent:'center', fontSize:15, flexShrink:0 }}>✕</button>
+          </div>
+
+          {/* Filter chips */}
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10 }}>
+            {filterTags.map(([k,v]) => (
+              <span key={k} style={{ fontSize:9.5, fontFamily:'Space Mono,monospace',
+                color:ACCENT, background:'rgba(34,211,238,0.08)',
+                border:'1px solid rgba(34,211,238,0.2)', borderRadius:5, padding:'2px 8px' }}>
+                {k}: {v}
+              </span>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div style={{ display:'flex', alignItems:'center', gap:8,
+            background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)',
+            borderRadius:9, padding:'6px 12px' }}>
+            <span style={{ color:'rgba(255,255,255,0.28)', fontSize:14 }}>⌕</span>
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name, voter ID, ward, house number…"
+              style={{ flex:1, background:'none', border:'none', outline:'none',
+                fontSize:12, color:'#fff', fontFamily:'Sora,sans-serif' }} />
+            {search && <button onClick={() => setSearch('')}
+              style={{ background:'none', border:'none', cursor:'pointer',
+                color:'rgba(255,255,255,0.3)', fontSize:12 }}>✕</button>}
+          </div>
+        </div>
+
+        {/* ── List ── */}
+        <div style={{ flex:1, overflowY:'auto', padding:'12px 18px 16px' }}>
+          {loading && (
+            <div style={{ textAlign:'center', padding:'40px 0' }}>
+              <div style={{ fontSize:24, animation:'spin 1.2s linear infinite',
+                display:'inline-block', marginBottom:10 }}>✦</div>
+              <div style={{ fontSize:12, color:'rgba(34,211,238,0.6)',
+                fontFamily:'Sora,sans-serif' }}>Loading beneficiaries…</div>
+            </div>
+          )}
+          {error && <div style={{ padding:'20px 0', color:'#f87171',
+            textAlign:'center', fontSize:13 }}>⚠ {error}</div>}
+
+          {!loading && !error && displayed.length === 0 && (
+            <div style={{ textAlign:'center', padding:'48px 0', color:'rgba(255,255,255,0.25)' }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>🔍</div>
+              <div style={{ fontWeight:600, fontFamily:'Sora,sans-serif' }}>No voters found</div>
+            </div>
+          )}
+
+          {!loading && displayed.map((v, idx) => {
+            const name = [v.firstName, v.middleName, v.lastName].filter(Boolean).join(' ');
+            const isOpen = expanded === idx;
+            return (
+              <div key={idx} style={{ marginBottom:7, borderRadius:11, overflow:'hidden',
+                border:`1px solid ${isOpen ? 'rgba(34,211,238,0.28)' : 'rgba(255,255,255,0.07)'}`,
+                transition:'border-color 0.15s' }}>
+                {/* Row header */}
+                <div
+                  onClick={() => setExpanded(isOpen ? null : idx)}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px',
+                    background: isOpen ? 'rgba(34,211,238,0.06)' : 'rgba(255,255,255,0.02)',
+                    cursor:'pointer', transition:'background 0.15s' }}
+                  onMouseEnter={e => { if(!isOpen) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
+                  onMouseLeave={e => { if(!isOpen) e.currentTarget.style.background='rgba(255,255,255,0.02)'; }}
+                >
+                  {/* Serial */}
+                  <div style={{ width:28, height:28, borderRadius:7, flexShrink:0,
+                    background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:9.5, fontFamily:'Space Mono,monospace',
+                    color:'rgba(255,255,255,0.3)' }}>{(page-1)*LIMIT + idx + 1}</div>
+
+                  {/* Name + ward */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0',
+                      fontFamily:'Sora,sans-serif', whiteSpace:'nowrap',
+                      overflow:'hidden', textOverflow:'ellipsis' }}>{name || '—'}</div>
+                    <div style={{ display:'flex', gap:8, marginTop:2, flexWrap:'wrap' }}>
+                      {v.voterid && <span style={{ fontSize:9.5, color:ACCENT,
+                        fontFamily:'Space Mono,monospace' }}>{v.voterid}</span>}
+                      {v.wardNumber && <span style={{ fontSize:9.5,
+                        color:'rgba(255,255,255,0.3)', fontFamily:'Space Mono,monospace' }}>
+                        Ward {v.wardNumber}</span>}
+                      {v.gender && <span style={{ fontSize:9.5,
+                        color:'rgba(255,255,255,0.3)', fontFamily:'Space Mono,monospace' }}>
+                        {v.gender}</span>}
+                      {v.age && <span style={{ fontSize:9.5,
+                        color:'rgba(255,255,255,0.3)', fontFamily:'Space Mono,monospace' }}>
+                        {v.age}y</span>}
+                    </div>
+                  </div>
+
+                  {/* Quick chips */}
+                  <div style={{ display:'flex', gap:5, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                    {v.economicStatus && <span style={{ fontSize:8.5, fontFamily:'Space Mono,monospace',
+                      color:'#f59e0b', background:'rgba(245,158,11,0.1)',
+                      border:'1px solid rgba(245,158,11,0.2)', borderRadius:4, padding:'1px 6px' }}>
+                      {v.economicStatus}</span>}
+                    {v.healthStatus && v.healthStatus !== 'Healthy' && <span style={{
+                      fontSize:8.5, fontFamily:'Space Mono,monospace',
+                      color:'#f87171', background:'rgba(248,113,113,0.1)',
+                      border:'1px solid rgba(248,113,113,0.2)', borderRadius:4, padding:'1px 6px' }}>
+                      {v.healthStatus}</span>}
+                  </div>
+
+                  <span style={{ color: isOpen ? ACCENT : 'rgba(255,255,255,0.2)',
+                    fontSize:13, transform: isOpen ? 'rotate(180deg)' : 'none',
+                    transition:'transform 0.2s', flexShrink:0 }}>⌄</span>
+                </div>
+
+                {/* Expanded detail */}
+                {isOpen && (
+                  <div style={{ padding:'12px 14px 14px',
+                    background:'rgba(34,211,238,0.02)',
+                    borderTop:'1px solid rgba(34,211,238,0.1)' }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'8px 16px' }}>
+                      {[
+                        ['House No', v.houseNumber],
+                        ['Booth',    v.boothNo],
+                        ['Polling Station', v.pollingStation],
+                        ['Address', v.address],
+                        ['Religion', v.religion],
+                        ['Education', v.education],
+                        ['Employment', v.employmentStatus],
+                        ['Home Type', v.homeType],
+                        ['Annual Income', v.annualIncome ? '₹' + Number(v.annualIncome).toLocaleString() : null],
+                        ['Family Income', v.familyIncome ? '₹' + Number(v.familyIncome).toLocaleString() : null],
+                        ['Disease', v.diseaseName || v.diseaseType],
+                        ['Differently Abled', v.differentlyAbled],
+                        ['Minority', v.minority],
+                        ['Contact', v.contactNumber],
+                        ['Marital Status', v.maritalStatus],
+                      ].filter(([,val]) => val && val !== 'No' && val !== 'Unknown').map(([lbl,val]) => (
+                        <div key={lbl}>
+                          <div style={{ fontSize:8.5, color:'rgba(255,255,255,0.28)',
+                            fontFamily:'Space Mono,monospace', textTransform:'uppercase',
+                            letterSpacing:0.4, marginBottom:2 }}>{lbl}</div>
+                          <div style={{ fontSize:11, color:'#e2e8f0',
+                            fontFamily:'Sora,sans-serif', fontWeight:600 }}>{String(val)}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {v.schemesUsed?.length > 0 && (
+                      <div style={{ marginTop:10 }}>
+                        <div style={{ fontSize:8.5, color:'rgba(16,185,129,0.6)',
+                          fontFamily:'Space Mono,monospace', marginBottom:5,
+                          textTransform:'uppercase', letterSpacing:0.4 }}>Schemes Used</div>
+                        <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                          {v.schemesUsed.map((s,i) => (
+                            <span key={i} style={{ fontSize:9.5,
+                              color:'#34d399', background:'rgba(16,185,129,0.08)',
+                              border:'1px solid rgba(16,185,129,0.2)',
+                              borderRadius:5, padding:'2px 8px',
+                              fontFamily:'Sora,sans-serif' }}>{s}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Pagination ── */}
+        {!loading && pages > 1 && (
+          <div style={{ flexShrink:0, padding:'10px 18px',
+            borderTop:'1px solid rgba(255,255,255,0.07)',
+            display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)',
+              fontFamily:'Space Mono,monospace' }}>
+              Page {page} of {pages} · {total.toLocaleString()} total
+            </span>
+            <div style={{ display:'flex', gap:6 }}>
+              <button onClick={() => fetchPage(page-1)} disabled={page <= 1} style={{
+                padding:'5px 12px', borderRadius:7, fontSize:11, cursor: page<=1 ? 'default' : 'pointer',
+                background: page<=1 ? 'rgba(255,255,255,0.03)' : 'rgba(34,211,238,0.1)',
+                border:`1px solid ${page<=1 ? 'rgba(255,255,255,0.07)' : 'rgba(34,211,238,0.25)'}`,
+                color: page<=1 ? 'rgba(255,255,255,0.2)' : ACCENT,
+                fontFamily:'Space Mono,monospace', fontWeight:700 }}>← Prev</button>
+              <button onClick={() => fetchPage(page+1)} disabled={page >= pages} style={{
+                padding:'5px 12px', borderRadius:7, fontSize:11, cursor: page>=pages ? 'default' : 'pointer',
+                background: page>=pages ? 'rgba(255,255,255,0.03)' : 'rgba(34,211,238,0.1)',
+                border:`1px solid ${page>=pages ? 'rgba(255,255,255,0.07)' : 'rgba(34,211,238,0.25)'}`,
+                color: page>=pages ? 'rgba(255,255,255,0.2)' : ACCENT,
+                fontFamily:'Space Mono,monospace', fontWeight:700 }}>Next →</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function QueryCard({ q, ctxKey, ctxColor }) {
   const [open, setOpen] = React.useState(false);
   const [aiOpen, setAiOpen] = React.useState(false);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [aiText, setAiText] = React.useState('');
   const [aiReveal, setAiReveal] = React.useState(false); // triggers typewriter start
+  const [benefOpen, setBenefOpen] = React.useState(false);
 
   const ctx = q.predictedContext || {};
   const label = q.label || 'None';
@@ -1477,10 +1757,37 @@ function QueryCard({ q, ctxKey, ctxColor }) {
           <span style={{ fontSize: 10 }}>✦</span> AI
         </button>
 
+        {/* View Beneficiaries button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setBenefOpen(true); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 9px', borderRadius: 6,
+            border: '1px solid rgba(34,211,238,0.28)',
+            background: 'rgba(34,211,238,0.07)',
+            color: 'rgba(34,211,238,0.8)',
+            fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: 'Space Mono, monospace',
+            transition: 'all 0.15s', letterSpacing: 0.3, flexShrink: 0,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background='rgba(34,211,238,0.15)'; e.currentTarget.style.color='#22d3ee'; }}
+          onMouseLeave={e => { e.currentTarget.style.background='rgba(34,211,238,0.07)'; e.currentTarget.style.color='rgba(34,211,238,0.8)'; }}
+        >
+          <span style={{ fontSize: 10 }}>👥</span> View Beneficiaries
+        </button>
+
         <div style={{ fontSize: 9.5, fontFamily: 'Space Mono, monospace', color: ctxColor, fontWeight: 700 }}>{pct}%</div>
         <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.28)', fontFamily: 'Space Mono, monospace' }}>{count} voters</div>
         <div style={{ marginLeft: 'auto', fontSize: 8.5, color: 'rgba(255,255,255,0.2)', fontFamily: 'Space Mono, monospace', cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>{open ? '▲ collapse' : '▼ all contexts'}</div>
       </div>
+
+      {/* Beneficiary Modal */}
+      {benefOpen && (
+        <BeneficiaryModal
+          query={query}
+          queryLabel={cols.join(' · ') || label}
+          onClose={() => setBenefOpen(false)}
+        />
+      )}
 
       {/* AI insight panel — rich structured */}
       {aiOpen && (
