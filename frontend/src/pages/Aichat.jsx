@@ -901,135 +901,176 @@ export default function AiChat() {
       {!hasMessages && (
         <div style={{
           flex:1, display:'flex', flexDirection:'column',
-          alignItems:'center',
-          justifyContent: m ? 'flex-start' : 'center',
-          padding: m ? '14px 12px 8px' : '32px 24px 24px',
-          overflowY:'auto', overflowX:'hidden',
-          WebkitOverflowScrolling:'touch',
-          overscrollBehavior:'contain',
-          boxSizing:'border-box',
-          width:'100%',
+          overflow:'hidden', width:'100%', boxSizing:'border-box',
         }}>
-          {/* Logo */}
+
+          {/* ── Scrollable zone: logo + title + cards ── */}
           <div style={{
-            marginBottom: m ? 10 : 20,
-            filter:'drop-shadow(0 0 20px rgba(79,70,229,0.4))',
-            flexShrink:0,
-          }}>
-            <BrainLogo size={m ? 52 : 90} animated />
-          </div>
-
-          <h1 style={{
-            fontSize: m ? 22 : 28, fontWeight:700, color:'#e2e8f0',
-            margin: m ? '0 0 6px' : '0 0 8px',
-            textAlign:'center', letterSpacing:'-0.03em',
-            flexShrink:0,
-          }}>What's on your mind today?</h1>
-
-          <p style={{
-            fontSize: m ? 12 : 13, color:'#475569', textAlign:'center',
-            maxWidth: m ? '100%' : 480,
-            lineHeight: m ? 1.5 : 1.65,
-            margin: m ? '0 0 14px' : '0 0 26px',
-            flexShrink:0,
-            padding: m ? '0 4px' : 0,
-          }}>
-            Mangaluru South constituency intelligence — voters, wards, schemes &amp; strategy
-          </p>
-
-          {/* 4 pre-defined question cards — 2×2 grid */}
-          <div style={{
-            display:'grid',
-            gridTemplateColumns:'1fr 1fr',
-            gap: m ? 8 : 12,
-            width:'100%',
-            maxWidth: m ? '100%' : 660,
-            marginBottom: m ? 12 : 28,
+            flex:1,
+            display:'flex', flexDirection:'column',
+            alignItems:'center',
+            justifyContent: m ? 'flex-start' : 'center',
+            padding: m ? '14px 12px 0' : '32px 24px 0',
+            overflowY: m ? 'auto' : 'visible',
+            overflowX:'hidden',
+            WebkitOverflowScrolling:'touch',
+            overscrollBehavior:'contain',
             boxSizing:'border-box',
-            flexShrink:0,
+            width:'100%',
           }}>
-            {SUGGESTED.map((s, i) => {
-              const rgb = s.color === '#4f46e5' ? '79,70,229'
-                        : s.color === '#06b6d4' ? '6,182,212'
-                        : s.color === '#10b981' ? '16,185,129'
-                        : '245,158,11';
-              const applyHover = (el) => {
-                el.style.background  = `rgba(${rgb},0.1)`;
-                el.style.borderColor = s.color + '55';
-                el.querySelector('.qcard-label').style.color = s.color;
-                el.querySelector('.qcard-icon').style.color  = s.color;
-              };
-              const removeHover = (el) => {
-                el.style.background  = 'rgba(17,27,46,0.85)';
-                el.style.borderColor = 'rgba(51,65,85,0.5)';
-                el.querySelector('.qcard-label').style.color = '#c7d2fe';
-                el.querySelector('.qcard-icon').style.color  = '#475569';
-              };
-              return (
-              <button
-                key={i}
-                style={{
-                  display:'flex', flexDirection:'column',
-                  background:'rgba(17,27,46,0.85)',
-                  border:'1px solid rgba(51,65,85,0.5)',
-                  borderRadius: m ? 11 : 14,
-                  padding: m ? '10px 10px' : '14px 16px',
-                  cursor:'pointer', textAlign:'left',
-                  transition:'all 0.2s', fontFamily:'inherit',
-                  minHeight: m ? 0 : 130,
-                  boxSizing:'border-box',
-                  overflow:'hidden',
-                  WebkitTapHighlightColor:'transparent',
-                  touchAction:'manipulation',
-                }}
-                onClick={() => send(s.text)}
-                onMouseEnter={e => applyHover(e.currentTarget)}
-                onMouseLeave={e => removeHover(e.currentTarget)}
-                onTouchStart={e => applyHover(e.currentTarget)}
-                onTouchEnd={e => { removeHover(e.currentTarget); }}
-                onTouchCancel={e => removeHover(e.currentTarget)}
-              >
-                {/* Top row: icon + label */}
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom: m?6:8}}>
-                  <span className="qcard-icon" style={{width:16,height:16,display:'flex',flexShrink:0,color:'#475569',transition:'color 0.2s'}}>
-                    {ICONS[s.icon]}
-                  </span>
-                  <span className="qcard-label" style={{fontSize: m?11:12, fontWeight:700, color:'#c7d2fe', letterSpacing:'0.02em', transition:'color 0.2s', textAlign:'left', lineHeight:1.3}}>
-                    {s.label}
-                  </span>
-                </div>
-                {/* Question text */}
-                <p style={{
-                  margin: m ? '0 0 8px' : '0 0 10px',
-                  color:'#94a3b8', fontSize: m?11:12,
-                  lineHeight:1.55, textAlign:'left',
-                  display:'-webkit-box', WebkitLineClamp:3,
-                  WebkitBoxOrient:'vertical', overflow:'hidden',
-                }}>
-                  {s.text}
-                </p>
-                {/* Data source badge */}
-                <div style={{
-                  display:'flex', alignItems:'center', gap:5,
-                  padding:'3px 8px', borderRadius:20,
-                  background:'rgba(99,102,241,0.07)',
-                  border:'1px solid rgba(99,102,241,0.15)',
-                  alignSelf:'flex-start',
-                }}>
-                  <span style={{width:10,height:10,display:'flex',color:'#334155',flexShrink:0}}>{ICONS.database}</span>
-                  <span style={{fontSize:10,color:'#334155',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth: m?90:200}}>{s.sub}</span>
-                </div>
-              </button>
-              );
-            })}
+            {/* Logo */}
+            <div style={{
+              marginBottom: m ? 10 : 20,
+              filter:'drop-shadow(0 0 20px rgba(79,70,229,0.4))',
+              flexShrink:0,
+            }}>
+              <BrainLogo size={m ? 52 : 90} animated />
+            </div>
+
+            <h1 style={{
+              fontSize: m ? 22 : 28, fontWeight:700, color:'#e2e8f0',
+              margin: m ? '0 0 6px' : '0 0 8px',
+              textAlign:'center', letterSpacing:'-0.03em', flexShrink:0,
+            }}>What's on your mind today?</h1>
+
+            <p style={{
+              fontSize: m ? 12 : 13, color:'#475569', textAlign:'center',
+              maxWidth: m ? '100%' : 480,
+              lineHeight: m ? 1.5 : 1.65,
+              margin: m ? '0 0 14px' : '0 0 26px',
+              flexShrink:0, padding: m ? '0 4px' : 0,
+            }}>
+              Mangaluru South constituency intelligence — voters, wards, schemes &amp; strategy
+            </p>
+
+            {/* 4 cards — 1-col scrollable list on mobile, 2x2 grid on desktop */}
+            <div style={{
+              display:'grid',
+              gridTemplateColumns: m ? '1fr' : '1fr 1fr',
+              gap: m ? 8 : 12,
+              width:'100%',
+              maxWidth: m ? '100%' : 660,
+              marginBottom: m ? 12 : 28,
+              boxSizing:'border-box', flexShrink:0,
+            }}>
+              {SUGGESTED.map((s, i) => {
+                const rgb = s.color === '#4f46e5' ? '79,70,229'
+                          : s.color === '#06b6d4' ? '6,182,212'
+                          : s.color === '#10b981' ? '16,185,129'
+                          : '245,158,11';
+                const applyHover = (el) => {
+                  el.style.background  = `rgba(${rgb},0.1)`;
+                  el.style.borderColor = s.color + '55';
+                  el.querySelector('.qcard-label').style.color = s.color;
+                  el.querySelector('.qcard-icon').style.color  = s.color;
+                };
+                const removeHover = (el) => {
+                  el.style.background  = 'rgba(17,27,46,0.85)';
+                  el.style.borderColor = 'rgba(51,65,85,0.5)';
+                  el.querySelector('.qcard-label').style.color = '#c7d2fe';
+                  el.querySelector('.qcard-icon').style.color  = '#475569';
+                };
+                return (
+                <button
+                  key={i}
+                  style={{
+                    display:'flex',
+                    flexDirection: m ? 'row' : 'column',
+                    alignItems: m ? 'center' : undefined,
+                    gap: m ? 12 : 0,
+                    background:'rgba(17,27,46,0.85)',
+                    border:'1px solid rgba(51,65,85,0.5)',
+                    borderRadius: m ? 12 : 14,
+                    padding: m ? '12px 14px' : '14px 16px',
+                    cursor:'pointer', textAlign:'left',
+                    transition:'all 0.2s', fontFamily:'inherit',
+                    minHeight: m ? 0 : 130,
+                    boxSizing:'border-box', overflow:'hidden',
+                    WebkitTapHighlightColor:'transparent',
+                    touchAction:'manipulation', width:'100%',
+                  }}
+                  onClick={() => send(s.text)}
+                  onMouseEnter={e => applyHover(e.currentTarget)}
+                  onMouseLeave={e => removeHover(e.currentTarget)}
+                  onTouchStart={e => applyHover(e.currentTarget)}
+                  onTouchEnd={e => { removeHover(e.currentTarget); }}
+                  onTouchCancel={e => removeHover(e.currentTarget)}
+                >
+                  {/* Mobile: coloured icon square on left */}
+                  {m && (
+                    <div style={{
+                      width:38, height:38, borderRadius:10, flexShrink:0,
+                      background:`rgba(${rgb},0.12)`,
+                      border:`1px solid ${s.color}35`,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      <span className="qcard-icon" style={{width:18,height:18,display:'flex',color:s.color,transition:'color 0.2s'}}>
+                        {ICONS[s.icon]}
+                      </span>
+                    </div>
+                  )}
+                  {/* Text block */}
+                  <div style={{flex:1, minWidth:0}}>
+                    {!m && (
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                        <span className="qcard-icon" style={{width:16,height:16,display:'flex',flexShrink:0,color:'#475569',transition:'color 0.2s'}}>
+                          {ICONS[s.icon]}
+                        </span>
+                        <span className="qcard-label" style={{fontSize:12,fontWeight:700,color:'#c7d2fe',letterSpacing:'0.02em',transition:'color 0.2s'}}>
+                          {s.label}
+                        </span>
+                      </div>
+                    )}
+                    {m && (
+                      <span className="qcard-label" style={{display:'block',fontSize:12,fontWeight:700,color:'#c7d2fe',marginBottom:3,transition:'color 0.2s'}}>
+                        {s.label}
+                      </span>
+                    )}
+                    <p style={{
+                      margin: m ? '0 0 5px' : '0 0 10px',
+                      color:'#94a3b8', fontSize: m ? 11 : 12,
+                      lineHeight:1.5, textAlign:'left',
+                      display:'-webkit-box',
+                      WebkitLineClamp: m ? 2 : 3,
+                      WebkitBoxOrient:'vertical', overflow:'hidden',
+                    }}>
+                      {s.text}
+                    </p>
+                    <div style={{
+                      display:'inline-flex', alignItems:'center', gap:5,
+                      padding:'2px 8px', borderRadius:20,
+                      background:'rgba(99,102,241,0.07)',
+                      border:'1px solid rgba(99,102,241,0.15)',
+                    }}>
+                      <span style={{width:10,height:10,display:'flex',color:'#334155',flexShrink:0}}>{ICONS.database}</span>
+                      <span style={{fontSize:10,color:'#334155',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth: m?150:200}}>{s.sub}</span>
+                    </div>
+                  </div>
+                </button>
+                );
+              })}
+            </div>
+
+            {/* Desktop: input inside scrollable area */}
+            {!m && <InputBox {...inputProps}/>}
           </div>
 
-          {/* Input box inside hero */}
-          <InputBox {...inputProps}/>
+          {/* Mobile: input bar always pinned at bottom */}
+          {m && (
+            <div style={{
+              flexShrink:0,
+              padding:'8px 12px',
+              paddingBottom:'calc(10px + env(safe-area-inset-bottom, 0px))',
+              background:'linear-gradient(to top, #0b1120 85%, transparent)',
+              boxSizing:'border-box', width:'100%',
+            }}>
+              <InputBox {...inputProps}/>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ══ CHAT MODE ════════════════════════════════════════════════════════ */}
+            {/* ══ CHAT MODE ════════════════════════════════════════════════════════ */}
       {hasMessages && (
         <>
           <div style={S.chatArea}>
