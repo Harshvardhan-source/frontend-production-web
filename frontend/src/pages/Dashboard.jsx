@@ -3145,7 +3145,6 @@ export default function Dashboard() {
 
   const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
   const [localPlacesOpen,   setLocalPlacesOpen]   = useState(false);
-  const [riskWardsOpen,     setRiskWardsOpen]     = useState(false);
   const [localPlacesTotal,  setLocalPlacesTotal]  = useState(null);
   const [localPlacesCounts, setLocalPlacesCounts] = useState({});
 
@@ -3156,6 +3155,7 @@ export default function Dashboard() {
   const [nextSerial, setNextSerial] = useState(1);
   const debounceRef      = useRef(null);
   const searchResultsRef = useRef(null);
+  const riskWardsRef     = useRef(null);
 
   useEffect(() => {
     dashboardApi.stats()
@@ -3816,7 +3816,7 @@ export default function Dashboard() {
                   onClick={
                     c.label === 'Large Families' ? () => setLargeFamiliesOpen(true) :
                     c.isLocalPlaces             ? () => setLocalPlacesOpen(true)   :
-                    c.label === 'Risk Wards'    ? () => setRiskWardsOpen(true)     :
+                    c.label === 'Risk Wards'    ? () => { riskWardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } :
                     undefined
                   }
                   className="touch-btn"
@@ -4034,7 +4034,9 @@ export default function Dashboard() {
 
           {/* ── NEW: Risk Wards Overview (only on overall view) ───────────── */}
           {!selectedWard && (
-            <RiskWardsOverview onSelectWard={setSelectedWard} />
+            <div ref={riskWardsRef}>
+              <RiskWardsOverview onSelectWard={setSelectedWard} />
+            </div>
           )}
 
           {/* ── NEW: All Wards SIR Heatmap Table (only on overall view) ─── */}
@@ -4180,7 +4182,6 @@ export default function Dashboard() {
     </div>
     {largeFamiliesOpen && <LargeFamiliesModal onClose={() => setLargeFamiliesOpen(false)} />}
     {localPlacesOpen   && <LocalPlacesModal   onClose={() => setLocalPlacesOpen(false)} />}
-    {riskWardsOpen     && <RiskWardsModal     onClose={() => setRiskWardsOpen(false)} onSelectWard={(w) => { setRiskWardsOpen(false); setSelectedWard(String(w)); }} />}
     </>
   );
 }
