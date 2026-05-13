@@ -656,69 +656,63 @@ function ThinkingIndicator() {
 // SHARED INPUT BOX
 // ════════════════════════════════════════════════════════════════════════════════
 function InputBox({ inputRef, input, setInput, loading, send, handleKey }) {
-  // Auto-resize textarea: works reliably on Android via state-driven onChange
   const handleChange = (e) => {
     setInput(e.target.value);
-    // Reset height then grow to scrollHeight (works on Android Chrome)
     e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
   };
 
   return (
-    <div style={{width:'100%',maxWidth:720,margin:'0 auto'}}>
+    <div style={{width:'100%', maxWidth:720, margin:'0 auto', boxSizing:'border-box'}}>
       <div style={{
-        display:'flex', alignItems:'flex-end', gap:8,
+        display:'flex', alignItems:'flex-end', gap:6,
         background:'rgba(28,38,58,0.97)',
         border:'1.5px solid rgba(99,102,241,0.28)',
-        borderRadius:30,
-        padding:'8px 8px 8px 22px',
-        boxShadow:'0 6px 40px rgba(0,0,0,0.45)',
+        borderRadius:26,
+        padding:'6px 6px 6px 16px',
+        boxShadow:'0 4px 24px rgba(0,0,0,0.4)',
+        width:'100%',
+        boxSizing:'border-box',
       }}>
         <textarea
           ref={inputRef}
           value={input}
           onChange={handleChange}
           onKeyDown={handleKey}
-          placeholder="Ask anything about voters, wards, schemes, strategy…"
+          placeholder="Ask about voters, wards, schemes…"
           disabled={loading}
           rows={1}
           style={{
             flex:1, background:'transparent', border:'none', outline:'none',
-            color:'#e2e8f0', fontSize:15, lineHeight:1.6, fontFamily:'inherit',
-            resize:'none', minHeight:38, maxHeight:140, padding:'4px 0',
+            color:'#e2e8f0', fontSize:15, lineHeight:1.5, fontFamily:'inherit',
+            resize:'none', minHeight:36, maxHeight:120, padding:'4px 0',
             scrollbarWidth:'thin', scrollbarColor:'#334155 transparent',
-            // Android: prevent zoom on focus (font-size >= 16px prevents auto-zoom)
             WebkitAppearance:'none',
             touchAction:'manipulation',
+            width:'100%',
+            minWidth:0, // prevent flex overflow
           }}
         />
         <button
           onClick={()=>send()}
           disabled={loading||!input.trim()}
-          // onTouchEnd for faster response on Android (avoids 300ms tap delay)
           onTouchEnd={(e)=>{ e.preventDefault(); if(!loading&&input.trim()) send(); }}
           style={{
-            width:46, height:46, borderRadius:23, flexShrink:0,
+            width:40, height:40, borderRadius:20, flexShrink:0,
             background:loading||!input.trim()?'rgba(99,102,241,0.15)':'linear-gradient(135deg,#4f46e5,#7c3aed)',
             border:'none', cursor:loading||!input.trim()?'default':'pointer',
             display:'flex', alignItems:'center', justifyContent:'center',
-            color:'#fff', fontSize:17,
-            boxShadow:loading||!input.trim()?'none':'0 2px 14px rgba(79,70,229,0.55)',
+            color:'#fff',
+            boxShadow:loading||!input.trim()?'none':'0 2px 12px rgba(79,70,229,0.5)',
             transition:'all 0.2s',
-            // Larger touch target
             touchAction:'manipulation',
             WebkitTapHighlightColor:'transparent',
           }}
         >
-          <span style={{width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <span style={{width:17,height:17,display:'flex',alignItems:'center',justifyContent:'center'}}>
             {ICONS.send}
           </span>
         </button>
-      </div>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:9,padding:'0 6px'}}>
-        <span style={{color:'#1e293b',fontSize:11}}>
-          <kbd style={S.kbd}>Enter</kbd> send · <kbd style={S.kbd}>Shift+Enter</kbd> new line
-        </span>
       </div>
     </div>
   );
@@ -779,16 +773,33 @@ export default function AiChat() {
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
-    <div style={S.root}>
+    <div style={S.root} data-ai-root="1">
+      {/* ── Global mobile CSS fixes ── */}
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; }
+        html { height: 100%; overflow: hidden; }
+        body { height: 100%; overflow: hidden; margin: 0; padding: 0; overscroll-behavior: none; }
+        #root { height: 100%; overflow: hidden; }
+        /* svh fallback for browsers that don't support it */
+        @supports not (height: 100svh) {
+          [data-ai-root] { height: 100vh !important; }
+        }
+        /* Prevent horizontal scroll leak */
+        [data-ai-root] { max-width: 100vw; overflow-x: hidden; }
+        /* Scrollbars on Android WebKit */
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+      `}</style>
       <Navbar />
 
       {/* ── Slim sub-header ── */}
       <div style={S.subHeader}>
-        <div style={{display:'flex',alignItems:'center',gap:9}}>
-          <div style={S.subHeaderIcon}><BrainAvatar size={17}/></div>
+        <div style={{display:'flex',alignItems:'center',gap:7,minWidth:0,overflow:'hidden'}}>
+          <div style={S.subHeaderIcon}><BrainAvatar size={16}/></div>
           <span style={S.subHeaderTitle}>ShaastraAI</span>
-          <span style={{color:'#1e293b',fontSize:13}}>·</span>
-          <span style={S.subHeaderSub}>Mangaluru South Intelligence</span>
+          <span style={{color:'#1e293b',fontSize:13,flexShrink:0}}>·</span>
+          <span style={{...S.subHeaderSub,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>Mangaluru South Intelligence</span>
         </div>
         <button onClick={()=>setMessages([])} style={S.clearBtn}
           onMouseEnter={e=>{e.currentTarget.style.color='#ef4444';e.currentTarget.style.borderColor='rgba(239,68,68,0.3)';}}
@@ -805,7 +816,7 @@ export default function AiChat() {
         <div style={S.heroWrap}>
           {/* Animated circuit-brain logo */}
           <div style={S.heroLogoWrap}>
-            <BrainLogo size={90} animated />
+            <BrainLogo size={52} animated />
           </div>
 
           <h1 style={S.heroTitle}>What's on your mind today?</h1>
@@ -853,15 +864,15 @@ export default function AiChat() {
                   </span>
                   <span
                     className="qcard-label"
-                    style={{fontSize:12,fontWeight:700,color:'#c7d2fe',letterSpacing:'0.02em',transition:'color 0.2s',textAlign:'left'}}
+                    style={{fontSize:11,fontWeight:700,color:'#c7d2fe',letterSpacing:'0.01em',transition:'color 0.2s',textAlign:'left',lineHeight:1.3}}
                   >
                     {s.label}
                   </span>
                 </div>
                 {/* Question text */}
                 <p style={{
-                  margin:'0 0 10px',color:'#94a3b8',fontSize:12,
-                  lineHeight:1.55,textAlign:'left',
+                  margin:'0 0 8px',color:'#94a3b8',fontSize:11,
+                  lineHeight:1.45,textAlign:'left',
                   display:'-webkit-box',WebkitLineClamp:3,
                   WebkitBoxOrient:'vertical',overflow:'hidden',
                 }}>
@@ -915,109 +926,124 @@ export default function AiChat() {
 const S = {
   root: {
     display:'flex', flexDirection:'column',
-    height:'100vh', // fallback
-    // eslint-disable-next-line no-dupe-keys
-    height:'100dvh', // Android: avoids URL-bar collapse bug
+    height:'100svh', // svh = small viewport height — best for mobile browsers (excludes URL bar)
     background:'#0b1120',
     fontFamily:"'DM Sans','Inter',sans-serif",
     overflow:'hidden',
     WebkitFontSmoothing:'antialiased',
     MozOsxFontSmoothing:'grayscale',
-    // Prevent Android pull-to-refresh overscroll on root
     overscrollBehavior:'none',
+    // Ensure content never bleeds past screen edges
+    maxWidth:'100vw',
+    boxSizing:'border-box',
   },
 
   // Slim sub-header
   subHeader: {
     display:'flex', alignItems:'center', justifyContent:'space-between',
-    padding:'7px 22px',
+    padding:'6px 12px',
     background:'rgba(11,17,32,0.98)',
     borderBottom:'1px solid rgba(99,102,241,0.12)',
     flexShrink:0,
+    minHeight:44,
   },
   subHeaderIcon: {
-    width:28, height:28, borderRadius:7,
+    width:26, height:26, borderRadius:7,
     background:'rgba(79,70,229,0.1)',
     border:'1px solid rgba(99,102,241,0.25)',
     display:'flex', alignItems:'center', justifyContent:'center',
+    flexShrink:0,
   },
-  subHeaderTitle: { fontSize:14, fontWeight:800, color:'#818cf8', letterSpacing:'-0.01em' },
-  subHeaderSub:   { fontSize:12, color:'#334155' },
+  subHeaderTitle: { fontSize:13, fontWeight:800, color:'#818cf8', letterSpacing:'-0.01em' },
+  subHeaderSub:   { fontSize:11, color:'#334155' },
   clearBtn: {
-    display:'flex', alignItems:'center', gap:5,
+    display:'flex', alignItems:'center', gap:4,
     background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)',
-    borderRadius:7, padding:'5px 11px', cursor:'pointer',
-    fontSize:12, color:'#475569', transition:'all 0.2s', fontFamily:'inherit',
+    borderRadius:7, padding:'6px 10px', cursor:'pointer',
+    fontSize:11, color:'#475569', transition:'all 0.2s', fontFamily:'inherit',
     WebkitTapHighlightColor:'transparent',
     touchAction:'manipulation',
-    // Minimum 44px touch target height for Android accessibility
-    minHeight:44, minWidth:44,
+    flexShrink:0,
   },
 
   // ── HERO ─────────────────────────────────────────────────────────────────
   heroWrap: {
-    flex:1, display:'flex', flexDirection:'column',
-    alignItems:'center', justifyContent:'center',
-    padding:'32px 24px 24px',
-    paddingBottom:'calc(24px + env(safe-area-inset-bottom, 0px))',
+    flex:1,
+    display:'flex',
+    flexDirection:'column',
+    alignItems:'center',
+    justifyContent:'flex-start',  // top-aligned so content doesn't overflow bottom
+    padding:'16px 12px 8px',
     overflowY:'auto',
-    WebkitOverflowScrolling:'touch', // smooth momentum scrolling on Android/iOS
-    gap:0,
+    overflowX:'hidden',
+    WebkitOverflowScrolling:'touch',
+    overscrollBehavior:'contain',
+    boxSizing:'border-box',
+    width:'100%',
   },
   heroLogoWrap: {
-    marginBottom:20,
-    filter:'drop-shadow(0 0 20px rgba(79,70,229,0.4))',
+    marginBottom:10,
+    filter:'drop-shadow(0 0 14px rgba(79,70,229,0.4))',
+    flexShrink:0,
   },
   heroTitle: {
-    fontSize:28, fontWeight:700, color:'#e2e8f0',
-    margin:'0 0 8px', textAlign:'center', letterSpacing:'-0.03em',
+    fontSize:22, fontWeight:700, color:'#e2e8f0',
+    margin:'0 0 6px', textAlign:'center', letterSpacing:'-0.03em',
+    lineHeight:1.25,
+    flexShrink:0,
   },
   heroSub: {
-    fontSize:13, color:'#475569', textAlign:'center',
-    maxWidth:480, lineHeight:1.65, margin:'0 0 26px',
+    fontSize:12, color:'#475569', textAlign:'center',
+    width:'100%', lineHeight:1.5, margin:'0 0 14px',
+    flexShrink:0,
+    padding:'0 4px',
   },
-  // 2x2 question card grid
+  // 2x2 question card grid — mobile-first, full width with safe padding
   cardGrid: {
     display:'grid',
-    gridTemplateColumns:'repeat(2, 1fr)',
-    gap:12,
-    width:'100%',
-    maxWidth:660,
-    marginBottom:28,
+    gridTemplateColumns:'1fr 1fr',  // 2 equal columns that fill available space
+    gap:8,
+    width:'100%',           // fill container width exactly
+    maxWidth:'100%',        // never overflow
+    marginBottom:14,
+    boxSizing:'border-box',
+    flexShrink:0,
   },
   qCard: {
     display:'flex', flexDirection:'column',
     background:'rgba(17,27,46,0.85)',
     border:'1px solid rgba(51,65,85,0.5)',
-    borderRadius:14, padding:'14px 16px',
+    borderRadius:12, padding:'10px 10px',
     cursor:'pointer', textAlign:'left',
     transition:'all 0.2s', fontFamily:'inherit',
-    minHeight:130,
+    minHeight:0,   // allow cards to shrink naturally
+    boxSizing:'border-box',
+    overflow:'hidden',
     WebkitTapHighlightColor:'transparent',
     touchAction:'manipulation',
   },
 
   // ── CHAT MODE ──────────────────────────────────────────────────────────
   chatArea: {
-    flex:1, overflowY:'auto',
+    flex:1, overflowY:'auto', overflowX:'hidden',
     scrollbarWidth:'thin', scrollbarColor:'#1e293b transparent',
-    WebkitOverflowScrolling:'touch', // momentum scroll on Android
+    WebkitOverflowScrolling:'touch',
     overscrollBehavior:'contain',
+    width:'100%',
   },
   messagesInner: {
     maxWidth:760, margin:'0 auto',
-    padding:'28px 24px 12px',
+    padding:'16px 12px 12px',
     boxSizing:'border-box',
   },
   stickyInput: {
     flexShrink:0,
-    padding:'10px 24px',
-    paddingBottom:'calc(18px + env(safe-area-inset-bottom, 0px))',
+    padding:'6px 12px',
+    paddingBottom:'calc(10px + env(safe-area-inset-bottom, 0px))',
     background:'linear-gradient(to top,#0b1120 72%,transparent)',
     display:'flex', justifyContent:'center',
-    // Prevent input from being hidden behind Android nav bar
-    position:'sticky',
-    bottom:0,
+    width:'100%',
+    boxSizing:'border-box',
   },
 
   // Bubbles
