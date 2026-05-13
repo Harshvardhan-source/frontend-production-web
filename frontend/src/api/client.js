@@ -2,13 +2,13 @@ import axios from 'axios';
 
 // ── Axios instance ───────────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://production-web-conn-2.onrender.com',
+  baseURL: process.env.REACT_APP_API_URL || 'https://production-web-conn-e2h8.onrender.com',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
 const authClient = axios.create({
-  baseURL: process.env.REACT_APP_AUTH_URL || 'https://production-web-conn-1-qoya.onrender.com',
+  baseURL: process.env.REACT_APP_AUTH_URL || 'https://production-web-conn-1-82wl.onrender.com',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
