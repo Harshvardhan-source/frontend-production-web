@@ -1060,7 +1060,7 @@ export default function AiChat() {
             <div style={{
               flexShrink:0,
               padding:'8px 12px',
-              paddingBottom:'calc(10px + env(safe-area-inset-bottom, 0px))',
+              paddingBottom:'calc(64px + env(safe-area-inset-bottom, 0px))',
               background:'linear-gradient(to top, #0b1120 85%, transparent)',
               boxSizing:'border-box', width:'100%',
             }}>
@@ -1088,7 +1088,7 @@ export default function AiChat() {
           <div style={{
             ...S.stickyInput,
             padding: m ? '6px 12px' : '10px 24px 18px',
-            paddingBottom: m ? 'calc(10px + env(safe-area-inset-bottom, 0px))' : undefined,
+            paddingBottom: m ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : undefined,
           }}>
             <InputBox {...inputProps}/>
           </div>
