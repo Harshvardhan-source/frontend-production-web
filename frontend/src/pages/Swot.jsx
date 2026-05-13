@@ -1604,7 +1604,39 @@ function QueryCard({ q, ctxKey, ctxColor }) {
                             <span style={{ fontSize: 7.5, fontWeight: 800, color: impactColor, background: `${impactColor}18`, border: `1px solid ${impactColor}30`, borderRadius: 3, padding: '1px 6px', fontFamily: 'Space Mono, monospace', flexShrink: 0, marginLeft: 6 }}>{sc.impact}</span>
                           </div>
                           {sc.ministry && <div style={{ fontSize: 8, color: 'rgba(52,211,153,0.5)', fontFamily: 'Space Mono, monospace', marginBottom: 3, letterSpacing: 0.3 }}>{sc.ministry}</div>}
-                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'Sora, sans-serif', lineHeight: 1.5 }}>{sc.relevance}</div>
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'Sora, sans-serif', lineHeight: 1.5, marginBottom: sc.url ? 6 : 0 }}>{sc.relevance}</div>
+                          {sc.url && (
+                            <a
+                              href={sc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                fontSize: 8,
+                                fontWeight: 700,
+                                fontFamily: 'Space Mono, monospace',
+                                color: '#10b981',
+                                background: 'rgba(16,185,129,0.10)',
+                                border: '1px solid rgba(16,185,129,0.30)',
+                                borderRadius: 4,
+                                padding: '3px 8px',
+                                textDecoration: 'none',
+                                letterSpacing: 0.4,
+                                cursor: 'pointer',
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.22)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'rgba(16,185,129,0.10)'}
+                            >
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                              </svg>
+                              Apply Online
+                            </a>
+                          )}
                         </div>
                       );
                     })}
