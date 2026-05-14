@@ -1893,7 +1893,7 @@ function QueryCard({ q, ctxKey, ctxColor }) {
                 </div>
               )}
 
-              {/* ── Suggested Schemes ── */}
+              {/* ── Suggested Schemes with Budget ── */}
               {aiText.suggestedSchemes && aiText.suggestedSchemes.length > 0 && (
                 <div className="ai-section-anim" style={{ marginBottom: 10, animationDelay: '0.3s' }}>
                   <div style={{ fontSize: 8.5, color: '#10b981', fontFamily: 'Space Mono, monospace', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1913,7 +1913,24 @@ function QueryCard({ q, ctxKey, ctxColor }) {
                           {sc.ministry && (
                             <div style={{ fontSize: 8, color: 'rgba(52,211,153,0.5)', fontFamily: 'Space Mono, monospace', marginBottom: 3, letterSpacing: 0.3 }}>{sc.ministry}</div>
                           )}
-                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'Sora, sans-serif', lineHeight: 1.5, marginBottom: sc.url ? 7 : 0 }}>{sc.relevance}</div>
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'Sora, sans-serif', lineHeight: 1.5, marginBottom: 6 }}>{sc.relevance}</div>
+
+                          {/* ── Budget breakdown row ── */}
+                          {sc.budgetBreakdown && (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
+                              borderRadius: 5, padding: '4px 8px', marginBottom: sc.url ? 6 : 0,
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ fontSize: 8, color: 'rgba(52,211,153,0.55)', fontFamily: 'Space Mono, monospace', letterSpacing: 0.2 }}>Budget Required</span>
+                              </div>
+                              <span style={{ fontSize: 9, fontWeight: 800, color: '#34d399', fontFamily: 'Space Mono, monospace' }}>
+                                {sc.budgetBreakdown}
+                              </span>
+                            </div>
+                          )}
+
                           {sc.url && (
                             <a
                               href={sc.url}
@@ -1944,6 +1961,31 @@ function QueryCard({ q, ctxKey, ctxColor }) {
                       );
                     })}
                   </div>
+
+                  {/* ── Total Budget Banner ── */}
+                  {aiText.budgetRequired && (
+                    <div style={{
+                      marginTop: 8,
+                      background: 'linear-gradient(90deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 100%)',
+                      border: '1px solid rgba(16,185,129,0.35)',
+                      borderRadius: 8, padding: '8px 12px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 7.5, color: '#10b981', fontWeight: 800, fontFamily: 'Space Mono, monospace', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>
+                          ₹ Total Budget Required · This Segment
+                        </div>
+                        {aiText.budgetRequired.note && (
+                          <div style={{ fontSize: 8, color: 'rgba(52,211,153,0.5)', fontFamily: 'Sora, sans-serif' }}>
+                            {aiText.budgetRequired.note}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#34d399', fontFamily: 'Space Mono, monospace', flexShrink: 0, marginLeft: 10 }}>
+                        {aiText.budgetRequired.displayLabel || `₹${(aiText.budgetRequired.totalINR || 0).toLocaleString('en-IN')}`}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {/* Recommendation — typewriter */}
