@@ -5,24 +5,10 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import {
-  ShieldCheck, Zap, Flag, MapPin, Search, Trophy, Users, History,
-  Calculator, Target, ClipboardList, CheckSquare, CalendarDays, Lightbulb,
-  AlertTriangle, AlertCircle, CheckCircle, Info, TrendingUp, TrendingDown,
-  Minus, ArrowRight, ArrowLeft, ChevronDown, ChevronUp, ChevronRight,
-  User, UserCheck, Users2, Scale, Gauge, Map, Layers,
-  Home, Edit, X, FileText, LayoutDashboard, Vote, Crosshair,
-  FlagOff,
-} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { dashboardApi } from '../api/client';
 import api from '../api/client';
 import { useAuth } from '../App';
-
-// ─── Icon helper: renders lucide icon with consistent sizing ─────────────────
-const IC = ({ icon: IconComp, size = 14, color, style = {} }) => (
-  <IconComp size={size} color={color} style={{ display:'inline-block', verticalAlign:'middle', flexShrink:0, ...style }} strokeWidth={1.8} />
-);
 
 const COLORS = ['#f59e0b', '#22d3ee', '#10b981', '#8b5cf6', '#ec4899', '#f97316'];
 
@@ -71,44 +57,44 @@ const WARD_FULL_DATA = {
 // ─── SIR HEATMAP + POLITICAL DATA (from SIR_Heatmap_Combined_Report) ──────────
 // Keys match ward numbers from WARD_FULL_DATA above
 const SIR_WARD_DATA = {
-  21: { classification:'BJP STRONGHOLD', pollRate:55.7, alert:'BJP RISK', hindu:84.1, muslim:1.0,  christian:14.8, bloMapped:58.95, progeny:90.05, totalMapped:69.32, totalElectors:7542,  supervisors:'KIRAN 47-57, PURUSHOTTAM 58-68, SHWETHA 23-33', bjpProj:84.1, congProj:15.9, margin:68.2,  riskStatus:'RISK', priority:'MEDIUM'  },
-  24: { classification:'BJP STRONGHOLD', pollRate:58.1, alert:'BJP RISK', hindu:80.1, muslim:2.5,  christian:17.4, bloMapped:54.67, progeny:80.04, totalMapped:57.16, totalElectors:4767,  supervisors:'RAJU S SUVRNA, SANJAY 1-11', bjpProj:80.1, congProj:19.9, margin:60.2,  riskStatus:'RISK', priority:'CRITICAL' },
-  25: { classification:'BJP STRONGHOLD', pollRate:65.9, alert:'OK',       hindu:85.1, muslim:0.8,  christian:14.1, bloMapped:59.87, progeny:85.34, totalMapped:67.6,  totalElectors:7314,  supervisors:'SANJAY 1-11', bjpProj:85.1, congProj:14.9, margin:70.2,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  26: { classification:'BJP STRONGHOLD', pollRate:60.4, alert:'OK',       hindu:87.9, muslim:0.6,  christian:11.5, bloMapped:56.96, progeny:75.78, totalMapped:62.68, totalElectors:7801,  supervisors:'FLAVY 82-92, SANJAY 1-11, YADAVA HOSABETTU 93-104', bjpProj:87.9, congProj:12.1, margin:75.8,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  27: { classification:'BJP STRONGHOLD', pollRate:50.8, alert:'BJP RISK', hindu:87.5, muslim:1.2,  christian:11.3, bloMapped:60.61, progeny:87.02, totalMapped:68.36, totalElectors:6618,  supervisors:'FLAVY 82-92, YADAVA HOSABETTU 93-104', bjpProj:87.5, congProj:12.5, margin:75.0,  riskStatus:'RISK', priority:'MEDIUM'   },
-  28: { classification:'BJP STRONGHOLD', pollRate:54.8, alert:'BJP RISK', hindu:93.7, muslim:1.1,  christian:5.2,  bloMapped:53.78, progeny:68.15, totalMapped:58.1,  totalElectors:8102,  supervisors:'FLAVY 82-92, RAJU S SUVRNA, SATHISH K 69-81', bjpProj:93.7, congProj:6.3, margin:87.4,  riskStatus:'RISK', priority:'CRITICAL' },
-  29: { classification:'BJP STRONGHOLD', pollRate:57.9, alert:'BJP RISK', hindu:92.6, muslim:1.8,  christian:5.6,  bloMapped:57.64, progeny:75.09, totalMapped:63.07, totalElectors:4517,  supervisors:'PURUSHOTTAM 58-68, SATHISH K 69-81', bjpProj:92.6, congProj:7.4, margin:85.2,  riskStatus:'RISK', priority:'HIGH'     },
-  30: { classification:'BJP STRONGHOLD', pollRate:62.9, alert:'OK',       hindu:80.9, muslim:1.2,  christian:17.9, bloMapped:52.89, progeny:75.01, totalMapped:59.87, totalElectors:7871,  supervisors:'PURUSHOTTAM 58-68, RAJU S SUVRNA, SATHISH K 69-81, SHWETHA 23-33', bjpProj:80.9, congProj:19.1, margin:61.8,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  31: { classification:'BJP STRONG',     pollRate:58.7, alert:'BJP RISK', hindu:68.6, muslim:4.7,  christian:26.7, bloMapped:52.54, progeny:83.98, totalMapped:62.03, totalElectors:7246,  supervisors:'RAJU S SUVRNA, SHWETHA 23-33', bjpProj:68.6, congProj:31.4, margin:37.2,  riskStatus:'RISK', priority:'HIGH'     },
-  32: { classification:'BJP STRONGHOLD', pollRate:54.5, alert:'BJP RISK', hindu:86.8, muslim:0.7,  christian:12.5, bloMapped:56.55, progeny:75.79, totalMapped:62.57, totalElectors:6433,  supervisors:'PURUSHOTTAM 58-68, SHWETHA 23-33', bjpProj:86.8, congProj:13.2, margin:73.6,  riskStatus:'RISK', priority:'HIGH'     },
-  33: { classification:'BJP FAVOURABLE', pollRate:57.2, alert:'OK',       hindu:63.9, muslim:5.3,  christian:30.8, bloMapped:51.09, progeny:75.37, totalMapped:57.69, totalElectors:5843,  supervisors:'PURUSHOTTAM 58-68', bjpProj:63.9, congProj:36.1, margin:27.8,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  34: { classification:'CONTESTED (BJP Lean)', pollRate:50.2, alert:'CONG RISK', hindu:52.2, muslim:11.7, christian:36.1, bloMapped:53.38, progeny:98.08, totalMapped:67.94, totalElectors:6294,  supervisors:'BHARATHI 127-137, DODDANANJAIAH 138-148, PURUSHOTTAM 58-68, RAVINDRA 34-46', bjpProj:52.2, congProj:47.8, margin:4.4,   riskStatus:'RISK', priority:'MEDIUM'   },
-  35: { classification:'BJP STRONG',     pollRate:64.9, alert:'OK',       hindu:68.3, muslim:4.6,  christian:27.1, bloMapped:56.32, progeny:78.03, totalMapped:63.6,  totalElectors:8462,  supervisors:'RAVINDRA 34-46', bjpProj:68.3, congProj:31.7, margin:36.6,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  36: { classification:'BJP FAVOURABLE', pollRate:46.9, alert:'BJP RISK', hindu:60.2, muslim:3.9,  christian:35.9, bloMapped:52.81, progeny:80.04, totalMapped:61.64, totalElectors:4471,  supervisors:'RAVINDRA 34-46', bjpProj:60.2, congProj:39.8, margin:20.4,  riskStatus:'RISK', priority:'MEDIUM'   },
-  37: { classification:'BJP STRONG',     pollRate:61.6, alert:'OK',       hindu:68.7, muslim:0.8,  christian:30.5, bloMapped:64.16, progeny:102.16,totalMapped:76.42, totalElectors:6718,  supervisors:'KIRAN 47-57', bjpProj:68.7, congProj:31.3, margin:37.4,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  38: { classification:'CONGRESS STRONG',pollRate:52.1, alert:'CONG RISK',hindu:32.2, muslim:25.2, christian:42.6, bloMapped:59.41, progeny:85.11, totalMapped:75.21, totalElectors:6296,  supervisors:'BHARATHI 127-137, DEEPAK 160-170, DODDANANJAIAH 138-148', bjpProj:32.2, congProj:67.8, margin:-35.6, riskStatus:'RISK', priority:'WATCH'    },
-  39: { classification:'CONGRESS STRONG',pollRate:56.3, alert:'OK',       hindu:32.1, muslim:9.2,  christian:58.7, bloMapped:60.47, progeny:96.65, totalMapped:71.08, totalElectors:6526,  supervisors:'DEEPAK 160-170, RAJA 171-181', bjpProj:32.1, congProj:67.9, margin:-35.8, riskStatus:'NORMAL', priority:'NORMAL'   },
-  40: { classification:'CONTESTED (BJP Lean)', pollRate:39.5, alert:'CONG RISK', hindu:51.0, muslim:27.7, christian:21.4, bloMapped:44.77, progeny:88.36, totalMapped:59.57, totalElectors:5980,  supervisors:'BHARATHI 127-137, DODDANANJAIAH 138-148', bjpProj:51.0, congProj:49.0, margin:2.0,   riskStatus:'RISK', priority:'MEDIUM'   },
-  41: { classification:'BJP STRONGHOLD', pollRate:59.3, alert:'BJP RISK', hindu:90.4, muslim:7.6,  christian:2.0,  bloMapped:63.43, progeny:74.61, totalMapped:66.61, totalElectors:4882,  supervisors:'BHARATHI 127-137, SUMITHRA 116-126', bjpProj:90.4, congProj:9.6, margin:80.8,  riskStatus:'RISK', priority:'MEDIUM'   },
-  42: { classification:'BJP STRONGHOLD', pollRate:58.4, alert:'BJP RISK', hindu:86.2, muslim:12.0, christian:1.8,  bloMapped:57.45, progeny:74.47, totalMapped:62.63, totalElectors:7664,  supervisors:'SATHISH K 69-81, SIDDARAJU 105-115, SUMITHRA 116-126', bjpProj:86.2, congProj:13.8, margin:72.4,  riskStatus:'RISK', priority:'HIGH'     },
-  43: { classification:'CONGRESS STRONG',pollRate:62.1, alert:'OK',       hindu:28.8, muslim:68.2, christian:3.0,  bloMapped:53.24, progeny:74.07, totalMapped:61.14, totalElectors:5765,  supervisors:'SIDDARAJU 105-115', bjpProj:28.8, congProj:71.2, margin:-42.4, riskStatus:'NORMAL', priority:'NORMAL'   },
-  44: { classification:'CONGRESS STRONG',pollRate:58.0, alert:'OK',       hindu:34.6, muslim:65.1, christian:0.3,  bloMapped:54.6,  progeny:81.31, totalMapped:64.37, totalElectors:5871,  supervisors:'SUMITHRA 116-126', bjpProj:34.6, congProj:65.4, margin:-30.8, riskStatus:'NORMAL', priority:'NORMAL'   },
-  45: { classification:'CONTESTED (Cong Lean)', pollRate:63.8, alert:'OK',hindu:47.6, muslim:40.9, christian:11.4, bloMapped:62.19, progeny:93.55, totalMapped:74.23, totalElectors:7153,  supervisors:'ARUN 239-249, DODDANANJAIAH 138-148, PREMANAND 149-159, RAKESH SHETTY 228-238', bjpProj:47.6, congProj:52.4, margin:-4.8,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  46: { classification:'BJP STRONG',     pollRate:51.2, alert:'BJP RISK', hindu:73.8, muslim:20.7, christian:5.5,  bloMapped:56.25, progeny:72.79, totalMapped:61.81, totalElectors:4095,  supervisors:'DODDANANJAIAH 138-148, PREMANAND 149-159', bjpProj:73.8, congProj:26.2, margin:47.6,  riskStatus:'RISK', priority:'HIGH'     },
-  47: { classification:'CONGRESS FAVOURABLE', pollRate:55.0, alert:'OK',  hindu:43.5, muslim:34.8, christian:21.8, bloMapped:54.15, progeny:71.6,  totalMapped:60.39, totalElectors:7210,  supervisors:'DEEPAK 160-170, DODDANANJAIAH 138-148', bjpProj:43.5, congProj:56.5, margin:-13.0, riskStatus:'NORMAL', priority:'NORMAL'   },
-  48: { classification:'CONTESTED (BJP Lean)', pollRate:49.2, alert:'CONG RISK', hindu:53.6, muslim:11.5, christian:34.9, bloMapped:57.89, progeny:92.99, totalMapped:54.79, totalElectors:5090,  supervisors:'ANAND THOLE 182-192, BHARATHI 127-137, RAJA 171-181', bjpProj:53.6, congProj:46.4, margin:7.2,   riskStatus:'RISK', priority:'MEDIUM'   },
-  49: { classification:'BJP STRONG',     pollRate:61.4, alert:'OK',       hindu:76.1, muslim:10.8, christian:13.1, bloMapped:57.73, progeny:96.22, totalMapped:75.65, totalElectors:7527,  supervisors:'ANAND THOLE 182-192, RAJA 171-181', bjpProj:76.1, congProj:23.9, margin:52.2,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  50: { classification:'BJP STRONG',     pollRate:67.3, alert:'OK',       hindu:76.1, muslim:8.9,  christian:15.0, bloMapped:56.48, progeny:109.84,totalMapped:77.72, totalElectors:6284,  supervisors:'AKSHATH 206-216, ANAND THOLE 182-192', bjpProj:76.1, congProj:23.9, margin:52.2,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  51: { classification:'BJP STRONG',     pollRate:63.0, alert:'OK',       hindu:68.5, muslim:1.4,  christian:30.0, bloMapped:57.28, progeny:106.1, totalMapped:71.61, totalElectors:7200,  supervisors:'KIRAN 47-57, RAVINDRA 34-46, THARANATH 193-205', bjpProj:68.5, congProj:31.5, margin:37.0,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  52: { classification:'CONGRESS FAVOURABLE', pollRate:61.2, alert:'OK',  hindu:40.1, muslim:56.9, christian:3.0,  bloMapped:58.83, progeny:91.81, totalMapped:74.52, totalElectors:7045,  supervisors:'THARANATH 193-205', bjpProj:40.1, congProj:59.9, margin:-19.8, riskStatus:'NORMAL', priority:'NORMAL'   },
-  53: { classification:'CONTESTED (Cong Lean)', pollRate:55.1, alert:'OK',hindu:47.8, muslim:45.2, christian:7.1,  bloMapped:59.3,  progeny:91.89, totalMapped:71.92, totalElectors:7805,  supervisors:'AKSHATH 206-216', bjpProj:47.8, congProj:52.2, margin:-4.4,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  54: { classification:'BJP STRONG',     pollRate:61.1, alert:'OK',       hindu:71.6, muslim:7.4,  christian:20.9, bloMapped:64.09, progeny:94.69, totalMapped:73.73, totalElectors:7266,  supervisors:'AKSHATH 206-216, ARUN 239-249, VIJAYKUMAR 217-227', bjpProj:71.6, congProj:28.4, margin:43.2,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  55: { classification:'BJP FAVOURABLE', pollRate:62.5, alert:'OK',       hindu:62.9, muslim:24.0, christian:13.1, bloMapped:60.02, progeny:99.92, totalMapped:73.51, totalElectors:7856,  supervisors:'ARUN 239-249, PREMANAND 149-159, VIJAYKUMAR 217-227', bjpProj:62.9, congProj:37.1, margin:25.8,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  56: { classification:'BJP FAVOURABLE', pollRate:61.8, alert:'OK',       hindu:62.8, muslim:26.8, christian:10.5, bloMapped:57.1,  progeny:83.28, totalMapped:65.88, totalElectors:5358,  supervisors:'RAKESH SHETTY 228-238', bjpProj:62.8, congProj:37.2, margin:25.6,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  57: { classification:'BJP STRONG',     pollRate:59.1, alert:'OK',       hindu:65.1, muslim:30.1, christian:4.8,  bloMapped:65.88, progeny:101.37,totalMapped:76.64, totalElectors:4320,  supervisors:'ARUN 239-249, RAKESH SHETTY 228-238', bjpProj:65.1, congProj:34.9, margin:30.2,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  58: { classification:'BJP STRONG',     pollRate:60.9, alert:'OK',       hindu:71.8, muslim:19.6, christian:8.6,  bloMapped:53.2,  progeny:79.37, totalMapped:61.97, totalElectors:7107,  supervisors:'ARUN 239-249, RAKESH SHETTY 228-238', bjpProj:71.8, congProj:28.2, margin:43.6,  riskStatus:'NORMAL', priority:'NORMAL'   },
-  59: { classification:'CONTESTED (BJP Lean)', pollRate:57.3, alert:'CONG RISK', hindu:52.4, muslim:18.7, christian:29.0, bloMapped:57.05, progeny:97.0,  totalMapped:68.69, totalElectors:7711,  supervisors:'ARUN 239-249, DEEPAK 160-170, PREMANAND 149-159, VIJAYKUMAR 217-227', bjpProj:52.4, congProj:47.6, margin:4.8,   riskStatus:'RISK', priority:'MEDIUM'   },
-  60: { classification:'CONGRESS STRONG',pollRate:41.6, alert:'CONG RISK',hindu:30.9, muslim:68.3, christian:0.8,  bloMapped:60.39, progeny:127.86,totalMapped:90.09, totalElectors:10897, supervisors:'SIDDARAJU 105-115, YADAVA HOSABETTU 93-104', bjpProj:30.9, congProj:69.1, margin:-38.2, riskStatus:'RISK', priority:'WATCH'    },
+  21: { classification:'BJP STRONGHOLD', pollRate:55.7, alert:'⚠ BJP RISK', hindu:84.1, muslim:1.0,  christian:14.8, bloMapped:58.95, progeny:90.05, totalMapped:69.32, totalElectors:7542,  supervisors:'KIRAN 47-57, PURUSHOTTAM 58-68, SHWETHA 23-33', bjpProj:84.1, congProj:15.9, margin:68.2,  riskStatus:'⚠ RISK', priority:'MEDIUM'  },
+  24: { classification:'BJP STRONGHOLD', pollRate:58.1, alert:'⚠ BJP RISK', hindu:80.1, muslim:2.5,  christian:17.4, bloMapped:54.67, progeny:80.04, totalMapped:57.16, totalElectors:4767,  supervisors:'RAJU S SUVRNA, SANJAY 1-11', bjpProj:80.1, congProj:19.9, margin:60.2,  riskStatus:'⚠ RISK', priority:'CRITICAL' },
+  25: { classification:'BJP STRONGHOLD', pollRate:65.9, alert:'✓ OK',       hindu:85.1, muslim:0.8,  christian:14.1, bloMapped:59.87, progeny:85.34, totalMapped:67.6,  totalElectors:7314,  supervisors:'SANJAY 1-11', bjpProj:85.1, congProj:14.9, margin:70.2,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  26: { classification:'BJP STRONGHOLD', pollRate:60.4, alert:'✓ OK',       hindu:87.9, muslim:0.6,  christian:11.5, bloMapped:56.96, progeny:75.78, totalMapped:62.68, totalElectors:7801,  supervisors:'FLAVY 82-92, SANJAY 1-11, YADAVA HOSABETTU 93-104', bjpProj:87.9, congProj:12.1, margin:75.8,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  27: { classification:'BJP STRONGHOLD', pollRate:50.8, alert:'⚠ BJP RISK', hindu:87.5, muslim:1.2,  christian:11.3, bloMapped:60.61, progeny:87.02, totalMapped:68.36, totalElectors:6618,  supervisors:'FLAVY 82-92, YADAVA HOSABETTU 93-104', bjpProj:87.5, congProj:12.5, margin:75.0,  riskStatus:'⚠ RISK', priority:'MEDIUM'   },
+  28: { classification:'BJP STRONGHOLD', pollRate:54.8, alert:'⚠ BJP RISK', hindu:93.7, muslim:1.1,  christian:5.2,  bloMapped:53.78, progeny:68.15, totalMapped:58.1,  totalElectors:8102,  supervisors:'FLAVY 82-92, RAJU S SUVRNA, SATHISH K 69-81', bjpProj:93.7, congProj:6.3, margin:87.4,  riskStatus:'⚠ RISK', priority:'CRITICAL' },
+  29: { classification:'BJP STRONGHOLD', pollRate:57.9, alert:'⚠ BJP RISK', hindu:92.6, muslim:1.8,  christian:5.6,  bloMapped:57.64, progeny:75.09, totalMapped:63.07, totalElectors:4517,  supervisors:'PURUSHOTTAM 58-68, SATHISH K 69-81', bjpProj:92.6, congProj:7.4, margin:85.2,  riskStatus:'⚠ RISK', priority:'HIGH'     },
+  30: { classification:'BJP STRONGHOLD', pollRate:62.9, alert:'✓ OK',       hindu:80.9, muslim:1.2,  christian:17.9, bloMapped:52.89, progeny:75.01, totalMapped:59.87, totalElectors:7871,  supervisors:'PURUSHOTTAM 58-68, RAJU S SUVRNA, SATHISH K 69-81, SHWETHA 23-33', bjpProj:80.9, congProj:19.1, margin:61.8,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  31: { classification:'BJP STRONG',     pollRate:58.7, alert:'⚠ BJP RISK', hindu:68.6, muslim:4.7,  christian:26.7, bloMapped:52.54, progeny:83.98, totalMapped:62.03, totalElectors:7246,  supervisors:'RAJU S SUVRNA, SHWETHA 23-33', bjpProj:68.6, congProj:31.4, margin:37.2,  riskStatus:'⚠ RISK', priority:'HIGH'     },
+  32: { classification:'BJP STRONGHOLD', pollRate:54.5, alert:'⚠ BJP RISK', hindu:86.8, muslim:0.7,  christian:12.5, bloMapped:56.55, progeny:75.79, totalMapped:62.57, totalElectors:6433,  supervisors:'PURUSHOTTAM 58-68, SHWETHA 23-33', bjpProj:86.8, congProj:13.2, margin:73.6,  riskStatus:'⚠ RISK', priority:'HIGH'     },
+  33: { classification:'BJP FAVOURABLE', pollRate:57.2, alert:'✓ OK',       hindu:63.9, muslim:5.3,  christian:30.8, bloMapped:51.09, progeny:75.37, totalMapped:57.69, totalElectors:5843,  supervisors:'PURUSHOTTAM 58-68', bjpProj:63.9, congProj:36.1, margin:27.8,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  34: { classification:'CONTESTED (BJP Lean)', pollRate:50.2, alert:'⚠ CONG RISK', hindu:52.2, muslim:11.7, christian:36.1, bloMapped:53.38, progeny:98.08, totalMapped:67.94, totalElectors:6294,  supervisors:'BHARATHI 127-137, DODDANANJAIAH 138-148, PURUSHOTTAM 58-68, RAVINDRA 34-46', bjpProj:52.2, congProj:47.8, margin:4.4,   riskStatus:'⚠ RISK', priority:'MEDIUM'   },
+  35: { classification:'BJP STRONG',     pollRate:64.9, alert:'✓ OK',       hindu:68.3, muslim:4.6,  christian:27.1, bloMapped:56.32, progeny:78.03, totalMapped:63.6,  totalElectors:8462,  supervisors:'RAVINDRA 34-46', bjpProj:68.3, congProj:31.7, margin:36.6,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  36: { classification:'BJP FAVOURABLE', pollRate:46.9, alert:'⚠ BJP RISK', hindu:60.2, muslim:3.9,  christian:35.9, bloMapped:52.81, progeny:80.04, totalMapped:61.64, totalElectors:4471,  supervisors:'RAVINDRA 34-46', bjpProj:60.2, congProj:39.8, margin:20.4,  riskStatus:'⚠ RISK', priority:'MEDIUM'   },
+  37: { classification:'BJP STRONG',     pollRate:61.6, alert:'✓ OK',       hindu:68.7, muslim:0.8,  christian:30.5, bloMapped:64.16, progeny:102.16,totalMapped:76.42, totalElectors:6718,  supervisors:'KIRAN 47-57', bjpProj:68.7, congProj:31.3, margin:37.4,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  38: { classification:'CONGRESS STRONG',pollRate:52.1, alert:'⚠ CONG RISK',hindu:32.2, muslim:25.2, christian:42.6, bloMapped:59.41, progeny:85.11, totalMapped:75.21, totalElectors:6296,  supervisors:'BHARATHI 127-137, DEEPAK 160-170, DODDANANJAIAH 138-148', bjpProj:32.2, congProj:67.8, margin:-35.6, riskStatus:'⚠ RISK', priority:'WATCH'    },
+  39: { classification:'CONGRESS STRONG',pollRate:56.3, alert:'✓ OK',       hindu:32.1, muslim:9.2,  christian:58.7, bloMapped:60.47, progeny:96.65, totalMapped:71.08, totalElectors:6526,  supervisors:'DEEPAK 160-170, RAJA 171-181', bjpProj:32.1, congProj:67.9, margin:-35.8, riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  40: { classification:'CONTESTED (BJP Lean)', pollRate:39.5, alert:'⚠ CONG RISK', hindu:51.0, muslim:27.7, christian:21.4, bloMapped:44.77, progeny:88.36, totalMapped:59.57, totalElectors:5980,  supervisors:'BHARATHI 127-137, DODDANANJAIAH 138-148', bjpProj:51.0, congProj:49.0, margin:2.0,   riskStatus:'⚠ RISK', priority:'MEDIUM'   },
+  41: { classification:'BJP STRONGHOLD', pollRate:59.3, alert:'⚠ BJP RISK', hindu:90.4, muslim:7.6,  christian:2.0,  bloMapped:63.43, progeny:74.61, totalMapped:66.61, totalElectors:4882,  supervisors:'BHARATHI 127-137, SUMITHRA 116-126', bjpProj:90.4, congProj:9.6, margin:80.8,  riskStatus:'⚠ RISK', priority:'MEDIUM'   },
+  42: { classification:'BJP STRONGHOLD', pollRate:58.4, alert:'⚠ BJP RISK', hindu:86.2, muslim:12.0, christian:1.8,  bloMapped:57.45, progeny:74.47, totalMapped:62.63, totalElectors:7664,  supervisors:'SATHISH K 69-81, SIDDARAJU 105-115, SUMITHRA 116-126', bjpProj:86.2, congProj:13.8, margin:72.4,  riskStatus:'⚠ RISK', priority:'HIGH'     },
+  43: { classification:'CONGRESS STRONG',pollRate:62.1, alert:'✓ OK',       hindu:28.8, muslim:68.2, christian:3.0,  bloMapped:53.24, progeny:74.07, totalMapped:61.14, totalElectors:5765,  supervisors:'SIDDARAJU 105-115', bjpProj:28.8, congProj:71.2, margin:-42.4, riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  44: { classification:'CONGRESS STRONG',pollRate:58.0, alert:'✓ OK',       hindu:34.6, muslim:65.1, christian:0.3,  bloMapped:54.6,  progeny:81.31, totalMapped:64.37, totalElectors:5871,  supervisors:'SUMITHRA 116-126', bjpProj:34.6, congProj:65.4, margin:-30.8, riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  45: { classification:'CONTESTED (Cong Lean)', pollRate:63.8, alert:'✓ OK',hindu:47.6, muslim:40.9, christian:11.4, bloMapped:62.19, progeny:93.55, totalMapped:74.23, totalElectors:7153,  supervisors:'ARUN 239-249, DODDANANJAIAH 138-148, PREMANAND 149-159, RAKESH SHETTY 228-238', bjpProj:47.6, congProj:52.4, margin:-4.8,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  46: { classification:'BJP STRONG',     pollRate:51.2, alert:'⚠ BJP RISK', hindu:73.8, muslim:20.7, christian:5.5,  bloMapped:56.25, progeny:72.79, totalMapped:61.81, totalElectors:4095,  supervisors:'DODDANANJAIAH 138-148, PREMANAND 149-159', bjpProj:73.8, congProj:26.2, margin:47.6,  riskStatus:'⚠ RISK', priority:'HIGH'     },
+  47: { classification:'CONGRESS FAVOURABLE', pollRate:55.0, alert:'✓ OK',  hindu:43.5, muslim:34.8, christian:21.8, bloMapped:54.15, progeny:71.6,  totalMapped:60.39, totalElectors:7210,  supervisors:'DEEPAK 160-170, DODDANANJAIAH 138-148', bjpProj:43.5, congProj:56.5, margin:-13.0, riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  48: { classification:'CONTESTED (BJP Lean)', pollRate:49.2, alert:'⚠ CONG RISK', hindu:53.6, muslim:11.5, christian:34.9, bloMapped:57.89, progeny:92.99, totalMapped:54.79, totalElectors:5090,  supervisors:'ANAND THOLE 182-192, BHARATHI 127-137, RAJA 171-181', bjpProj:53.6, congProj:46.4, margin:7.2,   riskStatus:'⚠ RISK', priority:'MEDIUM'   },
+  49: { classification:'BJP STRONG',     pollRate:61.4, alert:'✓ OK',       hindu:76.1, muslim:10.8, christian:13.1, bloMapped:57.73, progeny:96.22, totalMapped:75.65, totalElectors:7527,  supervisors:'ANAND THOLE 182-192, RAJA 171-181', bjpProj:76.1, congProj:23.9, margin:52.2,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  50: { classification:'BJP STRONG',     pollRate:67.3, alert:'✓ OK',       hindu:76.1, muslim:8.9,  christian:15.0, bloMapped:56.48, progeny:109.84,totalMapped:77.72, totalElectors:6284,  supervisors:'AKSHATH 206-216, ANAND THOLE 182-192', bjpProj:76.1, congProj:23.9, margin:52.2,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  51: { classification:'BJP STRONG',     pollRate:63.0, alert:'✓ OK',       hindu:68.5, muslim:1.4,  christian:30.0, bloMapped:57.28, progeny:106.1, totalMapped:71.61, totalElectors:7200,  supervisors:'KIRAN 47-57, RAVINDRA 34-46, THARANATH 193-205', bjpProj:68.5, congProj:31.5, margin:37.0,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  52: { classification:'CONGRESS FAVOURABLE', pollRate:61.2, alert:'✓ OK',  hindu:40.1, muslim:56.9, christian:3.0,  bloMapped:58.83, progeny:91.81, totalMapped:74.52, totalElectors:7045,  supervisors:'THARANATH 193-205', bjpProj:40.1, congProj:59.9, margin:-19.8, riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  53: { classification:'CONTESTED (Cong Lean)', pollRate:55.1, alert:'✓ OK',hindu:47.8, muslim:45.2, christian:7.1,  bloMapped:59.3,  progeny:91.89, totalMapped:71.92, totalElectors:7805,  supervisors:'AKSHATH 206-216', bjpProj:47.8, congProj:52.2, margin:-4.4,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  54: { classification:'BJP STRONG',     pollRate:61.1, alert:'✓ OK',       hindu:71.6, muslim:7.4,  christian:20.9, bloMapped:64.09, progeny:94.69, totalMapped:73.73, totalElectors:7266,  supervisors:'AKSHATH 206-216, ARUN 239-249, VIJAYKUMAR 217-227', bjpProj:71.6, congProj:28.4, margin:43.2,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  55: { classification:'BJP FAVOURABLE', pollRate:62.5, alert:'✓ OK',       hindu:62.9, muslim:24.0, christian:13.1, bloMapped:60.02, progeny:99.92, totalMapped:73.51, totalElectors:7856,  supervisors:'ARUN 239-249, PREMANAND 149-159, VIJAYKUMAR 217-227', bjpProj:62.9, congProj:37.1, margin:25.8,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  56: { classification:'BJP FAVOURABLE', pollRate:61.8, alert:'✓ OK',       hindu:62.8, muslim:26.8, christian:10.5, bloMapped:57.1,  progeny:83.28, totalMapped:65.88, totalElectors:5358,  supervisors:'RAKESH SHETTY 228-238', bjpProj:62.8, congProj:37.2, margin:25.6,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  57: { classification:'BJP STRONG',     pollRate:59.1, alert:'✓ OK',       hindu:65.1, muslim:30.1, christian:4.8,  bloMapped:65.88, progeny:101.37,totalMapped:76.64, totalElectors:4320,  supervisors:'ARUN 239-249, RAKESH SHETTY 228-238', bjpProj:65.1, congProj:34.9, margin:30.2,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  58: { classification:'BJP STRONG',     pollRate:60.9, alert:'✓ OK',       hindu:71.8, muslim:19.6, christian:8.6,  bloMapped:53.2,  progeny:79.37, totalMapped:61.97, totalElectors:7107,  supervisors:'ARUN 239-249, RAKESH SHETTY 228-238', bjpProj:71.8, congProj:28.2, margin:43.6,  riskStatus:'✓ NORMAL', priority:'NORMAL'   },
+  59: { classification:'CONTESTED (BJP Lean)', pollRate:57.3, alert:'⚠ CONG RISK', hindu:52.4, muslim:18.7, christian:29.0, bloMapped:57.05, progeny:97.0,  totalMapped:68.69, totalElectors:7711,  supervisors:'ARUN 239-249, DEEPAK 160-170, PREMANAND 149-159, VIJAYKUMAR 217-227', bjpProj:52.4, congProj:47.6, margin:4.8,   riskStatus:'⚠ RISK', priority:'MEDIUM'   },
+  60: { classification:'CONGRESS STRONG',pollRate:41.6, alert:'⚠ CONG RISK',hindu:30.9, muslim:68.3, christian:0.8,  bloMapped:60.39, progeny:127.86,totalMapped:90.09, totalElectors:10897, supervisors:'SIDDARAJU 105-115, YADAVA HOSABETTU 93-104', bjpProj:30.9, congProj:69.1, margin:-38.2, riskStatus:'⚠ RISK', priority:'WATCH'    },
 };
 
 // ─── SIR BOOTH DRILL-DOWN DATA (from BOOTH DRILL-DOWN sheet — risk wards only) ─
@@ -277,7 +263,7 @@ function CommunityClassificationPanel() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', minWidth: 90 }}>{cat}</span>
                     {v02 > 0 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{v02.toLocaleString()}</span>}
-                    <IC icon={ArrowRight} size={9} color={`${color}99`}/>
+                    <span style={{ fontSize: 9, color: `${color}99` }}>→</span>
                     <span style={{ fontSize: 10, fontWeight: 700, color }}>{v25.toLocaleString()}</span>
                   </div>
                   <span style={{
@@ -394,7 +380,7 @@ function CommunityClassificationPanel() {
               borderRadius: 10, padding: '9px 24px', cursor: 'pointer', fontSize: 13,
               fontWeight: 700, color: 'rgba(255,255,255,0.5)', transition: 'all 0.15s',
             }}>
-              {showAll ? '↑ Show less' : `▼ Show all ${detailedRows.length} communities`}
+              {showAll ? '▲ Show less' : `▼ Show all ${detailedRows.length} communities`}
             </button>
           </div>
         )}
@@ -405,22 +391,22 @@ function CommunityClassificationPanel() {
 
 // ─── Priority helpers ─────────────────────────────────────────────────────────
 const PRIORITY_CONFIG = {
-  CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: 'CRITICAL', order: 0 },
-  HIGH:     { color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)', label: 'HIGH',     order: 1 },
-  MEDIUM:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', label: 'MEDIUM',   order: 2 },
-  WATCH:    { color: '#22d3ee', bg: 'rgba(34,211,238,0.12)', border: 'rgba(34,211,238,0.3)', label: 'WATCH',    order: 3 },
+  CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: '🔴 CRITICAL', order: 0 },
+  HIGH:     { color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)', label: '🟠 HIGH',     order: 1 },
+  MEDIUM:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', label: '🟡 MEDIUM',   order: 2 },
+  WATCH:    { color: '#22d3ee', bg: 'rgba(34,211,238,0.12)', border: 'rgba(34,211,238,0.3)', label: '🟢 WATCH',    order: 3 },
   NORMAL:   { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', label: '— NORMAL',    order: 4 },
 };
 
 const CLASSIFICATION_CONFIG = {
-  'BJP STRONGHOLD':         { color: '#f97316', bg: 'rgba(249,115,22,0.15)',  label: 'BJP Stronghold' },
-  'BJP STRONG':             { color: '#fb923c', bg: 'rgba(251,146,60,0.12)',  label: 'BJP Strong' },
-  'BJP FAVOURABLE':         { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  label: ' BJP Favourable' },
-  'CONTESTED (BJP Lean)':   { color: '#a3a3a3', bg: 'rgba(163,163,163,0.1)', label: 'Contested (BJP Lean)' },
-  'CONTESTED (Cong Lean)':  { color: '#a3a3a3', bg: 'rgba(163,163,163,0.1)', label: 'Contested (Cong Lean)' },
-  'CONGRESS FAVOURABLE':    { color: '#34d399', bg: 'rgba(52,211,153,0.1)',   label: 'Congress Favourable' },
-  'CONGRESS STRONG':        { color: '#10b981', bg: 'rgba(16,185,129,0.12)', label: 'Congress Strong' },
-  'CONGRESS STRONGHOLD':    { color: '#059669', bg: 'rgba(5,150,105,0.15)',   label: 'Congress Stronghold' },
+  'BJP STRONGHOLD':         { color: '#f97316', bg: 'rgba(249,115,22,0.15)',  label: '🚩 BJP Stronghold' },
+  'BJP STRONG':             { color: '#fb923c', bg: 'rgba(251,146,60,0.12)',  label: '🚩 BJP Strong' },
+  'BJP FAVOURABLE':         { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  label: '📌 BJP Favourable' },
+  'CONTESTED (BJP Lean)':   { color: '#a3a3a3', bg: 'rgba(163,163,163,0.1)', label: '⚖️ Contested (BJP Lean)' },
+  'CONTESTED (Cong Lean)':  { color: '#a3a3a3', bg: 'rgba(163,163,163,0.1)', label: '⚖️ Contested (Cong Lean)' },
+  'CONGRESS FAVOURABLE':    { color: '#34d399', bg: 'rgba(52,211,153,0.1)',   label: '🏳️ Congress Favourable' },
+  'CONGRESS STRONG':        { color: '#10b981', bg: 'rgba(16,185,129,0.12)', label: '🏳️ Congress Strong' },
+  'CONGRESS STRONGHOLD':    { color: '#059669', bg: 'rgba(5,150,105,0.15)',   label: '🏳️ Congress Stronghold' },
 };
 
 // Derived lookups
@@ -509,13 +495,13 @@ function WardSelector({ value, onChange }) {
           >
             {num
               ? <span style={{ fontSize: 10, fontWeight: 700, background: active ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.07)', borderRadius: 4, padding: '2px 6px', color: active ? '#f59e0b' : 'var(--text-3)', minWidth: 26, textAlign: 'center', flexShrink: 0 }}>{num}</span>
-              : <IC icon={MapPin} size={14} color='rgba(255,255,255,0.4)'/>
+              : <span style={{ fontSize: 14, flexShrink: 0 }}>🗺</span>
             }
             <span style={{ flex: 1 }}>{name}</span>
             {pCfg && sirD?.priority !== 'NORMAL' && (
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: pCfg.color, flexShrink: 0, boxShadow: `0 0 4px ${pCfg.color}` }} />
             )}
-            {active && <IC icon={CheckCircle} size={13} color='#f59e0b'/>}
+            {active && <span style={{ color: '#f59e0b', fontSize: 13, flexShrink: 0 }}>✓</span>}
           </button>
         );
       })}
@@ -534,7 +520,7 @@ function WardSelector({ value, onChange }) {
         color: value ? '#f59e0b' : 'var(--text-2)', transition: 'all 0.18s',
         whiteSpace: 'nowrap',
       }}>
-        <span style={{ fontSize: 16 }}></span>
+        <span style={{ fontSize: 16 }}>🏘</span>
         <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
         <span style={{ fontSize: 10, color: 'var(--text-3)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
       </button>
@@ -699,8 +685,8 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
           <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
         </div>
         <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,0.3)' }}>
-          <span style={{ color:'#22d3ee', fontWeight:700 }}>Polled {totals.polled?.toLocaleString()}</span>
-          <span style={{ color:'#f87171', fontWeight:700 }}><IC icon={X} size={12} style={{marginRight:3}}/> Not Polled {totals.notPolled?.toLocaleString()}</span>
+          <span style={{ color:'#22d3ee', fontWeight:700 }}>✓ Polled {totals.polled?.toLocaleString()}</span>
+          <span style={{ color:'#f87171', fontWeight:700 }}>✗ Not Polled {totals.notPolled?.toLocaleString()}</span>
         </div>
       </div>
 
@@ -806,8 +792,8 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
           <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
         </div>
         <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,0.3)' }}>
-          <span style={{ color:'#10b981', fontWeight:700 }}>Polled {grandPolled.toLocaleString()}</span>
-          <span style={{ color:'#f87171', fontWeight:700 }}><IC icon={X} size={12} style={{marginRight:3}}/> Not Polled {grandNotPolled.toLocaleString()}</span>
+          <span style={{ color:'#10b981', fontWeight:700 }}>✓ Polled {grandPolled.toLocaleString()}</span>
+          <span style={{ color:'#f87171', fontWeight:700 }}>✗ Not Polled {grandNotPolled.toLocaleString()}</span>
         </div>
       </div>
 
@@ -853,7 +839,7 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
 
       {data.length > 5 && (
         <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
-          {showAll ? '↑ Show less' : `▼ Show all ${data.length} categories`}
+          {showAll ? '▲ Show less' : `▼ Show all ${data.length} categories`}
         </button>
       )}
     </div>
@@ -920,8 +906,8 @@ function PolledCommunityWidget({ loading, label = 'Constituency' }) {
           <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
         </div>
         <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,0.3)' }}>
-          <span style={{ color:'#f59e0b', fontWeight:700 }}>Polled {grandPolled.toLocaleString()}</span>
-          <span style={{ color:'#f87171', fontWeight:700 }}><IC icon={X} size={12} style={{marginRight:3}}/> Not Polled {grandNotPolled.toLocaleString()}</span>
+          <span style={{ color:'#f59e0b', fontWeight:700 }}>✓ Polled {grandPolled.toLocaleString()}</span>
+          <span style={{ color:'#f87171', fontWeight:700 }}>✗ Not Polled {grandNotPolled.toLocaleString()}</span>
         </div>
       </div>
 
@@ -968,7 +954,7 @@ function PolledCommunityWidget({ loading, label = 'Constituency' }) {
 
       {data.length > 6 && (
         <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
-          {showAll ? '↑ Show less' : `▼ Show all ${data.length} communities`}
+          {showAll ? '▲ Show less' : `▼ Show all ${data.length} communities`}
         </button>
       )}
     </div>
@@ -1003,7 +989,7 @@ function WardSIRPanel({ wardNum }) {
         display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '1px', textTransform: 'uppercase', marginRight: 4 }}>
-          SIR Political Intelligence
+          🗳 SIR Political Intelligence
         </div>
         {/* Political classification badge */}
         <div style={{ background: clsCfg.bg, border: `1px solid ${clsCfg.color}40`, borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: clsCfg.color, flexShrink: 0 }}>
@@ -1085,7 +1071,7 @@ function WardSIRPanel({ wardNum }) {
                 <div style={{ fontSize: 14, fontWeight: 900, color: bjpWin ? '#f97316' : '#10b981', fontFamily: 'var(--font-display)' }}>
                   {bjpWin ? '+' : ''}{d.margin}%
                 </div>
-                {isTight && <div style={{ fontSize: 8, color: '#f59e0b', fontWeight: 700 }}><IC icon={AlertTriangle} size={11} style={{marginRight:3}}/> TIGHT RACE</div>}
+                {isTight && <div style={{ fontSize: 8, color: '#f59e0b', fontWeight: 700 }}>⚠ TIGHT RACE</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 12, color: '#34d399', fontWeight: 700 }}>INC {d.congProj}%</span>
@@ -1133,7 +1119,7 @@ function WardSIRPanel({ wardNum }) {
                 <div key={label} style={{ background: ok ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.05)', border: `1px solid ${ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: 8, padding: '8px 10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ fontSize: 11, fontWeight: 900, color: ok ? color : '#f87171' }}>{val.toFixed(1)}%</span>
-                    <span style={{ fontSize: 8, color: ok ? '#10b981' : '#f87171' }}>{ok ? <IC icon={CheckCircle} size={11}/> : <IC icon={AlertTriangle} size={11}/>}</span>
+                    <span style={{ fontSize: 8, color: ok ? '#10b981' : '#f87171' }}>{ok ? '✓' : '⚠'}</span>
                   </div>
                   <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginBottom: 4 }}>
                     <div style={{ width: `${Math.min(val, 100)}%`, height: '100%', background: ok ? `linear-gradient(90deg,${color}80,${color})` : 'linear-gradient(90deg,#ef444480,#ef4444)', borderRadius: 2 }} />
@@ -1180,7 +1166,7 @@ function RiskWardsOverview({ onSelectWard }) {
         display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', display:'flex',alignItems:'center',justifyContent:'center' }}><IC icon={AlertTriangle} size={18} color='#f59e0b'/></div>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚠</div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#f87171' }}>SIR Risk Wards — Immediate Action Required</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
@@ -1190,8 +1176,8 @@ function RiskWardsOverview({ onSelectWard }) {
         </div>
         {/* Summary badges */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#f87171' }}><IC icon={AlertCircle} size={12} style={{marginRight:3}}/> {critCount} Critical</div>
-          <div style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#fb923c' }}><IC icon={AlertTriangle} size={12} style={{marginRight:3}}/> {highCount} High</div>
+          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#f87171' }}>🔴 {critCount} Critical</div>
+          <div style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#fb923c' }}>🟠 {highCount} High</div>
         </div>
       </div>
 
@@ -1355,7 +1341,7 @@ function AllWardsHeatmap({ onSelectWard }) {
           borderTop: '1px solid rgba(255,255,255,0.06)', color: '#22d3ee',
           fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
-          {showAll ? '↑ Show less' : `▼ Show all ${wards.length} wards`}
+          {showAll ? '▲ Show less' : `▼ Show all ${wards.length} wards`}
         </button>
       )}
     </div>
@@ -1384,8 +1370,8 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
           <div style={{
             width: 44, height: 44, borderRadius: 12, flexShrink: 0,
             background: 'rgba(34,211,238,0.15)', border: '2px solid rgba(34,211,238,0.35)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', display:'flex',alignItems:'center',justifyContent:'center'
-          }}><IC icon={Vote} size={20} color='rgba(255,255,255,0.4)'/></div>
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+          }}>🗳</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 17, fontWeight: 900, color: '#22d3ee', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
               Booth {boothNum}
@@ -1398,7 +1384,7 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
           <button
             onClick={onClearWard}
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.5)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >×</button>
+          >✕</button>
         </div>
 
         {/* Badges row */}
@@ -1446,7 +1432,7 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, background: ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 8, padding: '6px 12px' }}>
                   <span style={{ fontSize: 13, fontWeight: 900, color: ok ? color : '#f87171' }}>{val}</span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-                  <span style={{ fontSize: 12, color: ok ? '#10b981' : '#ef4444' }}>{ok ? <IC icon={CheckCircle} size={11}/> : <IC icon={AlertTriangle} size={11}/>}</span>
+                  <span style={{ fontSize: 12, color: ok ? '#10b981' : '#ef4444' }}>{ok ? '✓' : '⚠'}</span>
                 </div>
               ))}
             </div>
@@ -1461,20 +1447,20 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
                 {[
-                  { label: 'Total Electors', value: boothStats.totalElectors,    color: '#22d3ee', icon: 'users' },
-                  { label: 'Cutoff Elec',    value: boothStats.cutoffElec,        color: '#f59e0b', icon: 'calendar' },
-                  { label: 'BLO Mapped',     value: boothStats.bloMapped,         color: '#10b981', icon: 'check' },
-                  { label: 'Total Mapped',   value: boothStats.totalMapped,       color: '#10b981', icon: 'clipboard' },
-                  { label: 'Age ≤ Cutoff',   value: boothStats.ageCutoff,         color: '#8b5cf6', icon: 'user-check' },
-                  { label: 'Progeny >18',    value: boothStats.progeny18,         color: '#a78bfa', icon: 'trending-up' },
-                  { label: 'Elec Mapped',    value: boothStats.electorsMapped,    color: '#f97316', icon: 'map' },
+                  { label: 'Total Electors', value: boothStats.totalElectors,    color: '#22d3ee', icon: '👥' },
+                  { label: 'Cutoff Elec',    value: boothStats.cutoffElec,        color: '#f59e0b', icon: '📅' },
+                  { label: 'BLO Mapped',     value: boothStats.bloMapped,         color: '#10b981', icon: '✔' },
+                  { label: 'Total Mapped',   value: boothStats.totalMapped,       color: '#10b981', icon: '📋' },
+                  { label: 'Age ≤ Cutoff',   value: boothStats.ageCutoff,         color: '#8b5cf6', icon: '🎂' },
+                  { label: 'Progeny >18',    value: boothStats.progeny18,         color: '#a78bfa', icon: '🌱' },
+                  { label: 'Elec Mapped',    value: boothStats.electorsMapped,    color: '#f97316', icon: '🗺' },
                 ].filter(x => x.value !== undefined && x.value !== '' && x.value !== 0).map(({ label, value, color, icon }) => {
                   const totalE = boothStats.totalElectors || 1;
                   const pct    = typeof value === 'number' ? Math.round(value / totalE * 100) : null;
                   return (
                     <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 14, padding: '16px 14px', position: 'relative', overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: -12, right: -12, width: 50, height: 50, borderRadius: '50%', background: `radial-gradient(circle, ${color}18 0%, transparent 70%)` }} />
-                      <div style={{ marginBottom: 8, display:"flex", alignItems:"center" }}>{ICON_MAP_RENDER[icon] ? React.createElement(ICON_MAP_RENDER[icon], {size:18, color, strokeWidth:1.8}) : null}</div>
+                      <div style={{ fontSize: 18, marginBottom: 8 }}>{icon}</div>
                       <div style={{ fontSize: 24, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', marginBottom: 4 }}>
                         {typeof value === 'number' ? value.toLocaleString() : value}
                       </div>
@@ -1520,14 +1506,14 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 {[
-                  { label: 'Surveys Done', value: boothStats.totalReg,                 color: '#f59e0b', pct: boothStats.totalElectors ? Math.round(boothStats.totalReg / boothStats.totalElectors * 100) : 0, icon: 'file-text' },
-                  { label: 'Houses',        value: boothStats.houseCount,               color: '#10b981', pct: 100, icon: 'home' },
-                  { label: 'Male',          value: boothStats.regMale,                  color: '#22d3ee', pct: boothStats.totalReg ? Math.round(boothStats.regMale / boothStats.totalReg * 100) : 0, icon: 'male' },
-                  { label: 'Female',        value: boothStats.regFemale,                color: '#ec4899', pct: boothStats.totalReg ? Math.round(boothStats.regFemale / boothStats.totalReg * 100) : 0, icon: 'female' },
-                  { label: 'Coverage',      value: `${boothStats.coveragePct}%`,        color: '#8b5cf6', pct: Math.min(boothStats.coveragePct, 100), icon: 'layers', isHighlight: true },
+                  { label: 'Surveys Done', value: boothStats.totalReg,                 color: '#f59e0b', pct: boothStats.totalElectors ? Math.round(boothStats.totalReg / boothStats.totalElectors * 100) : 0, icon: '📝' },
+                  { label: 'Houses',        value: boothStats.houseCount,               color: '#10b981', pct: 100, icon: '🏠' },
+                  { label: 'Male',          value: boothStats.regMale,                  color: '#22d3ee', pct: boothStats.totalReg ? Math.round(boothStats.regMale / boothStats.totalReg * 100) : 0, icon: '♂' },
+                  { label: 'Female',        value: boothStats.regFemale,                color: '#ec4899', pct: boothStats.totalReg ? Math.round(boothStats.regFemale / boothStats.totalReg * 100) : 0, icon: '♀' },
+                  { label: 'Coverage',      value: `${boothStats.coveragePct}%`,        color: '#8b5cf6', pct: Math.min(boothStats.coveragePct, 100), icon: '◈', isHighlight: true },
                 ].map(({ label, value, color, pct, icon, isHighlight }) => (
                   <div key={label} style={{ background: isHighlight ? `${color}12` : 'rgba(255,255,255,0.04)', border: `1px solid ${isHighlight ? color + '35' : 'rgba(255,255,255,0.08)'}`, borderRadius: 14, padding: '18px 16px' }}>
-                    <div style={{ marginBottom: 8, display:"flex", alignItems:"center" }}>{ICON_MAP_RENDER[icon] ? React.createElement(ICON_MAP_RENDER[icon], {size:20, color:color, strokeWidth:1.8}) : null}</div>
+                    <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
                     <div style={{ fontSize: isHighlight ? 30 : 26, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', marginBottom: 4, lineHeight: 1 }}>
                       {typeof value === 'number' ? value.toLocaleString() : value}
                     </div>
@@ -1557,7 +1543,7 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
       )}
 
       {boothError && (
-        <div className="alert alert-error" style={{ marginTop: 8, borderRadius: 12 }}><IC icon={AlertTriangle} size={13} style={{marginRight:5}}/> {boothError}</div>
+        <div className="alert alert-error" style={{ marginTop: 8, borderRadius: 12 }}>⚠ {boothError}</div>
       )}
     </div>
   );
@@ -1588,7 +1574,7 @@ function WardBoothDrillDown({ wardNum }) {
         padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', display:'flex',alignItems:'center',justifyContent:'center' }}><IC icon={ClipboardList} size={16} color='rgba(255,255,255,0.5)'/></div>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>📋</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#22d3ee' }}>Booth-Level SIR Drill-Down</div>
             <div style={{ fontSize: 10, color: 'rgba(34,211,238,0.5)', marginTop: 1 }}>{booths.length} booths · {wardTotal.toLocaleString()} total electors</div>
@@ -1612,7 +1598,7 @@ function WardBoothDrillDown({ wardNum }) {
       {/* Weak booths alert */}
       {weakBooths.length > 0 && (
         <div style={{ background: 'rgba(239,68,68,0.07)', borderBottom: '1px solid rgba(239,68,68,0.12)', padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <IC icon={AlertTriangle} size={14} color='#f59e0b'/>
+          <span style={{ fontSize: 14 }}>⚠</span>
           <span style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}>
             {weakBooths.length} booth{weakBooths.length > 1 ? 's' : ''} below 60% SIR mapping: Booths {weakBooths.map(b => b.booth).join(', ')}
           </span>
@@ -1652,7 +1638,7 @@ function WardBoothDrillDown({ wardNum }) {
             </div>
             <div>
               <span style={{ fontSize: 11, fontWeight: 700, color: weak ? '#f87171' : good ? '#10b981' : '#f59e0b', background: weak ? 'rgba(239,68,68,0.12)' : good ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', borderRadius: 6, padding: '4px 8px', display: 'inline-block' }}>
-                {weak ? <><IC icon={AlertTriangle} size={10} style={{marginRight:2}}/>LOW</> : good ? <><IC icon={CheckCircle} size={10} style={{marginRight:2}}/>GOOD</> : '~ OK'}
+                {weak ? '⚠ LOW' : good ? '✓ GOOD' : '~ OK'}
               </span>
             </div>
           </div>
@@ -1723,7 +1709,7 @@ function WardPoliticalSnapshot({ wardNum }) {
           <span style={{ fontSize: 12, fontWeight: 700, color: '#f97316' }}>BJP {d.bjpProj}%</span>
           <div style={{ background: isTight ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isTight ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 7, padding: '4px 10px', textAlign: 'center' }}>
             <div style={{ fontSize: 15, fontWeight: 900, color: bjpWin ? '#f97316' : '#10b981' }}>{bjpWin ? '+' : ''}{d.margin}%</div>
-            {isTight && <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}><IC icon={AlertTriangle} size={11} style={{marginRight:3}}/> TIGHT</div>}
+            {isTight && <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>⚠ TIGHT</div>}
           </div>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>INC {d.congProj}%</span>
         </div>
@@ -1742,7 +1728,7 @@ function WardPoliticalSnapshot({ wardNum }) {
             <div key={label} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: ok ? color : '#f87171' }}>{val.toFixed(1)}% {ok ? <IC icon={CheckCircle} size={11}/> : <IC icon={AlertTriangle} size={11}/>}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: ok ? color : '#f87171' }}>{val.toFixed(1)}% {ok ? '✓' : '⚠'}</span>
               </div>
               <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                 <div style={{ width: `${Math.min(val, 100)}%`, height: '100%', background: ok ? color : '#ef4444', borderRadius: 2 }} />
@@ -1751,7 +1737,7 @@ function WardPoliticalSnapshot({ wardNum }) {
           );
         })}
         {weakCount > 0 && (
-          <div style={{ marginTop: 8, fontSize: 12, color: '#f87171', fontWeight: 600 }}><IC icon={AlertTriangle} size={12} style={{marginRight:3}} color='#f87171'/> {weakCount} booth{weakCount > 1 ? 's' : ''} below 60%</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: '#f87171', fontWeight: 600 }}>⚠ {weakCount} booth{weakCount > 1 ? 's' : ''} below 60%</div>
         )}
       </div>
 
@@ -1870,19 +1856,6 @@ function WardVsConstituency({ wardNum }) {
 }
 
 // ─── Constituency-level SIR Summary (shown on overall view) ───────────────────
-
-// ─── Icon render map for stat cards ──────────────────────────────────────────
-const ICON_MAP_RENDER = {
-  'flag': Flag, 'flag-off': FlagOff, 'scale': Scale, 'vote': Vote,
-  'clipboard': ClipboardList, 'layers': Layers, 'users': Users,
-  'calendar': CalendarDays, 'check': CheckCircle, 'user-check': UserCheck,
-  'trending-up': TrendingUp, 'map': Map, 'file-text': FileText,
-  'home': Home, 'male': User, 'female': User, 'edit': Edit,
-  'search': Search, 'layout-dashboard': LayoutDashboard,
-  'alert-triangle': AlertTriangle,
-  'map-pin': MapPin,
-};
-
 function ConstituencySIRSummary() {
   const allWards = Object.entries(SIR_WARD_DATA);
   const total    = allWards.length;
@@ -1920,7 +1893,7 @@ function ConstituencySIRSummary() {
     }} className="anim-fade-up">
       {/* Header */}
       <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'linear-gradient(135deg,rgba(139,92,246,0.1),transparent)' }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#a78bfa' }}>Constituency SIR Intelligence</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#a78bfa' }}>📊 Constituency SIR Intelligence</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Mangaluru City South · {total} wards · {totalElect.toLocaleString()} total electors</div>
       </div>
 
@@ -1928,15 +1901,15 @@ function ConstituencySIRSummary() {
         {/* Top KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 18 }}>
           {[
-            { label: 'BJP Wards',    val: bjpWards,           color: '#f97316', sub: 'BJP leading', icon: 'flag' },
-            { label: 'INC Wards',    val: congWards,          color: '#10b981', sub: 'Congress leading', icon: 'flag-off' },
-            { label: 'Tight Races',  val: tightWards,         color: '#f59e0b', sub: 'Margin < 10%', icon: 'scale' },
-            { label: 'Avg Turnout',  val: avgPoll+'%',        color: '#22d3ee', sub: 'Across all wards', icon: 'vote' },
-            { label: 'Avg BLO Map',  val: avgBLO+'%',         color: '#f59e0b', sub: 'SIR survey', icon: 'clipboard' },
-            { label: 'Avg Mapped',   val: avgMapped+'%',      color: '#10b981', sub: 'Total completion', icon: 'layers' },
+            { label: 'BJP Wards',    val: bjpWards,           color: '#f97316', sub: 'BJP leading', icon: '🚩' },
+            { label: 'INC Wards',    val: congWards,          color: '#10b981', sub: 'Congress leading', icon: '🏳️' },
+            { label: 'Tight Races',  val: tightWards,         color: '#f59e0b', sub: 'Margin < 10%', icon: '⚖️' },
+            { label: 'Avg Turnout',  val: avgPoll+'%',        color: '#22d3ee', sub: 'Across all wards', icon: '🗳' },
+            { label: 'Avg BLO Map',  val: avgBLO+'%',         color: '#f59e0b', sub: 'SIR survey', icon: '📋' },
+            { label: 'Avg Mapped',   val: avgMapped+'%',      color: '#10b981', sub: 'Total completion', icon: '◈' },
           ].map(({ label, val, color, sub, icon }) => (
             <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 12, padding: '14px 12px' }}>
-              <div style={{ marginBottom: 6, display:"flex", alignItems:"center", justifyContent:"center" }}>{ICON_MAP_RENDER[icon] ? React.createElement(ICON_MAP_RENDER[icon], {size:20, color:color, strokeWidth:1.8}) : null}</div>
+              <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
               <div style={{ fontSize: 20, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{val}</div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{label}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{sub}</div>
@@ -1973,7 +1946,7 @@ function ConstituencySIRSummary() {
 
         {/* Weakest wards */}
         <div>
-          <div className="section-label"><IC icon={AlertTriangle} size={12} style={{marginRight:4}}/> Weakest Wards by SIR Mapping</div>
+          <div className="section-label">⚠ Weakest Wards by SIR Mapping</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {weakest5.map(([wNum, wd]) => {
               const pCfg = PRIORITY_CONFIG[wd.priority] || PRIORITY_CONFIG.NORMAL;
@@ -2238,7 +2211,7 @@ function WardLocalPlaces({ wardNum }) {
                 }}
               />
             </div>
-            {formErr && <div style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}><IC icon={AlertTriangle} size={12} style={{marginRight:4}}/> {formErr}</div>}
+            {formErr && <div style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}>⚠ {formErr}</div>}
             {/* Save button */}
             <button
               onClick={handleAdd}
@@ -2276,7 +2249,7 @@ function WardLocalPlaces({ wardNum }) {
             {[1,2].map(i => <div key={i} style={{ height: 56, borderRadius: 10, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.5s ease infinite' }} />)}
           </div>
         ) : error ? (
-          <div style={{ fontSize: 12, color: '#f87171', textAlign: 'center', padding: '16px 0' }}><IC icon={AlertTriangle} size={12} style={{marginRight:4}}/> {error}</div>
+          <div style={{ fontSize: 12, color: '#f87171', textAlign: 'center', padding: '16px 0' }}>⚠ {error}</div>
         ) : activePlaces.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{ color: activeCfg.color, opacity: 0.3, marginBottom: 8 }}>{activeCfg.icon}</div>
@@ -2436,13 +2409,14 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
           {member.relation && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>{member.relation}</span>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
-          {member.voterid && <span style={{ marginRight: 10 }}> {member.voterid}</span>}
+          {member.voterid && <span style={{ marginRight: 10 }}>🪪 {member.voterid}</span>}
           {member.gender  && <span style={{ marginRight: 10 }}>{member.gender === 'M' ? '♂' : member.gender === 'F' ? '♀' : '⚧'} {member.gender}</span>}
           {member.age     && <span>Age {member.age}</span>}
         </div>
       </div>
       {member.surveyed ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: '#10b981', flexShrink: 0, minHeight: 40 }}><IC icon={CheckCircle} size={13} style={{marginRight:5}}/> Done
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: '#10b981', flexShrink: 0, minHeight: 40 }}>
+          ✓ Done
         </div>
       ) : canSurvey ? (
         <button onClick={handleStartSurvey} style={{
@@ -2450,11 +2424,11 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
           padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#090e1c',
           cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
           boxShadow: '0 2px 10px rgba(245,158,11,0.35)', minHeight: 40,
-        }}><IC icon={Edit} size={13} style={{marginRight:4}}/> Survey</button>
+        }}>✎ Survey</button>
       ) : (
         <div title={user?.role === 'corporator' ? `Ward ${user.ward} only` : user?.role === 'booth_worker' ? `Booth ${user.booth} only` : 'No access'}
           style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'6px 12px', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.22)', flexShrink:0, cursor:'not-allowed', minHeight: 40, display: 'flex', alignItems: 'center' }}>
-          <IC icon={X} size={14} style={{marginRight:6}}/> No Access
+          🔒 No Access
         </div>
       )}
     </div>
@@ -2480,7 +2454,7 @@ function HouseCard({ house, serialCounter, query, user }) {
         borderBottom: expanded ? '1px solid rgba(255,255,255,0.07)' : 'none',
         minHeight: 72,
       }}>
-        <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}><IC icon={Home} size={14}/></div>
+        <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⌂</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--text-1)' }}>
             House No: {house.house_no}
@@ -2495,7 +2469,7 @@ function HouseCard({ house, serialCounter, query, user }) {
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           {pct === 100 ? (
-            <span style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}><IC icon={CheckCircle} size={11} style={{marginRight:3}} color='#10b981'/> Complete</span>
+            <span style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>✓ Complete</span>
           ) : house.remaining > 0 ? (
             <span style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>{house.remaining} pending</span>
           ) : null}
@@ -2561,7 +2535,7 @@ function HouseMembersPanel({ house, onBack }) {
         <div style={{
           background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)',
           borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#22d3ee',
-        }}><IC icon={Users} size={12} style={{marginRight:3}}/> {house.memberCount}</div>
+        }}>👥 {house.memberCount}</div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 22px 22px' }}>
         {loading && (
@@ -2571,10 +2545,10 @@ function HouseMembersPanel({ house, onBack }) {
             ))}
           </div>
         )}
-        {error && <div style={{ color: '#f87171', textAlign: 'center', padding: '24px 0', fontSize: 14 }}><IC icon={AlertTriangle} size={12} style={{marginRight:4}}/> {error}</div>}
+        {error && <div style={{ color: '#f87171', textAlign: 'center', padding: '24px 0', fontSize: 14 }}>⚠ {error}</div>}
         {!loading && !error && members.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}></div>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>👤</div>
             <div>No member records found</div>
           </div>
         )}
@@ -2601,7 +2575,7 @@ function HouseMembersPanel({ house, onBack }) {
                   {m.relation && <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{m.relation}</span>}
                 </div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {m.voterid && <span> {m.voterid}</span>}
+                  {m.voterid && <span>🪪 {m.voterid}</span>}
                   <span style={{ color: genderColor }}>{genderIcon} {m.gender}</span>
                   {m.age && <span>Age {m.age}</span>}
                   {relCfg && (
@@ -2612,7 +2586,7 @@ function HouseMembersPanel({ house, onBack }) {
                 </div>
               </div>
               {m.surveyed ? (
-                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#10b981', flexShrink: 0 }}><IC icon={CheckCircle} size={11} style={{marginRight:3}}/> Done</div>
+                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>✓ Done</div>
               ) : (
                 <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 600, color: '#f87171', flexShrink: 0 }}>Pending</div>
               )}
@@ -2703,7 +2677,7 @@ function LocalPlacesModal({ onClose }) {
                 <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Clubs · Temples · Churches · Mosques</div>
               </div>
             </div>
-            <button onClick={onClose} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32, cursor:'pointer', fontSize:15, color:'rgba(255,255,255,0.45)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+            <button onClick={onClose} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32, cursor:'pointer', fontSize:15, color:'rgba(255,255,255,0.45)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
           </div>
 
           {/* Type count badges */}
@@ -2731,11 +2705,11 @@ function LocalPlacesModal({ onClose }) {
         {/* ── Search ── */}
         <div style={{ padding:'10px 24px 0', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'7px 12px' }}>
-            <span style={{ color:'rgba(255,255,255,0.28)', fontSize:14 }}><IC icon={Search} size={16}/></span>
+            <span style={{ color:'rgba(255,255,255,0.28)', fontSize:14 }}>⌕</span>
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Filter by ward, place name or address…"
               style={{ flex:1, background:'none', border:'none', outline:'none', fontSize:13, color:'#fff' }} />
-            {search && <button onClick={() => setSearch('')} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.3)', fontSize:12, padding:0 }}>×</button>}
+            {search && <button onClick={() => setSearch('')} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.3)', fontSize:12, padding:0 }}>✕</button>}
           </div>
         </div>
 
@@ -2746,17 +2720,17 @@ function LocalPlacesModal({ onClose }) {
               {[1,2,3].map(i => <div key={i} style={{ height:64, borderRadius:12, background:'rgba(255,255,255,0.04)', animation:'pulse 1.6s ease-in-out infinite' }} />)}
             </div>
           )}
-          {error && <div style={{ padding:'20px 0', color:'#f87171', textAlign:'center', fontSize:14 }}><IC icon={AlertTriangle} size={12} style={{marginRight:4}}/> {error}</div>}
+          {error && <div style={{ padding:'20px 0', color:'#f87171', textAlign:'center', fontSize:14 }}>⚠ {error}</div>}
           {!loading && !error && total === 0 && (
             <div style={{ textAlign:'center', padding:'48px 0', color:'rgba(255,255,255,0.25)' }}>
-              <div style={{ display:'flex',justifyContent:'center',marginBottom:8 }}><IC icon={MapPin} size={34} color='rgba(255,255,255,0.15)'/></div>
+              <div style={{ fontSize:34, marginBottom:8 }}>📍</div>
               <div style={{ fontWeight:600 }}>No local places added yet</div>
               <div style={{ fontSize:12, marginTop:6, color:'rgba(255,255,255,0.15)' }}>Add clubs, temples, churches & mosques from the Ward dashboard</div>
             </div>
           )}
           {!loading && total > 0 && filtered.length === 0 && (
             <div style={{ textAlign:'center', padding:'32px 0', color:'rgba(255,255,255,0.25)' }}>
-              <div style={{ display:'flex',justifyContent:'center',marginBottom:8 }}><IC icon={Search} size={28} color='rgba(255,255,255,0.2)'/></div>
+              <div style={{ fontSize:28, marginBottom:8 }}>🔍</div>
               <div style={{ fontWeight:600 }}>No results found</div>
             </div>
           )}
@@ -2894,13 +2868,13 @@ function RiskWardsModal({ onClose, onSelectWard }) {
         <div style={{ padding: '20px 24px 16px', background: 'rgba(239,68,68,0.06)', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}><IC icon={AlertTriangle} size={13} color='#f59e0b'/></div>
+              <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>⚠</div>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>Risk Wards — SIR Action Required</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{riskWards.length} wards · Low turnout + incomplete SIR surveys · Click any ward to drill down</div>
               </div>
             </div>
-            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 15, color: 'rgba(255,255,255,0.45)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 15, color: 'rgba(255,255,255,0.45)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           </div>
 
           {/* ── Priority summary chips ── */}
@@ -2917,9 +2891,9 @@ function RiskWardsModal({ onClose, onSelectWard }) {
           {/* ── Search + Sort ── */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, padding: '7px 12px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 14 }}><IC icon={Search} size={16}/></span>
+              <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 14 }}>⌕</span>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ward name, number, priority…" style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 13, color: '#fff' }} />
-              {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0 }}>×</button>}
+              {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0 }}>✕</button>}
             </div>
             <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 10px', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
               <option value="priority">Sort: Priority</option>
@@ -2934,7 +2908,7 @@ function RiskWardsModal({ onClose, onSelectWard }) {
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 24px' }}>
           {sorted.length === 0 && (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}>
-              <div style={{ display:'flex',justifyContent:'center',marginBottom:8 }}><IC icon={Search} size={34} color='rgba(255,255,255,0.15)'/></div>
+              <div style={{ fontSize: 34, marginBottom: 8 }}>🔍</div>
               <div style={{ fontWeight: 600 }}>No wards match your search</div>
             </div>
           )}
@@ -3066,13 +3040,13 @@ function LargeFamiliesModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 760, background: 'linear-gradient(160deg, #0d1b30 0%, #090e1c 100%)', border: '1px solid rgba(34,211,238,0.18)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', maxHeight: '88vh' }}>
         <div style={{ padding: '20px 24px 16px', background: 'rgba(34,211,238,0.05)', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', display:'flex',alignItems:'center',justifyContent:'center' }}><IC icon={Users} size={20} color='rgba(255,255,255,0.5)'/></div>
+            <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>👨‍👩‍👧‍👦</div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>Large Families{!loading && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>{total} houses · 15+ members</span>}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>{selectedHouse ? 'Member records' : 'Ward-wise breakdown · click any house to view members'}</div>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 15, color: 'rgba(255,255,255,0.45)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 15, color: 'rgba(255,255,255,0.45)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         </div>
 
         {selectedHouse ? (
@@ -3083,16 +3057,16 @@ function LargeFamiliesModal({ onClose }) {
           <>
             <div style={{ padding: '12px 24px 0', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, padding: '7px 12px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 14 }}><IC icon={Search} size={16}/></span>
+                <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 14 }}>⌕</span>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter by ward, house number or booth…" style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 13, color: '#fff' }} />
-                {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0 }}>×</button>}
+                {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 0 }}>✕</button>}
               </div>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 24px 24px' }}>
               {loading && <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[1,2,3].map(i => <div key={i} style={{ height: 64, borderRadius: 12, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.6s ease-in-out infinite' }} />)}</div>}
-              {error && <div style={{ padding: '20px 0', color: '#f87171', textAlign: 'center', fontSize: 14 }}><IC icon={AlertTriangle} size={12} style={{marginRight:4}}/> {error}</div>}
+              {error && <div style={{ padding: '20px 0', color: '#f87171', textAlign: 'center', fontSize: 14 }}>⚠ {error}</div>}
               {!loading && !error && filtered.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}><div style={{ display:'flex',justifyContent:'center',marginBottom:8 }}><IC icon={Search} size={34} color='rgba(255,255,255,0.15)'/></div><div style={{ fontWeight: 600 }}>No results found</div></div>
+                <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}><div style={{ fontSize: 34, marginBottom: 8 }}>🔍</div><div style={{ fontWeight: 600 }}>No results found</div></div>
               )}
               {!loading && filtered.map(ward => {
                 const isOpen = expandedWard === ward.wardNumber;
@@ -3125,11 +3099,11 @@ function LargeFamiliesModal({ onClose }) {
                             <div key={`${house.houseNo}-${hi}`} onClick={() => setSelectedHouse(house)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', marginBottom: 6, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9, cursor: 'pointer', transition: 'all 0.15s' }}
                               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(34,211,238,0.06)'; e.currentTarget.style.borderColor = 'rgba(34,211,238,0.2)'; }}
                               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
-                              <span style={{ fontSize: 16, flexShrink: 0 }}><IC icon={Home} size={14}/></span>
+                              <span style={{ fontSize: 16, flexShrink: 0 }}>⌂</span>
                               <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>House No: {house.houseNo}</span>
                               {house.booth && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', borderRadius: 5, padding: '2px 7px', flexShrink: 0 }}>Booth {house.booth}</span>}
                               <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: big ? 'rgba(239,68,68,0.1)' : 'rgba(34,211,238,0.1)', border: `1px solid ${big ? 'rgba(239,68,68,0.25)' : 'rgba(34,211,238,0.25)'}`, borderRadius: 16, padding: '3px 10px', flexShrink: 0 }}>
-                                <IC icon={Users} size={10} color='rgba(255,255,255,0.4)'/>
+                                <span style={{ fontSize: 10 }}>👥</span>
                                 <span style={{ fontSize: 12, fontWeight: 700, color: big ? '#f87171' : ACCENT }}>{house.memberCount}</span>
                               </div>
                               <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14, flexShrink: 0 }}>›</span>
@@ -3158,68 +3132,68 @@ function PoliticalIntelligenceHub() {
   const [expandedWard, setExpandedWard] = React.useState(null);
 
   const WARDS_FULL = [
-    { w:28, n:'Mannagudda',   cls:'BJP STRONGHOLD',        poll:54.8,hjp:93.7,hindu:93.7,muslim:1.1, christian:5.2, blo:53.78,prog:68.15,margin:87.4,priority:'CRITICAL', wsi:70.0, wsiGrade:'A STRONG*',  prediction:'BJP WIN — TURNOUT RISK',    totalElectors:8102,  why:'HIGHEST Hindu density (93.7%), Bunt-Mogaveera belt solidly behind BJP. Traditional parivar stronghold with MLA visibility.',gap:'LOW TURNOUT (54.8%): ~3,800 BJP voters not reaching booths. No women\'s mobilisation. Youth (18-25) unregistered.',action:'Deploy women\'s shakhas; door-to-door by booth agent 2 weeks before poll; youth voter reg drive',bjpTarget:' 6,800+',turnoutTarget:' 66%',sirTarget:' 75%',trend:'↑ Strong 2013–23',risk2025:'CRITICAL - LOW TURNOUT'},
-    { w:29, n:'Kambala',      cls:'BJP STRONGHOLD',        poll:57.9,hjp:92.6,hindu:92.6,muslim:1.8, christian:5.6, blo:57.64,prog:75.09,margin:85.2,priority:'HIGH',      wsi:71.3, wsiGrade:'A STRONG*',  prediction:'BJP WIN — TURNOUT CRITICAL',totalElectors:4517,  why:'High Bunt community density. Cultural connection through RSS/VHP network strong. Uncontested territory.',gap:'57.9% turnout leaves ~1,800 votes on table. Party office inactive between elections.',action:'Activate booth committee with daily log; cultural event calendar; connect with Kambala committee leaders',bjpTarget:' 3,500+',turnoutTarget:' 66%',sirTarget:' 75%',trend:'↑ Dominant 2013',risk2025:'LOW TURNOUT'},
-    { w:41, n:'Central',      cls:'BJP STRONGHOLD',        poll:59.3,hjp:90.4,hindu:90.4,muslim:7.6, christian:2.0, blo:63.43,prog:74.61,margin:80.8,priority:'MEDIUM',    wsi:73.0, wsiGrade:'A+ STRONG*', prediction:'BJP WIN — COMPLACENCY RISK',   totalElectors:4882,  why:'GSB + Brahmin upper-caste bloc firmly with BJP. Business community ward — economic interest alignment strong.',gap:'BLO coverage only 63%. NRI voters not reachable. 7.6% Muslim vote totally unaddressed.',action:'Set up NRI contact register; connect with business associations; include 1 Muslim face in ward committee',bjpTarget:' 3,700+',turnoutTarget:' 68%',sirTarget:' 80%',trend:'↑ Very strong 2018-23',risk2025:'COMPLACENCY RISK'},
-    { w:27, n:'Boloor',       cls:'BJP STRONGHOLD',        poll:50.8,hjp:87.5,hindu:87.5,muslim:1.2, christian:11.3,blo:60.61,prog:87.02,margin:75.0,priority:'MEDIUM',    wsi:66.5, wsiGrade:'B+ STRONG*', prediction:'BJP WIN — TURNOUT CRITICAL',totalElectors:6618,  why:'LOWEST turnout in stronghold (50.8%). Christian pocket (11.3%) uncertain. Billava OBC base solid.',gap:'CRITICAL: 50.8% dangerously low. 5,400 potential BJP voters not voting. No neighbourhood-level contact.',action:'URGENT: 2 volunteers per booth; Christian outreach via church events; transport on poll day',bjpTarget:' 5,000+',turnoutTarget:' 64%',sirTarget:' 80%',trend:'↑ Won 2014-23',risk2025:'TURNOUT RISK'},
-    { w:32, n:'Kadri North',  cls:'BJP STRONGHOLD',        poll:54.5,hjp:86.8,hindu:86.8,muslim:0.7, christian:12.5,blo:56.55,prog:75.79,margin:73.6,priority:'HIGH',      wsi:68.2, wsiGrade:'A- STRONG',  prediction:'BJP WIN — TURNOUT WATCH',      totalElectors:6433,  why:'Temple belt ward — strong Kadri temple footfall. RSS shakha network very active.',gap:'Only 56.5% BLO mapped. Youth 18-22 unregistered. Christian vote (12.5%) going to Congress.',action:'Prioritise first-time voter registration (18-22); Christian youth engagement through sports/social events',bjpTarget:' 5,000+',turnoutTarget:' 66%',sirTarget:' 75%',trend:'→ Stable strong',risk2025:'TURNOUT WATCH'},
-    { w:42, n:'Dongerkery',   cls:'BJP STRONGHOLD',        poll:58.4,hjp:86.2,hindu:86.2,muslim:12.0,christian:1.8, blo:57.45,prog:74.47,margin:72.4,priority:'HIGH',      wsi:68.6, wsiGrade:'A- STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7664,  why:'Strong OBC Hindutva ward. Muslim 12% votes Congress solidly.',gap:'Muslim anti-incumbency amplified if BJP ward member absent. No youth wing active.',action:'Maintain visible BJP ward presence; address road/drainage; prevent anti-incumbency narrative',bjpTarget:' 5,800+',turnoutTarget:' 67%',sirTarget:' 75%',trend:'↑ Gained 2018-23',risk2025:'STABLE'},
-    { w:21, n:'Padav West',   cls:'BJP STRONGHOLD',        poll:55.7,hjp:84.1,hindu:84.1,muslim:1.0, christian:14.8,blo:58.95,prog:90.05,margin:68.2,priority:'MEDIUM',    wsi:66.7, wsiGrade:'B+ STRONG*', prediction:'BJP WIN — TURNOUT WATCH',      totalElectors:7542,  why:'Classic BJP ward — Hindu plurality, Billava OBC base loyal. 14.8% Christian soft support.',gap:'55.7% turnout — low given 84% Hindu base. Many progeny voters are migrant workers.',action:'Verify migrant voter status; mobilise Christians through local welfare; Padav Dussehra sponsorship',bjpTarget:' 5,600+',turnoutTarget:' 66%',sirTarget:' 82%',trend:'→ Stable 2013-23',risk2025:'TURNOUT WATCH'},
-    { w:24, n:'Derebail South',cls:'BJP STRONGHOLD',       poll:58.1,hjp:80.1,hindu:80.1,muslim:2.5, christian:17.4,blo:54.67,prog:80.04,margin:60.2,priority:'CRITICAL',  wsi:64.3, wsiGrade:'B+ STRONG*', prediction:'BJP WIN — CHRISTIAN EROSION', totalElectors:4767,  why:'Used to be stronger. Christian community (17.4%) swinging to Congress. Low BLO mapping.',gap:'CRITICAL: BLO only 54.67%. Christians (17.4%) courted by Congress. Billava internal factions.',action:'Resolve Billava community issues; deploy parallel survey team; Christian welfare outreach',bjpTarget:' 3,400+',turnoutTarget:' 67%',sirTarget:' 75%',trend:'↓ Eroding 2018-23',risk2025:'CHRISTIAN EROSION'},
-    { w:31, n:'Bejai',        cls:'BJP STRONG',            poll:58.7,hjp:68.6,hindu:68.6,muslim:4.7, christian:26.7,blo:52.54,prog:83.98,margin:37.2,priority:'HIGH',      wsi:61.3, wsiGrade:'B MEDIUM',   prediction:'BJP WIN — CHRISTIAN SWING',   totalElectors:7246,  why:'Christian vote (26.7%) is decisive swing. When Christians vote BJP wins big.',gap:'Christian community alienated post-2018. Women turnout lower than men.',action:'Dedicate Christian community liaison; female BJP worker per booth',bjpTarget:' 4,500+',turnoutTarget:' 65%',sirTarget:' 72%',trend:'→ Fluctuating',risk2025:'CHRISTIAN SWING'},
-    { w:46, n:'Cantonment',   cls:'BJP STRONG',            poll:51.2,hjp:73.8,hindu:73.8,muslim:20.7,christian:5.5, blo:56.25,prog:72.79,margin:47.6,priority:'HIGH',      wsi:60.5, wsiGrade:'B MEDIUM',   prediction:'BJP WIN — TURNOUT WATCH',      totalElectors:4095,  why:'Army/government servants — split vote. 20.7% Muslim votes Congress. Lowest turnout in strong wards.',gap:'Military community often not on rolls. Only 56.25% BLO coverage.',action:'Voter registration drive for military; engage Muslim moderates on development; increase BLO',bjpTarget:' 2,800+',turnoutTarget:' 64%',sirTarget:' 75%',trend:'→ Stable narrow',risk2025:'TURNOUT WATCH'},
-    { w:25, n:'Derebail West', cls:'BJP STRONGHOLD',       poll:65.9,hjp:85.1,hindu:85.1,muslim:0.8, christian:14.1,blo:59.87,prog:85.34,margin:70.2,priority:'NORMAL',    wsi:75.3, wsiGrade:'A+ STRONG',  prediction:'BJP WIN — COMFORTABLE',        totalElectors:7314,  why:'Highest turnout of BJP stronghold (65.9%). Billava OBC community highly organised. BJP\'s model ward.',gap:'BLO coverage 59.87% despite good turnout — risk of voter deletion.',action:'Maintain momentum; use as model for other wards',bjpTarget:' 5,800+',turnoutTarget:' 70%',sirTarget:' 75%',trend:'↑ Consistently strong',risk2025:'— NORMAL'},
-    { w:26, n:'Derebail SW',   cls:'BJP STRONGHOLD',       poll:60.4,hjp:87.9,hindu:87.9,muslim:0.6, christian:11.5,blo:56.96,prog:75.78,margin:75.8,priority:'NORMAL',    wsi:74.5, wsiGrade:'A+ STRONG',  prediction:'BJP WIN — COMFORTABLE',        totalElectors:7801,  why:'Strong Billava/Devadiga base. Low minority presence. RSS/VHP network highly active.',gap:'Progeny only 75.78% — some uncovered. NRI families not reachable.',action:'Youth wing activation; connect with diaspora network for NRI votes',bjpTarget:' 6,400+',turnoutTarget:' 68%',sirTarget:' 75%',trend:'↑ Very consistent',risk2025:'— NORMAL'},
-    { w:30, n:'Kodialbail',    cls:'BJP STRONGHOLD',       poll:62.9,hjp:80.9,hindu:80.9,muslim:1.2, christian:17.9,blo:52.89,prog:75.01,margin:61.8,priority:'NORMAL',    wsi:70.4, wsiGrade:'A STRONG',   prediction:'BJP WIN — SAFE',               totalElectors:7871,  why:'BJP stronghold with stable Hindu majority and rising turnout.',gap:'BLO only 52.89%, progeny 75% — gaps in mapping.',action:'BLO completion drive; Christian community welfare schemes',bjpTarget:' 5,900+',turnoutTarget:' 68%',sirTarget:' 75%',trend:'→ Stable',risk2025:'— NORMAL'},
-    { w:51, n:'Alape North',   cls:'BJP STRONG',           poll:63.0,hjp:68.5,hindu:68.5,muslim:1.4, christian:30.0,blo:57.28,prog:106.1,margin:37.0,priority:'NORMAL',    wsi:64.6, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7200,  why:'Billava+GSB coastal ward; stable BJP base.',gap:'Christian 30% needs engagement. Progeny 106% — audit ghost entries.',action:'Audit progeny list; Protestant Christian outreach',bjpTarget:' 4,600+',turnoutTarget:' 68%',sirTarget:' 75%',trend:'↑→ Stable',risk2025:'— NORMAL'},
-    { w:35, n:'Padav Central', cls:'BJP STRONG',           poll:64.9,hjp:68.3,hindu:68.3,muslim:4.6, christian:27.1,blo:56.32,prog:78.03,margin:36.6,priority:'NORMAL',    wsi:64.3, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:8462,  why:'Christian+Hindu mix; BJP holds with good candidate.',gap:'Christian 27% unpredictable. Progeny 78% needs uplift.',action:'Protestant outreach; maintain booth committee structure',bjpTarget:' 5,400+',turnoutTarget:' 70%',sirTarget:' 72%',trend:'↑→ Stable',risk2025:'— NORMAL'},
-    { w:37, n:'Maroli',        cls:'BJP STRONG',           poll:61.6,hjp:68.7,hindu:68.7,muslim:0.8, christian:30.5,blo:64.16,prog:102.16,margin:37.4,priority:'NORMAL',   wsi:65.0, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:6718,  why:'BJP strong with high Hindu base and great BLO coverage.',gap:'Christian 30.5% needs Protestant outreach. Progeny 102% — audit entries.',action:'Protestant Christian engagement; verify progeny list',bjpTarget:' 4,400+',turnoutTarget:' 68%',sirTarget:' 80%',trend:'→ Stable',risk2025:'— NORMAL'},
-    { w:54, n:'Jappimogar',    cls:'BJP STRONG',           poll:61.1,hjp:71.6,hindu:71.6,muslim:7.4, christian:20.9,blo:64.09,prog:94.69,margin:43.2,priority:'NORMAL',    wsi:66.0, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7266,  why:'BJP strong coastal ward with good BLO coverage.',gap:'Christian 20.9% and Muslim 7.4% need development messaging.',action:'Maintain BLO lead; Muslim moderate development outreach',bjpTarget:' 4,900+',turnoutTarget:' 68%',sirTarget:' 80%',trend:'→ Stable',risk2025:'— NORMAL'},
-    { w:58, n:'Bolar',         cls:'BJP STRONG',           poll:60.9,hjp:71.8,hindu:71.8,muslim:19.6,christian:8.6, blo:53.2, prog:79.37,margin:43.6,priority:'NORMAL',    wsi:64.5, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7107,  why:'BJP strong with Kharvi community support. Coastal merchant community pro-BJP.',gap:'BLO 53.2% — below average. Muslim 19.6% consolidated against.',action:'Kharvi Sangha engagement; BLO completion; merchant association linkage',bjpTarget:' 4,600+',turnoutTarget:' 68%',sirTarget:' 72%',trend:'→ Stable',risk2025:'— NORMAL'},
-    { w:49, n:'Kankanady',     cls:'BJP STRONG',           poll:61.4,hjp:76.1,hindu:76.1,muslim:10.8,christian:13.1,blo:57.73,prog:96.22,margin:52.2,priority:'NORMAL',    wsi:67.8, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7527,  why:'Vokkaliga retention + Billava base. Strong BJP hold.',gap:'Muslim 10.8% needs development narrative.',action:'Vokkaliga BJP program; maintain BLO coverage',bjpTarget:' 5,300+',turnoutTarget:' 68%',sirTarget:' 80%',trend:'→ Stable',risk2025:'— NORMAL'},
-    { w:57, n:'Hoige Bazar',   cls:'BJP STRONG',           poll:59.1,hjp:65.1,hindu:65.1,muslim:30.1,christian:4.8, blo:65.88,prog:101.37,margin:30.2,priority:'NORMAL',   wsi:62.6, wsiGrade:'B STRONG',   prediction:'BJP WIN — MUSLIM WATCH',       totalElectors:4320,  why:'Muslim 30.1% is swing factor. Kharvi community highest turnout OBC. Merchant community pro-BJP.',gap:'Muslim 30% could flip if consolidated. Merchant community not fully engaged.',action:'Merchant association engagement; Kharvi community fest; Muslim moderate business outreach',bjpTarget:' 2,700+',turnoutTarget:' 66%',sirTarget:' 80%',trend:'→ BJP holds',risk2025:'MUSLIM WATCH'},
-    { w:50, n:'Alape South',   cls:'BJP STRONG',           poll:67.3,hjp:76.1,hindu:76.1,muslim:8.9, christian:15.0,blo:56.48,prog:109.84,margin:52.2,priority:'NORMAL',   wsi:69.9, wsiGrade:'A STRONG',   prediction:'BJP WIN — COMFORTABLE',        totalElectors:6284,  why:'Billava+GSB coastal ward; stable with highest turnout among strong wards.',gap:'Progeny 109.84% — audit ghost entries.',action:'Audit progeny; maintain Billava-GSB alliance; BLO top-up',bjpTarget:' 4,500+',turnoutTarget:' 72%',sirTarget:' 75%',trend:'↑→ Stable',risk2025:'— NORMAL'},
-    { w:33, n:'Kadri South',   cls:'BJP FAVOURABLE',       poll:57.2,hjp:63.9,hindu:63.9,muslim:5.3, christian:30.8,blo:51.09,prog:75.37,margin:27.8,priority:'NORMAL',    wsi:58.4, wsiGrade:'B- MEDIUM',  prediction:'BJP HOLDS — UNCERTAIN',        totalElectors:5843,  why:'Christian 30.8% is swing. BJP holds when Hindu vote consolidates.',gap:'BLO 51.09% — critically low. No BJP presence in Christian pockets.',action:'BLO completion urgently; Christian engagement through social service',bjpTarget:' 3,500+',turnoutTarget:' 65%',sirTarget:' 72%',trend:'→ Moderate',risk2025:'— NORMAL'},
-    { w:55, n:'Athavara',      cls:'BJP FAVOURABLE',       poll:62.5,hjp:62.9,hindu:62.9,muslim:24.0,christian:13.1,blo:60.02,prog:99.92,margin:25.8,priority:'NORMAL',    wsi:60.4, wsiGrade:'B MEDIUM',   prediction:'BJP WIN — MODERATE',           totalElectors:7856,  why:'BJP favourable with good turnout. Muslim 24% consolidated against.',gap:'Muslim 24% needs development narrative.',action:'Maintain Hindu consolidation; Muslim development outreach for 8-10% split',bjpTarget:' 4,500+',turnoutTarget:' 68%',sirTarget:' 80%',trend:'→ Moderate',risk2025:'— NORMAL'},
-    { w:56, n:'Mangaladevi',   cls:'BJP FAVOURABLE',       poll:61.8,hjp:62.8,hindu:62.8,muslim:26.8,christian:10.5,blo:57.1, prog:83.28,margin:25.6,priority:'NORMAL',    wsi:59.5, wsiGrade:'B- MEDIUM',  prediction:'BJP WIN — NARROW',             totalElectors:5358,  why:'BJP favourable with Muslim 26.8% opposition bloc.',gap:'Muslim consolidation risk. BLO 57% needs improvement.',action:'Hindu voter turnout focus; BLO completion; prevent Muslim bloc expansion',bjpTarget:' 3,100+',turnoutTarget:' 68%',sirTarget:' 75%',trend:'→ Moderate',risk2025:'— NORMAL'},
-    { w:36, n:'Padav East',    cls:'BJP FAVOURABLE',       poll:46.9,hjp:60.2,hindu:60.2,muslim:3.9, christian:35.9,blo:52.81,prog:80.04,margin:20.4,priority:'MEDIUM',    wsi:52.7, wsiGrade:'C WEAK',     prediction:'BJP HOLDS — FRAGILE',          totalElectors:4471,  why:'Highest Christian population (35.9%). Swing ward — 2019 voted BJP; 2023 swung back.',gap:'46.9% LOWEST turnout. Christian 36% unpredictable. No BJP permanent presence in Christian pockets.',action:'Establish permanent community service centre in Christian pocket; welfare scheme targeting',bjpTarget:' 2,800+',turnoutTarget:' 62%',sirTarget:' 75%',trend:'↓ Declining',risk2025:'CHRISTIAN BARRIER'},
-    { w:40, n:'Court',         cls:'CONTESTED (BJP Lean)',  poll:39.5,hjp:51.0,hindu:51.0,muslim:27.7,christian:21.4,blo:44.77,prog:88.36,margin:2.0, priority:'MEDIUM',    wsi:46.5, wsiGrade:'C- WEAK',    prediction:'TOSS-UP — TURNOUT DECISIVE',  totalElectors:5980,  why:'Very low turnout (39.5%). Highest Muslim share in contested ward (27.7%). BJP barely holds.',gap:'39.5% catastrophically low. Muslim+Christian > Hindu. Split Congress vote.',action:'Hyper-focus on Hindu voter mobilisation; deploy 3 volunteers per booth',bjpTarget:' 3,100+',turnoutTarget:' 60%',sirTarget:' 72%',trend:'↓ Declining',risk2025:'HIGH VOLATILITY'},
-    { w:34, n:'Shivabagh',     cls:'CONTESTED (BJP Lean)',  poll:50.2,hjp:52.2,hindu:52.2,muslim:11.7,christian:36.1,blo:53.38,prog:98.08,margin:4.4, priority:'MEDIUM',    wsi:50.2, wsiGrade:'C WEAK',     prediction:'TOSS-UP — CHRISTIAN FACTOR',  totalElectors:6294,  why:'Christian majority ward becoming Congress stronghold. Catholic church mobilises against BJP.',gap:'98% progeny but only 53% BLO — ghost voters. Catholic church mobilises against BJP.',action:'Find respected Catholic BJP supporter; develop Christian welfare narrative',bjpTarget:' 3,400+',turnoutTarget:' 65%',sirTarget:' 80%',trend:'↓ 2018→2023 loss',risk2025:'CHRISTIAN BARRIER'},
-    { w:59, n:'Jeppu',         cls:'CONTESTED (BJP Lean)',  poll:57.3,hjp:52.4,hindu:52.4,muslim:18.7,christian:29.0,blo:57.05,prog:97.0, margin:4.8, priority:'MEDIUM',    wsi:52.8, wsiGrade:'C WEAK',     prediction:'TOSS-UP — CANDIDATE KEY',     totalElectors:7711,  why:'Three-religion ward. BJP wins only when Hindu vote consolidates AND some Christians cross-vote.',gap:'97% progeny — many duplicates/ghost entries. Muslim+Christian = 47.7% near majority.',action:'Audit progeny list; field cross-community candidate; visible development work',bjpTarget:' 4,200+',turnoutTarget:' 67%',sirTarget:' 80%',trend:'→ Marginal',risk2025:'CANDIDATE DEPENDENT'},
-    { w:48, n:'Valencia',      cls:'CONTESTED (BJP Lean)',  poll:49.2,hjp:53.6,hindu:53.6,muslim:11.5,christian:34.9,blo:57.89,prog:92.99,margin:7.2, priority:'MEDIUM',    wsi:49.3, wsiGrade:'C- WEAK',    prediction:'TOSS-UP — FRAGILE',           totalElectors:5090,  why:'Christian 35% + Muslim 11.5% = 46.4% opposition bloc. BJP holds due to Hindu plurality.',gap:'49.2% turnout — if turnout rises, BJP loses. Christian community organisationally strong.',action:'Ensure BJP Hindu voters turnout >65%; ward-specific welfare for Christians',bjpTarget:' 2,900+',turnoutTarget:' 65%',sirTarget:' 72%',trend:'↓ Eroding',risk2025:'CANDIDATE DEPENDENT'},
-    { w:53, n:'Bajal',         cls:'CONTESTED (Cong Lean)', poll:55.1,hjp:47.8,hindu:47.8,muslim:45.2,christian:7.1, blo:59.3, prog:91.89,margin:-4.4,priority:'NORMAL',    wsi:48.2, wsiGrade:'C- WEAK',    prediction:'CONGRESS LEAN — OPPORTUNITY', totalElectors:7805,  why:'Muslim 45% but JDS/BJP splitting Congress. BJP gaining slowly.',gap:'Muslim 45.2% near majority. BJP needs 8-10% Muslim split via development narrative.',action:'Muslim moderate outreach on development; audit progeny; maintain Hindu base',bjpTarget:' 3,700+',turnoutTarget:' 65%',sirTarget:' 80%',trend:'→↑ Improving',risk2025:'OPPORTUNITY'},
-    { w:45, n:'Port',          cls:'CONTESTED (Cong Lean)', poll:63.8,hjp:47.6,hindu:47.6,muslim:40.9,christian:11.4,blo:62.19,prog:93.55,margin:-4.8,priority:'NORMAL',    wsi:51.0, wsiGrade:'C WEAK',     prediction:'CONGRESS LEAN — BJP GAINING', totalElectors:7153,  why:'Port area development narrative working for BJP.',gap:'Muslim+Christian = 52.3% opposition bloc.',action:'Port modernisation narrative; Muslim moderate development outreach',bjpTarget:' 3,400+',turnoutTarget:' 70%',sirTarget:' 80%',trend:'→↑ Improving',risk2025:'OPPORTUNITY'},
-    { w:52, n:'Kannur',        cls:'CONGRESS FAVOURABLE',   poll:61.2,hjp:40.1,hindu:40.1,muslim:56.9,christian:3.0, blo:58.83,prog:91.81,margin:-19.8,priority:'NORMAL',   wsi:45.4, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN — FIGHT FOR 2ND', totalElectors:7045,  why:'Muslim majority stable Congress vote.',gap:'Muslim 56.9% near total Congress. No BJP presence.',action:'Limit damage; identify Hindu community leaders; long-term only',bjpTarget:' 2,800+',turnoutTarget:' 68%',sirTarget:' 80%',trend:'→ Congress',risk2025:'— NORMAL'},
-    { w:47, n:'Milagress',     cls:'CONGRESS FAVOURABLE',   poll:55.0,hjp:43.5,hindu:43.5,muslim:34.8,christian:21.8,blo:54.15,prog:71.6, margin:-13.0,priority:'NORMAL',   wsi:44.2, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN — REDUCE MARGIN', totalElectors:7210,  why:'Muslim+Christian = 56.6% opposition bloc.',gap:'Hindu 43.5% unorganised. BLO coverage 54.15% — low.',action:'Limit damage; Hindu community welfare; reduce loss margin <20%',bjpTarget:' 3,100+',turnoutTarget:' 62%',sirTarget:' 75%',trend:'→ Congress',risk2025:'— NORMAL'},
-    { w:38, n:'Bendur',        cls:'CONGRESS STRONG',        poll:52.1,hjp:32.2,hindu:32.2,muslim:25.2,christian:42.6,blo:59.41,prog:85.11,margin:-35.6,priority:'WATCH',   wsi:38.6, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN — WATCH',         totalElectors:6296,  why:'Catholic + Muslim supermajority. Congress territory.',gap:'Zero BJP ward committee active. Even Hindu voters (32%) not mobilised.',action:'Damage limitation; field credible local candidate; reduce loss margin <25%',bjpTarget:' 2,200+',turnoutTarget:' 60%',sirTarget:' 80%',trend:'→ Stable Cong',risk2025:'ACCEPT LOSS — MINIMIZE'},
-    { w:60, n:'Bengre',        cls:'CONGRESS STRONG',        poll:41.6,hjp:30.9,hindu:30.9,muslim:68.3,christian:0.8, blo:60.39,prog:127.86,margin:-38.2,priority:'WATCH',  wsi:38.4, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN — WATCH',         totalElectors:10897, why:'Muslim supermajority (68.3%). BJP winning here requires sea change.',gap:'Lowest turnout (41.6%). BJP presence effectively zero. Hindu 30.9% unorganised.',action:'Long-term: cultivate Hindu community leaders; accept ward as loss, minimise margin',bjpTarget:' 3,400+',turnoutTarget:' 55%',sirTarget:' 90%',trend:'→ Cong fortress',risk2025:'LONG TERM STRATEGY'},
-    { w:44, n:'Bunder',        cls:'CONGRESS STRONG',        poll:58.0,hjp:34.6,hindu:34.6,muslim:65.1,christian:0.3, blo:54.6, prog:81.31,margin:-30.8,priority:'NORMAL',   wsi:39.6, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN',                 totalElectors:5871,  why:'Muslim majority Congress ward.',gap:'Muslim 65.1% near total Congress dominance.',action:'Limit damage; Muslim business development loans; Hindu community welfare',bjpTarget:' 2,000+',turnoutTarget:' 65%',sirTarget:' 75%',trend:'→ Congress',risk2025:'— NORMAL'},
-    { w:39, n:'Falnir',        cls:'CONGRESS STRONG',        poll:56.3,hjp:32.1,hindu:32.1,muslim:9.2, christian:58.7,blo:60.47,prog:96.65,margin:-35.8,priority:'NORMAL',   wsi:38.3, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN',                 totalElectors:6526,  why:'Christian majority (58.7%) strongly Congress.',gap:'Christian 58.7% highly organised for Congress. No BJP footing.',action:'Limit damage; Christian welfare narrative',bjpTarget:' 2,200+',turnoutTarget:' 63%',sirTarget:' 80%',trend:'→ Congress',risk2025:'— NORMAL'},
-    { w:43, n:'Kudroli',       cls:'CONGRESS STRONG',        poll:62.1,hjp:28.8,hindu:28.8,muslim:68.2,christian:3.0, blo:53.24,prog:74.07,margin:-42.4,priority:'NORMAL',   wsi:36.3, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN',                 totalElectors:5765,  why:'Muslim supermajority. Lowest BJP projection in all wards.',gap:'Muslim 68.2% total Congress. BLO 53.24% — even low in loss ward.',action:'Limit damage; minimum resources; focus elsewhere',bjpTarget:' 1,700+',turnoutTarget:' 68%',sirTarget:' 75%',trend:'→ Congress',risk2025:'— NORMAL'},
+    { w:28, n:'Mannagudda',   cls:'BJP STRONGHOLD',        poll:54.8,hjp:93.7,hindu:93.7,muslim:1.1, christian:5.2, blo:53.78,prog:68.15,margin:87.4,priority:'🔴 CRITICAL', wsi:70.0, wsiGrade:'A STRONG*',  prediction:'BJP WIN — TURNOUT RISK ⚠',    totalElectors:8102,  why:'HIGHEST Hindu density (93.7%), Bunt-Mogaveera belt solidly behind BJP. Traditional parivar stronghold with MLA visibility.',gap:'LOW TURNOUT (54.8%): ~3,800 BJP voters not reaching booths. No women\'s mobilisation. Youth (18-25) unregistered.',action:'Deploy women\'s shakhas; door-to-door by booth agent 2 weeks before poll; youth voter reg drive',bjpTarget:'🎯 6,800+',turnoutTarget:'🎯 66%',sirTarget:'🎯 75%',trend:'↑ Strong 2013–23',risk2025:'🔴 CRITICAL - LOW TURNOUT'},
+    { w:29, n:'Kambala',      cls:'BJP STRONGHOLD',        poll:57.9,hjp:92.6,hindu:92.6,muslim:1.8, christian:5.6, blo:57.64,prog:75.09,margin:85.2,priority:'🟠 HIGH',      wsi:71.3, wsiGrade:'A STRONG*',  prediction:'BJP WIN — TURNOUT CRITICAL ⚠',totalElectors:4517,  why:'High Bunt community density. Cultural connection through RSS/VHP network strong. Uncontested territory.',gap:'57.9% turnout leaves ~1,800 votes on table. Party office inactive between elections.',action:'Activate booth committee with daily log; cultural event calendar; connect with Kambala committee leaders',bjpTarget:'🎯 3,500+',turnoutTarget:'🎯 66%',sirTarget:'🎯 75%',trend:'↑ Dominant 2013',risk2025:'🟠 LOW TURNOUT'},
+    { w:41, n:'Central',      cls:'BJP STRONGHOLD',        poll:59.3,hjp:90.4,hindu:90.4,muslim:7.6, christian:2.0, blo:63.43,prog:74.61,margin:80.8,priority:'🟡 MEDIUM',    wsi:73.0, wsiGrade:'A+ STRONG*', prediction:'BJP WIN — COMPLACENCY RISK',   totalElectors:4882,  why:'GSB + Brahmin upper-caste bloc firmly with BJP. Business community ward — economic interest alignment strong.',gap:'BLO coverage only 63%. NRI voters not reachable. 7.6% Muslim vote totally unaddressed.',action:'Set up NRI contact register; connect with business associations; include 1 Muslim face in ward committee',bjpTarget:'🎯 3,700+',turnoutTarget:'🎯 68%',sirTarget:'🎯 80%',trend:'↑ Very strong 2018-23',risk2025:'COMPLACENCY RISK'},
+    { w:27, n:'Boloor',       cls:'BJP STRONGHOLD',        poll:50.8,hjp:87.5,hindu:87.5,muslim:1.2, christian:11.3,blo:60.61,prog:87.02,margin:75.0,priority:'🟡 MEDIUM',    wsi:66.5, wsiGrade:'B+ STRONG*', prediction:'BJP WIN — TURNOUT CRITICAL ⚠',totalElectors:6618,  why:'LOWEST turnout in stronghold (50.8%). Christian pocket (11.3%) uncertain. Billava OBC base solid.',gap:'CRITICAL: 50.8% dangerously low. 5,400 potential BJP voters not voting. No neighbourhood-level contact.',action:'URGENT: 2 volunteers per booth; Christian outreach via church events; transport on poll day',bjpTarget:'🎯 5,000+',turnoutTarget:'🎯 64%',sirTarget:'🎯 80%',trend:'↑ Won 2014-23',risk2025:'🟡 TURNOUT RISK'},
+    { w:32, n:'Kadri North',  cls:'BJP STRONGHOLD',        poll:54.5,hjp:86.8,hindu:86.8,muslim:0.7, christian:12.5,blo:56.55,prog:75.79,margin:73.6,priority:'🟠 HIGH',      wsi:68.2, wsiGrade:'A- STRONG',  prediction:'BJP WIN — TURNOUT WATCH',      totalElectors:6433,  why:'Temple belt ward — strong Kadri temple footfall. RSS shakha network very active.',gap:'Only 56.5% BLO mapped. Youth 18-22 unregistered. Christian vote (12.5%) going to Congress.',action:'Prioritise first-time voter registration (18-22); Christian youth engagement through sports/social events',bjpTarget:'🎯 5,000+',turnoutTarget:'🎯 66%',sirTarget:'🎯 75%',trend:'→ Stable strong',risk2025:'TURNOUT WATCH'},
+    { w:42, n:'Dongerkery',   cls:'BJP STRONGHOLD',        poll:58.4,hjp:86.2,hindu:86.2,muslim:12.0,christian:1.8, blo:57.45,prog:74.47,margin:72.4,priority:'🟠 HIGH',      wsi:68.6, wsiGrade:'A- STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7664,  why:'Strong OBC Hindutva ward. Muslim 12% votes Congress solidly.',gap:'Muslim anti-incumbency amplified if BJP ward member absent. No youth wing active.',action:'Maintain visible BJP ward presence; address road/drainage; prevent anti-incumbency narrative',bjpTarget:'🎯 5,800+',turnoutTarget:'🎯 67%',sirTarget:'🎯 75%',trend:'↑ Gained 2018-23',risk2025:'STABLE'},
+    { w:21, n:'Padav West',   cls:'BJP STRONGHOLD',        poll:55.7,hjp:84.1,hindu:84.1,muslim:1.0, christian:14.8,blo:58.95,prog:90.05,margin:68.2,priority:'🟡 MEDIUM',    wsi:66.7, wsiGrade:'B+ STRONG*', prediction:'BJP WIN — TURNOUT WATCH',      totalElectors:7542,  why:'Classic BJP ward — Hindu plurality, Billava OBC base loyal. 14.8% Christian soft support.',gap:'55.7% turnout — low given 84% Hindu base. Many progeny voters are migrant workers.',action:'Verify migrant voter status; mobilise Christians through local welfare; Padav Dussehra sponsorship',bjpTarget:'🎯 5,600+',turnoutTarget:'🎯 66%',sirTarget:'🎯 82%',trend:'→ Stable 2013-23',risk2025:'TURNOUT WATCH'},
+    { w:24, n:'Derebail South',cls:'BJP STRONGHOLD',       poll:58.1,hjp:80.1,hindu:80.1,muslim:2.5, christian:17.4,blo:54.67,prog:80.04,margin:60.2,priority:'🔴 CRITICAL',  wsi:64.3, wsiGrade:'B+ STRONG*', prediction:'BJP WIN — CHRISTIAN EROSION', totalElectors:4767,  why:'Used to be stronger. Christian community (17.4%) swinging to Congress. Low BLO mapping.',gap:'CRITICAL: BLO only 54.67%. Christians (17.4%) courted by Congress. Billava internal factions.',action:'Resolve Billava community issues; deploy parallel survey team; Christian welfare outreach',bjpTarget:'🎯 3,400+',turnoutTarget:'🎯 67%',sirTarget:'🎯 75%',trend:'↓ Eroding 2018-23',risk2025:'🔴 CHRISTIAN EROSION'},
+    { w:31, n:'Bejai',        cls:'BJP STRONG',            poll:58.7,hjp:68.6,hindu:68.6,muslim:4.7, christian:26.7,blo:52.54,prog:83.98,margin:37.2,priority:'🟠 HIGH',      wsi:61.3, wsiGrade:'B MEDIUM',   prediction:'BJP WIN — CHRISTIAN SWING',   totalElectors:7246,  why:'Christian vote (26.7%) is decisive swing. When Christians vote BJP wins big.',gap:'Christian community alienated post-2018. Women turnout lower than men.',action:'Dedicate Christian community liaison; female BJP worker per booth',bjpTarget:'🎯 4,500+',turnoutTarget:'🎯 65%',sirTarget:'🎯 72%',trend:'→ Fluctuating',risk2025:'🟠 CHRISTIAN SWING'},
+    { w:46, n:'Cantonment',   cls:'BJP STRONG',            poll:51.2,hjp:73.8,hindu:73.8,muslim:20.7,christian:5.5, blo:56.25,prog:72.79,margin:47.6,priority:'🟠 HIGH',      wsi:60.5, wsiGrade:'B MEDIUM',   prediction:'BJP WIN — TURNOUT WATCH',      totalElectors:4095,  why:'Army/government servants — split vote. 20.7% Muslim votes Congress. Lowest turnout in strong wards.',gap:'Military community often not on rolls. Only 56.25% BLO coverage.',action:'Voter registration drive for military; engage Muslim moderates on development; increase BLO',bjpTarget:'🎯 2,800+',turnoutTarget:'🎯 64%',sirTarget:'🎯 75%',trend:'→ Stable narrow',risk2025:'TURNOUT WATCH'},
+    { w:25, n:'Derebail West', cls:'BJP STRONGHOLD',       poll:65.9,hjp:85.1,hindu:85.1,muslim:0.8, christian:14.1,blo:59.87,prog:85.34,margin:70.2,priority:'— NORMAL',    wsi:75.3, wsiGrade:'A+ STRONG',  prediction:'BJP WIN — COMFORTABLE',        totalElectors:7314,  why:'Highest turnout of BJP stronghold (65.9%). Billava OBC community highly organised. BJP\'s model ward.',gap:'BLO coverage 59.87% despite good turnout — risk of voter deletion.',action:'Maintain momentum; use as model for other wards',bjpTarget:'🎯 5,800+',turnoutTarget:'🎯 70%',sirTarget:'🎯 75%',trend:'↑ Consistently strong',risk2025:'— NORMAL'},
+    { w:26, n:'Derebail SW',   cls:'BJP STRONGHOLD',       poll:60.4,hjp:87.9,hindu:87.9,muslim:0.6, christian:11.5,blo:56.96,prog:75.78,margin:75.8,priority:'— NORMAL',    wsi:74.5, wsiGrade:'A+ STRONG',  prediction:'BJP WIN — COMFORTABLE',        totalElectors:7801,  why:'Strong Billava/Devadiga base. Low minority presence. RSS/VHP network highly active.',gap:'Progeny only 75.78% — some uncovered. NRI families not reachable.',action:'Youth wing activation; connect with diaspora network for NRI votes',bjpTarget:'🎯 6,400+',turnoutTarget:'🎯 68%',sirTarget:'🎯 75%',trend:'↑ Very consistent',risk2025:'— NORMAL'},
+    { w:30, n:'Kodialbail',    cls:'BJP STRONGHOLD',       poll:62.9,hjp:80.9,hindu:80.9,muslim:1.2, christian:17.9,blo:52.89,prog:75.01,margin:61.8,priority:'— NORMAL',    wsi:70.4, wsiGrade:'A STRONG',   prediction:'BJP WIN — SAFE',               totalElectors:7871,  why:'BJP stronghold with stable Hindu majority and rising turnout.',gap:'BLO only 52.89%, progeny 75% — gaps in mapping.',action:'BLO completion drive; Christian community welfare schemes',bjpTarget:'🎯 5,900+',turnoutTarget:'🎯 68%',sirTarget:'🎯 75%',trend:'→ Stable',risk2025:'— NORMAL'},
+    { w:51, n:'Alape North',   cls:'BJP STRONG',           poll:63.0,hjp:68.5,hindu:68.5,muslim:1.4, christian:30.0,blo:57.28,prog:106.1,margin:37.0,priority:'— NORMAL',    wsi:64.6, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7200,  why:'Billava+GSB coastal ward; stable BJP base.',gap:'Christian 30% needs engagement. Progeny 106% — audit ghost entries.',action:'Audit progeny list; Protestant Christian outreach',bjpTarget:'🎯 4,600+',turnoutTarget:'🎯 68%',sirTarget:'🎯 75%',trend:'↑→ Stable',risk2025:'— NORMAL'},
+    { w:35, n:'Padav Central', cls:'BJP STRONG',           poll:64.9,hjp:68.3,hindu:68.3,muslim:4.6, christian:27.1,blo:56.32,prog:78.03,margin:36.6,priority:'— NORMAL',    wsi:64.3, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:8462,  why:'Christian+Hindu mix; BJP holds with good candidate.',gap:'Christian 27% unpredictable. Progeny 78% needs uplift.',action:'Protestant outreach; maintain booth committee structure',bjpTarget:'🎯 5,400+',turnoutTarget:'🎯 70%',sirTarget:'🎯 72%',trend:'↑→ Stable',risk2025:'— NORMAL'},
+    { w:37, n:'Maroli',        cls:'BJP STRONG',           poll:61.6,hjp:68.7,hindu:68.7,muslim:0.8, christian:30.5,blo:64.16,prog:102.16,margin:37.4,priority:'— NORMAL',   wsi:65.0, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:6718,  why:'BJP strong with high Hindu base and great BLO coverage.',gap:'Christian 30.5% needs Protestant outreach. Progeny 102% — audit entries.',action:'Protestant Christian engagement; verify progeny list',bjpTarget:'🎯 4,400+',turnoutTarget:'🎯 68%',sirTarget:'🎯 80%',trend:'→ Stable',risk2025:'— NORMAL'},
+    { w:54, n:'Jappimogar',    cls:'BJP STRONG',           poll:61.1,hjp:71.6,hindu:71.6,muslim:7.4, christian:20.9,blo:64.09,prog:94.69,margin:43.2,priority:'— NORMAL',    wsi:66.0, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7266,  why:'BJP strong coastal ward with good BLO coverage.',gap:'Christian 20.9% and Muslim 7.4% need development messaging.',action:'Maintain BLO lead; Muslim moderate development outreach',bjpTarget:'🎯 4,900+',turnoutTarget:'🎯 68%',sirTarget:'🎯 80%',trend:'→ Stable',risk2025:'— NORMAL'},
+    { w:58, n:'Bolar',         cls:'BJP STRONG',           poll:60.9,hjp:71.8,hindu:71.8,muslim:19.6,christian:8.6, blo:53.2, prog:79.37,margin:43.6,priority:'— NORMAL',    wsi:64.5, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7107,  why:'BJP strong with Kharvi community support. Coastal merchant community pro-BJP.',gap:'BLO 53.2% — below average. Muslim 19.6% consolidated against.',action:'Kharvi Sangha engagement; BLO completion; merchant association linkage',bjpTarget:'🎯 4,600+',turnoutTarget:'🎯 68%',sirTarget:'🎯 72%',trend:'→ Stable',risk2025:'— NORMAL'},
+    { w:49, n:'Kankanady',     cls:'BJP STRONG',           poll:61.4,hjp:76.1,hindu:76.1,muslim:10.8,christian:13.1,blo:57.73,prog:96.22,margin:52.2,priority:'— NORMAL',    wsi:67.8, wsiGrade:'B+ STRONG',  prediction:'BJP WIN — STABLE',             totalElectors:7527,  why:'Vokkaliga retention + Billava base. Strong BJP hold.',gap:'Muslim 10.8% needs development narrative.',action:'Vokkaliga BJP program; maintain BLO coverage',bjpTarget:'🎯 5,300+',turnoutTarget:'🎯 68%',sirTarget:'🎯 80%',trend:'→ Stable',risk2025:'— NORMAL'},
+    { w:57, n:'Hoige Bazar',   cls:'BJP STRONG',           poll:59.1,hjp:65.1,hindu:65.1,muslim:30.1,christian:4.8, blo:65.88,prog:101.37,margin:30.2,priority:'— NORMAL',   wsi:62.6, wsiGrade:'B STRONG',   prediction:'BJP WIN — MUSLIM WATCH',       totalElectors:4320,  why:'Muslim 30.1% is swing factor. Kharvi community highest turnout OBC. Merchant community pro-BJP.',gap:'Muslim 30% could flip if consolidated. Merchant community not fully engaged.',action:'Merchant association engagement; Kharvi community fest; Muslim moderate business outreach',bjpTarget:'🎯 2,700+',turnoutTarget:'🎯 66%',sirTarget:'🎯 80%',trend:'→ BJP holds',risk2025:'MUSLIM WATCH'},
+    { w:50, n:'Alape South',   cls:'BJP STRONG',           poll:67.3,hjp:76.1,hindu:76.1,muslim:8.9, christian:15.0,blo:56.48,prog:109.84,margin:52.2,priority:'— NORMAL',   wsi:69.9, wsiGrade:'A STRONG',   prediction:'BJP WIN — COMFORTABLE',        totalElectors:6284,  why:'Billava+GSB coastal ward; stable with highest turnout among strong wards.',gap:'Progeny 109.84% — audit ghost entries.',action:'Audit progeny; maintain Billava-GSB alliance; BLO top-up',bjpTarget:'🎯 4,500+',turnoutTarget:'🎯 72%',sirTarget:'🎯 75%',trend:'↑→ Stable',risk2025:'— NORMAL'},
+    { w:33, n:'Kadri South',   cls:'BJP FAVOURABLE',       poll:57.2,hjp:63.9,hindu:63.9,muslim:5.3, christian:30.8,blo:51.09,prog:75.37,margin:27.8,priority:'— NORMAL',    wsi:58.4, wsiGrade:'B- MEDIUM',  prediction:'BJP HOLDS — UNCERTAIN',        totalElectors:5843,  why:'Christian 30.8% is swing. BJP holds when Hindu vote consolidates.',gap:'BLO 51.09% — critically low. No BJP presence in Christian pockets.',action:'BLO completion urgently; Christian engagement through social service',bjpTarget:'🎯 3,500+',turnoutTarget:'🎯 65%',sirTarget:'🎯 72%',trend:'→ Moderate',risk2025:'— NORMAL'},
+    { w:55, n:'Athavara',      cls:'BJP FAVOURABLE',       poll:62.5,hjp:62.9,hindu:62.9,muslim:24.0,christian:13.1,blo:60.02,prog:99.92,margin:25.8,priority:'— NORMAL',    wsi:60.4, wsiGrade:'B MEDIUM',   prediction:'BJP WIN — MODERATE',           totalElectors:7856,  why:'BJP favourable with good turnout. Muslim 24% consolidated against.',gap:'Muslim 24% needs development narrative.',action:'Maintain Hindu consolidation; Muslim development outreach for 8-10% split',bjpTarget:'🎯 4,500+',turnoutTarget:'🎯 68%',sirTarget:'🎯 80%',trend:'→ Moderate',risk2025:'— NORMAL'},
+    { w:56, n:'Mangaladevi',   cls:'BJP FAVOURABLE',       poll:61.8,hjp:62.8,hindu:62.8,muslim:26.8,christian:10.5,blo:57.1, prog:83.28,margin:25.6,priority:'— NORMAL',    wsi:59.5, wsiGrade:'B- MEDIUM',  prediction:'BJP WIN — NARROW',             totalElectors:5358,  why:'BJP favourable with Muslim 26.8% opposition bloc.',gap:'Muslim consolidation risk. BLO 57% needs improvement.',action:'Hindu voter turnout focus; BLO completion; prevent Muslim bloc expansion',bjpTarget:'🎯 3,100+',turnoutTarget:'🎯 68%',sirTarget:'🎯 75%',trend:'→ Moderate',risk2025:'— NORMAL'},
+    { w:36, n:'Padav East',    cls:'BJP FAVOURABLE',       poll:46.9,hjp:60.2,hindu:60.2,muslim:3.9, christian:35.9,blo:52.81,prog:80.04,margin:20.4,priority:'🟡 MEDIUM',    wsi:52.7, wsiGrade:'C WEAK',     prediction:'BJP HOLDS — FRAGILE',          totalElectors:4471,  why:'Highest Christian population (35.9%). Swing ward — 2019 voted BJP; 2023 swung back.',gap:'46.9% LOWEST turnout. Christian 36% unpredictable. No BJP permanent presence in Christian pockets.',action:'Establish permanent community service centre in Christian pocket; welfare scheme targeting',bjpTarget:'🎯 2,800+',turnoutTarget:'🎯 62%',sirTarget:'🎯 75%',trend:'↓ Declining',risk2025:'🟡 CHRISTIAN BARRIER'},
+    { w:40, n:'Court',         cls:'CONTESTED (BJP Lean)',  poll:39.5,hjp:51.0,hindu:51.0,muslim:27.7,christian:21.4,blo:44.77,prog:88.36,margin:2.0, priority:'🟡 MEDIUM',    wsi:46.5, wsiGrade:'C- WEAK',    prediction:'TOSS-UP — TURNOUT DECISIVE',  totalElectors:5980,  why:'Very low turnout (39.5%). Highest Muslim share in contested ward (27.7%). BJP barely holds.',gap:'39.5% catastrophically low. Muslim+Christian > Hindu. Split Congress vote.',action:'Hyper-focus on Hindu voter mobilisation; deploy 3 volunteers per booth',bjpTarget:'🎯 3,100+',turnoutTarget:'🎯 60%',sirTarget:'🎯 72%',trend:'↓ Declining',risk2025:'🟡 HIGH VOLATILITY'},
+    { w:34, n:'Shivabagh',     cls:'CONTESTED (BJP Lean)',  poll:50.2,hjp:52.2,hindu:52.2,muslim:11.7,christian:36.1,blo:53.38,prog:98.08,margin:4.4, priority:'🟡 MEDIUM',    wsi:50.2, wsiGrade:'C WEAK',     prediction:'TOSS-UP — CHRISTIAN FACTOR',  totalElectors:6294,  why:'Christian majority ward becoming Congress stronghold. Catholic church mobilises against BJP.',gap:'98% progeny but only 53% BLO — ghost voters. Catholic church mobilises against BJP.',action:'Find respected Catholic BJP supporter; develop Christian welfare narrative',bjpTarget:'🎯 3,400+',turnoutTarget:'🎯 65%',sirTarget:'🎯 80%',trend:'↓ 2018→2023 loss',risk2025:'🟡 CHRISTIAN BARRIER'},
+    { w:59, n:'Jeppu',         cls:'CONTESTED (BJP Lean)',  poll:57.3,hjp:52.4,hindu:52.4,muslim:18.7,christian:29.0,blo:57.05,prog:97.0, margin:4.8, priority:'🟡 MEDIUM',    wsi:52.8, wsiGrade:'C WEAK',     prediction:'TOSS-UP — CANDIDATE KEY',     totalElectors:7711,  why:'Three-religion ward. BJP wins only when Hindu vote consolidates AND some Christians cross-vote.',gap:'97% progeny — many duplicates/ghost entries. Muslim+Christian = 47.7% near majority.',action:'Audit progeny list; field cross-community candidate; visible development work',bjpTarget:'🎯 4,200+',turnoutTarget:'🎯 67%',sirTarget:'🎯 80%',trend:'→ Marginal',risk2025:'CANDIDATE DEPENDENT'},
+    { w:48, n:'Valencia',      cls:'CONTESTED (BJP Lean)',  poll:49.2,hjp:53.6,hindu:53.6,muslim:11.5,christian:34.9,blo:57.89,prog:92.99,margin:7.2, priority:'🟡 MEDIUM',    wsi:49.3, wsiGrade:'C- WEAK',    prediction:'TOSS-UP — FRAGILE',           totalElectors:5090,  why:'Christian 35% + Muslim 11.5% = 46.4% opposition bloc. BJP holds due to Hindu plurality.',gap:'49.2% turnout — if turnout rises, BJP loses. Christian community organisationally strong.',action:'Ensure BJP Hindu voters turnout >65%; ward-specific welfare for Christians',bjpTarget:'🎯 2,900+',turnoutTarget:'🎯 65%',sirTarget:'🎯 72%',trend:'↓ Eroding',risk2025:'CANDIDATE DEPENDENT'},
+    { w:53, n:'Bajal',         cls:'CONTESTED (Cong Lean)', poll:55.1,hjp:47.8,hindu:47.8,muslim:45.2,christian:7.1, blo:59.3, prog:91.89,margin:-4.4,priority:'— NORMAL',    wsi:48.2, wsiGrade:'C- WEAK',    prediction:'CONGRESS LEAN — OPPORTUNITY', totalElectors:7805,  why:'Muslim 45% but JDS/BJP splitting Congress. BJP gaining slowly.',gap:'Muslim 45.2% near majority. BJP needs 8-10% Muslim split via development narrative.',action:'Muslim moderate outreach on development; audit progeny; maintain Hindu base',bjpTarget:'🎯 3,700+',turnoutTarget:'🎯 65%',sirTarget:'🎯 80%',trend:'→↑ Improving',risk2025:'🟡 OPPORTUNITY'},
+    { w:45, n:'Port',          cls:'CONTESTED (Cong Lean)', poll:63.8,hjp:47.6,hindu:47.6,muslim:40.9,christian:11.4,blo:62.19,prog:93.55,margin:-4.8,priority:'— NORMAL',    wsi:51.0, wsiGrade:'C WEAK',     prediction:'CONGRESS LEAN — BJP GAINING', totalElectors:7153,  why:'Port area development narrative working for BJP.',gap:'Muslim+Christian = 52.3% opposition bloc.',action:'Port modernisation narrative; Muslim moderate development outreach',bjpTarget:'🎯 3,400+',turnoutTarget:'🎯 70%',sirTarget:'🎯 80%',trend:'→↑ Improving',risk2025:'🟡 OPPORTUNITY'},
+    { w:52, n:'Kannur',        cls:'CONGRESS FAVOURABLE',   poll:61.2,hjp:40.1,hindu:40.1,muslim:56.9,christian:3.0, blo:58.83,prog:91.81,margin:-19.8,priority:'— NORMAL',   wsi:45.4, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN — FIGHT FOR 2ND', totalElectors:7045,  why:'Muslim majority stable Congress vote.',gap:'Muslim 56.9% near total Congress. No BJP presence.',action:'Limit damage; identify Hindu community leaders; long-term only',bjpTarget:'🎯 2,800+',turnoutTarget:'🎯 68%',sirTarget:'🎯 80%',trend:'→ Congress',risk2025:'— NORMAL'},
+    { w:47, n:'Milagress',     cls:'CONGRESS FAVOURABLE',   poll:55.0,hjp:43.5,hindu:43.5,muslim:34.8,christian:21.8,blo:54.15,prog:71.6, margin:-13.0,priority:'— NORMAL',   wsi:44.2, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN — REDUCE MARGIN', totalElectors:7210,  why:'Muslim+Christian = 56.6% opposition bloc.',gap:'Hindu 43.5% unorganised. BLO coverage 54.15% — low.',action:'Limit damage; Hindu community welfare; reduce loss margin <20%',bjpTarget:'🎯 3,100+',turnoutTarget:'🎯 62%',sirTarget:'🎯 75%',trend:'→ Congress',risk2025:'— NORMAL'},
+    { w:38, n:'Bendur',        cls:'CONGRESS STRONG',        poll:52.1,hjp:32.2,hindu:32.2,muslim:25.2,christian:42.6,blo:59.41,prog:85.11,margin:-35.6,priority:'🟢 WATCH',   wsi:38.6, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN — WATCH',         totalElectors:6296,  why:'Catholic + Muslim supermajority. Congress territory.',gap:'Zero BJP ward committee active. Even Hindu voters (32%) not mobilised.',action:'Damage limitation; field credible local candidate; reduce loss margin <25%',bjpTarget:'🎯 2,200+',turnoutTarget:'🎯 60%',sirTarget:'🎯 80%',trend:'→ Stable Cong',risk2025:'ACCEPT LOSS — MINIMIZE'},
+    { w:60, n:'Bengre',        cls:'CONGRESS STRONG',        poll:41.6,hjp:30.9,hindu:30.9,muslim:68.3,christian:0.8, blo:60.39,prog:127.86,margin:-38.2,priority:'🟢 WATCH',  wsi:38.4, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN — WATCH',         totalElectors:10897, why:'Muslim supermajority (68.3%). BJP winning here requires sea change.',gap:'Lowest turnout (41.6%). BJP presence effectively zero. Hindu 30.9% unorganised.',action:'Long-term: cultivate Hindu community leaders; accept ward as loss, minimise margin',bjpTarget:'🎯 3,400+',turnoutTarget:'🎯 55%',sirTarget:'🎯 90%',trend:'→ Cong fortress',risk2025:'LONG TERM STRATEGY'},
+    { w:44, n:'Bunder',        cls:'CONGRESS STRONG',        poll:58.0,hjp:34.6,hindu:34.6,muslim:65.1,christian:0.3, blo:54.6, prog:81.31,margin:-30.8,priority:'— NORMAL',   wsi:39.6, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN',                 totalElectors:5871,  why:'Muslim majority Congress ward.',gap:'Muslim 65.1% near total Congress dominance.',action:'Limit damage; Muslim business development loans; Hindu community welfare',bjpTarget:'🎯 2,000+',turnoutTarget:'🎯 65%',sirTarget:'🎯 75%',trend:'→ Congress',risk2025:'— NORMAL'},
+    { w:39, n:'Falnir',        cls:'CONGRESS STRONG',        poll:56.3,hjp:32.1,hindu:32.1,muslim:9.2, christian:58.7,blo:60.47,prog:96.65,margin:-35.8,priority:'— NORMAL',   wsi:38.3, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN',                 totalElectors:6526,  why:'Christian majority (58.7%) strongly Congress.',gap:'Christian 58.7% highly organised for Congress. No BJP footing.',action:'Limit damage; Christian welfare narrative',bjpTarget:'🎯 2,200+',turnoutTarget:'🎯 63%',sirTarget:'🎯 80%',trend:'→ Congress',risk2025:'— NORMAL'},
+    { w:43, n:'Kudroli',       cls:'CONGRESS STRONG',        poll:62.1,hjp:28.8,hindu:28.8,muslim:68.2,christian:3.0, blo:53.24,prog:74.07,margin:-42.4,priority:'— NORMAL',   wsi:36.3, wsiGrade:'D CONGRESS', prediction:'CONGRESS WIN',                 totalElectors:5765,  why:'Muslim supermajority. Lowest BJP projection in all wards.',gap:'Muslim 68.2% total Congress. BLO 53.24% — even low in loss ward.',action:'Limit damage; minimum resources; focus elsewhere',bjpTarget:'🎯 1,700+',turnoutTarget:'🎯 68%',sirTarget:'🎯 75%',trend:'→ Congress',risk2025:'— NORMAL'},
   ];
 
   const RELIGION_DATA = [
-    { religion:'Hindu',     total:160051, polled:97317,  turnout:60.8, alignment:'DECISIVE — BJP BASE',    bjp:'85–90% strong wards' },
-    { religion:'Muslim',    total:45074,  polled:22487,  turnout:49.9, alignment:'OPPOSITION BLOC',         bjp:'2–5% swing possible' },
-    { religion:'Christian', total:41835,  polled:21903,  turnout:52.4, alignment:'KEY SWING COMMUNITY',    bjp:'Varies 30–70%' },
+    { religion:'Hindu',     total:160051, polled:97317,  turnout:60.8, alignment:'🔴 DECISIVE — BJP BASE',    bjp:'85–90% strong wards' },
+    { religion:'Muslim',    total:45074,  polled:22487,  turnout:49.9, alignment:'🟡 OPPOSITION BLOC',         bjp:'2–5% swing possible' },
+    { religion:'Christian', total:41835,  polled:21903,  turnout:52.4, alignment:'🟡 KEY SWING COMMUNITY',    bjp:'Varies 30–70%' },
   ];
   const COMMUNITY_DATA = [
-    { c:'Kharvi',                 total:584,   polled:455,  turnout:77.9, cat:'OBC',     align:'STRONG BJP',  note:'Highest turnout OBC — engage Kharvi Sangha leaders' },
-    { c:'Devadiga',               total:4018,  polled:2652, turnout:66.0, cat:'OBC',     align:'STRONG BJP',  note:'VHP/RSS network strong; activate for booth duty' },
-    { c:'GSB',                    total:19817, polled:12078,turnout:60.9, cat:'GC',      align:'STRONG BJP',  note:'Largest GC community; brahmin-GSB alliance critical' },
-    { c:'Bunt/Billava/Mogaveera', total:24826, polled:15381,turnout:61.9, cat:'OBC',     align:'STRONG BJP',  note:'LARGEST OBC bloc — 24,826 voters; must win 75%+' },
-    { c:'Billava/Devadiga',       total:25127, polled:15933,turnout:63.4, cat:'OBC',     align:'STRONG BJP',  note:'Second largest community; Derebail belt stronghold' },
-    { c:'Brahmin/Multi-community',total:18018, polled:10738,turnout:59.6, cat:'GC',      align:'STRONG BJP',  note:'BJP traditional base; risk of staying home if no energy' },
-    { c:'Vokkaliga',              total:2976,  polled:1697, turnout:57.0, cat:'OBC',     align:'SPLIT',       note:'JDS+BJP; must prevent Congress poaching' },
-    { c:'Mogaveera',              total:11837, polled:7333, turnout:61.9, cat:'OBC',     align:'MOSTLY BJP',  note:'Fishing community; welfare scheme sensitive' },
-    { c:'Mangalorean Catholic',   total:34005, polled:18142,turnout:53.4, cat:'Minority',align:'SWING',       note:'35,000 voters — if 40% vote BJP, DECISIVE SWING' },
-    { c:'Muslim',                 total:39289, polled:19685,turnout:50.1, cat:'Minority',align:'OPPOSITION',  note:'Target moderate Muslims on development narrative' },
+    { c:'Kharvi',                 total:584,   polled:455,  turnout:77.9, cat:'OBC',     align:'🟢 STRONG BJP',  note:'Highest turnout OBC — engage Kharvi Sangha leaders' },
+    { c:'Devadiga',               total:4018,  polled:2652, turnout:66.0, cat:'OBC',     align:'🟢 STRONG BJP',  note:'VHP/RSS network strong; activate for booth duty' },
+    { c:'GSB',                    total:19817, polled:12078,turnout:60.9, cat:'GC',      align:'🟢 STRONG BJP',  note:'Largest GC community; brahmin-GSB alliance critical' },
+    { c:'Bunt/Billava/Mogaveera', total:24826, polled:15381,turnout:61.9, cat:'OBC',     align:'🟢 STRONG BJP',  note:'LARGEST OBC bloc — 24,826 voters; must win 75%+' },
+    { c:'Billava/Devadiga',       total:25127, polled:15933,turnout:63.4, cat:'OBC',     align:'🟢 STRONG BJP',  note:'Second largest community; Derebail belt stronghold' },
+    { c:'Brahmin/Multi-community',total:18018, polled:10738,turnout:59.6, cat:'GC',      align:'🟢 STRONG BJP',  note:'BJP traditional base; risk of staying home if no energy' },
+    { c:'Vokkaliga',              total:2976,  polled:1697, turnout:57.0, cat:'OBC',     align:'🟡 SPLIT',       note:'JDS+BJP; must prevent Congress poaching' },
+    { c:'Mogaveera',              total:11837, polled:7333, turnout:61.9, cat:'OBC',     align:'🟢 MOSTLY BJP',  note:'Fishing community; welfare scheme sensitive' },
+    { c:'Mangalorean Catholic',   total:34005, polled:18142,turnout:53.4, cat:'Minority',align:'🔴 SWING',       note:'35,000 voters — if 40% vote BJP, DECISIVE SWING' },
+    { c:'Muslim',                 total:39289, polled:19685,turnout:50.1, cat:'Minority',align:'🔴 OPPOSITION',  note:'Target moderate Muslims on development narrative' },
   ];
   const HIST_SUMMARY = [
     { metric:'Total Voters',      v2013:'229K', v2014:'235K', v2018:'238K', v2019:'238K', v2023:'247K', trend:'↑ Growing',   proj:'~252K' },
     { metric:'Turnout %',         v2013:'~65%', v2014:'~70%', v2018:'67.3%',v2019:'70.5%',v2023:'64.6%',trend:'↓ Declining',proj:'Target 68%' },
-    { metric:'BJP CheckSquare Share %',  v2013:'~52%', v2014:'~55%', v2018:'55.4%',v2019:'57.4%',v2023:'56.0%',trend:'→ Stable',   proj:'Target 58%' },
-    { metric:'Cong CheckSquare Share %', v2013:'~45%', v2014:'~38%', v2018:'42.1%',v2019:'39.5%',v2023:'42.2%',trend:'→ Stable',   proj:'~40%' },
+    { metric:'BJP Vote Share %',  v2013:'~52%', v2014:'~55%', v2018:'55.4%',v2019:'57.4%',v2023:'56.0%',trend:'→ Stable',   proj:'Target 58%' },
+    { metric:'Cong Vote Share %', v2013:'~45%', v2014:'~38%', v2018:'42.1%',v2019:'39.5%',v2023:'42.2%',trend:'→ Stable',   proj:'~40%' },
     { metric:'Win Margin (avg)',  v2013:'—',    v2014:'—',    v2018:'14.7%',v2019:'17.8%',v2023:'12.4%',trend:'↓ Narrowing',proj:'Need >15%' },
     { metric:'Non-Voters (BJP)',  v2013:'~70K', v2014:'~65K', v2018:'~78K', v2019:'~70K', v2023:'~105K',trend:'↑ CRITICAL', proj:'Reduce to 85K' },
   ];
@@ -3261,18 +3235,18 @@ function PoliticalIntelligenceHub() {
     ]},
   ];
   const POLICIES = [
-    {code:'INFRA-01', cat:'Infrastructure',item:'Mangaluru Coastal Road — Bengre-Bolar promenade & road widening.',target:'Bengre, Port, Bolar',impact:'HIGH'},
-    {code:'INFRA-03', cat:'Infrastructure',item:'Mangaluru Tech Hub — IT/startup zone in Derebail/Padav. Youth employment.',target:'Derebail West/NW',impact:'HIGH'},
-    {code:'INFRA-04', cat:'Infrastructure',item:'Port Modernisation — Central BJP investment. Jobs for Kharvi, Mogaveera.',target:'Bolar, Hoige Bazar, Port',impact:'HIGH'},
-    {code:'WELFARE-01',cat:'Welfare',      item:'Billava-Devadiga Skill Development Fund — ₹5000 scholarship/year.',target:'All Derebail wards',impact:'CRITICAL'},
-    {code:'WELFARE-02',cat:'Welfare',      item:'Coastal Fisherfolk Welfare — Blue ration card, boat insurance, Kharvi-Mogaveera marketing.',target:'Hoige Bazar, Bolar',impact:'HIGH'},
-    {code:'WELFARE-03',cat:'Welfare',      item:'Christian Education Grant — merit scholarships for Christian students.',target:'Bejai, Shivabagh, Valencia',impact:'HIGH'},
-    {code:'WELFARE-05',cat:'Welfare',      item:'Senior Citizen Health Scheme — free health camps + Ayushman for 60+ all communities.',target:'All BJP wards',impact:'HIGH'},
-    {code:'CULTURE-01',cat:'Cultural',     item:'Heritage Conservation — Kadri temple corridor beautification.',target:'Kadri, Kudroli area',impact:'HIGH'},
-    {code:'CULTURE-03',cat:'Cultural',     item:"Zero-Tolerance Safety — 'Safe Mangaluru' report. Counter Congress riots narrative.",target:'Constituency-wide',impact:'CRITICAL'},
-    {code:'GRASS-01',  cat:'Grassroots',   item:'Ward-Level Janata Darbar — MLA holds monthly open grievance in each ward.',target:'All 38 wards',impact:'CRITICAL'},
-    {code:'GRASS-02',  cat:'Grassroots',   item:'SIR Survey Completion — 100% BLO mapping. Currently ~60%. Win the unmapped 40%.',target:'All wards',impact:'CRITICAL'},
-    {code:'GRASS-03',  cat:'Grassroots',   item:'Booth Sahayogi Network — 1 trained volunteer per 100 voters. Year-round help desk.',target:'Priority: risk wards',impact:'HIGH'},
+    {code:'INFRA-01', cat:'Infrastructure',item:'Mangaluru Coastal Road — Bengre-Bolar promenade & road widening.',target:'Bengre, Port, Bolar',impact:'🏗 HIGH'},
+    {code:'INFRA-03', cat:'Infrastructure',item:'Mangaluru Tech Hub — IT/startup zone in Derebail/Padav. Youth employment.',target:'Derebail West/NW',impact:'💼 HIGH'},
+    {code:'INFRA-04', cat:'Infrastructure',item:'Port Modernisation — Central BJP investment. Jobs for Kharvi, Mogaveera.',target:'Bolar, Hoige Bazar, Port',impact:'🚢 HIGH'},
+    {code:'WELFARE-01',cat:'Welfare',      item:'Billava-Devadiga Skill Development Fund — ₹5000 scholarship/year.',target:'All Derebail wards',impact:'💰 CRITICAL'},
+    {code:'WELFARE-02',cat:'Welfare',      item:'Coastal Fisherfolk Welfare — Blue ration card, boat insurance, Kharvi-Mogaveera marketing.',target:'Hoige Bazar, Bolar',impact:'🎣 HIGH'},
+    {code:'WELFARE-03',cat:'Welfare',      item:'Christian Education Grant — merit scholarships for Christian students.',target:'Bejai, Shivabagh, Valencia',impact:'📚 HIGH'},
+    {code:'WELFARE-05',cat:'Welfare',      item:'Senior Citizen Health Scheme — free health camps + Ayushman for 60+ all communities.',target:'All BJP wards',impact:'🏥 HIGH'},
+    {code:'CULTURE-01',cat:'Cultural',     item:'Heritage Conservation — Kadri temple corridor beautification.',target:'Kadri, Kudroli area',impact:'🛕 HIGH'},
+    {code:'CULTURE-03',cat:'Cultural',     item:"Zero-Tolerance Safety — 'Safe Mangaluru' report. Counter Congress riots narrative.",target:'Constituency-wide',impact:'🛡 CRITICAL'},
+    {code:'GRASS-01',  cat:'Grassroots',   item:'Ward-Level Janata Darbar — MLA holds monthly open grievance in each ward.',target:'All 38 wards',impact:'👥 CRITICAL'},
+    {code:'GRASS-02',  cat:'Grassroots',   item:'SIR Survey Completion — 100% BLO mapping. Currently ~60%. Win the unmapped 40%.',target:'All wards',impact:'📋 CRITICAL'},
+    {code:'GRASS-03',  cat:'Grassroots',   item:'Booth Sahayogi Network — 1 trained volunteer per 100 voters. Year-round help desk.',target:'Priority: risk wards',impact:'🤝 HIGH'},
   ];
   const CALENDAR = [
     {phase:'T-12: Foundation',  color:'#8b5cf6',items:[
@@ -3304,30 +3278,30 @@ function PoliticalIntelligenceHub() {
     ]},
   ];
   const INSIGHTS = [
-    {n:1, sev:'HIGH',title:"Low Turnout = BJP's #1 Enemy",          msg:'In 8 strongholds turnout <58%. At 66%, BJP gains +8,500 votes — more than winning margin.',                action:'MOBILISE: Transport, booth agents, 72-hour voter contact'},
-    {n:2, sev:'MED',title:'Christian CheckSquare is Swing Decider',       msg:'41,835 Christians. BJP gets ~38%. At 45% in 6 swing wards: +2,800 votes — flips 3 wards.',              action:'PENETRATE: Year-round service, welfare scheme, credible candidate'},
-    {n:3, sev:'HIGH',title:'105,000 Non-Voters — Biggest Base',     msg:'105,253 did not vote 2023. At 56% BJP share = 59,000 potential votes LEFT HOME.',                       action:'MOBILISE: SIR completion, transport, booth activation'},
-    {n:4, sev:'LOW',title:'OBC Consolidation Partially Complete',  msg:'Billava+Devadiga+Mogaveera+Bunt = ~70,000. Need 72%+. 10-point OBC gain = +4,200 votes.',              action:'CONSOLIDATE: Community conventions, welfare schemes'},
-    {n:5, sev:'HIGH',title:'Boloor — Most Critical, 50.8% Turnout', msg:'87.5% BJP projection but 50.8% turnout. ~5,400 BJP voters at home. Could FLIP.',                       action:'URGENT: Emergency mobilisation in Boloor — top priority'},
-    {n:6, sev:'MED',title:'SIR Mapping — 33% Electorate Invisible',msg:'Avg BLO 60%, progeny 82%. Combined reach ~67%. 33% of electorate INVISIBLE to party machinery.',        action:'DATA: Complete all SIR surveys; prioritise Boloor, Derebail South, Bejai'},
-    {n:7, sev:'LOW',title:'Muslim CheckSquare Cannot Win — Only Split',    msg:'39,289 Muslims 50.1% turnout. 95%+ Congress. BUT 8-10% in Bajal/Port/Hoige Bazar = decisive.',         action:'MICRO-PENETRATE: Business development loans, development narrative'},
-    {n:8, sev:'LOW',title:'Women Voters = Underutilised Asset',    msg:'83,497 women Hindu voters. Turnout 60.7% — near equal to men. Mahila Morcha can close gap.',            action:'MOBILISE: Mahila Morcha Har Ghar; women-specific welfare'},
-    {n:9, sev:'MED',title:'Court Ward — Lowest Turnout = Opportunity',msg:'39.5% turnout. Every 1% rise = 60 new votes. Most elastic ward in constituency.',                    action:'HYPER-FOCUS: 3 volunteers per booth, transport, last-mile'},
-    {n:10,sev:'MED',title:'Candidate is a Multiplier',             msg:'In contested wards (>25% Christian/Muslim), candidate cross-community appeal adds 3–8% swing.',         action:'SELECTION: Candidate must have cross-community network in target wards'},
+    {n:1, sev:'🔴',title:"Low Turnout = BJP's #1 Enemy",          msg:'In 8 strongholds turnout <58%. At 66%, BJP gains +8,500 votes — more than winning margin.',                action:'MOBILISE: Transport, booth agents, 72-hour voter contact'},
+    {n:2, sev:'🟠',title:'Christian Vote is Swing Decider',       msg:'41,835 Christians. BJP gets ~38%. At 45% in 6 swing wards: +2,800 votes — flips 3 wards.',              action:'PENETRATE: Year-round service, welfare scheme, credible candidate'},
+    {n:3, sev:'🔴',title:'105,000 Non-Voters — Biggest Base',     msg:'105,253 did not vote 2023. At 56% BJP share = 59,000 potential votes LEFT HOME.',                       action:'MOBILISE: SIR completion, transport, booth activation'},
+    {n:4, sev:'🟡',title:'OBC Consolidation Partially Complete',  msg:'Billava+Devadiga+Mogaveera+Bunt = ~70,000. Need 72%+. 10-point OBC gain = +4,200 votes.',              action:'CONSOLIDATE: Community conventions, welfare schemes'},
+    {n:5, sev:'🔴',title:'Boloor — Most Critical, 50.8% Turnout', msg:'87.5% BJP projection but 50.8% turnout. ~5,400 BJP voters at home. Could FLIP.',                       action:'URGENT: Emergency mobilisation in Boloor — top priority'},
+    {n:6, sev:'🟠',title:'SIR Mapping — 33% Electorate Invisible',msg:'Avg BLO 60%, progeny 82%. Combined reach ~67%. 33% of electorate INVISIBLE to party machinery.',        action:'DATA: Complete all SIR surveys; prioritise Boloor, Derebail South, Bejai'},
+    {n:7, sev:'🟡',title:'Muslim Vote Cannot Win — Only Split',    msg:'39,289 Muslims 50.1% turnout. 95%+ Congress. BUT 8-10% in Bajal/Port/Hoige Bazar = decisive.',         action:'MICRO-PENETRATE: Business development loans, development narrative'},
+    {n:8, sev:'🟡',title:'Women Voters = Underutilised Asset',    msg:'83,497 women Hindu voters. Turnout 60.7% — near equal to men. Mahila Morcha can close gap.',            action:'MOBILISE: Mahila Morcha Har Ghar; women-specific welfare'},
+    {n:9, sev:'🟠',title:'Court Ward — Lowest Turnout = Opportunity',msg:'39.5% turnout. Every 1% rise = 60 new votes. Most elastic ward in constituency.',                    action:'HYPER-FOCUS: 3 volunteers per booth, transport, last-mile'},
+    {n:10,sev:'🟠',title:'Candidate is a Multiplier',             msg:'In contested wards (>25% Christian/Muslim), candidate cross-community appeal adds 3–8% swing.',         action:'SELECTION: Candidate must have cross-community network in target wards'},
   ];
 
   const TABS = [
-    {id:'heatmap',  label:'Heatmap'},
-    {id:'why',      label:'Why S/M/W'},
-    {id:'wsi',      label:'WSI Scores'},
-    {id:'community',label:'Community'},
-    {id:'history',  label:'History'},
-    {id:'math',     label:'Math'},
-    {id:'strategy', label:'Strategy'},
-    {id:'policy',   label:'Policy'},
-    {id:'tracker',  label:'Tracker'},
-    {id:'calendar', label:'Calendar'},
-    {id:'insights', label:'Insights'},
+    {id:'heatmap',  label:'🗺 Heatmap'},
+    {id:'why',      label:'🔍 Why S/M/W'},
+    {id:'wsi',      label:'🏆 WSI Scores'},
+    {id:'community',label:'🕉 Community'},
+    {id:'history',  label:'📅 History'},
+    {id:'math',     label:'🧮 Math'},
+    {id:'strategy', label:'🎯 Strategy'},
+    {id:'policy',   label:'📋 Policy'},
+    {id:'tracker',  label:'✅ Tracker'},
+    {id:'calendar', label:'📅 Calendar'},
+    {id:'insights', label:'💡 Insights'},
   ];
 
   const clsCfg = (cls) => {
@@ -3356,9 +3330,8 @@ function PoliticalIntelligenceHub() {
               <div style={{fontSize:12,color:'rgba(255,255,255,0.35)',marginTop:2}}>Mangaluru City South · 38 wards · 246,960 electors · Decadal analysis 2013–2025</div>
             </div>
             <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
-              {[{v:18,l:'BJP wards',c:'#10b981',ic:ShieldCheck},{v:5,l:'Contested',c:'#f97316',ic:Crosshair},{v:9,l:'Cong wards',c:'#8b5cf6',ic:Flag},{v:'58%',l:'Win probability',c:'#f59e0b',ic:Target}].map(s=>(
-                <div key={s.l} style={{background:`${s.c}15`,border:`1px solid ${s.c}30`,borderRadius:10,padding:'5px 12px',textAlign:'center',minWidth:70}}>
-                  {s.ic && <div style={{display:'flex',justifyContent:'center',marginBottom:3}}><IC icon={s.ic} size={15} color={s.c}/></div>}
+              {[{v:18,l:'BJP wards',c:'#10b981'},{v:5,l:'Contested',c:'#f97316'},{v:9,l:'Cong wards',c:'#8b5cf6'},{v:'58%',l:'Win probability',c:'#f59e0b'}].map(s=>(
+                <div key={s.l} style={{background:`${s.c}15`,border:`1px solid ${s.c}30`,borderRadius:10,padding:'5px 12px',textAlign:'center'}}>
                   <div style={{fontSize:17,fontWeight:900,color:s.c}}>{s.v}</div>
                   <div style={{fontSize:10,color:'rgba(255,255,255,0.4)'}}>{s.l}</div>
                 </div>
@@ -3386,14 +3359,14 @@ function PoliticalIntelligenceHub() {
                           <div style={{fontSize:12,fontWeight:700,color:'var(--text-1)'}}>W{d.w} · {d.n}</div>
                           <div style={{fontSize:10,color:'rgba(255,255,255,0.3)'}}>{d.totalElectors.toLocaleString()} electors</div>
                         </div>
-                        <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:4,background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.color}44`,display:'inline-flex',alignItems:'center',gap:3}}><IC icon={cfg.label==='STRONGHOLD'?ShieldCheck:cfg.label==='STRONG'?Zap:cfg.label==='FAVOURABLE'?TrendingUp:cfg.label==='CONTESTED'?Crosshair:cfg.label==='CONG FVBL'?TrendingDown:Flag} size={9} color={cfg.color}/>{cfg.label}</span>
+                        <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.color}44`}}>{cfg.label}</span>
                       </div>
                       <div style={{height:4,background:'rgba(255,255,255,0.07)',borderRadius:2,overflow:'hidden',marginBottom:4}}>
                         <div style={{width:`${Math.min(100,Math.abs(d.margin)/90*100)}%`,height:'100%',background:d.margin>=0?cfg.color:'#8b5cf6',borderRadius:2}}/>
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'rgba(255,255,255,0.4)'}}>
                         <span>Margin: <b style={{color:d.margin>=0?cfg.color:'#8b5cf6'}}>{d.margin>=0?'+':''}{d.margin.toFixed(0)}%</b></span>
-                        <span style={{color:pColor(d.priority),display:'flex',alignItems:'center',gap:3}}>{d.priority!=='NORMAL'?<IC icon={d.priority==='CRITICAL'?AlertCircle:d.priority==='HIGH'?AlertTriangle:d.priority==='WATCH'?CheckCircle:Info} size={10} color={pColor(d.priority)}/>:null}{d.priority}</span>
+                        <span style={{color:pColor(d.priority)}}>{d.priority}</span>
                       </div>
                       {isOpen&&(
                         <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.07)'}}>
@@ -3444,7 +3417,7 @@ function PoliticalIntelligenceHub() {
                         <td style={{...C(),whiteSpace:'nowrap'}}><span style={{fontWeight:700,color:cfg.color}}>W{d.w}</span> <span style={{fontSize:11}}>{d.n}</span></td>
                         <td style={{...C(),color:d.poll<55?'#ef4444':d.poll<60?'#f59e0b':'#10b981',fontWeight:600}}>{d.poll.toFixed(1)}%</td>
                         <td style={{...C(),color:cfg.color,fontWeight:700}}>{d.hjp.toFixed(0)}%</td>
-                        <td style={{...C(),fontSize:10}}>{d.hindu>80?'Hindu dom':d.hindu>65?'Hindu lean':d.muslim>50?'Muslim dom':d.christian>35?'Chrst dom':'Mixed'} H:{d.hindu.toFixed(0)} M:{d.muslim.toFixed(0)} C:{d.christian.toFixed(0)}</td>
+                        <td style={{...C(),fontSize:10}}>{d.hindu>80?'🟢 Hindu dom':d.hindu>65?'🟢 Hindu lean':d.muslim>50?'🔴 Muslim dom':d.christian>35?'🔴 Chrst dom':'🟡 Mixed'} H:{d.hindu.toFixed(0)} M:{d.muslim.toFixed(0)} C:{d.christian.toFixed(0)}</td>
                         <td style={{...C(),fontSize:11,color:d.trend.includes('↓')?'#ef4444':d.trend.includes('↑')?'#10b981':'#f59e0b'}}>{d.trend}</td>
                         <td style={{...C(),fontSize:11,maxWidth:200,color:'rgba(255,255,255,0.65)'}}>{d.why.slice(0,130)}{d.why.length>130?'…':''}</td>
                         <td style={{...C(),fontSize:11,maxWidth:190,color:'#fcd34d'}}>{d.gap.slice(0,120)}{d.gap.length>120?'…':''}</td>
@@ -3475,7 +3448,7 @@ function PoliticalIntelligenceHub() {
                         <div style={{width:`${Math.min(100,d.wsi)}%`,height:'100%',background:wc,borderRadius:3}}/>
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',fontSize:10,marginBottom:4}}>
-                        <span style={{background:cfg.bg,color:cfg.color,padding:'2px 8px',borderRadius:4,fontWeight:700,display:'inline-flex',alignItems:'center',gap:4}}><IC icon={d.wsi>=70?ShieldCheck:d.wsi>=50?Zap:AlertTriangle} size={10} color={cfg.color}/>{d.wsiGrade}</span>
+                        <span style={{background:cfg.bg,color:cfg.color,padding:'1px 6px',borderRadius:4,fontWeight:700}}>{d.wsiGrade}</span>
                         <span style={{color:'rgba(255,255,255,0.35)'}}>Margin {d.margin>=0?'+':''}{d.margin.toFixed(0)}%</span>
                       </div>
                       <div style={{fontSize:10,color:'rgba(255,255,255,0.5)',lineHeight:1.4}}>{d.prediction}</div>
@@ -3518,7 +3491,7 @@ function PoliticalIntelligenceHub() {
                         <td style={C()}>{r.polled.toLocaleString()}</td>
                         <td style={{...C(),color:r.turnout>65?'#10b981':r.turnout>58?'#f59e0b':'#ef4444',fontWeight:700}}>{r.turnout.toFixed(1)}%</td>
                         <td style={C()}>{r.cat}</td>
-                        <td style={{...C(),color:r.align.includes('STRONG')?'#10b981':r.align.includes('OPPOSITION')||r.align.includes('SWING')?'#ef4444':'#f59e0b'}}>{r.align}</td>
+                        <td style={{...C(),color:r.align.includes('🟢')?'#10b981':r.align.includes('🔴')?'#ef4444':'#f59e0b'}}>{r.align}</td>
                         <td style={{...C(),fontSize:11,color:'rgba(255,255,255,0.5)'}}>{r.note}</td>
                       </tr>
                     ))}</tbody>
@@ -3560,7 +3533,7 @@ function PoliticalIntelligenceHub() {
                       <td style={{...C(),fontWeight:600}}>{r.metric}</td>
                       <td style={C()}>{r.v2013}</td><td style={C()}>{r.v2014}</td><td style={C()}>{r.v2018}</td><td style={C()}>{r.v2019}</td>
                       <td style={{...C(),fontWeight:700,color:'#22d3ee'}}>{r.v2023}</td>
-                      <td style={{...C(),color:r.trend.includes('↓')?'#ef4444':r.trend.includes('↑')?'#10b981':'#f59e0b',fontWeight:700,display:'flex',alignItems:'center',gap:4}}>{r.trend.includes('↑')?<IC icon={TrendingUp} size={11} color='#10b981'/>:r.trend.includes('↓')?<IC icon={TrendingDown} size={11} color='#ef4444'/>:<IC icon={Minus} size={11} color='#f59e0b'/>}{r.trend}</td>
+                      <td style={{...C(),color:r.trend.includes('↓')?'#ef4444':r.trend.includes('↑')?'#10b981':'#f59e0b',fontWeight:700}}>{r.trend}</td>
                       <td style={{...C(),color:'#f59e0b',fontWeight:600}}>{r.proj}</td>
                     </tr>
                   ))}</tbody>
@@ -3578,7 +3551,7 @@ function PoliticalIntelligenceHub() {
                       <tr key={d.w} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.015)'}}>
                         <td style={{...C(),fontWeight:600,color:cfg.color,whiteSpace:'nowrap'}}>W{d.w} {d.n}</td>
                         <td style={{...C(),fontSize:10,color:cfg.color,fontWeight:700}}>{cfg.label}</td>
-                        <td style={{...C(),color:d.trend.includes('↓')?'#ef4444':d.trend.includes('↑')?'#10b981':'#f59e0b',fontWeight:700,whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:4}}>{d.trend.includes('↑')?<IC icon={TrendingUp} size={11} color='#10b981'/>:d.trend.includes('↓')?<IC icon={TrendingDown} size={11} color='#ef4444'/>:<IC icon={Minus} size={11} color='#f59e0b'/>}{d.trend}</td>
+                        <td style={{...C(),color:d.trend.includes('↓')?'#ef4444':d.trend.includes('↑')?'#10b981':'#f59e0b',fontWeight:700,whiteSpace:'nowrap'}}>{d.trend}</td>
                         <td style={{...C(),fontSize:11,color:'rgba(255,255,255,0.55)',maxWidth:260}}>{d.gap.slice(0,130)}…</td>
                         <td style={{...C(),fontSize:10,color:pColor(d.risk2025),fontWeight:600,whiteSpace:'nowrap'}}>{d.risk2025}</td>
                       </tr>
@@ -3688,7 +3661,7 @@ function PoliticalIntelligenceHub() {
           {/* TRACKER */}
           {activeTab==='tracker'&&(
             <div>
-              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12}}>Ward Operational Action Tracker — update status monthly · On Track · At Risk · Off Track</div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12}}>Ward Operational Action Tracker — update status monthly · 🟢 On Track · 🟡 At Risk · 🔴 Off Track</div>
               <div style={{overflowX:'auto'}}>
                 <table style={{width:'100%',borderCollapse:'collapse',minWidth:950}}>
                   <thead><tr style={{background:'rgba(255,255,255,0.04)'}}>
@@ -3708,7 +3681,7 @@ function PoliticalIntelligenceHub() {
                         <td style={{...C(),color:'#a78bfa',fontWeight:600,fontSize:11}}>{d.sirTarget}</td>
                         <td style={{...C(),fontSize:10,color:'rgba(255,255,255,0.4)'}}>[ ] YES [ ] NO</td>
                         <td style={{...C(),fontSize:10,color:d.christian>15?'#f59e0b':'rgba(255,255,255,0.3)'}}>{d.christian>25?'[ ] CRITICAL':d.christian>15?'[ ] NEEDED':'[ ] MONITOR'}</td>
-                        <td style={{...C(),color:pColor(d.priority),fontWeight:700,fontSize:11,whiteSpace:'nowrap'}}>{d.priority.includes('CRITICAL')||d.priority.includes('HIGH')?'FILL — URGENT':d.priority.includes('WATCH')?'WATCH':d.margin>50?'NORMAL':'FILL STATUS'}</td>
+                        <td style={{...C(),color:pColor(d.priority),fontWeight:700,fontSize:11,whiteSpace:'nowrap'}}>{d.priority.includes('CRITICAL')||d.priority.includes('HIGH')?'FILL 🔴':d.priority.includes('WATCH')?'WATCH 🟢':d.margin>50?'NORMAL ✅':'FILL STATUS'}</td>
                       </tr>
                     );
                   })}</tbody>
@@ -3749,16 +3722,16 @@ function PoliticalIntelligenceHub() {
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {INSIGHTS.map(ins=>(
                   <div key={ins.n} style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'14px 16px',display:'flex',gap:14,alignItems:'flex-start'}}>
-                    <div style={{fontSize:22,fontWeight:900,color:ins.sev==='HIGH'?'#ef4444':ins.sev==='MED'?'#f97316':'#f59e0b',minWidth:32,textAlign:'center'}}>{ins.n}</div>
+                    <div style={{fontSize:22,fontWeight:900,color:ins.sev==='🔴'?'#ef4444':ins.sev==='🟠'?'#f97316':'#f59e0b',minWidth:32,textAlign:'center'}}>{ins.n}</div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:14,fontWeight:800,color:'var(--text-1)',marginBottom:5}}>{ins.title}</div>
                       <div style={{fontSize:12,color:'rgba(255,255,255,0.6)',marginBottom:8,lineHeight:1.6}}>{ins.msg}</div>
                       <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:8,padding:'4px 12px'}}>
-                        <IC icon={ArrowRight} size={11} color='#10b981' style={{flexShrink:0}}/>
+                        <span style={{fontSize:11,color:'#10b981'}}>→</span>
                         <span style={{fontSize:11,fontWeight:600,color:'#6ee7b7'}}>{ins.action}</span>
                       </div>
                     </div>
-                    <div style={{flexShrink:0}}>{ins.sev==='HIGH'?<IC icon={AlertCircle} size={18} color='#ef4444'/>:ins.sev==='MED'?<IC icon={AlertTriangle} size={18} color='#f97316'/>:<IC icon={Info} size={18} color='#f59e0b'/>}</div>
+                    <div style={{fontSize:18,flexShrink:0}}>{ins.sev}</div>
                   </div>
                 ))}
               </div>
@@ -3893,19 +3866,19 @@ export default function Dashboard() {
     .filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
 
   const STAT_CARDS = [
-    { label: 'Total Surveys',  value: s.totalReg?.toLocaleString() || null, icon: 'edit', color: '#f59e0b', sub: 'Registered entries' },
+    { label: 'Total Surveys',  value: s.totalReg?.toLocaleString() || null, icon: '✎', color: '#f59e0b', sub: 'Registered entries' },
     {
       label: 'Total Voters',
       value: (selectedBooth ? boothStats?.totalElectors : selectedWard ? (wardStats?.totalElectors || wardStats?.totalVoters) : s.totalVoters)?.toLocaleString() || null,
-      icon: 'search', color: '#22d3ee',
+      icon: '◉', color: '#22d3ee',
       sub: selectedBooth ? `Booth ${selectedBooth} Electors` : selectedWard ? '2026 Total Electors' : 'Voter list records',
     },
     { label: 'Houses Covered', value: s.houseCount?.toLocaleString() || null, icon: '⌂', color: '#10b981', sub: 'Unique households' },
-    { label: 'Large Families', value: s.largeFamilyCount?.toLocaleString() ?? null, icon: 'users', color: '#f97316', sub: 'Houses with 15+ members' },
+    { label: 'Large Families', value: s.largeFamilyCount?.toLocaleString() ?? null, icon: '👨‍👩‍👧‍👦', color: '#f97316', sub: 'Houses with 15+ members' },
     {
       label: 'Coverage',
       value: (selectedBooth ? boothStats : selectedWard ? wardStats : stats) ? `${coverage}%` : null,
-      icon: 'layers', color: '#8b5cf6',
+      icon: '◈', color: '#8b5cf6',
       sub: selectedBooth ? `Booth ${selectedBooth} completion`
         : selectedWard ? `${wardStats?.ward2026?.pctTotal || ''}` || 'Survey completion'
         : 'Survey completion',
@@ -3913,13 +3886,13 @@ export default function Dashboard() {
     {
       label: 'Risk Wards',
       value: RISK_WARD_NUMS.length.toString(),
-      icon: 'alert-triangle', color: '#ef4444', sub: 'SIR action required',
+      icon: '⚠', color: '#ef4444', sub: 'SIR action required',
       isRisk: true,
     },
     {
       label: 'Local Places',
       value: localPlacesTotal != null ? localPlacesTotal.toString() : null,
-      icon: 'map-pin',
+      icon: '📍',
       color: '#f59e0b',
       sub: localPlacesTotal != null
         ? `${localPlacesCounts.temple||0} temples · ${localPlacesCounts.church||0} churches · ${localPlacesCounts.mosque||0} mosques · ${localPlacesCounts.club||0} clubs`
@@ -4020,7 +3993,7 @@ export default function Dashboard() {
             display: 'flex', alignItems: 'center', gap: 10,
             boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
           }}>
-            <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}><IC icon={Search} size={16}/></span>
+            <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>⌕</span>
             <input
               value={query} onChange={handleQueryChange}
               placeholder="Search name, Voter ID or House No…"
@@ -4028,7 +4001,7 @@ export default function Dashboard() {
             />
             {searching && <span className="spinner" style={{ flexShrink: 0 }} />}
             {query && !searching && (
-              <button onClick={clearSearch} className="touch-btn" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0', cursor: 'pointer', fontSize: 16, color: 'var(--text-2)', flexShrink: 0, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              <button onClick={clearSearch} className="touch-btn" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0', cursor: 'pointer', fontSize: 16, color: 'var(--text-2)', flexShrink: 0, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             )}
           </div>
           {!query && (
@@ -4050,11 +4023,11 @@ export default function Dashboard() {
               </h2>
               {query && <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>Results for "<span style={{ color: 'var(--gold)' }}>{query}</span>"</p>}
             </div>
-            {searchErr && <div className="alert alert-error" style={{ marginBottom: 14 }}><IC icon={AlertTriangle} size={12} style={{marginRight:4}}/> {searchErr}</div>}
+            {searchErr && <div className="alert alert-error" style={{ marginBottom: 14 }}>⚠ {searchErr}</div>}
             {searching && <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '20px 0', color: 'var(--text-3)', fontSize: 14 }}><span className="spinner" /> Searching…</div>}
             {!searching && searchRes && searchRes.total_houses === 0 && (
               <div style={{ textAlign: 'center', padding: '36px 16px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 14, color: 'var(--text-3)' }}>
-                <div style={{ display:'flex',justifyContent:'center',marginBottom:8}}><IC icon={Search} size={28} color='rgba(255,255,255,0.15)'/></div>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>No results found</div>
                 <div style={{ fontSize: 13 }}>Try a different name, voter ID or house number</div>
               </div>
@@ -4072,7 +4045,7 @@ export default function Dashboard() {
             <div className="db-header-row">
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span className="badge badge-cyan mb-8">Dashboard</span>
-                <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', marginBottom: 6 }}>{greeting}, {user?.username} </h1>
+                <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', marginBottom: 6 }}>{greeting}, {user?.username} 👋</h1>
                 <p style={{ fontSize: 14, lineHeight: 1.5 }}>{
                 selectedBooth
                   ? <>Viewing <strong style={{ color: '#22d3ee' }}>Booth {selectedBooth}</strong> in <strong style={{ color: '#f59e0b' }}>Ward {selectedWard} — {WARD_NAMES[selectedWard]}</strong></>
@@ -4096,7 +4069,7 @@ export default function Dashboard() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <IC icon={Vote} size={14} color="rgba(255,255,255,0.6)"/>
+                        <span style={{ fontSize: 14 }}>🗳</span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(34,211,238,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                           Select Booth
                         </span>
@@ -4110,7 +4083,7 @@ export default function Dashboard() {
                         <button
                           onClick={() => { setSelectedBooth(''); setBoothStats(null); }}
                           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}
-                        >× Clear</button>
+                        >✕ Clear</button>
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -4143,7 +4116,7 @@ export default function Dashboard() {
                     </div>
                     {selectedBooth && (
                       <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(34,211,238,0.6)', fontWeight: 600 }}>
-                        Booth {selectedBooth} detail view shown above
+                        ✓ Booth {selectedBooth} detail view shown above
                       </div>
                     )}
                   </div>
@@ -4162,7 +4135,7 @@ export default function Dashboard() {
                 padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}></div>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>🏘</div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       Ward {selectedWard} — {wardStats?.wardName || WARD_NAMES[selectedWard]}
@@ -4171,7 +4144,7 @@ export default function Dashboard() {
                   </div>
                   {wardStatsLoading && <span className="spinner" />}
                 </div>
-                <button onClick={() => setSelectedWard('')} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.28)', borderRadius: 8, padding: '0', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#f59e0b', width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                <button onClick={() => setSelectedWard('')} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.28)', borderRadius: 8, padding: '0', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#f59e0b', width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
 
               {!wardStatsLoading && wardStats && (
@@ -4197,7 +4170,7 @@ export default function Dashboard() {
                   {/* ══ SECTION 1: ELECTORS AT A GLANCE ══ */}
                   <div style={{ padding: '14px 14px 0' }}>
                     <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 10 }}>
-                      <IC icon={ClipboardList} size={14} style={{marginRight:6,verticalAlign:'middle'}}/> 2026 Voter Roll — Electors at a Glance
+                      📋 2026 Voter Roll — Electors at a Glance
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 10 }}>
                       {/* Total Electors — hero number */}
@@ -4207,7 +4180,7 @@ export default function Dashboard() {
                         border: '1px solid rgba(34,211,238,0.2)', borderRadius: 12, padding: '14px 16px',
                         display: 'flex', alignItems: 'center', gap: 16,
                       }}>
-                        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}></div>
+                        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🗳️</div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 11, color: 'rgba(34,211,238,0.6)', fontWeight: 700, marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Registered Electors</div>
                           <div style={{ fontSize: 30, fontWeight: 900, color: '#22d3ee', fontFamily: 'var(--font-display)', letterSpacing: '-1px', lineHeight: 1 }}>
@@ -4226,7 +4199,7 @@ export default function Dashboard() {
                       {wardStats.ward2026?.ageCutoff != null && (
                         <div style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 12, padding: '12px 14px' }}>
                           <div style={{ fontSize: 10, color: 'rgba(139,92,246,0.7)', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span></span> Age ≤ Cutoff
+                            <span>👶</span> Age ≤ Cutoff
                           </div>
                           <div style={{ fontSize: 22, fontWeight: 900, color: '#a78bfa', fontFamily: 'var(--font-display)', marginBottom: 2 }}>
                             {wardStats.ward2026.ageCutoff.toLocaleString()}
@@ -4239,7 +4212,7 @@ export default function Dashboard() {
                       {wardStats.ward2026?.progeny18 != null && (
                         <div style={{ background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 12, padding: '12px 14px' }}>
                           <div style={{ fontSize: 10, color: 'rgba(167,139,250,0.7)', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <IC icon={Users} size={12} style={{marginRight:4}}/> Progeny 18+
+                            <span>🌱</span> Progeny 18+
                           </div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
                             <div style={{ fontSize: 22, fontWeight: 900, color: '#c4b5fd', fontFamily: 'var(--font-display)' }}>
@@ -4260,7 +4233,7 @@ export default function Dashboard() {
                   {/* ══ SECTION 2: MAPPING STATUS — visual progress cards ══ */}
                   <div style={{ padding: '0 14px 0' }}>
                     <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 10 }}>
-                      Mapping Coverage Status
+                      📍 Mapping Coverage Status
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10 }}>
                       {[
@@ -4270,7 +4243,7 @@ export default function Dashboard() {
                           count: wardStats.ward2026?.bloMapped,
                           total: wardStats.ward2026?.totalElectors || wardStats.totalVoters,
                           pct: wardStats.ward2026?.pctBloMapped,
-                          threshold: 60, color: '#22d3ee', icon: '',
+                          threshold: 60, color: '#22d3ee', icon: '👮',
                         },
                         {
                           label: 'Total Electors Mapped',
@@ -4278,14 +4251,14 @@ export default function Dashboard() {
                           count: wardStats.ward2026?.electorsMapped ?? wardStats.ward2026?.totalMapped,
                           total: wardStats.ward2026?.totalElectors || wardStats.totalVoters,
                           pct: wardStats.ward2026?.pctTotal,
-                          threshold: 65, color: '#f59e0b', icon: '',
+                          threshold: 65, color: '#f59e0b', icon: '🗺️',
                         },
                       ].filter(m => m.count != null).map(({ label, desc, count, total, pct, threshold, color, icon }) => {
                         const computedPct = pct ?? (total ? Math.round(count / total * 100) : 0);
                         const isGood = computedPct >= threshold;
                         const isGreat = computedPct >= threshold + 15;
                         const statusColor = isGreat ? '#10b981' : isGood ? color : '#f87171';
-                        const statusLabel = isGreat ? 'EXCELLENT' : isGood ? 'ON TRACK' : 'BELOW TARGET';
+                        const statusLabel = isGreat ? '✓ EXCELLENT' : isGood ? '✓ ON TRACK' : '⚠ BELOW TARGET';
                         const statusBg    = isGreat ? 'rgba(16,185,129,0.12)' : isGood ? `${color}15` : 'rgba(239,68,68,0.1)';
                         const statusBorder= isGreat ? 'rgba(16,185,129,0.3)' : isGood ? `${color}30` : 'rgba(239,68,68,0.25)';
                         return (
@@ -4326,15 +4299,15 @@ export default function Dashboard() {
                   {/* ══ SECTION 3: DEMOGRAPHICS — big visual cards ══ */}
                   <div style={{ padding: '0 14px 14px' }}>
                     <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 10 }}>
-                      <IC icon={Users} size={14} style={{marginRight:6,verticalAlign:'middle'}}/> Voter Demographics
+                      👥 Voter Demographics
                     </div>
 
                     {/* Gender cards */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
                       {[
-                        { label: 'Total Voters', value: wardStats.totalVoters, color: '#22d3ee', icon: '', pct: 100 },
-                        { label: 'Male',         value: wardStats.totalMale,   color: '#60a5fa', icon: 'male',  pct: wardStats.totalVoters ? Math.round(wardStats.totalMale   / wardStats.totalVoters * 100) : 0 },
-                        { label: 'Female',       value: wardStats.totalFemale, color: '#f472b6', icon: 'female',  pct: wardStats.totalVoters ? Math.round(wardStats.totalFemale / wardStats.totalVoters * 100) : 0 },
+                        { label: 'Total Voters', value: wardStats.totalVoters, color: '#22d3ee', icon: '🗳️', pct: 100 },
+                        { label: 'Male',         value: wardStats.totalMale,   color: '#60a5fa', icon: '♂',  pct: wardStats.totalVoters ? Math.round(wardStats.totalMale   / wardStats.totalVoters * 100) : 0 },
+                        { label: 'Female',       value: wardStats.totalFemale, color: '#f472b6', icon: '♀',  pct: wardStats.totalVoters ? Math.round(wardStats.totalFemale / wardStats.totalVoters * 100) : 0 },
                       ].map(({ label, value, color, icon, pct }) => (
                         <div key={label} style={{ background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
                           <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
@@ -4370,9 +4343,9 @@ export default function Dashboard() {
                       </div>
                       {/* Religion rows */}
                       {[
-                        { label: 'Hindu',     value: wardStats.totalHindu,     color: '#f97316', emoji: '' },
-                        { label: 'Muslim',    value: wardStats.totalMuslim,     color: '#10b981', emoji: '' },
-                        { label: 'Christian', value: wardStats.totalChristian,  color: '#8b5cf6', emoji: '' },
+                        { label: 'Hindu',     value: wardStats.totalHindu,     color: '#f97316', emoji: '🪔' },
+                        { label: 'Muslim',    value: wardStats.totalMuslim,     color: '#10b981', emoji: '☪️' },
+                        { label: 'Christian', value: wardStats.totalChristian,  color: '#8b5cf6', emoji: '✝️' },
                       ].map(({ label, value, color, emoji }) => {
                         const pct = wardStats.totalVoters && value ? Math.round(value / wardStats.totalVoters * 100) : 0;
                         return (
@@ -4392,7 +4365,7 @@ export default function Dashboard() {
                     {/* Supervisors row */}
                     {wardStats.ward2026?.supervisors && (
                       <div style={{ marginTop: 10, background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 10, padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                        <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}></span>
+                        <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>🧑‍💼</span>
                         <div>
                           <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(245,158,11,0.5)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 3 }}>Ward Supervisors</div>
                           <div style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, lineHeight: 1.5 }}>{wardStats.ward2026.supervisors}</div>
@@ -4432,7 +4405,7 @@ export default function Dashboard() {
               {!wardStatsLoading && wardStats && (
                 <div style={{ height: 0, border: '1px solid rgba(245,158,11,0.2)', borderTop: 'none', borderRadius: '0 0 14px 14px' }} />
               )}
-              {wardError && <div className="alert alert-error" style={{ marginTop: 8 }}><IC icon={AlertTriangle} size={13} style={{marginRight:5}}/> {wardError}</div>}
+              {wardError && <div className="alert alert-error" style={{ marginTop: 8 }}>⚠ {wardError}</div>}
             </div>
           )}
 
@@ -4450,7 +4423,7 @@ export default function Dashboard() {
             />
           )}
 
-          {error && <div className="alert alert-error" style={{ marginBottom: 16 }}><IC icon={AlertTriangle} size={12} style={{marginRight:4}}/> {error}</div>}
+          {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
 
           {/* ── Stat cards (now 6: added Risk Wards) ─────────────────────── */}
           <div className="db-stat-grid stagger mb-24">
@@ -4582,7 +4555,7 @@ export default function Dashboard() {
                   {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={20} radius={4} style={{ width: `${80 - i * 8}%` }} />)}
                 </div>
               ) : wardData.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 28, display:'flex',justifyContent:'center',marginBottom:6 }}><IC icon={Trophy} size={28} color='rgba(255,255,255,0.2)'/></div><div style={{ fontSize: 12 }}>No ward data yet</div></div>
+                <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 28, marginBottom: 6 }}>📊</div><div style={{ fontSize: 12 }}>No ward data yet</div></div>
               ) : (
                 <ResponsiveContainer width="100%" height={210}>
                   <BarChart data={wardData} layout="vertical" margin={{ left: 0, right: 14 }}>
@@ -4604,7 +4577,7 @@ export default function Dashboard() {
               {activeLoading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 210 }}><Skeleton w={140} h={140} radius={70} /></div>
               ) : religionPie.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 28, marginBottom: 6 }}></div><div style={{ fontSize: 12 }}>No data yet</div></div>
+                <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)' }}><div style={{ fontSize: 28, marginBottom: 6 }}>🥧</div><div style={{ fontSize: 12 }}>No data yet</div></div>
               ) : (
                 <ResponsiveContainer width="100%" height={210}>
                   <PieChart>
@@ -4734,8 +4707,8 @@ export default function Dashboard() {
                     {hasData && (
                       <div style={{ display: 'flex', gap: 10 }}>
                         {[
-                          { icon: 'male', label: 'Male',   val: vMale,   color: '#22d3ee' },
-                          { icon: 'female', label: 'Female', val: vFemale, color: '#ec4899' },
+                          { icon: '♂', label: 'Male',   val: vMale,   color: '#22d3ee' },
+                          { icon: '♀', label: 'Female', val: vFemale, color: '#ec4899' },
                           ...(vTrans > 0 ? [{ icon: '⚧', label: 'Other', val: vTrans, color: '#a78bfa' }] : []),
                         ].map(g => (
                           <div key={g.label} style={{
@@ -4805,10 +4778,10 @@ export default function Dashboard() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  { to: '/survey',  label: 'Start New Survey',        desc: 'Record constituency data', icon: 'edit', color: '#f59e0b' },
-                  { to: '/schemes', label: 'Check Scheme Eligibility', desc: 'Find schemes for voters',  icon: 'layers', color: '#10b981' },
-                  { to: '/voters',  label: 'Search Voters',            desc: 'Browse voter registry',    icon: 'search', color: '#22d3ee' },
-                  { to: '/data',    label: 'View All Data',            desc: 'Survey & voter datasets',  icon: 'layout-dashboard', color: '#8b5cf6' },
+                  { to: '/survey',  label: 'Start New Survey',        desc: 'Record constituency data', icon: '✎', color: '#f59e0b' },
+                  { to: '/schemes', label: 'Check Scheme Eligibility', desc: 'Find schemes for voters',  icon: '◈', color: '#10b981' },
+                  { to: '/voters',  label: 'Search Voters',            desc: 'Browse voter registry',    icon: '◉', color: '#22d3ee' },
+                  { to: '/data',    label: 'View All Data',            desc: 'Survey & voter datasets',  icon: '⊟', color: '#8b5cf6' },
                 ].map(item => (
                   <Link key={item.to} to={item.to} style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '15px 14px',
@@ -4817,12 +4790,12 @@ export default function Dashboard() {
                     textDecoration: 'none', minHeight: 64,
                     transition: 'background 0.15s',
                   }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${item.color}18`, border: `1px solid ${item.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{ICON_MAP_RENDER[item.icon] ? React.createElement(ICON_MAP_RENDER[item.icon], {size:20, color:item.color, strokeWidth:1.8}) : null}</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${item.color}18`, border: `1px solid ${item.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{item.icon}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', marginBottom: 3 }}>{item.label}</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{item.desc}</div>
                     </div>
-                    <IC icon={ChevronRight} size={20} color={`${item.color}90`}/>
+                    <span style={{ color: `${item.color}70`, fontSize: 22, flexShrink: 0 }}>›</span>
                   </Link>
                 ))}
               </div>
