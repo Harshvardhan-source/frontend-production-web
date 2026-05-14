@@ -647,7 +647,7 @@ function HMCWidget({ hmc, loading, label = 'Constituency' }) {
   );
 }
 
-// ─── Static 2023 HMC Polled/NotPolled data (from polled-nonpolled-hmc-2023.xlsx) ──
+// ─── Static 2023 HMC Polled/NotPolled data (sourced from polled-nonpolled-hmc-2023.xlsx) ──
 const HMC_POLLED_STATIC = {
   total: { polled: 141707, notPolled: 105253, total: 246960 },
   H:     { polled:  97317, notPolled:  62734, total: 160051 },
@@ -668,8 +668,9 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
       </div>
     );
   }
-  // Fall back to static xlsx data when API doesn't return polledHMC
-  if (!polledHMC) polledHMC = HMC_POLLED_STATIC;
+  // Use static xlsx data if API returns nothing OR all-zero totals (e.g. constituency level fallback)
+  const hasLiveData = polledHMC && (polledHMC.total?.total > 0 || polledHMC.H?.total > 0 || polledHMC.M?.total > 0);
+  polledHMC = hasLiveData ? polledHMC : HMC_POLLED_STATIC;
 
   const RELIGIONS = [
     { key:'H', label:'Hindu',     color:'#f97316' },
