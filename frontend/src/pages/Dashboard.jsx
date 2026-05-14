@@ -3303,17 +3303,17 @@ function PoliticalIntelligenceHub() {
   ];
 
   const TABS = [
-    {id:'heatmap',  label:'🗺 Heatmap'},
-    {id:'why',      label:'🔍 Why S/M/W'},
-    {id:'wsi',      label:'🏆 WSI Scores'},
-    {id:'community',label:'🕉 Community'},
-    {id:'history',  label:'📅 History'},
-    {id:'math',     label:'🧮 Math'},
-    {id:'strategy', label:'🎯 Strategy'},
-    {id:'policy',   label:'📋 Policy'},
-    {id:'tracker',  label:'✅ Tracker'},
-    {id:'calendar', label:'📅 Calendar'},
-    {id:'insights', label:'💡 Insights'},
+    {id:'heatmap',  label:'Heatmap',   icon:<MapPin size={13}/>},
+    {id:'why',      label:'Why S/M/W', icon:<Search size={13}/>},
+    {id:'wsi',      label:'WSI Scores',icon:<BarChart2 size={13}/>},
+    {id:'community',label:'Community', icon:<Users2 size={13}/>},
+    {id:'history',  label:'History',   icon:<BookOpen size={13}/>},
+    {id:'math',     label:'Math',      icon:<PieChartIcon size={13}/>},
+    {id:'strategy', label:'Strategy',  icon:<Layers size={13}/>},
+    {id:'policy',   label:'Policy',    icon:<ClipboardList size={13}/>},
+    {id:'tracker',  label:'Tracker',   icon:<ClipboardCheck size={13}/>},
+    {id:'calendar', label:'Calendar',  icon:<Vote size={13}/>},
+    {id:'insights', label:'Insights',  icon:<ShieldAlert size={13}/>},
   ];
 
   const clsCfg = (cls) => {
@@ -3351,7 +3351,14 @@ function PoliticalIntelligenceHub() {
             </div>
           </div>
           <div style={{display:'flex',gap:2,overflowX:'auto',paddingBottom:0}}>
-            {TABS.map(t=><button key={t.id} style={tabBtn(t.id)} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
+            {TABS.map(t=>(
+              <button key={t.id} style={tabBtn(t.id)} onClick={()=>setActiveTab(t.id)}>
+                <span style={{display:'flex',alignItems:'center',gap:5}}>
+                  <span style={{opacity: activeTab===t.id ? 1 : 0.6}}>{t.icon}</span>
+                  {t.label}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 
