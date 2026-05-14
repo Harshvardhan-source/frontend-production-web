@@ -24,10 +24,62 @@
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #0f1629; }
     ::-webkit-scrollbar-thumb { background: #2a3a5c; border-radius: 99px; }
+
+    /* ── Splash loader ── */
+    #splash {
+      position: fixed; inset: 0;
+      background: #080d1a;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px; z-index: 9999;
+    }
+    #splash-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.1rem; font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #a8c0ff; opacity: 0.85;
+    }
+    #splash-ring {
+      width: 44px; height: 44px;
+      border: 3px solid #1e2d50;
+      border-top-color: #a8c0ff;
+      border-radius: 50%;
+      animation: spin 0.85s linear infinite;
+    }
+    #splash-sub {
+      font-size: 0.78rem; color: #4a5a80;
+      letter-spacing: 0.02em;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <noscript>Please enable JavaScript to run Constituency Connect.</noscript>
+
+  <!-- Shown until React mounts and removes it -->
+  <div id="splash">
+    <div id="splash-ring"></div>
+    <div id="splash-title">Constituency Connect</div>
+    <div id="splash-sub">Loading platform…</div>
+  </div>
+
   <div id="root"></div>
+
+  <script>
+    // React will replace #root — once it does, remove the splash
+    const observer = new MutationObserver(() => {
+      const root = document.getElementById('root');
+      if (root && root.children.length > 0) {
+        const splash = document.getElementById('splash');
+        if (splash) {
+          splash.style.transition = 'opacity 0.3s ease';
+          splash.style.opacity = '0';
+          setTimeout(() => splash.remove(), 300);
+        }
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.getElementById('root'), { childList: true });
+  </script>
 </body>
 </html>
