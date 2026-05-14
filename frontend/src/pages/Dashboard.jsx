@@ -3125,6 +3125,370 @@ function LargeFamiliesModal({ onClose }) {
   return createPortal(modal, document.body);
 }
 
+// ─── Ward Strength Intelligence Panel ────────────────────────────────────────
+function WardStrengthIntelligence() {
+  const [activeFilter, setActiveFilter] = React.useState('ALL');
+  const [activeView,   setActiveView]   = React.useState('cards'); // 'cards' | 'gaps'
+
+  const TIER_CFG = {
+    STRONG: { label: 'Strong',           color: '#10b981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  icon: '🛡' },
+    MEDIUM: { label: 'Medium',           color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)',  icon: '⚡' },
+    WEAK:   { label: 'Weak / Contested', color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)',   icon: '🔥' },
+    OPP:    { label: 'Opposition',       color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)',  border: 'rgba(139,92,246,0.3)',  icon: '⛳' },
+  };
+
+  const WARDS = Object.entries(SIR_WARD_DATA).map(([wStr, d]) => {
+    const w = Number(wStr);
+    const name = WARD_FULL_DATA[w]?.name || '';
+    const tier = (() => {
+      if (d.classification.includes('STRONGHOLD')) return d.margin >= 60 ? 'STRONG' : 'STRONG';
+      if (d.classification.includes('BJP STRONG') && !d.classification.includes('FAVOUR')) return d.margin >= 35 ? 'STRONG' : 'MEDIUM';
+      if (d.classification.includes('BJP FAVOUR')) return 'MEDIUM';
+      if (d.classification.includes('CONGRESS') || d.classification.includes('Cong')) return 'OPP';
+      if (d.classification.includes('CONTESTED')) return d.margin > 0 ? 'WEAK' : 'OPP';
+      return 'MEDIUM';
+    })();
+
+    // Grassroot gaps
+    const gaps = [];
+    if (d.bloMapped < 55) gaps.push({ id: 'blo', label: 'BLO mapping gap', detail: `Only ${d.bloMapped.toFixed(0)}% mapped — ${(100 - d.bloMapped).toFixed(0)}% unreached`, severity: 'high' });
+    else if (d.bloMapped < 60) gaps.push({ id: 'blo', label: 'BLO partial coverage', detail: `${d.bloMapped.toFixed(0)}% mapped, needs top-up`, severity: 'med' });
+    if (d.pollRate < 50) gaps.push({ id: 'poll', label: 'Very low poll turnout', detail: `${d.pollRate.toFixed(0)}% — critical voter apathy`, severity: 'high' });
+    else if (d.pollRate < 58) gaps.push({ id: 'poll', label: 'Below-average turnout', detail: `${d.pollRate.toFixed(0)}% — mobilisation needed`, severity: 'med' });
+    if (d.progeny < 75) gaps.push({ id: 'prog', label: 'Progeny mapping deficit', detail: `${d.progeny.toFixed(0)}% — young voters not captured`, severity: 'high' });
+    if (d.margin > 0 && d.margin < 10) gaps.push({ id: 'margin', label: 'Razor-thin BJP margin', detail: `Only +${d.margin.toFixed(0)}% lead — flip risk`, severity: 'high' });
+    if (d.margin < 0 && d.margin > -20) gaps.push({ id: 'margin', label: 'Recoverable deficit', detail: `${d.margin.toFixed(0)}% — needs intensive work`, severity: 'med' });
+    if (d.priority === 'CRITICAL') gaps.push({ id: 'priority', label: 'CRITICAL priority ward', detail: 'Flagged for urgent attention', severity: 'high' });
+    else if (d.priority === 'HIGH') gaps.push({ id: 'priority', label: 'HIGH priority alert', detail: 'Elevated risk — escalate actions', severity: 'med' });
+
+    // Corrective actions
+    const actions = [];
+    if (d.bloMapped < 60) actions.push('Deploy additional BLO volunteers immediately');
+    if (d.pollRate < 55) actions.push('Launch voter motivation drives & transport arrangements');
+    else if (d.pollRate < 60) actions.push('Phone/door-to-door campaign for poll day reminders');
+    if (d.progeny < 80) actions.push('Register newly eligible youth voters — progeny outreach');
+    if ((tier === 'WEAK' || tier === 'MEDIUM') && d.margin < 15) actions.push('Schedule community meetings with undecided voter pockets');
+    if (d.hindu > 70 && d.pollRate < 58) actions.push('Activate temple & cultural network for Hindu voter turnout');
+    if (d.margin > 60) actions.push('Focus on preventing vote leakage — anti-complacency messaging');
+    if (d.priority === 'CRITICAL') actions.push('⚠ Assign senior supervisor for daily monitoring');
+    if (actions.length === 0) actions.push('Maintain current momentum — routine check-ins');
+
+    return { w, name, tier, gaps, actions, ...d };
+  });
+
+  const filtered = activeFilter === 'ALL' ? WARDS : WARDS.filter(d => d.tier === activeFilter);
+
+  const tierGroups = ['STRONG', 'MEDIUM', 'WEAK', 'OPP'].map(tier => ({
+    tier,
+    wards: filtered.filter(d => d.tier === tier),
+    cfg: TIER_CFG[tier],
+  })).filter(g => g.wards.length > 0);
+
+  const summaryStats = {
+    strong: WARDS.filter(d => d.tier === 'STRONG').length,
+    medium: WARDS.filter(d => d.tier === 'MEDIUM').length,
+    weak:   WARDS.filter(d => d.tier === 'WEAK').length,
+    opp:    WARDS.filter(d => d.tier === 'OPP').length,
+    critical: WARDS.filter(d => d.priority === 'CRITICAL' || d.priority === 'HIGH').length,
+    totalElectors: WARDS.reduce((a, d) => a + d.totalElectors, 0),
+  };
+
+  const btnStyle = (active) => ({
+    padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    border: active ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(255,255,255,0.1)',
+    background: active ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
+    color: active ? '#f59e0b' : 'rgba(255,255,255,0.5)',
+    transition: 'all 0.15s',
+  });
+
+  const viewBtnStyle = (active) => ({
+    padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    border: 'none',
+    background: active ? 'rgba(255,255,255,0.1)' : 'transparent',
+    color: active ? 'var(--text-1)' : 'rgba(255,255,255,0.4)',
+    transition: 'all 0.15s',
+  });
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(145deg, rgba(17,28,52,0.97), rgba(10,18,35,0.99))',
+        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+        padding: '20px 18px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+      }}>
+        {/* Title row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>
+              Ward Strength Intelligence
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+              {WARDS.length} wards · political strength, grassroot gaps & corrective actions
+            </div>
+          </div>
+          {/* View toggle */}
+          <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '3px', display: 'flex', gap: 2 }}>
+            <button style={viewBtnStyle(activeView === 'cards')} onClick={() => setActiveView('cards')}>Ward Cards</button>
+            <button style={viewBtnStyle(activeView === 'gaps')}  onClick={() => setActiveView('gaps')}>Gap Report</button>
+          </div>
+        </div>
+
+        {/* Summary stat pills */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+          {[
+            { k: 'strong',   label: 'Strong',      val: summaryStats.strong,   color: '#10b981' },
+            { k: 'medium',   label: 'Medium',       val: summaryStats.medium,   color: '#f59e0b' },
+            { k: 'weak',     label: 'Weak',         val: summaryStats.weak,     color: '#ef4444' },
+            { k: 'opp',      label: 'Opposition',   val: summaryStats.opp,      color: '#8b5cf6' },
+            { k: 'critical', label: 'High-risk',    val: summaryStats.critical, color: '#f97316' },
+          ].map(({ k, label, val, color }) => (
+            <div key={k} style={{ background: `${color}15`, border: `1px solid ${color}30`, borderRadius: 10, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 18, fontWeight: 900, color }}>{val}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+            </div>
+          ))}
+          <div style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.3)', alignSelf: 'center' }}>
+            {(summaryStats.totalElectors / 1000).toFixed(0)}K total electors
+          </div>
+        </div>
+
+        {/* Filter bar */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+          {[
+            { k: 'ALL',    label: 'All Wards' },
+            { k: 'STRONG', label: '🛡 Strong' },
+            { k: 'MEDIUM', label: '⚡ Medium' },
+            { k: 'WEAK',   label: '🔥 Weak' },
+            { k: 'OPP',    label: '⛳ Opposition' },
+          ].map(({ k, label }) => (
+            <button key={k} style={btnStyle(activeFilter === k)} onClick={() => setActiveFilter(k)}>{label}</button>
+          ))}
+        </div>
+
+        {/* ── CARDS VIEW ─────────────────────────────────────────────── */}
+        {activeView === 'cards' && tierGroups.map(({ tier, wards, cfg }) => (
+          <div key={tier} style={{ marginBottom: 22 }}>
+            {/* Tier header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color,
+              }}>
+                {cfg.icon} {cfg.label} — {wards.length} ward{wards.length > 1 ? 's' : ''}
+              </span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                {wards.reduce((a, d) => a + d.totalElectors, 0).toLocaleString()} electors
+              </span>
+            </div>
+            {/* Ward grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+              {wards.map(d => {
+                const maxM = 90;
+                const barW = Math.max(0, Math.min(100, (Math.abs(d.margin) / maxM) * 100));
+                const barColor = d.margin >= 0 ? cfg.color : '#8b5cf6';
+                return (
+                  <div key={d.w} style={{
+                    background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 14, padding: '13px 14px',
+                  }}>
+                    {/* Ward name + priority badge */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>W{d.w} · {d.name}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{d.totalElectors.toLocaleString()} electors</div>
+                      </div>
+                      {d.priority !== 'NORMAL' && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6,
+                          background: d.priority === 'CRITICAL' ? 'rgba(239,68,68,0.2)' : d.priority === 'HIGH' ? 'rgba(245,158,11,0.2)' : 'rgba(139,92,246,0.2)',
+                          color: d.priority === 'CRITICAL' ? '#ef4444' : d.priority === 'HIGH' ? '#f59e0b' : '#8b5cf6',
+                        }}>{d.priority}</span>
+                      )}
+                    </div>
+                    {/* Margin bar */}
+                    <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', marginBottom: 4 }}>
+                      <div style={{ width: `${barW}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+                      Margin: <span style={{ color: d.margin >= 0 ? cfg.color : '#8b5cf6', fontWeight: 700 }}>
+                        {d.margin >= 0 ? '+' : ''}{d.margin.toFixed(0)}%
+                      </span>
+                      <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.25)' }}>Turnout {d.pollRate.toFixed(0)}%</span>
+                    </div>
+                    {/* Key stats */}
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                      {[
+                        { l: `H ${d.hindu.toFixed(0)}%`,   ok: d.hindu > 65  },
+                        { l: `BLO ${d.bloMapped.toFixed(0)}%`, ok: d.bloMapped > 57 },
+                        { l: `Map ${d.totalMapped.toFixed(0)}%`, ok: d.totalMapped > 63 },
+                      ].map((s, i) => (
+                        <span key={i} style={{
+                          fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 600,
+                          background: s.ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                          color: s.ok ? '#10b981' : '#ef4444',
+                        }}>{s.l}</span>
+                      ))}
+                    </div>
+                    {/* Gaps */}
+                    {d.gaps.length > 0 && (
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8, marginBottom: 8 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Gaps</div>
+                        {d.gaps.slice(0, 2).map((g, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 5, marginBottom: 3 }}>
+                            <span style={{ color: g.severity === 'high' ? '#ef4444' : '#f59e0b', fontSize: 10, marginTop: 1 }}>●</span>
+                            <div>
+                              <span style={{ fontSize: 11, color: g.severity === 'high' ? '#fca5a5' : '#fcd34d', fontWeight: 600 }}>{g.label}</span>
+                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{g.detail}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Actions */}
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Action</div>
+                      {d.actions.slice(0, 2).map((a, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 5, marginBottom: 3 }}>
+                          <span style={{ color: '#22d3ee', fontSize: 10, marginTop: 1 }}>→</span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{a}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* ── GAP REPORT VIEW ──────────────────────────────────────── */}
+        {activeView === 'gaps' && (() => {
+          const riskWards = filtered
+            .filter(d => d.gaps.length > 0)
+            .sort((a, b) => {
+              const sev = w => w.gaps.filter(g => g.severity === 'high').length;
+              return sev(b) - sev(a);
+            });
+
+          const allActions = [
+            { action: 'Deploy additional BLO volunteers immediately',              wards: filtered.filter(d => d.bloMapped < 60).map(d => `W${d.w}`), severity: 'high' },
+            { action: 'Launch voter motivation & transport drives',                 wards: filtered.filter(d => d.pollRate < 55).map(d => `W${d.w}`), severity: 'high' },
+            { action: 'Phone/door-to-door poll day reminders',                      wards: filtered.filter(d => d.pollRate >= 55 && d.pollRate < 60).map(d => `W${d.w}`), severity: 'med' },
+            { action: 'Youth voter registration — progeny outreach campaign',       wards: filtered.filter(d => d.progeny < 80).map(d => `W${d.w}`), severity: 'high' },
+            { action: 'Community meetings for undecided voter pockets',             wards: filtered.filter(d => d.tier === 'WEAK' || (d.tier === 'MEDIUM' && d.margin < 15)).map(d => `W${d.w}`), severity: 'med' },
+            { action: 'Temple/cultural network activation for Hindu turnout',       wards: filtered.filter(d => d.hindu > 70 && d.pollRate < 58).map(d => `W${d.w}`), severity: 'med' },
+            { action: 'Anti-complacency messaging in stronghold wards',             wards: filtered.filter(d => d.margin > 60).map(d => `W${d.w}`), severity: 'low' },
+            { action: 'Assign senior supervisor — daily CRITICAL ward monitoring',  wards: filtered.filter(d => d.priority === 'CRITICAL').map(d => `W${d.w}`), severity: 'high' },
+          ].filter(a => a.wards.length > 0);
+
+          return (
+            <div>
+              {/* Consolidated Action Table */}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 12 }}>Consolidated Corrective Actions</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {allActions.map((item, i) => (
+                    <div key={i} style={{
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                      borderRadius: 12, padding: '12px 14px',
+                      borderLeft: `3px solid ${item.severity === 'high' ? '#ef4444' : item.severity === 'med' ? '#f59e0b' : '#22d3ee'}`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                          <span style={{
+                            fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, marginTop: 2, flexShrink: 0,
+                            background: item.severity === 'high' ? 'rgba(239,68,68,0.2)' : item.severity === 'med' ? 'rgba(245,158,11,0.2)' : 'rgba(34,211,238,0.15)',
+                            color: item.severity === 'high' ? '#ef4444' : item.severity === 'med' ? '#f59e0b' : '#22d3ee',
+                            textTransform: 'uppercase',
+                          }}>
+                            {item.severity === 'high' ? 'Urgent' : item.severity === 'med' ? 'Priority' : 'Routine'}
+                          </span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{item.action}</span>
+                        </div>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>{item.wards.length} ward{item.wards.length > 1 ? 's' : ''}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
+                        {item.wards.map(wl => (
+                          <span key={wl} style={{
+                            fontSize: 10, padding: '2px 6px', borderRadius: 4,
+                            background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontWeight: 600,
+                          }}>{wl}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Per-ward gap table */}
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 12 }}>
+                Ward-Level Gap Details ({riskWards.length} wards with identified gaps)
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {riskWards.map(d => {
+                  const cfg = TIER_CFG[d.tier];
+                  return (
+                    <div key={d.w} style={{
+                      background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)',
+                      borderRadius: 14, padding: '14px 16px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)' }}>W{d.w} — {d.name}</span>
+                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, fontWeight: 600 }}>
+                            {cfg.label}
+                          </span>
+                          {d.priority !== 'NORMAL' && (
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5,
+                              background: d.priority === 'CRITICAL' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
+                              color: d.priority === 'CRITICAL' ? '#ef4444' : '#f59e0b' }}>{d.priority}</span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                          <span>Margin: <b style={{ color: d.margin >= 0 ? cfg.color : '#8b5cf6' }}>{d.margin >= 0 ? '+' : ''}{d.margin.toFixed(0)}%</b></span>
+                          <span>Poll: <b style={{ color: d.pollRate < 55 ? '#ef4444' : 'rgba(255,255,255,0.55)' }}>{d.pollRate.toFixed(0)}%</b></span>
+                          <span>BLO: <b style={{ color: d.bloMapped < 56 ? '#ef4444' : d.bloMapped < 60 ? '#f59e0b' : '#10b981' }}>{d.bloMapped.toFixed(0)}%</b></span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Grassroot Gaps</div>
+                          {d.gaps.map((g, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 5, alignItems: 'flex-start' }}>
+                              <span style={{ fontSize: 11, color: g.severity === 'high' ? '#ef4444' : '#f59e0b', marginTop: 1, flexShrink: 0 }}>
+                                {g.severity === 'high' ? '▲' : '◆'}
+                              </span>
+                              <div>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: g.severity === 'high' ? '#fca5a5' : '#fcd34d' }}>{g.label}</div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{g.detail}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Corrective Actions</div>
+                          {d.actions.map((a, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 5, alignItems: 'flex-start' }}>
+                              <span style={{ fontSize: 12, color: '#22d3ee', marginTop: 1, flexShrink: 0 }}>→</span>
+                              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{a}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user }              = useAuth();
@@ -3976,6 +4340,11 @@ export default function Dashboard() {
           {/* ── NEW: Constituency SIR Intelligence Summary (only on overall view) ─── */}
           {!selectedWard && (
             <ConstituencySIRSummary />
+          )}
+
+          {/* ── Ward Strength Intelligence: tiers, grassroot gaps & corrective actions ── */}
+          {!selectedWard && (
+            <WardStrengthIntelligence />
           )}
 
           {/* ── HMC Religion Breakdown + Polled/NotPolled (constituency / ward / booth) ── */}
