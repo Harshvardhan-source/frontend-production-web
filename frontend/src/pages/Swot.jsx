@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navbar from '../components/Navbar';
-import api, { swotApi, beneficiaryApi, mlApi, aiApi } from '../api/client';
+import { swotApi, beneficiaryApi } from '../api/client';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
 const Icon = ({ path, size = 14, color = 'currentColor', strokeWidth = 1.75, fill = 'none', style = {} }) => (
@@ -472,6 +472,7 @@ function SwotAIOverview({ tab }) {
   const [overview, setOverview] = useState(overviewCache[tab] || null);
   const [open,     setOpen]     = useState(false);
 
+  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com';
 
   const load = useCallback(async () => {
     if (overviewCache[tab]) {
@@ -483,9 +484,16 @@ function SwotAIOverview({ tab }) {
     setState('loading');
     setOpen(true);
     try {
+      const token = sessionStorage.getItem('cc_token');
+      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
       const tabData = buildTabData(tab).slice(0, 5000); // hard cap — prevents 502 on Render
-      const res = await api.post('/api/ai/swot-overview/', { tab, tabData });
-      const data = res.data;
+      const res = await window.fetch(`${BASE}/api/ai/swot-overview/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ tab, tabData }),
+      });
+      const data = await res.json();
       if (data?.success && data?.overview) {
         const safe = recoverOverview(data.overview);
         overviewCache[tab] = safe;
@@ -1674,17 +1682,26 @@ function QueryCard({ q, ctxKey, ctxColor }) {
     setAiReveal(false);
 
     try {
-      // Route through Django backend via axios (handles CORS + auth automatically)
-      const res = await api.post('/api/ai/query-insight/', {
-        query: query,
-        columns: cols,
-        count: q.count,
-        percentage: q.percentage,
-        label: label,
-        routeKey: q.routeKey,
-        predictedContext: ctx,
+      // Route through Django backend to avoid CORS — never call Anthropic directly from browser
+      const token = sessionStorage.getItem('cc_token');
+      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com';
+
+      const res = await fetch(`${BASE}/api/ai/query-insight/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({
+          query: query,
+          columns: cols,
+          count: q.count,
+          percentage: q.percentage,
+          label: label,
+          routeKey: q.routeKey,
+          predictedContext: ctx,
+        }),
       });
-      const data = res.data;
+      const data = await res.json();
       if (data.success && data.insight) {
         setAiText(data.insight);
       } else {
@@ -2241,10 +2258,20 @@ function BirdsEyeAIPanel({ queries, selectedCtx }) {
     const totalVoters = queries.reduce((s, q) => s + (q.count || 0), 0);
 
     try {
-      // Route through Django backend via axios (handles CORS + auth automatically)
-      const res = await api.post('/api/ai/birdseye-view/', { contextKey: selectedCtx, queries, totalVoters });
-      const data = res.data;
-      if (data.error) throw new Error(data.error);
+      // Route through Django backend to avoid CORS — never call Anthropic directly from browser
+      const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com';
+      const token = sessionStorage.getItem('cc_token');
+      const headers = token
+        ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' };
+      const res = await fetch(`${BASE}/api/ai/birdseye-view/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({ contextKey: selectedCtx, queries, totalVoters }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Server error');
       setInsight(data.insight);
     } catch (err) {
       setInsight({ _raw: 'Failed to generate bird\'s eye view. Error: ' + (err?.message || 'Unknown') });
@@ -2389,41 +2416,42 @@ function MLIntelligenceTab() {
   const [scope, setScope] = React.useState('constituency'); // 'constituency' | 'ward'
   const [selectedWard, setSelectedWard] = React.useState('');
   const [selectedCtx, setSelectedCtx] = React.useState(CONTEXT_KEYS[0].key);
-  const [data, setData] = React.useState(_mlCache.constituency);
-  const [loading, setLoading] = React.useState(_mlCache.constituency === null);
+  const [data, setData] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
-  const [wardList, setWardList] = React.useState(_mlCache.wardList || []);
+  const [wardList, setWardList] = React.useState([]);
 
-  // Load ward list once via axios — handles CORS + auth automatically
+  // Helper: get JWT token from sessionStorage (same as client.js interceptor)
+  const authHeaders = () => {
+    const token = sessionStorage.getItem('cc_token');
+    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  };
+
+  const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com';
+
+  // Load ward list once
   React.useEffect(() => {
-    if (_mlCache.wardList !== null) return;
-    api.get('/api/wards/')
-      .then(r => {
-        _mlCache.wardList = Array.isArray(r.data.wards) ? r.data.wards : [];
-        setWardList(_mlCache.wardList);
-      })
+    fetch(`${BASE}/api/wards/`, { credentials: 'include', headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => setWardList(Array.isArray(d.wards) ? d.wards : []))
       .catch(() => {});
   }, []);
 
-  const fetchData = React.useCallback((force = false) => {
-    if (!force && scope === 'constituency' && _mlCache.constituency !== null) {
-      setData(_mlCache.constituency);
-      setLoading(false);
-      return;
-    }
+  const fetchData = React.useCallback(() => {
     setLoading(true); setError(null); setData(null);
-    // Use axios api instance — handles CORS, credentials, and JWT auth header automatically
-    api.get('/api/ml/constituency-swot/')
+    // Always use constituency endpoint (ward-wise is in progress)
+    const url = `${BASE}/api/ml/constituency-swot/`;
+    fetch(url, { credentials: 'include', headers: authHeaders() })
       .then(r => {
-        const d = r.data;
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) throw new Error(`Server returned ${r.status} — route not found or not JSON. Check Django urls.py has ml/ routes registered.`);
+        return r.json();
+      })
+      .then(d => {
         if (d.error) throw new Error(d.error);
-        if (scope === 'constituency') _mlCache.constituency = d;
         setData(d); setLoading(false);
       })
-      .catch(e => {
-        setError(e.userMessage || e.response?.data?.error || e.message || 'Failed to fetch');
-        setLoading(false);
-      });
+      .catch(e => { setError(e.message); setLoading(false); });
   }, [scope, selectedWard]);
 
   React.useEffect(() => {
