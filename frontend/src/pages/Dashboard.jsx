@@ -11,63 +11,75 @@ import { dashboardApi } from '../api/client';
 import api from '../api/client';
 import { useAuth } from '../App';
 
-// ─── SVG Icon system — no external dependency ────────────────────────────────
-const SVG_ICONS = {
-  ShieldCheck:    <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></>,
-  Zap:            <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>,
-  Flag:           <><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></>,
-  FlagOff:        <><path d="M8 2c3 0 5 2 8 2"/><path d="M4 22V4"/><path d="M20 15c0-3-2-4-5-4"/><line x1="2" y1="2" x2="22" y2="22"/></>,
-  MapPin:         <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>,
-  Search:         <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
-  Trophy:         <><polyline points="8 21 12 17 16 21"/><line x1="12" y1="17" x2="12" y2="11"/><path d="M7 4H4a1 1 0 0 0-1 1v3a6 6 0 0 0 6 6h0a6 6 0 0 0 6-6V5a1 1 0 0 0-1-1h-3"/><path d="M7 4h10"/></>,
-  Users:          <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
-  History:        <><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></>,
-  Calculator:     <><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="12" y1="10" x2="14" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="12" y1="14" x2="14" y2="14"/><line x1="16" y1="14" x2="18" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="12" y1="18" x2="16" y2="18"/></>,
-  Target:         <><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>,
-  ClipboardList:  <><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="12" y1="11" x2="16" y2="11"/><line x1="12" y1="15" x2="16" y2="15"/><polyline points="9 11 10 12 8 14 9 15"/></>,
-  CheckSquare:    <><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></>,
-  CalendarDays:   <><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/></>,
-  Lightbulb:      <><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></>,
-  AlertTriangle:  <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
-  AlertCircle:    <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
-  CheckCircle:    <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
-  Info:           <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
-  TrendingUp:     <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>,
-  TrendingDown:   <><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></>,
-  Minus:          <><line x1="5" y1="12" x2="19" y2="12"/></>,
-  ArrowRight:     <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
-  ArrowLeft:      <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
-  ChevronDown:    <><polyline points="6 9 12 15 18 9"/></>,
-  ChevronUp:      <><polyline points="18 15 12 9 6 15"/></>,
-  ChevronRight:   <><polyline points="9 18 15 12 9 6"/></>,
-  User:           <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
-  UserCheck:      <><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></>,
-  Users2:         <><path d="M14 19a6 6 0 0 0-12 0"/><circle cx="8" cy="9" r="4"/><path d="M22 19a6 6 0 0 0-6-6 4 4 0 0 0 0-8"/></>,
-  Scale:          <><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></>,
-  Gauge:          <><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></>,
-  Map:            <><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></>,
-  Layers:         <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
-  Home:           <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
-  Edit:           <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
-  X:              <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
-  FileText:       <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></>,
-  LayoutDashboard:<><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>,
-  Vote:           <><path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7z"/><path d="M22 19H2"/></>,
-  Crosshair:      <><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></>,
-  Award:          <><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></>,
+// ─── SVG Icon system — zero external dependencies ────────────────────────────
+// Paths stored as plain strings — no JSX outside components
+const SVG_PATHS = {
+  ShieldCheck:     'm12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4',
+  Zap:             'M13 2 3 14h9l-1 8 10-12h-9z',
+  Flag:            'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7',
+  FlagOff:         'M8 2c3 0 5 2 8 2 M4 22V4 M20 15c0-3-2-4-5-4 M2 2l20 20',
+  MapPin:          'M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+  Search:          'M11 11m-8 0a8 8 0 1 0 16 0 8 8 0 0 0-16 0 M21 21l-4.35-4.35',
+  Trophy:          'M8 21l4-4 4 4 M12 17v-6 M7 4H4a1 1 0 0 0-1 1v3a6 6 0 0 0 12 0V5a1 1 0 0 0-1-1h-3 M7 4h10',
+  Users:           'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
+  History:         'M1 4v6h6 M3.51 15a9 9 0 1 0 .49-4.95',
+  Calculator:      'M4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M8 6h8 M8 10h2 M12 10h2 M16 10h.01 M8 14h2 M12 14h2 M16 14h2 M8 18h2 M12 18h4',
+  Target:          'M12 12m-10 0a10 10 0 1 0 20 0 10 10 0 0 0-20 0 M12 12m-6 0a6 6 0 1 0 12 0 6 6 0 0 0-12 0 M12 12m-2 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0',
+  ClipboardList:   'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2 M8 2h8a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z M12 11h4 M12 15h4 M8 11h.01 M8 15h.01',
+  CheckSquare:     'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+  CalendarDays:    'M3 4h18a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M16 2v4 M8 2v4 M1 10h22 M8 14h.01 M12 14h.01 M16 14h.01',
+  Lightbulb:       'M9 18h6 M10 22h4 M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14',
+  AlertTriangle:   'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01',
+  AlertCircle:     'M12 12m-10 0a10 10 0 1 0 20 0 10 10 0 0 0-20 0 M12 8v4 M12 16h.01',
+  CheckCircle:     'M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4 12 14.01l-3-3',
+  Info:            'M12 12m-10 0a10 10 0 1 0 20 0 10 10 0 0 0-20 0 M12 16v-4 M12 8h.01',
+  TrendingUp:      'M23 6 13.5 15.5 8.5 10.5 1 18 M17 6h6v6',
+  TrendingDown:    'M23 18 13.5 8.5 8.5 13.5 1 6 M17 18h6v-6',
+  Minus:           'M5 12h14',
+  ArrowRight:      'M5 12h14 M12 5l7 7-7 7',
+  ArrowLeft:       'M19 12H5 M12 19l-7-7 7-7',
+  ChevronDown:     'M6 9l6 6 6-6',
+  ChevronUp:       'M18 15l-6-6-6 6',
+  ChevronRight:    'M9 18l6-6-6-6',
+  User:            'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  UserCheck:       'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M17 11l2 2 4-4',
+  Users2:          'M14 19a6 6 0 0 0-12 0 M8 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 19a6 6 0 0 0-6-6 M16 7a4 4 0 0 1 0 8',
+  Scale:           'M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z M7 21h10 M12 3v18 M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2',
+  Gauge:           'M12 14l4-4 M3.34 19a10 10 0 1 1 17.32 0',
+  Map:             'M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z M8 2v16 M16 6v16',
+  Layers:          'M12 2 2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
+  Home:            'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10',
+  Edit:            'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z',
+  X:               'M18 6 6 18 M6 6l12 12',
+  FileText:        'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8',
+  LayoutDashboard: 'M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z',
+  Vote:            'M9 12l2 2 4-4 M5 7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v12H5V7z M1 19h22',
+  Crosshair:       'M12 12m-10 0a10 10 0 1 0 20 0 10 10 0 0 0-20 0 M22 12h-4 M6 12H2 M12 6V2 M12 22v-4',
+  Award:           'M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M8.21 13.89 7 23l5-3 5 3-1.21-9.12',
 };
 
+// IC renders an SVG icon from the path string dictionary
 const IC = ({ icon, size = 14, color, style = {} }) => {
-  const paths = SVG_ICONS[icon] || SVG_ICONS['Info'];
+  const d = SVG_PATHS[icon];
+  if (!d) return null;
+  // Split compound paths by space-M or explicit M (multiple sub-paths)
+  const segs = d.split(' M ');
   return (
     <svg
-      width={size} height={size} viewBox="0 0 24 24"
-      fill="none" stroke={color || 'currentColor'} strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round"
-      style={{ display:'inline-block', verticalAlign:'middle', flexShrink:0, ...style }}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color || 'currentColor'}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style }}
       aria-hidden="true"
     >
-      {paths}
+      {segs.map((seg, i) => (
+        <path key={i} d={i === 0 ? seg : 'M ' + seg} />
+      ))}
     </svg>
   );
 };
