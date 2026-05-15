@@ -12,7 +12,8 @@ import {
   Vote, ShieldAlert, Layers, BarChart2, BookOpen,
   Building2, Church, Landmark, Star, Trash2, Loader2,
   Check, UserCircle, CreditCard, Baby, Sprout,
-  UserCheck, MapIcon, ClipboardCheck,
+  UserCheck, MapIcon, ClipboardCheck, Zap, Brain, RefreshCw,
+  TrendingUp, Target, Eye, ChevronRight,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { dashboardApi } from '../api/client';
@@ -3148,6 +3149,545 @@ function LargeFamiliesModal({ onClose }) {
 }
 
 // ─── Ward Strength Intelligence Panel ────────────────────────────────────────
+// ─── AI Bird's Eye View — AI-powered synthesis across all intelligence tabs ──
+function AIBirdsEyeView({ wardsData = [], sirData = {}, insights = [] }) {
+  const [loading,      setLoading]      = React.useState(false);
+  const [error,        setError]        = React.useState('');
+  const [report,       setReport]       = React.useState(null);
+  const [activeSection,setActiveSection]= React.useState(null);
+  const [generated,    setGenerated]    = React.useState(false);
+
+  // Build a compact but comprehensive context string from all tab data
+  const buildContext = () => {
+    // Ward summary
+    const bjpStronghold = wardsData.filter(w => w.cls.includes('STRONGHOLD')).length;
+    const bjpStrong     = wardsData.filter(w => w.cls.includes('BJP STRONG') && !w.cls.includes('HOLD')).length;
+    const contested     = wardsData.filter(w => w.cls.includes('CONTESTED')).length;
+    const congWards     = wardsData.filter(w => w.cls.includes('CONGRESS')).length;
+    const avgTurnout    = (wardsData.reduce((s,w)=>s+w.poll,0)/wardsData.length).toFixed(1);
+    const avgMargin     = (wardsData.reduce((s,w)=>s+w.margin,0)/wardsData.length).toFixed(1);
+    const criticalWards = wardsData.filter(w => w.priority && w.priority.includes('CRITICAL')).map(w=>`W${w.w} ${w.n}`).join(', ');
+    const highRiskWards = wardsData.filter(w => w.priority && w.priority.includes('HIGH')).map(w=>`W${w.w} ${w.n}`).join(', ');
+
+    // SIR data
+    const sirEntries  = Object.entries(sirData);
+    const avgBLO      = (sirEntries.reduce((s,[,d])=>s+d.bloMapped,0)/sirEntries.length).toFixed(1);
+    const avgMapped   = (sirEntries.reduce((s,[,d])=>s+d.totalMapped,0)/sirEntries.length).toFixed(1);
+    const lowestTurnoutWards = [...sirEntries].sort(([,a],[,b])=>a.pollRate-b.pollRate).slice(0,3).map(([n,d])=>`W${n}(${d.pollRate}%)`).join(', ');
+
+    return `
+CONSTITUENCY: Mangaluru City South | 38 wards | 246,960 electors | BJP 2025 election intel
+
+WARD CLASSIFICATION:
+- BJP Stronghold: ${bjpStronghold} wards
+- BJP Strong: ${bjpStrong} wards
+- Contested: ${contested} wards
+- Congress wards: ${congWards} wards
+- Avg turnout: ${avgTurnout}% | Avg BJP margin: +${avgMargin}%
+- CRITICAL risk wards: ${criticalWards || 'None'}
+- HIGH risk wards: ${highRiskWards || 'None'}
+
+SIR SURVEY STATUS:
+- Avg BLO mapping: ${avgBLO}% | Avg total mapped: ${avgMapped}%
+- Lowest turnout wards: ${lowestTurnoutWards}
+
+COMMUNITY COMPOSITION (Constituency):
+- Hindu: ~63% | Muslim: ~19% | Christian: ~17%
+- Key communities: Billava, Mogaveera, GSB, Bunt, Catholic
+- 2023 turnout: 57.3% (141,707 polled / 105,253 not polled)
+
+TOP 3 WSI WARDS: Derebail West(75.3), Central(73.0), Derebail SW(74.5)
+BOTTOM 3 WSI WARDS: Court(39.5% turnout), Bengre(41.6%), Falnir(56.3%)
+
+WIN PROBABILITY: 58% (contested territory)
+KEY VICTORY MATH: Win needs ~127,000 votes. Gap = ~8,500 votes if turnout lifts 5%.
+
+STRATEGY PILLARS: MOBILISE · CONSOLIDATE · PENETRATE · INSULATE · DOMINATE
+
+TOP INSIGHTS (from existing analysis):
+${insights.slice(0,5).map(i=>`${i.n}. ${i.title}: ${i.msg} → ${i.action}`).join('\n')}
+
+CRITICAL GAPS: Low turnout in strongholds, 33% electorate unmapped in SIR, Christian swing vote unpenetrated, Court ward lowest turnout 39.5%
+`;
+  };
+
+  const SECTION_PROMPTS = [
+    {
+      id: 'executive',
+      label: 'Executive Summary',
+      icon: <Target size={14}/>,
+      color: '#f59e0b',
+      prompt: `You are a BJP political intelligence analyst. Based on this constituency data, provide a pin-point executive summary in exactly this JSON format:
+{
+  "verdict": "one sentence overall verdict with win probability",
+  "winnable": true/false,
+  "confidence": "LOW/MEDIUM/HIGH",
+  "topThreeActions": ["action1","action2","action3"],
+  "biggestThreat": "one specific threat",
+  "biggestOpportunity": "one specific opportunity",
+  "timeframe": "urgency note"
+}
+Respond ONLY with valid JSON, no other text.`,
+    },
+    {
+      id: 'wardIntel',
+      label: 'Ward-by-Ward Intel',
+      icon: <MapPin size={14}/>,
+      color: '#22d3ee',
+      prompt: `You are a BJP political analyst. Based on this data, create a concise ward intelligence report in exactly this JSON format:
+{
+  "criticalWards": [{"ward":"name","issue":"specific issue","action":"specific action"}],
+  "strongholdRisks": [{"ward":"name","risk":"specific risk","fix":"specific fix"}],
+  "swingWards": [{"ward":"name","opportunity":"specific opportunity","strategy":"strategy"}],
+  "immediateActions": ["ward-specific action 1","ward-specific action 2","ward-specific action 3"]
+}
+Limit each array to max 3 items. Respond ONLY with valid JSON, no other text.`,
+    },
+    {
+      id: 'communityStrategy',
+      label: 'Community Strategy',
+      icon: <Users2 size={14}/>,
+      color: '#10b981',
+      prompt: `You are a BJP political analyst specialising in community outreach. Based on this constituency data, provide specific community strategy in exactly this JSON format:
+{
+  "hinduStrategy": "specific Hindu voter mobilisation strategy",
+  "christianStrategy": "specific Christian voter penetration strategy",
+  "muslimStrategy": "specific Muslim vote strategy (split/penetrate)",
+  "obcStrategy": "OBC consolidation specific plan",
+  "womenStrategy": "women voter mobilisation plan",
+  "youthStrategy": "first-time voter and youth plan",
+  "keyInsight": "one critical community insight that could swing the election"
+}
+Respond ONLY with valid JSON, no other text.`,
+    },
+    {
+      id: 'mathVictory',
+      label: 'Victory Math',
+      icon: <BarChart2 size={14}/>,
+      color: '#a78bfa',
+      prompt: `You are a BJP election math analyst. Based on this constituency data, compute the exact victory formula in this JSON format:
+{
+  "currentVotes": "estimated current BJP votes",
+  "targetVotes": "votes needed to win",
+  "gap": "vote gap to bridge",
+  "levers": [
+    {"lever":"lever name","impact":"estimated vote impact","difficulty":"LOW/MEDIUM/HIGH"},
+    {"lever":"lever name","impact":"estimated vote impact","difficulty":"LOW/MEDIUM/HIGH"},
+    {"lever":"lever name","impact":"estimated vote impact","difficulty":"LOW/MEDIUM/HIGH"}
+  ],
+  "turnoutFormula": "every X% turnout gain = Y votes",
+  "minimumWinScenario": "exact scenario that gets BJP to minimum win",
+  "confidenceRange": "vote range: low-high"
+}
+Respond ONLY with valid JSON, no other text.`,
+    },
+    {
+      id: 'operationalPlan',
+      label: 'Operational Plan',
+      icon: <ClipboardCheck size={14}/>,
+      color: '#ef4444',
+      prompt: `You are a BJP election operations director. Based on this data, create a 90-day operational plan in exactly this JSON format:
+{
+  "phase1": {"name":"T-90 to T-60","focus":"focus area","tasks":["task1","task2","task3"]},
+  "phase2": {"name":"T-60 to T-30","focus":"focus area","tasks":["task1","task2","task3"]},
+  "phase3": {"name":"T-30 to T-0","focus":"focus area","tasks":["task1","task2","task3"]},
+  "pollingDayProtocol": ["step1","step2","step3"],
+  "kpis": ["KPI1","KPI2","KPI3"],
+  "redFlags": ["warning1","warning2"]
+}
+Respond ONLY with valid JSON, no other text.`,
+    },
+  ];
+
+  const generateSection = async (section) => {
+    setLoading(true);
+    setError('');
+    setActiveSection(section.id);
+
+    const context = buildContext();
+    const fullPrompt = `${context}\n\n${section.prompt}`;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: fullPrompt }],
+        }),
+      });
+      const data = await response.json();
+      const text = data.content?.map(c=>c.text||'').join('').trim();
+      // Strip any markdown fences
+      const clean = text.replace(/```json\n?|```\n?/g,'').trim();
+      const parsed = JSON.parse(clean);
+      setReport(prev => ({ ...(prev||{}), [section.id]: { data: parsed, label: section.label, color: section.color, icon: section.icon }}));
+      setGenerated(true);
+    } catch(e) {
+      setError('Failed to generate AI analysis. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateAll = async () => {
+    setLoading(true);
+    setError('');
+    setReport({});
+    const context = buildContext();
+    const newReport = {};
+
+    for (const section of SECTION_PROMPTS) {
+      setActiveSection(section.id);
+      try {
+        const fullPrompt = `${context}\n\n${section.prompt}`;
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1000,
+            messages: [{ role: 'user', content: fullPrompt }],
+          }),
+        });
+        const data = await response.json();
+        const text = data.content?.map(c=>c.text||'').join('').trim();
+        const clean = text.replace(/```json\n?|```\n?/g,'').trim();
+        const parsed = JSON.parse(clean);
+        newReport[section.id] = { data: parsed, label: section.label, color: section.color, icon: section.icon };
+      } catch(e) {
+        newReport[section.id] = { error: true, label: section.label, color: section.color, icon: section.icon };
+      }
+    }
+
+    setReport(newReport);
+    setGenerated(true);
+    setActiveSection(null);
+    setLoading(false);
+  };
+
+  const card = (style={}) => ({
+    background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    padding: '16px',
+    ...style,
+  });
+
+  const renderSectionData = (id, d) => {
+    if (!d || d.error) return <div style={{color:'#f87171',fontSize:12}}>Failed to load this section.</div>;
+    const { data, color } = d;
+
+    if (id === 'executive') return (
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <div style={{background:`${color}12`,border:`1px solid ${color}30`,borderRadius:12,padding:'14px 16px'}}>
+          <div style={{fontSize:13,fontWeight:700,color,marginBottom:4}}>Verdict</div>
+          <div style={{fontSize:15,fontWeight:800,color:'var(--text-1)',lineHeight:1.5}}>{data.verdict}</div>
+          <div style={{marginTop:10,display:'flex',gap:10,flexWrap:'wrap'}}>
+            <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:6,background: data.winnable?'rgba(16,185,129,0.18)':'rgba(239,68,68,0.18)',color:data.winnable?'#10b981':'#ef4444',border:`1px solid ${data.winnable?'rgba(16,185,129,0.35)':'rgba(239,68,68,0.35)'}`}}>{data.winnable?'✓ WINNABLE':'✗ AT RISK'}</span>
+            <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:6,background:'rgba(255,255,255,0.06)',color:'rgba(255,255,255,0.6)',border:'1px solid rgba(255,255,255,0.1)'}}>Confidence: {data.confidence}</span>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          <div style={{background:'rgba(239,68,68,0.07)',border:'1px solid rgba(239,68,68,0.18)',borderRadius:10,padding:'12px'}}>
+            <div style={{fontSize:10,fontWeight:800,color:'#f87171',letterSpacing:'0.06em',marginBottom:6}}>⚠ BIGGEST THREAT</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.75)',lineHeight:1.5}}>{data.biggestThreat}</div>
+          </div>
+          <div style={{background:'rgba(16,185,129,0.07)',border:'1px solid rgba(16,185,129,0.18)',borderRadius:10,padding:'12px'}}>
+            <div style={{fontSize:10,fontWeight:800,color:'#10b981',letterSpacing:'0.06em',marginBottom:6}}>★ BIGGEST OPPORTUNITY</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.75)',lineHeight:1.5}}>{data.biggestOpportunity}</div>
+          </div>
+        </div>
+        <div style={{background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.18)',borderRadius:10,padding:'12px'}}>
+          <div style={{fontSize:10,fontWeight:800,color:'#f59e0b',letterSpacing:'0.06em',marginBottom:8}}>⚡ TOP 3 ACTIONS</div>
+          {(data.topThreeActions||[]).map((a,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:i<2?8:0}}>
+              <span style={{fontSize:11,fontWeight:900,color:'#f59e0b',minWidth:18,marginTop:1}}>{i+1}.</span>
+              <span style={{fontSize:12,color:'rgba(255,255,255,0.75)',lineHeight:1.5}}>{a}</span>
+            </div>
+          ))}
+        </div>
+        {data.timeframe && <div style={{fontSize:11,color:'rgba(255,255,255,0.35)',textAlign:'center',padding:'6px 0',borderTop:'1px solid rgba(255,255,255,0.06)'}}>{data.timeframe}</div>}
+      </div>
+    );
+
+    if (id === 'wardIntel') return (
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        {[
+          {key:'criticalWards',label:'🔴 CRITICAL WARDS',color:'#ef4444',fields:['ward','issue','action']},
+          {key:'strongholdRisks',label:'🟠 STRONGHOLD RISKS',color:'#f97316',fields:['ward','risk','fix']},
+          {key:'swingWards',label:'🟡 SWING OPPORTUNITIES',color:'#f59e0b',fields:['ward','opportunity','strategy']},
+        ].map(({key,label,color,fields})=> data[key]?.length ? (
+          <div key={key}>
+            <div style={{fontSize:10,fontWeight:800,color,letterSpacing:'0.06em',marginBottom:8}}>{label}</div>
+            <div style={{display:'flex',flexDirection:'column',gap:7}}>
+              {data[key].map((item,i)=>(
+                <div key={i} style={{background:`${color}07`,border:`1px solid ${color}20`,borderRadius:10,padding:'11px 13px'}}>
+                  <div style={{fontSize:13,fontWeight:700,color,marginBottom:5}}>{item[fields[0]]}</div>
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.55)',marginBottom:6,lineHeight:1.5}}>{item[fields[1]]}</div>
+                  <div style={{display:'inline-flex',alignItems:'center',gap:5,background:'rgba(255,255,255,0.05)',borderRadius:6,padding:'3px 10px'}}>
+                    <ChevronRight size={10} color={color}/>
+                    <span style={{fontSize:11,color,fontWeight:600}}>{item[fields[2]]}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null)}
+        {data.immediateActions?.length && (
+          <div style={{background:'rgba(34,211,238,0.07)',border:'1px solid rgba(34,211,238,0.18)',borderRadius:10,padding:'12px'}}>
+            <div style={{fontSize:10,fontWeight:800,color:'#22d3ee',letterSpacing:'0.06em',marginBottom:8}}>⚡ IMMEDIATE ACTIONS</div>
+            {data.immediateActions.map((a,i)=>(
+              <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',marginBottom:i<data.immediateActions.length-1?6:0}}>
+                <span style={{color:'#22d3ee',fontSize:11,marginTop:1}}>→</span>
+                <span style={{fontSize:12,color:'rgba(255,255,255,0.7)',lineHeight:1.5}}>{a}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+    if (id === 'communityStrategy') return (
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        {[
+          {k:'hinduStrategy',   label:'Hindu',     color:'#f97316', emoji:'🏛'},
+          {k:'christianStrategy',label:'Christian', color:'#8b5cf6', emoji:'✝'},
+          {k:'muslimStrategy',  label:'Muslim',    color:'#10b981', emoji:'☪'},
+          {k:'obcStrategy',     label:'OBC',       color:'#22d3ee', emoji:'⚖'},
+          {k:'womenStrategy',   label:'Women',     color:'#ec4899', emoji:'♀'},
+          {k:'youthStrategy',   label:'Youth',     color:'#f59e0b', emoji:'★'},
+        ].map(({k,label,color,emoji})=>(
+          <div key={k} style={{background:`${color}08`,border:`1px solid ${color}22`,borderRadius:11,padding:'12px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:7}}>
+              <span style={{fontSize:14}}>{emoji}</span>
+              <span style={{fontSize:11,fontWeight:800,color,letterSpacing:'0.04em'}}>{label}</span>
+            </div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.65)',lineHeight:1.55}}>{data[k]}</div>
+          </div>
+        ))}
+        {data.keyInsight && (
+          <div style={{gridColumn:'1/-1',background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:11,padding:'14px 16px'}}>
+            <div style={{fontSize:10,fontWeight:800,color:'#f59e0b',letterSpacing:'0.06em',marginBottom:7}}>💡 KEY SWING INSIGHT</div>
+            <div style={{fontSize:13,color:'rgba(255,255,255,0.8)',lineHeight:1.6,fontWeight:600}}>{data.keyInsight}</div>
+          </div>
+        )}
+      </div>
+    );
+
+    if (id === 'mathVictory') return (
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+          {[
+            {label:'Current Votes',val:data.currentVotes,color:'#22d3ee'},
+            {label:'Target Votes', val:data.targetVotes, color:'#10b981'},
+            {label:'Vote Gap',     val:data.gap,          color:'#f59e0b'},
+          ].map(({label,val,color})=>(
+            <div key={label} style={{background:`${color}0d`,border:`1px solid ${color}28`,borderRadius:12,padding:'14px 12px',textAlign:'center'}}>
+              <div style={{fontSize:18,fontWeight:900,color,fontFamily:'monospace',letterSpacing:'-0.5px'}}>{val}</div>
+              <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:4,fontWeight:600}}>{label}</div>
+            </div>
+          ))}
+        </div>
+        {data.levers?.length && (
+          <div>
+            <div style={{fontSize:10,fontWeight:800,color:'rgba(255,255,255,0.45)',letterSpacing:'0.06em',marginBottom:8}}>VOTE LEVERS</div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {data.levers.map((l,i)=>{
+                const dColor = l.difficulty==='LOW'?'#10b981':l.difficulty==='MEDIUM'?'#f59e0b':'#ef4444';
+                return (
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:12,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:10,padding:'11px 14px'}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--text-1)',marginBottom:2}}>{l.lever}</div>
+                      <div style={{fontSize:11,color:'rgba(255,255,255,0.45)'}}>{l.impact}</div>
+                    </div>
+                    <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:5,background:`${dColor}18`,color:dColor,border:`1px solid ${dColor}30`,flexShrink:0}}>{l.difficulty}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {(data.turnoutFormula||data.minimumWinScenario||data.confidenceRange) && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr',gap:8}}>
+            {data.turnoutFormula && <div style={{background:'rgba(167,139,250,0.07)',border:'1px solid rgba(167,139,250,0.2)',borderRadius:10,padding:'12px'}}><div style={{fontSize:10,fontWeight:800,color:'#a78bfa',marginBottom:5}}>TURNOUT FORMULA</div><div style={{fontFamily:'monospace',fontSize:12,color:'#c4b5fd'}}>{data.turnoutFormula}</div></div>}
+            {data.minimumWinScenario && <div style={{background:'rgba(16,185,129,0.07)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:10,padding:'12px'}}><div style={{fontSize:10,fontWeight:800,color:'#10b981',marginBottom:5}}>MINIMUM WIN SCENARIO</div><div style={{fontSize:12,color:'rgba(255,255,255,0.7)',lineHeight:1.5}}>{data.minimumWinScenario}</div></div>}
+            {data.confidenceRange && <div style={{textAlign:'center',fontSize:11,color:'rgba(255,255,255,0.35)',padding:'4px 0',borderTop:'1px solid rgba(255,255,255,0.06)'}}>{data.confidenceRange}</div>}
+          </div>
+        )}
+      </div>
+    );
+
+    if (id === 'operationalPlan') return (
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        {[
+          {key:'phase1',color:'#22d3ee'},
+          {key:'phase2',color:'#f59e0b'},
+          {key:'phase3',color:'#ef4444'},
+        ].map(({key,color})=> data[key] ? (
+          <div key={key} style={{background:`${color}07`,border:`1px solid ${color}20`,borderRadius:11,padding:'13px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <span style={{fontSize:12,fontWeight:800,color}}>{data[key].name}</span>
+              <span style={{fontSize:10,color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.06)',borderRadius:5,padding:'2px 8px'}}>{data[key].focus}</span>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:5}}>
+              {(data[key].tasks||[]).map((t,i)=>(
+                <div key={i} style={{display:'flex',gap:7,alignItems:'flex-start'}}>
+                  <span style={{color,fontSize:11,marginTop:1}}>◆</span>
+                  <span style={{fontSize:12,color:'rgba(255,255,255,0.65)',lineHeight:1.5}}>{t}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null)}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          {data.pollingDayProtocol?.length && (
+            <div style={{background:'rgba(16,185,129,0.07)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:10,padding:'12px'}}>
+              <div style={{fontSize:10,fontWeight:800,color:'#10b981',marginBottom:7}}>POLLING DAY PROTOCOL</div>
+              {data.pollingDayProtocol.map((s,i)=>(
+                <div key={i} style={{display:'flex',gap:6,marginBottom:5,alignItems:'flex-start'}}>
+                  <span style={{color:'#10b981',fontSize:11,fontWeight:700,minWidth:16}}>{i+1}.</span>
+                  <span style={{fontSize:11,color:'rgba(255,255,255,0.6)',lineHeight:1.45}}>{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {data.redFlags?.length && (
+            <div style={{background:'rgba(239,68,68,0.07)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,padding:'12px'}}>
+              <div style={{fontSize:10,fontWeight:800,color:'#f87171',marginBottom:7}}>⚠ RED FLAGS</div>
+              {data.redFlags.map((f,i)=>(
+                <div key={i} style={{display:'flex',gap:6,marginBottom:5,alignItems:'flex-start'}}>
+                  <span style={{color:'#f87171',fontSize:11}}>!</span>
+                  <span style={{fontSize:11,color:'rgba(255,255,255,0.6)',lineHeight:1.45}}>{f}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {data.kpis?.length && (
+          <div style={{background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:10,padding:'12px'}}>
+            <div style={{fontSize:10,fontWeight:800,color:'#f59e0b',marginBottom:7}}>KPIs TO TRACK</div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              {data.kpis.map((k,i)=>(
+                <span key={i} style={{fontSize:11,color:'#f59e0b',background:'rgba(245,158,11,0.12)',borderRadius:6,padding:'3px 10px',border:'1px solid rgba(245,158,11,0.2)'}}>{k}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
+    return <div style={{color:'rgba(255,255,255,0.4)',fontSize:12}}>Data loaded.</div>;
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{marginBottom:18}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+          <div>
+            <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:4}}>
+              <div style={{width:34,height:34,borderRadius:10,background:'linear-gradient(135deg,rgba(245,158,11,0.25),rgba(239,68,68,0.15))',border:'1px solid rgba(245,158,11,0.35)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Eye size={16} color="#f59e0b"/>
+              </div>
+              <div style={{fontSize:16,fontWeight:900,color:'var(--text-1)',letterSpacing:'-0.3px'}}>AI Bird's Eye View</div>
+            </div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.35)',paddingLeft:43}}>Claude analyses all 11 intelligence tabs — Heatmap · WSI · Community · History · Math · Strategy · Policy · Tracker · Calendar · Insights</div>
+          </div>
+          <button
+            onClick={generateAll}
+            disabled={loading}
+            style={{display:'flex',alignItems:'center',gap:8,padding:'10px 20px',borderRadius:11,border:'none',cursor:loading?'not-allowed':'pointer',
+              background:loading?'rgba(245,158,11,0.15)':'linear-gradient(135deg,rgba(245,158,11,0.9),rgba(249,115,22,0.85))',
+              color:loading?'rgba(255,255,255,0.45)':'#0d1117',fontWeight:800,fontSize:13,transition:'all 0.2s',
+              boxShadow:loading?'none':'0 4px 14px rgba(245,158,11,0.4)'}}
+          >
+            {loading ? <Loader2 size={14} style={{animation:'spin 1s linear infinite'}}/> : <Zap size={14}/>}
+            {loading ? `Analysing ${SECTION_PROMPTS.find(s=>s.id===activeSection)?.label||''}…` : generated ? 'Regenerate Full Analysis' : 'Generate Full AI Analysis'}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:10,padding:'12px 16px',marginBottom:16,fontSize:13,color:'#f87171'}}>
+          ⚠ {error}
+        </div>
+      )}
+
+      {/* Quick-generate individual sections */}
+      {!generated && !loading && (
+        <div style={{...card({marginBottom:18})}}>
+          <div style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.6)',marginBottom:12}}>Or generate a specific section:</div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            {SECTION_PROMPTS.map(s=>(
+              <button key={s.id} onClick={()=>generateSection(s)} disabled={loading}
+                style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:9,border:`1px solid ${s.color}35`,
+                  background:`${s.color}0d`,color:s.color,fontWeight:700,fontSize:12,cursor:loading?'not-allowed':'pointer',transition:'all 0.15s'}}>
+                {s.icon}{s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Sections grid */}
+      {generated && report && (
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:14}}>
+          {SECTION_PROMPTS.map(s => {
+            const sec = report[s.id];
+            const isLoadingThis = loading && activeSection === s.id;
+            return (
+              <div key={s.id} style={{...card()}}>
+                {/* Section header */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{width:28,height:28,borderRadius:8,background:`${s.color}15`,border:`1px solid ${s.color}30`,display:'flex',alignItems:'center',justifyContent:'center',color:s.color}}>
+                      {s.icon}
+                    </div>
+                    <span style={{fontSize:13,fontWeight:800,color:'var(--text-1)'}}>{s.label}</span>
+                  </div>
+                  <button onClick={()=>generateSection(s)} disabled={loading}
+                    style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.09)',borderRadius:7,width:28,height:28,cursor:loading?'not-allowed':'pointer',
+                      color:'rgba(255,255,255,0.35)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s'}}>
+                    <RefreshCw size={12}/>
+                  </button>
+                </div>
+                {/* Content */}
+                {isLoadingThis ? (
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {[1,2,3].map(i=><div key={i} style={{height:42,borderRadius:9,background:'rgba(255,255,255,0.04)',animation:'pulse 1.6s ease-in-out infinite'}}/>)}
+                  </div>
+                ) : sec ? renderSectionData(s.id, sec) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    <div style={{height:38,borderRadius:9,background:'rgba(255,255,255,0.04)'}}/>
+                    <div style={{height:38,borderRadius:9,background:'rgba(255,255,255,0.03)'}}/>
+                    <div style={{height:38,borderRadius:9,background:'rgba(255,255,255,0.02)'}}/>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!generated && !loading && (
+        <div style={{textAlign:'center',padding:'48px 24px'}}>
+          <div style={{width:60,height:60,borderRadius:18,background:'linear-gradient(135deg,rgba(245,158,11,0.18),rgba(239,68,68,0.1))',border:'1px solid rgba(245,158,11,0.25)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'0 8px 24px rgba(245,158,11,0.12)'}}>
+            <Brain size={26} color="#f59e0b"/>
+          </div>
+          <div style={{fontSize:15,fontWeight:800,color:'rgba(255,255,255,0.7)',marginBottom:8}}>AI Political Intelligence Ready</div>
+          <div style={{fontSize:12,color:'rgba(255,255,255,0.3)',maxWidth:420,margin:'0 auto',lineHeight:1.7}}>
+            Click <strong style={{color:'#f59e0b'}}>"Generate Full AI Analysis"</strong> to get a pin-point bird's eye view across all 11 tabs — ward intel, community strategy, victory math, operational plan, and executive summary — synthesised by Claude AI from your constituency data.
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}`}</style>
+    </div>
+  );
+}
+
 // ─── Political Intelligence Hub — all 10 Excel sheets ────────────────────────
 function PoliticalIntelligenceHub() {
   const [activeTab, setActiveTab] = React.useState('heatmap');
@@ -3324,6 +3864,7 @@ function PoliticalIntelligenceHub() {
     {id:'tracker',  label:'Tracker',   icon:<ClipboardCheck size={13}/>},
     {id:'calendar', label:'Calendar',  icon:<Vote size={13}/>},
     {id:'insights', label:'Insights',  icon:<ShieldAlert size={13}/>},
+    {id:'birdseye', label:'AI Overview',icon:<Eye size={13}/>},
   ];
 
   const clsCfg = (cls) => {
@@ -3766,6 +4307,9 @@ function PoliticalIntelligenceHub() {
               </div>
             </div>
           )}
+
+          {/* AI BIRD'S EYE VIEW */}
+          {activeTab==='birdseye'&&(<AIBirdsEyeView wardsData={WARDS_FULL} sirData={SIR_WARD_DATA} insights={INSIGHTS} />)}
 
         </div>
       </div>
