@@ -3457,7 +3457,7 @@ function PoliticalIntelligenceHub() {
         <div style={{padding:'20px 18px 0',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
           <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:10}}>
             <div>
-              <div style={{fontSize:18,fontWeight:900,color:'var(--text-1)',letterSpacing:'-0.3px'}}>BJP Political Intelligence System</div>
+              <div style={{fontSize:18,fontWeight:900,color:'var(--text-1)',letterSpacing:'-0.3px'}}>BJP Polntelligence System</div>
               <div style={{fontSize:12,color:'rgba(255,255,255,0.35)',marginTop:2}}>Mangaluru City South · 38 wards · 246,960 electors · Decadal analysis 2013–2025</div>
             </div>
             <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
