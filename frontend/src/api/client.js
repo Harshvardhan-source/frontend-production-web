@@ -210,6 +210,12 @@ export const aiChatApi = {
   dataFiles: () => api.get('/api/ai/data-files/'),
 };
 
+// ── AI Intel Birds Eye View ──────────────────────────────────────────────────
+export const intelApi = {
+  birdseye: (tabData) =>
+    api.post('/api/ai/intel-birdseye/', { tabData }),
+};
+
 // ── SWOT Beneficiary List ─────────────────────────────────────────────────────
 export const beneficiaryApi = {
   list: (query, page = 1, limit = 50) =>

@@ -15,7 +15,7 @@ import {
   UserCheck, MapIcon, ClipboardCheck,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import { dashboardApi } from '../api/client';
+import { dashboardApi, intelApi } from '../api/client';
 import api from '../api/client';
 import { useAuth } from '../App';
 
@@ -3148,6 +3148,248 @@ function LargeFamiliesModal({ onClose }) {
 }
 
 // ─── Ward Strength Intelligence Panel ────────────────────────────────────────
+
+// ─── AI Birds Eye View Panel for Insights Tab ────────────────────────────────
+const intelCache = {};   // module-level cache like overviewCache
+
+function buildIntelTabData(WARDS_FULL, RELIGION_DATA, COMMUNITY_DATA, MATH_STATS) {
+  const heatmap = WARDS_FULL.slice(0,15).map(w=>
+    `W${w.w} ${w.n}: ${w.cls} | Poll ${w.poll}% | BJP ${w.hjp}% | H${w.hindu}%M${w.muslim}%C${w.christian}% | WSI${w.wsi} | Margin+${w.margin}% | ${w.prediction}`
+  ).join('\n');
+
+  const why = WARDS_FULL.slice(0,10).map(w=>
+    `W${w.w} ${w.n}: WHY=${w.why} | GAP=${w.gap} | ACTION=${w.action}`
+  ).join('\n');
+
+  const community = (RELIGION_DATA||[]).map(r=>
+    `${r.religion}: ${r.total?.toLocaleString()} total, ${r.polled?.toLocaleString()} polled, ${r.turnout}% turnout, ${r.alignment}`
+  ).join('\n');
+
+  const math = MATH_STATS ? Object.entries(MATH_STATS).map(([k,v])=>`${k}: ${v}`).join('\n') : '';
+
+  return { heatmap, why, community, math,
+    insights: 'Top risks: Low Turnout, Christian Swing, 105K non-voters, OBC consolidation, Boloor 50.8% turnout',
+    strategy: '18 BJP wards, 5 Contested, 9 Cong wards. Win probability 58%. Focus: turnout mobilisation + Christian outreach',
+    history:  '2013→2018→2023: BJP stronghold consolidation. Highest gains in OBC belt. Risk wards: Court 39.5%, Padav East 46.9%, Bengre 41.6%',
+    wsi:      'Top WSI: Derebail West A+ (75.3), Central A+ (73.0), Kambala A (71.3). Weakest: Kudroli D (36.3), Bengre D (38.4)',
+    policy:   'P1: NRI Contact, Women mobilisation, Youth registration. P2: Kharvi Sangha, Christian outreach. P3: Candidate selection in 25%+ minority wards',
+    tracker:  '20 pre-election tasks: BLO completion, ward committee activation, transport booking, booth agent deployment',
+    calendar:  '2028 election target. T-6M: Candidate selection. T-3M: Door-to-door. T-1M: Final voter verification. T-1W: Transport booking',
+  };
+}
+
+function IntelBirdseyePanel({ WARDS_FULL, RELIGION_DATA }) {
+  const [state,    setState]   = React.useState('idle');   // idle | loading | done | error
+  const [overview, setOverview] = React.useState(intelCache['intel'] || null);
+  const [errMsg,   setErrMsg]  = React.useState('');
+  const CACHE_KEY = 'intel';
+
+  const load = React.useCallback(async () => {
+    if (intelCache[CACHE_KEY]) { setOverview(intelCache[CACHE_KEY]); setState('done'); return; }
+    setState('loading');
+    try {
+      const tabData = buildIntelTabData(WARDS_FULL, RELIGION_DATA);
+      const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com';
+      const token = sessionStorage.getItem('cc_token');
+      const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+      const r = await fetch(`${BASE}/api/ai/intel-birdseye/`, {
+        method: 'POST', credentials: 'include', headers,
+        body: JSON.stringify({ tabData }),
+      });
+      const json = await r.json();
+      if (!json.success) throw new Error(json.error || 'Request failed');
+      const safe = json.overview || {};
+      intelCache[CACHE_KEY] = safe;
+      setOverview(safe);
+      setState('done');
+    } catch (e) {
+      setErrMsg(e.message || 'Network error');
+      setState('error');
+    }
+  }, [WARDS_FULL, RELIGION_DATA]);
+
+  const urgColor = (u) => u==='CRITICAL'?'#ef4444':u==='HIGH'?'#f97316':u==='MEDIUM'?'#f59e0b':'rgba(255,255,255,0.4)';
+
+  if (state === 'idle' || state === 'error') {
+    return (
+      <div>
+        {/* Static insights list */}
+        <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12}}>Top 10 Actionable Intelligence Insights — Final Summary</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
+          {INSIGHTS_STATIC.map(ins=>(
+            <div key={ins.n} style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'14px 16px',display:'flex',gap:14,alignItems:'flex-start'}}>
+              <div style={{fontSize:22,fontWeight:900,color:ins.sev==='🔴'?'#ef4444':ins.sev==='🟠'?'#f97316':'#f59e0b',minWidth:32,textAlign:'center'}}>{ins.n}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:800,color:'var(--text-1)',marginBottom:5}}>{ins.title}</div>
+                <div style={{fontSize:12,color:'rgba(255,255,255,0.6)',marginBottom:8,lineHeight:1.6}}>{ins.msg}</div>
+                <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:8,padding:'4px 12px'}}>
+                  <span style={{fontSize:11,color:'#10b981'}}>→</span>
+                  <span style={{fontSize:11,fontWeight:600,color:'#6ee7b7'}}>{ins.action}</span>
+                </div>
+              </div>
+              <div style={{fontSize:18,flexShrink:0}}>{ins.sev}</div>
+            </div>
+          ))}
+        </div>
+        {/* AI CTA button */}
+        <div style={{background:'linear-gradient(135deg,rgba(245,158,11,0.08),rgba(249,115,22,0.08))',border:'1px solid rgba(245,158,11,0.2)',borderRadius:14,padding:'16px 18px',display:'flex',alignItems:'center',gap:14}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:800,color:'#f59e0b',marginBottom:3}}>🤖 AI Birds Eye View — All 11 Tabs</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>
+              {state==='error' ? <span style={{color:'#f87171'}}>⚠ {errMsg}</span> : 'Get a comprehensive AI analysis synthesising all intelligence modules — pin-to-pin strategic overview'}
+            </div>
+          </div>
+          <button onClick={load} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',border:'none',borderRadius:10,padding:'10px 18px',color:'#000',fontSize:13,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:7,whiteSpace:'nowrap',boxShadow:'0 4px 16px rgba(245,158,11,0.35)'}}>
+            <ShieldAlert size={15}/>{state==='error'?'Retry':'Generate'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (state === 'loading') {
+    return (
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,padding:'16px',background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:12}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" style={{animation:'spin 1s linear infinite'}}><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" strokeOpacity="0.3"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>
+          <div>
+            <div style={{fontSize:13,fontWeight:700,color:'#f59e0b'}}>ShaastraAI · Analysing All 11 Intelligence Modules…</div>
+            <div style={{fontSize:11,color:'rgba(255,255,255,0.35)'}}>Synthesising Heatmap · Why · WSI · Community · History · Math · Strategy · Policy · Tracker · Calendar · Insights</div>
+          </div>
+        </div>
+        {[1,2,3,4].map(i=><div key={i} style={{height:72,borderRadius:12,background:'rgba(255,255,255,0.04)',animation:'pulse 1.5s ease infinite'}}/>)}
+      </div>
+    );
+  }
+
+  // DONE — render full overview
+  const o = overview;
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      {/* Header banner */}
+      <div style={{background:'linear-gradient(135deg,rgba(245,158,11,0.12),rgba(249,115,22,0.08))',border:'1px solid rgba(245,158,11,0.25)',borderRadius:14,padding:'16px 18px',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:11,fontWeight:700,color:'rgba(245,158,11,0.8)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:5}}>🤖 ShaastraAI · Birds Eye View · All 11 Modules</div>
+          <div style={{fontSize:16,fontWeight:900,color:'var(--text-1)',lineHeight:1.3,marginBottom:8}}>{o.headline || 'BJP Political Intelligence — Comprehensive Analysis'}</div>
+          <div style={{fontSize:12,color:'rgba(255,255,255,0.55)',lineHeight:1.7}}>{o.executiveSummary}</div>
+        </div>
+        <div style={{textAlign:'center',flexShrink:0}}>
+          <div style={{fontSize:28,fontWeight:900,color:'#f59e0b',fontFamily:'var(--font-display)'}}>{o.winProbability ?? 58}%</div>
+          <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',fontWeight:600}}>Win Probability</div>
+          <button onClick={()=>{intelCache[CACHE_KEY]=null;setOverview(null);setState('idle');}} style={{marginTop:8,background:'transparent',border:'1px solid rgba(255,255,255,0.1)',borderRadius:6,padding:'3px 8px',color:'rgba(255,255,255,0.3)',fontSize:10,cursor:'pointer'}}>↺ Refresh</button>
+        </div>
+      </div>
+
+      {/* Top Priority Action */}
+      {o.topPriorityAction && (
+        <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:12,padding:'12px 16px',display:'flex',gap:10,alignItems:'center'}}>
+          <div style={{fontSize:18,flexShrink:0}}>🎯</div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:'#f87171',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:2}}>Top Priority — Next 30 Days</div>
+            <div style={{fontSize:13,fontWeight:700,color:'var(--text-1)'}}>{o.topPriorityAction}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Module Insights grid */}
+      {(o.moduleInsights||[]).length > 0 && (
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.3)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>Module-by-Module Intelligence</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:8}}>
+            {(o.moduleInsights||[]).map((m,i)=>(
+              <div key={i} style={{background:'rgba(255,255,255,0.025)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:12,padding:'12px 14px',borderLeft:`3px solid ${urgColor(m.urgency)}`}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:5}}>
+                  <div style={{display:'flex',alignItems:'center',gap:7}}>
+                    <span style={{fontSize:16}}>{m.icon}</span>
+                    <div>
+                      <div style={{fontSize:11,fontWeight:800,color:'var(--text-1)'}}>{m.tab}</div>
+                      <div style={{fontSize:10,fontWeight:700,color:urgColor(m.urgency)}}>{m.verdict}</div>
+                    </div>
+                  </div>
+                  <span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:`${urgColor(m.urgency)}18`,color:urgColor(m.urgency),fontWeight:700}}>{m.urgency}</span>
+                </div>
+                <div style={{fontSize:11,color:'rgba(255,255,255,0.6)',lineHeight:1.5,marginBottom:7}}>{m.finding}</div>
+                <div style={{display:'flex',alignItems:'flex-start',gap:5,background:'rgba(16,185,129,0.07)',borderRadius:6,padding:'5px 8px'}}>
+                  <span style={{fontSize:11,color:'#10b981',flexShrink:0}}>→</span>
+                  <span style={{fontSize:11,color:'#6ee7b7',lineHeight:1.4}}>{m.action}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Critical Risks + Opportunities in 2-col */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        {/* Critical Risks */}
+        {(o.criticalRisks||[]).length > 0 && (
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.3)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:8}}>⚠ Critical Risks</div>
+            <div style={{display:'flex',flexDirection:'column',gap:7}}>
+              {(o.criticalRisks||[]).map((r,i)=>(
+                <div key={i} style={{background:'rgba(239,68,68,0.06)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:10,padding:'10px 12px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
+                    <span style={{fontSize:14}}>{r.sev}</span>
+                    <div style={{fontSize:12,fontWeight:800,color:'var(--text-1)'}}>{r.title}</div>
+                  </div>
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',lineHeight:1.4,marginBottom:6}}>{r.detail}</div>
+                  <div style={{fontSize:11,color:'#6ee7b7',background:'rgba(16,185,129,0.07)',borderRadius:6,padding:'4px 8px'}}>→ {r.mitigation}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Top Opportunities */}
+        {(o.topOpportunities||[]).length > 0 && (
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.3)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:8}}>📈 Top Opportunities</div>
+            <div style={{display:'flex',flexDirection:'column',gap:7}}>
+              {(o.topOpportunities||[]).map((op,i)=>(
+                <div key={i} style={{background:'rgba(16,185,129,0.06)',border:'1px solid rgba(16,185,129,0.15)',borderRadius:10,padding:'10px 12px'}}>
+                  <div style={{fontSize:12,fontWeight:800,color:'#10b981',marginBottom:2}}>{op.title}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:'#6ee7b7',marginBottom:4}}>{op.votes}</div>
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',lineHeight:1.4}}>{op.how}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Ward Watchlist */}
+      {(o.wardWatchlist||[]).length > 0 && (
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.3)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:8}}>🗺 Ward Watchlist</div>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {(o.wardWatchlist||[]).map((w,i)=>(
+              <div key={i} style={{background:'rgba(255,255,255,0.02)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',gap:12,borderLeft:`3px solid ${w.color||'#f59e0b'}`}}>
+                <div style={{width:36,height:36,borderRadius:9,background:`${w.color||'#f59e0b'}18`,border:`1px solid ${w.color||'#f59e0b'}30`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:w.color||'#f59e0b',flexShrink:0}}>W{w.wardNum}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:2}}>
+                    <span style={{fontSize:13,fontWeight:800,color:'var(--text-1)'}}>{w.ward}</span>
+                    <span style={{fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:4,background:`${w.color||'#f59e0b'}18`,color:w.color||'#f59e0b'}}>{w.status}</span>
+                  </div>
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',lineHeight:1.4}}>{w.reason}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Win probability breakdown */}
+      {o.probabilityBreakdown && (
+        <div style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.15)',borderRadius:12,padding:'14px 16px'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'rgba(245,158,11,0.8)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:5}}>📊 Win Probability Analysis</div>
+          <div style={{fontSize:12,color:'rgba(255,255,255,0.6)',lineHeight:1.7}}>{o.probabilityBreakdown}</div>
+          {o.confidenceNote && <div style={{fontSize:11,color:'rgba(255,255,255,0.3)',marginTop:6,fontStyle:'italic'}}>{o.confidenceNote}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Political Intelligence Hub — all 10 Excel sheets ────────────────────────
 function PoliticalIntelligenceHub() {
   const [activeTab, setActiveTab] = React.useState('heatmap');
@@ -3299,7 +3541,7 @@ function PoliticalIntelligenceHub() {
       {n:20,act:'Polling Day Protocol',desc:'5AM booth agent. Every 2hrs contact push. 5PM: Final push.',    owner:'All booth agents', p:'Critical'},
     ]},
   ];
-  const INSIGHTS = [
+  const INSIGHTS_STATIC = [
     {n:1, sev:'🔴',title:"Low Turnout = BJP's #1 Enemy",          msg:'In 8 strongholds turnout <58%. At 66%, BJP gains +8,500 votes — more than winning margin.',                action:'MOBILISE: Transport, booth agents, 72-hour voter contact'},
     {n:2, sev:'🟠',title:'Christian Vote is Swing Decider',       msg:'41,835 Christians. BJP gets ~38%. At 45% in 6 swing wards: +2,800 votes — flips 3 wards.',              action:'PENETRATE: Year-round service, welfare scheme, credible candidate'},
     {n:3, sev:'🔴',title:'105,000 Non-Voters — Biggest Base',     msg:'105,253 did not vote 2023. At 56% BJP share = 59,000 potential votes LEFT HOME.',                       action:'MOBILISE: SIR completion, transport, booth activation'},
@@ -3746,25 +3988,7 @@ function PoliticalIntelligenceHub() {
 
           {/* INSIGHTS */}
           {activeTab==='insights'&&(
-            <div>
-              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:14}}>Top 10 Actionable Intelligence Insights — Final Summary</div>
-              <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                {INSIGHTS.map(ins=>(
-                  <div key={ins.n} style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'14px 16px',display:'flex',gap:14,alignItems:'flex-start'}}>
-                    <div style={{fontSize:22,fontWeight:900,color:ins.sev==='🔴'?'#ef4444':ins.sev==='🟠'?'#f97316':'#f59e0b',minWidth:32,textAlign:'center'}}>{ins.n}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:14,fontWeight:800,color:'var(--text-1)',marginBottom:5}}>{ins.title}</div>
-                      <div style={{fontSize:12,color:'rgba(255,255,255,0.6)',marginBottom:8,lineHeight:1.6}}>{ins.msg}</div>
-                      <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:8,padding:'4px 12px'}}>
-                        <span style={{fontSize:11,color:'#10b981'}}>→</span>
-                        <span style={{fontSize:11,fontWeight:600,color:'#6ee7b7'}}>{ins.action}</span>
-                      </div>
-                    </div>
-                    <div style={{fontSize:18,flexShrink:0}}>{ins.sev}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <IntelBirdseyePanel WARDS_FULL={WARDS_FULL} RELIGION_DATA={RELIGION_DATA} />
           )}
 
         </div>
