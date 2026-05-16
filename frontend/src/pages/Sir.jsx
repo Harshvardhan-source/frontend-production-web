@@ -436,12 +436,54 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     partial:   { label: 'Partial Name',       color: '#6366f1' },
   };
 
+  // ── Re-validate matched_by using strict frontend token check ─────────────────
+  // The backend uses fuzzy scoring which can mark a record as 'name'-matched even
+  // when the voter name doesn't visually contain any search token (e.g. fuzzy score
+  // between "shalini" and "SUHASINI" may pass the 60-point threshold).
+  // We re-check here so the group label is truthful about what actually matched.
+  const _revalidateMatchedBy = (r) => {
+    const mb = r.matched_by || [];
+    if (!mb.includes('name') && !mb.includes('relation')) return mb; // nothing to re-check
+
+    const norm = s => (s || '').trim().toUpperCase();
+    const hasToken = (query, target) => {
+      if (!query || !query.trim()) return true; // not searched → always passes
+      const tokens = norm(query).split(/\s+/).filter(Boolean);
+      const t = norm(target);
+      return tokens.some(tok => t.includes(tok));
+    };
+
+    const newMb = [...mb];
+
+    // Re-check 'name': at least one search-name token must appear in the record's name
+    if (mb.includes('name') && searchName) {
+      if (!hasToken(searchName, r.name)) {
+        // Remove 'name', optionally promote to 'partial' if any token partially overlaps
+        const idx = newMb.indexOf('name');
+        if (idx !== -1) newMb.splice(idx, 1);
+        // Add 'partial' only if not already present
+        if (!newMb.includes('partial')) newMb.push('partial');
+      }
+    }
+
+    // Re-check 'relation': at least one search-relation token must appear in the record's relation
+    if (mb.includes('relation') && searchRelation) {
+      if (!hasToken(searchRelation, r.relation)) {
+        const idx = newMb.indexOf('relation');
+        if (idx !== -1) newMb.splice(idx, 1);
+      }
+    }
+
+    return newMb;
+  };
+
   // ── Group rows by match strength + "Almost matched" labelling ────────────────
   // "Almost matched" = user entered N fields and this record matched exactly N-1
   const groupRows = (rows) => {
     const bucket = {};
     rows.forEach(r => {
-      const mb = r.matched_by || [];
+      // Re-validate matched_by so group labels are accurate
+      const mb = _revalidateMatchedBy(r);
       let key, label, priority, color, isAlmost = false;
 
       if (r._matched) {
@@ -484,7 +526,8 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
       }
 
       if (!bucket[key]) bucket[key] = { key, label, priority, color, isAlmost, rows: [] };
-      bucket[key].rows.push(r);
+      // Store the re-validated matched_by so MatchTag badges in the table are also correct
+      bucket[key].rows.push({ ...r, _displayMatchedBy: mb });
     });
     return Object.values(bucket).sort((a, b) => a.priority - b.priority);
   };
@@ -646,7 +689,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                           {/* Matched-by tags */}
                           <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
                             <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
-                              {(r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
+                              {(r._displayMatchedBy || r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
                             </div>
                           </td>
                           {/* Booth */}
