@@ -375,7 +375,7 @@ function VoterInfoModal({ record, roll, onClose }) {
 }
 
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
-function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '' }) {
+function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '', searchEpic = '' }) {
   const [infoRecord, setInfoRecord] = useState(null);
 
   // ── Validate whether a "confirmed" record is truly an exact/close match ──────
@@ -388,17 +388,21 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     if (!searchName) return true;
     const n = _normalize(rec?.name || '');
     const q = _normalize(searchName);
-    // Accept if every token of the query appears somewhere in the record name
     return q.split(/\s+/).filter(Boolean).every(tok => n.includes(tok));
   };
   const _relMatch = (rec) => {
     if (!searchRelation) return true;
     const r = _normalize(rec?.relation || '');
     const q = _normalize(searchRelation);
-    // At least one token of the relation query must appear in the record relation
     return q.split(/\s+/).filter(Boolean).some(tok => r.includes(tok));
   };
-  const _isExactConfirmed = (rec) => _nameMatch(rec) && _relMatch(rec);
+  // When the user typed an EPIC, the confirmed record MUST have that exact EPIC.
+  // A record that only shares the name/relation but has a different EPIC is NOT confirmed.
+  const _epicMatch = (rec) => {
+    if (!searchEpic) return true;
+    return _normalize(rec?.voterid || '') === _normalize(searchEpic);
+  };
+  const _isExactConfirmed = (rec) => _nameMatch(rec) && _relMatch(rec) && _epicMatch(rec);
 
   // Build merged rows for each roll
   const rows25 = [];
@@ -654,8 +658,14 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                             ) : <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>}
                           </td>
                           {/* EPIC */}
-                          <td style={{ padding:'7px 10px', fontSize:11, color:'rgba(255,255,255,0.3)', fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
-                            {r.voterid || '—'}
+                          <td style={{ padding:'7px 10px', fontSize:11, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                            <HighlightText
+                              text={r.voterid || '—'}
+                              query={searchEpic}
+                              highlightColor='#10b981'
+                              baseColor='rgba(255,255,255,0.3)'
+                              bold={false}
+                            />
                           </td>
                           <td style={{ padding:'7px 8px', textAlign:'center' }}>
                             {r.score != null ? (
@@ -879,6 +889,7 @@ function LiveCheckPanel() {
           inputFieldCount={[form.name, form.epic, form.house, form.relation].filter(v => v.trim()).length}
           searchName={form.name.trim()}
           searchRelation={form.relation.trim()}
+          searchEpic={form.epic.trim().toUpperCase()}
         />
       )}
 
