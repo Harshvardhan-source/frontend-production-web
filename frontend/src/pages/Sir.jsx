@@ -792,7 +792,7 @@ function LiveCheckPanel() {
   const rec02           = confirmedRec || result?.record_2002 || {};
   const rec25           = result?.record_2025 || {};
   const found_2002      = result?.in_2002 || !!confirmedRec;
-  const showSuggestions = !result?.in_2002 && suggestions2002.length > 0 && !confirmedRec;
+  const showSuggestions = !result?.in_2002 && suggestions2002.length > 0 && !confirmedRec && !result?.epic_only;
 
   const effectivePrimary = confirmedRec
     ? (['NEW_ADDITION','NOT_FOUND'].includes(primary?.category)
@@ -845,8 +845,30 @@ function LiveCheckPanel() {
         <InputBox label="Relative Name"   placeholder="Father / Husband name"   value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Search standalone or as fallback" />
       </div>
 
-      {/* Similar records panel — shown as soon as any result arrives */}
-      {state === 'result' && (
+      {/* EPIC-only: not found in either roll — show clear "Not Found" block */}
+      {state === 'result' && result?.epic_only && !result?.in_2025 && !result?.in_2002 && (
+        <div style={{ marginTop:16, display:'flex', flexDirection:'column', gap:10, animation:'fadeIn 0.3s ease' }}>
+          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:10 }}>
+            {[{ year:'2025', color:'#22d3ee' }, { year:'2002', color:'#f59e0b' }].map(({ year, color }) => (
+              <div key={year} style={{ background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:12, padding:'18px 20px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
+                <span style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', letterSpacing:'1px', textTransform:'uppercase' }}>{year} Voter Roll</span>
+                <div style={{ display:'flex', alignItems:'center', gap:7, color:'#f87171', fontWeight:700, fontSize:13 }}>
+                  <Icon.XCircle /> Not found in {year} roll
+                </div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.25)', textAlign:'center', lineHeight:1.5 }}>
+                  EPIC <span style={{ fontFamily:'ui-monospace,monospace', color:'rgba(255,255,255,0.4)', fontWeight:600 }}>{form.epic.trim().toUpperCase()}</span> does not exist in this roll
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.2)', paddingTop:4 }}>
+            Verify the EPIC number and try again, or search by Voter Name instead.
+          </div>
+        </div>
+      )}
+
+      {/* Similar records panel — hidden for EPIC-only searches */}
+      {state === 'result' && !result?.epic_only && (
         <SimilarRecordsPanel
           similar2025={result?.similar_2025 || []}
           similar2002={result?.suggestions_2002 || []}
