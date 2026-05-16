@@ -751,23 +751,11 @@ function LiveCheckPanel() {
     const house    = f.house.trim().toUpperCase();
     if (!name && !epic && !house && !relation) { setState('idle'); setResult(null); return; }
 
-    // Don't fire until each field has enough chars to be meaningful:
-    // name/relation need ≥2 chars, EPIC needs ≥3, house needs ≥3.
-    // This prevents a round-trip on every single keystroke for the first letter.
-    const nameReady     = !name     || name.length     >= 2;
-    const epicReady     = !epic     || epic.length     >= 3;
-    const relationReady = !relation || relation.length >= 2;
-    const houseReady    = !house    || house.length    >= 3;
-    if (!nameReady || !epicReady || !relationReady || !houseReady) {
-      setState('typing');
-      return;
-    }
-
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setState('checking');
 
-    const timeoutId = setTimeout(() => abortRef.current?.abort(), 30000);
+    const timeoutId = setTimeout(() => abortRef.current?.abort(), 55000);
 
     try {
       const res  = await fetch(`${API}/sir/check/`, {
@@ -795,10 +783,7 @@ function LiveCheckPanel() {
     setForm(p => ({ ...p, [key]: val }));
     setState('typing');
     clearTimeout(debounceRef.current);
-    // 280 ms debounce — snappy but avoids firing on every keystroke mid-word.
-    // EPIC gets a slightly longer wait (it's usually typed fast as a full string).
-    const delay = key === 'epic' ? 350 : 280;
-    debounceRef.current = setTimeout(() => doCheck({ ...form, [key]: val }), delay);
+    debounceRef.current = setTimeout(() => doCheck({ ...form, [key]: val }), 500);
   };
 
   const handleClear = () => {
