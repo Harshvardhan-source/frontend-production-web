@@ -926,7 +926,7 @@ function LiveCheckPanel() {
       )}
 
       {/* Checking skeleton */}
-      {(state === 'checking' || state === 'error') && (
+      {state === 'checking' && (
         <div style={{ marginTop:20, display:'flex', flexDirection:'column', gap:10 }}>
           {[80, 60, 90, 50].map((w, i) => (
             <div key={i} style={{ height:13, borderRadius:7, width:`${w}%`, background:'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)', backgroundSize:'400px 100%', animation:'shimmer 1.4s infinite' }} />
