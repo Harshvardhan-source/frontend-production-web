@@ -647,17 +647,140 @@ function HMCWidget({ hmc, loading, label = 'Constituency' }) {
   );
 }
 
-// ─── Static 2023 HMC Polled/NotPolled data (sourced from polled-nonpolled-hmc-2023.xlsx) ──
-const HMC_POLLED_STATIC = {
-  total: { polled: 141707, notPolled: 105253, total: 246960 },
-  H:     { polled:  97317, notPolled:  62734, total: 160051 },
-  M:     { polled:  22487, notPolled:  22587, total:  45074 },
-  C:     { polled:  21903, notPolled:  19932, total:  41835 },
-};
+// ─── Age Group Data (sourced from polled-nonpolled-hmc-2023.xlsx) ─────────────
+// Not-polled counts per age group are EXACT from the xlsx (105,253 records).
+// Polled counts for sub-groups are estimated proportionally from overall turnout rates,
+// since the full polled voter list lives in MongoDB (not the xlsx).
+const AGE_GROUPS = ['All', '18-25', '26-30', '31-35', '36-40', '41-45', '46-50', '51-60', '60+'];
 
-// ─── Polled / NotPolled HMC Widget ────────────────────────────────────────────
-// Shows 2023 election data: for each religion, how many Polled vs NotPolled
+const NP_HMC_BY_AGE = {
+  'All':   { H: 62734, M: 22587, C: 19932 },
+  '18-25': { H:  5234, M:  2529, C:  1491 },
+  '26-30': { H:  5558, M:  2952, C:  1957 },
+  '31-35': { H:  6086, M:  3209, C:  2153 },
+  '36-40': { H:  6419, M:  2928, C:  2098 },
+  '41-45': { H:  5734, M:  2367, C:  1657 },
+  '46-50': { H:  5361, M:  2108, C:  1500 },
+  '51-60': { H:  9804, M:  3084, C:  2879 },
+  '60+':   { H: 18538, M:  3410, C:  6197 },
+};
+const HMC_POLLED_ALL = { H: 97317, M: 22487, C: 21903 };
+const HMC_TOTALS     = { H: 160051, M: 45074, C: 41835 };
+const HMC_RATE       = { H: HMC_POLLED_ALL.H/HMC_TOTALS.H, M: HMC_POLLED_ALL.M/HMC_TOTALS.M, C: HMC_POLLED_ALL.C/HMC_TOTALS.C };
+
+function _hmcForAge(ag, livePolledHMC) {
+  const np = NP_HMC_BY_AGE[ag];
+  if (ag === 'All' && livePolledHMC) {
+    // Use live API data if available at the All level
+    return {
+      H: { polled: livePolledHMC.H?.polled || HMC_POLLED_ALL.H, notPolled: np.H, total: HMC_TOTALS.H },
+      M: { polled: livePolledHMC.M?.polled || HMC_POLLED_ALL.M, notPolled: np.M, total: HMC_TOTALS.M },
+      C: { polled: livePolledHMC.C?.polled || HMC_POLLED_ALL.C, notPolled: np.C, total: HMC_TOTALS.C },
+    };
+  }
+  if (ag === 'All') {
+    return {
+      H: { polled: HMC_POLLED_ALL.H, notPolled: np.H, total: HMC_TOTALS.H },
+      M: { polled: HMC_POLLED_ALL.M, notPolled: np.M, total: HMC_TOTALS.M },
+      C: { polled: HMC_POLLED_ALL.C, notPolled: np.C, total: HMC_TOTALS.C },
+    };
+  }
+  const r = {};
+  for (const k of ['H', 'M', 'C']) {
+    const notP = np[k];
+    const est  = Math.round(notP / (1 - HMC_RATE[k]));
+    r[k] = { polled: est - notP, notPolled: notP, total: est };
+  }
+  return r;
+}
+
+const NP_BROAD_BY_AGE = {
+  'All':   { GC:10777, OBC:5281, 'GC/OBC':6279, Minority:42246, 'OBC/SC':561, ST:31, Ambiguous:528 },
+  '18-25': { GC: 745,  OBC: 456, 'GC/OBC': 556, Minority: 4017, 'OBC/SC':  50, ST:  0, Ambiguous:  75 },
+  '26-30': { GC: 906,  OBC: 446, 'GC/OBC': 589, Minority: 4880, 'OBC/SC':  63, ST:  0, Ambiguous:  81 },
+  '31-35': { GC: 959,  OBC: 483, 'GC/OBC': 616, Minority: 5338, 'OBC/SC':  64, ST:  0, Ambiguous:  64 },
+  '36-40': { GC: 944,  OBC: 491, 'GC/OBC': 615, Minority: 5006, 'OBC/SC':  60, ST:  2, Ambiguous:  63 },
+  '41-45': { GC: 833,  OBC: 416, 'GC/OBC': 560, Minority: 3987, 'OBC/SC':  56, ST:  1, Ambiguous:  54 },
+  '46-50': { GC: 698,  OBC: 464, 'GC/OBC': 518, Minority: 3601, 'OBC/SC':  36, ST:  2, Ambiguous:  60 },
+  '51-60': { GC:1415,  OBC: 890, 'GC/OBC': 972, Minority: 5917, 'OBC/SC':  97, ST:  7, Ambiguous: 116 },
+  '60+':   { GC:4277,  OBC:1878, 'GC/OBC':1941, Minority: 9500, 'OBC/SC': 153, ST: 19, Ambiguous: 221 },
+};
+const BROAD_POLLED_ALL = { GC:16684, OBC:9011, 'GC/OBC':10167, Minority:44055, 'OBC/SC':843, ST:47, Ambiguous:1053 };
+
+function _broadForAge(ag) {
+  const np = NP_BROAD_BY_AGE[ag];
+  return Object.entries(np).map(([key, notPolled]) => {
+    if (ag === 'All') return { key, notPolled, polled: BROAD_POLLED_ALL[key] || 0 };
+    const totAll = (BROAD_POLLED_ALL[key] || 0) + (NP_BROAD_BY_AGE['All'][key] || 0);
+    const rate   = totAll > 0 ? (BROAD_POLLED_ALL[key] || 0) / totAll : 0.55;
+    const est    = Math.round(notPolled / (1 - rate));
+    return { key, notPolled, polled: est - notPolled };
+  });
+}
+
+const NP_COMM_BY_AGE = {
+  'All':   { Muslim:22510, MangCath:10394, ChristCath:9342, GSB:5743, BuntBillMog:4422, BrahmiMulti:2292, Brahmin:1613, Bunt:1455, Mogaveera:1201, BillDev:940, BillArt:862, BuntGSB:805, Devadiga:501, VishwGSB:528, BillSCovlap:561 },
+  '18-25': { Muslim: 2526, MangCath:  846, ChristCath: 645, GSB: 388, BuntBillMog: 379, BrahmiMulti: 140, Brahmin: 124, Bunt: 136, Mogaveera: 126, BillDev: 64, BillArt: 87, BuntGSB: 60, Devadiga: 40, VishwGSB: 57, BillSCovlap: 49 },
+  '26-30': { Muslim: 2952, MangCath: 1030, ChristCath: 898, GSB: 467, BuntBillMog: 410, BrahmiMulti: 181, Brahmin: 146, Bunt: 145, Mogaveera: 117, BillDev: 69, BillArt: 68, BuntGSB: 68, Devadiga: 40, VishwGSB: 70, BillSCovlap: 61 },
+  '31-35': { Muslim: 3201, MangCath: 1087, ChristCath:1050, GSB: 503, BuntBillMog: 430, BrahmiMulti: 194, Brahmin: 144, Bunt: 138, Mogaveera: 117, BillDev: 68, BillArt: 86, BuntGSB: 93, Devadiga: 43, VishwGSB: 47, BillSCovlap: 63 },
+  '36-40': { Muslim: 2931, MangCath: 1083, ChristCath: 992, GSB: 493, BuntBillMog: 441, BrahmiMulti: 203, Brahmin: 142, Bunt: 134, Mogaveera: 114, BillDev: 83, BillArt: 91, BuntGSB: 79, Devadiga: 36, VishwGSB: 43, BillSCovlap: 56 },
+  '41-45': { Muslim: 2359, MangCath:  826, ChristCath: 802, GSB: 427, BuntBillMog: 400, BrahmiMulti: 197, Brahmin: 126, Bunt: 121, Mogaveera:  76, BillDev: 59, BillArt: 72, BuntGSB: 66, Devadiga: 39, VishwGSB: 35, BillSCovlap: 52 },
+  '46-50': { Muslim: 2103, MangCath:  800, ChristCath: 698, GSB: 358, BuntBillMog: 379, BrahmiMulti: 144, Brahmin: 111, Bunt: 107, Mogaveera:  86, BillDev: 88, BillArt: 81, BuntGSB: 64, Devadiga: 44, VishwGSB: 45, BillSCovlap: 35 },
+  '51-60': { Muslim: 3071, MangCath: 1526, ChristCath:1320, GSB: 754, BuntBillMog: 684, BrahmiMulti: 285, Brahmin: 223, Bunt: 208, Mogaveera: 195, BillDev:162, BillArt:128, BuntGSB:109, Devadiga: 71, VishwGSB: 89, BillSCovlap: 94 },
+  '60+':   { Muslim: 3367, MangCath: 3196, ChristCath:2937, GSB:2353, BuntBillMog:1299, BrahmiMulti: 948, Brahmin: 597, Bunt: 466, Mogaveera: 370, BillDev:347, BillArt:249, BuntGSB:266, Devadiga:188, VishwGSB:142, BillSCovlap:151 },
+};
+const COMM_POLLED_ALL = { Muslim:22359, MangCath:12234, ChristCath:9462, GSB:9062, BuntBillMog:7146, BrahmiMulti:3155, Brahmin:2467, Bunt:2467, Mogaveera:2008, BillDev:1631, BillArt:1411, BuntGSB:1440, Devadiga:1105, VishwGSB:1053, BillSCovlap:843 };
+
+function _commForAge(ag) {
+  const np = NP_COMM_BY_AGE[ag];
+  return Object.entries(np).map(([key, notPolled]) => {
+    if (ag === 'All') return { key, notPolled, polled: COMM_POLLED_ALL[key] || 0 };
+    const totAll = (COMM_POLLED_ALL[key] || 0) + (NP_COMM_BY_AGE['All'][key] || 0);
+    const rate   = totAll > 0 ? (COMM_POLLED_ALL[key] || 0) / totAll : 0.52;
+    const est    = Math.round(notPolled / (1 - rate));
+    return { key, notPolled, polled: est - notPolled };
+  });
+}
+
+// ─── Age Group Selector ────────────────────────────────────────────────────────
+function AgeGroupSelector({ value, onChange, accentColor = '#22d3ee' }) {
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:12 }}>
+      {AGE_GROUPS.map(ag => {
+        const active = ag === value;
+        return (
+          <button
+            key={ag}
+            onClick={() => onChange(ag)}
+            style={{
+              padding:'2px 8px', borderRadius:6, fontSize:9, fontWeight: active ? 700 : 500,
+              border: active ? `1px solid ${accentColor}60` : '1px solid rgba(255,255,255,0.1)',
+              background: active ? `${accentColor}22` : 'rgba(255,255,255,0.03)',
+              color: active ? accentColor : 'rgba(255,255,255,0.4)',
+              cursor:'pointer', transition:'all 0.15s', letterSpacing:'0.3px',
+            }}
+          >
+            {ag}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Age Estimation Note ──────────────────────────────────────────────────────
+function AgeNote() {
+  return (
+    <div style={{ marginTop:10, padding:'5px 9px', borderRadius:7, background:'rgba(255,200,0,0.05)', border:'1px solid rgba(255,200,0,0.14)', fontSize:8, color:'rgba(255,200,0,0.5)', lineHeight:1.4 }}>
+      ⓘ Not-polled counts are exact from 2023 voter data. Polled counts for age sub-groups are estimated proportionally from overall religion/caste turnout rates.
+    </div>
+  );
+}
+
+// ─── Polled / NotPolled HMC Widget (with Age Group filter) ───────────────────
 function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
+  const [ageGroup, setAgeGroup] = useState('All');
+
   if (loading) {
     return (
       <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
@@ -668,9 +791,9 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
       </div>
     );
   }
-  // Use static xlsx data if API returns nothing OR all-zero totals (e.g. constituency level fallback)
+
   const hasLiveData = polledHMC && (polledHMC.total?.total > 0 || polledHMC.H?.total > 0 || polledHMC.M?.total > 0);
-  polledHMC = hasLiveData ? polledHMC : HMC_POLLED_STATIC;
+  const hmcData = _hmcForAge(ageGroup, hasLiveData ? polledHMC : null);
 
   const RELIGIONS = [
     { key:'H', label:'Hindu',     color:'#f97316' },
@@ -678,15 +801,16 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
     { key:'C', label:'Christian', color:'#8b5cf6' },
   ];
 
-  const totals = polledHMC.total || { polled:0, notPolled:0, total:0 };
-  const grandTotal = totals.total || 1;
-  const overallPollPct = grandTotal > 0 ? ((totals.polled / grandTotal) * 100).toFixed(1) : '0.0';
+  const totPolled    = RELIGIONS.reduce((s, r) => s + (hmcData[r.key]?.polled || 0), 0);
+  const totNotPolled = RELIGIONS.reduce((s, r) => s + (hmcData[r.key]?.notPolled || 0), 0);
+  const grandTotal   = totPolled + totNotPolled || 1;
+  const overallPollPct = ((totPolled / grandTotal) * 100).toFixed(1);
 
   return (
     <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
 
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-1)', marginBottom:2 }}>Polled vs Not Polled (HMC)</div>
           <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{label} · 2023 Election Data</div>
@@ -697,29 +821,31 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
         </div>
       </div>
 
+      {/* Age Group Selector */}
+      <AgeGroupSelector value={ageGroup} onChange={setAgeGroup} accentColor="#22d3ee" />
+
       {/* Overall combined bar */}
-      <div style={{ marginBottom:16 }}>
+      <div style={{ marginBottom:14 }}>
         <div style={{ display:'flex', height:8, borderRadius:4, overflow:'hidden', marginBottom:5 }}>
           <div style={{ width:`${overallPollPct}%`, background:'linear-gradient(90deg,#22d3ee80,#22d3ee)', transition:'width 0.6s ease' }} />
           <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
         </div>
         <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,0.3)' }}>
-          <span style={{ color:'#22d3ee', fontWeight:700 }}>✓ Polled {totals.polled?.toLocaleString()}</span>
-          <span style={{ color:'#f87171', fontWeight:700 }}>✗ Not Polled {totals.notPolled?.toLocaleString()}</span>
+          <span style={{ color:'#22d3ee', fontWeight:700 }}>✓ Polled {totPolled.toLocaleString()}</span>
+          <span style={{ color:'#f87171', fontWeight:700 }}>✗ Not Polled {totNotPolled.toLocaleString()}</span>
         </div>
       </div>
 
       {/* Per-religion rows */}
       <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
         {RELIGIONS.map(({ key, label:lbl, color }) => {
-          const d = polledHMC[key] || { polled:0, notPolled:0, total:0 };
-          const rowTotal = d.total || 1;
+          const d = hmcData[key] || { polled:0, notPolled:0, total:0 };
+          const rowTotal  = d.total || 1;
           const polledPct = ((d.polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((d.notPolled / rowTotal) * 100).toFixed(1);
 
           return (
             <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px' }}>
-              {/* Row header */}
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:7 }}>
                   <div style={{ width:20, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color }}>{key}</div>
@@ -727,26 +853,22 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
                 </div>
                 <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{d.total?.toLocaleString()} total</span>
               </div>
-
-              {/* Polled / NotPolled split bar */}
               <div style={{ display:'flex', height:6, borderRadius:3, overflow:'hidden', marginBottom:6 }}>
                 <div style={{ width:`${polledPct}%`, background:color, transition:'width 0.5s ease' }} />
                 <div style={{ flex:1, background:'rgba(239,68,68,0.25)' }} />
               </div>
-
-              {/* Stats row */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                   <div style={{ width:7, height:7, borderRadius:2, background:color, flexShrink:0 }} />
                   <div>
-                    <div style={{ fontSize:13, fontWeight:800, color, lineHeight:1 }}>{d.polled?.toLocaleString()}</div>
+                    <div style={{ fontSize:13, fontWeight:800, color, lineHeight:1 }}>{(d.polled||0).toLocaleString()}</div>
                     <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Polled · {polledPct}%</div>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                   <div style={{ width:7, height:7, borderRadius:2, background:'#ef4444', flexShrink:0 }} />
                   <div>
-                    <div style={{ fontSize:13, fontWeight:800, color:'#f87171', lineHeight:1 }}>{d.notPolled?.toLocaleString()}</div>
+                    <div style={{ fontSize:13, fontWeight:800, color:'#f87171', lineHeight:1 }}>{(d.notPolled||0).toLocaleString()}</div>
                     <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Not Polled · {notPct}%</div>
                   </div>
                 </div>
@@ -755,29 +877,37 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
           );
         })}
       </div>
+      {ageGroup !== 'All' && <AgeNote />}
     </div>
   );
 }
 
-// ─── Static 2023 Polled vs NotPolled: Broad Category ──────────────────────────
-const POLLED_BROAD_DATA = [
-  { key: 'GC',        label: 'General Category', color: '#22d3ee', polled: 16684, notPolled: 10777 },
-  { key: 'OBC',       label: 'OBC',              color: '#10b981', polled:  9011, notPolled:  5281 },
-  { key: 'GC/OBC',   label: 'GC / OBC',         color: '#f59e0b', polled: 10167, notPolled:  6279 },
-  { key: 'Minority',  label: 'Minority',          color: '#8b5cf6', polled: 44055, notPolled: 42246 },
-  { key: 'OBC/SC',   label: 'OBC / SC',          color: '#ec4899', polled:   843, notPolled:    561 },
-  { key: 'ST',        label: 'Scheduled Tribe',   color: '#f97316', polled:    47, notPolled:     31 },
-  { key: 'Ambiguous', label: 'Ambiguous',         color: '#64748b', polled:  1053, notPolled:    528 },
+// ─── Static 2023 Polled vs NotPolled: Broad Category (with Age Group filter) ──
+const BROAD_DEFS = [
+  { key:'GC',        label:'General Category', color:'#22d3ee' },
+  { key:'OBC',       label:'OBC',              color:'#10b981' },
+  { key:'GC/OBC',   label:'GC / OBC',         color:'#f59e0b' },
+  { key:'Minority',  label:'Minority',          color:'#8b5cf6' },
+  { key:'OBC/SC',   label:'OBC / SC',          color:'#ec4899' },
+  { key:'ST',        label:'Scheduled Tribe',   color:'#f97316' },
+  { key:'Ambiguous', label:'Ambiguous',         color:'#64748b' },
 ];
 
 function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
-  const [showAll, setShowAll] = React.useState(false);
-  const data = POLLED_BROAD_DATA;
+  const [showAll,  setShowAll]  = useState(false);
+  const [ageGroup, setAgeGroup] = useState('All');
+
+  const rawData = _broadForAge(ageGroup);
+  const data = BROAD_DEFS.map(def => {
+    const found = rawData.find(r => r.key === def.key);
+    return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
+  });
+
   const displayed = showAll ? data : data.slice(0, 5);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
   const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
-  const grandTotal     = grandPolled + grandNotPolled;
-  const overallPct     = grandTotal > 0 ? ((grandPolled / grandTotal) * 100).toFixed(1) : '0.0';
+  const grandTotal     = grandPolled + grandNotPolled || 1;
+  const overallPct     = ((grandPolled / grandTotal) * 100).toFixed(1);
 
   if (loading) {
     return (
@@ -793,7 +923,7 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
   return (
     <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-1)', marginBottom:2 }}>Polled vs Not Polled (Caste Category)</div>
           <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{label} · 2023 Election Data</div>
@@ -804,8 +934,11 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
         </div>
       </div>
 
+      {/* Age Group Selector */}
+      <AgeGroupSelector value={ageGroup} onChange={setAgeGroup} accentColor="#10b981" />
+
       {/* Overall bar */}
-      <div style={{ marginBottom:16 }}>
+      <div style={{ marginBottom:14 }}>
         <div style={{ display:'flex', height:8, borderRadius:4, overflow:'hidden', marginBottom:5 }}>
           <div style={{ width:`${overallPct}%`, background:'linear-gradient(90deg,#10b98180,#10b981)', transition:'width 0.6s ease' }} />
           <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
@@ -861,37 +994,45 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
           {showAll ? '▲ Show less' : `▼ Show all ${data.length} categories`}
         </button>
       )}
+      {ageGroup !== 'All' && <AgeNote />}
     </div>
   );
 }
 
-// ─── Static 2023 Polled vs NotPolled: Community ────────────────────────────────
-const POLLED_COMMUNITY_DATA = [
-  { key: 'Muslim',           label: 'Muslim',                    color: '#10b981', polled: 22359, notPolled: 22510 },
-  { key: 'MangCath',         label: 'Mangalorean Catholic',      color: '#8b5cf6', polled: 12234, notPolled: 10394 },
-  { key: 'ChristCath',       label: 'Christian / Catholic',      color: '#a78bfa', polled:  9462, notPolled:  9342 },
-  { key: 'GSB',              label: 'GSB',                       color: '#22d3ee', polled:  9062, notPolled:  5743 },
-  { key: 'BuntBillMog',      label: 'Bunt / Billava / Mogaveera',color: '#f59e0b', polled:  7146, notPolled:  4422 },
-  { key: 'BrahmiMulti',      label: 'Brahmin / Multi-community', color: '#f97316', polled:  3155, notPolled:  2292 },
-  { key: 'Brahmin',          label: 'Brahmin',                   color: '#fb923c', polled:  2467, notPolled:  1613 },
-  { key: 'Bunt',             label: 'Bunt',                      color: '#fbbf24', polled:  2467, notPolled:  1455 },
-  { key: 'Mogaveera',        label: 'Mogaveera',                 color: '#34d399', polled:  2008, notPolled:  1201 },
-  { key: 'BillDev',          label: 'Billava / Devadiga',        color: '#6ee7b7', polled:  1631, notPolled:   940 },
-  { key: 'BillArt',          label: 'Billava / Artisan',         color: '#5eead4', polled:  1411, notPolled:   862 },
-  { key: 'BuntGSB',          label: 'Bunt / GSB',                color: '#67e8f9', polled:  1440, notPolled:   805 },
-  { key: 'Devadiga',         label: 'Devadiga',                  color: '#4ade80', polled:  1105, notPolled:   501 },
-  { key: 'VishwGSB',         label: 'Vishwakarma / GSB',         color: '#64748b', polled:  1053, notPolled:   528 },
-  { key: 'BillSCovlap',      label: 'Billava / SC overlap',      color: '#ec4899', polled:   843, notPolled:   561 },
+// ─── Static 2023 Polled vs NotPolled: Community (with Age Group filter) ────────
+const COMM_DEFS = [
+  { key:'Muslim',      label:'Muslim',                    color:'#10b981' },
+  { key:'MangCath',    label:'Mangalorean Catholic',       color:'#8b5cf6' },
+  { key:'ChristCath',  label:'Christian / Catholic',       color:'#a78bfa' },
+  { key:'GSB',         label:'GSB',                       color:'#22d3ee' },
+  { key:'BuntBillMog', label:'Bunt / Billava / Mogaveera', color:'#f59e0b' },
+  { key:'BrahmiMulti', label:'Brahmin / Multi-community',  color:'#f97316' },
+  { key:'Brahmin',     label:'Brahmin',                   color:'#fb923c' },
+  { key:'Bunt',        label:'Bunt',                      color:'#fbbf24' },
+  { key:'Mogaveera',   label:'Mogaveera',                 color:'#34d399' },
+  { key:'BillDev',     label:'Billava / Devadiga',         color:'#6ee7b7' },
+  { key:'BillArt',     label:'Billava / Artisan',          color:'#5eead4' },
+  { key:'BuntGSB',     label:'Bunt / GSB',                 color:'#67e8f9' },
+  { key:'Devadiga',    label:'Devadiga',                  color:'#4ade80' },
+  { key:'VishwGSB',    label:'Vishwakarma / GSB',          color:'#64748b' },
+  { key:'BillSCovlap', label:'Billava / SC overlap',       color:'#ec4899' },
 ];
 
 function PolledCommunityWidget({ loading, label = 'Constituency' }) {
-  const [showAll, setShowAll] = React.useState(false);
-  const data = POLLED_COMMUNITY_DATA;
+  const [showAll,  setShowAll]  = useState(false);
+  const [ageGroup, setAgeGroup] = useState('All');
+
+  const rawData = _commForAge(ageGroup);
+  const data = COMM_DEFS.map(def => {
+    const found = rawData.find(r => r.key === def.key);
+    return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
+  });
+
   const displayed = showAll ? data : data.slice(0, 6);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
   const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
-  const grandTotal     = grandPolled + grandNotPolled;
-  const overallPct     = grandTotal > 0 ? ((grandPolled / grandTotal) * 100).toFixed(1) : '0.0';
+  const grandTotal     = grandPolled + grandNotPolled || 1;
+  const overallPct     = ((grandPolled / grandTotal) * 100).toFixed(1);
 
   if (loading) {
     return (
@@ -907,7 +1048,7 @@ function PolledCommunityWidget({ loading, label = 'Constituency' }) {
   return (
     <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-1)', marginBottom:2 }}>Polled vs Not Polled (Community)</div>
           <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{label} · 2023 Election Data</div>
@@ -918,8 +1059,11 @@ function PolledCommunityWidget({ loading, label = 'Constituency' }) {
         </div>
       </div>
 
+      {/* Age Group Selector */}
+      <AgeGroupSelector value={ageGroup} onChange={setAgeGroup} accentColor="#f59e0b" />
+
       {/* Overall bar */}
-      <div style={{ marginBottom:16 }}>
+      <div style={{ marginBottom:14 }}>
         <div style={{ display:'flex', height:8, borderRadius:4, overflow:'hidden', marginBottom:5 }}>
           <div style={{ width:`${overallPct}%`, background:'linear-gradient(90deg,#f59e0b80,#f59e0b)', transition:'width 0.6s ease' }} />
           <div style={{ flex:1, background:'rgba(239,68,68,0.3)' }} />
@@ -976,6 +1120,7 @@ function PolledCommunityWidget({ loading, label = 'Constituency' }) {
           {showAll ? '▲ Show less' : `▼ Show all ${data.length} communities`}
         </button>
       )}
+      {ageGroup !== 'All' && <AgeNote />}
     </div>
   );
 }
