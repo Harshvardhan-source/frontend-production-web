@@ -1456,8 +1456,16 @@ export default function SIR() {
 
         {/* Records list */}
         {loading ? (
-          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'40px 0', color:'var(--text-3)', fontSize:13 }}>
-            <span className="spinner" /> Loading SIR records…
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {[0.85, 0.6, 0.9, 0.5].map((w, i) => (
+              <div key={i} style={{
+                height: 18, borderRadius: 6,
+                width: `${w * 100}%`,
+                background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0.05) 80%)',
+                backgroundSize: '800px 100%',
+                animation: 'shimmer 1.6s infinite linear',
+              }} />
+            ))}
           </div>
         ) : records.length === 0 ? (
           <div style={{ textAlign:'center', padding:'56px 20px', background:'rgba(255,255,255,0.02)', border:'1px dashed rgba(255,255,255,0.07)', borderRadius:14, color:'var(--text-3)' }}>
