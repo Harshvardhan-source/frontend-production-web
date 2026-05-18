@@ -850,7 +850,7 @@ function LiveCheckPanel() {
     if (state === 'idle')     return null;
     if (state === 'typing')   return <StatusPill color="#6b7280" dot="pulse">Waiting…</StatusPill>;
     if (state === 'checking') return <StatusPill color="#6366f1" dot="spin">Checking rolls… (may take up to 30s on first load)</StatusPill>;
-    if (state === 'error')    return <StatusPill color="#6366f1" dot="spin"><span className="spinner" style={{ width:12, height:12, marginRight:6, display:'inline-block' }} />Retrying…</StatusPill>;
+    if (state === 'error')    return <StatusPill color="#6366f1" dot="spin">Retrying…</StatusPill>;
     if (state === 'result' && effectivePrimary) return <StatusPill color={catMeta.color} dot="solid">{effectivePrimary.label}</StatusPill>;
     return null;
   };
