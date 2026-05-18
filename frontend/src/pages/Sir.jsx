@@ -404,6 +404,34 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   };
   const _isExactConfirmed = (rec) => _nameMatch(rec) && _relMatch(rec) && _epicMatch(rec);
 
+  // ── Sanitize matched_by — strip fields the backend claims matched but that
+  // don't actually satisfy the current search inputs.  This prevents labels like
+  // "Voter Name + Relation matched" when only the relation token was found.
+  const _sanitizeMatchedBy = (rec, rawMatchedBy) => {
+    if (!rawMatchedBy || rawMatchedBy.length === 0) return [];
+    return rawMatchedBy.filter(field => {
+      if (field === 'name') {
+        if (!searchName) return false;           // user didn't search by name
+        const n = _normalize(rec?.name || '');
+        const q = _normalize(searchName);
+        // At least one search token must appear in the record name
+        return q.split(/\s+/).filter(Boolean).some(tok => n.includes(tok));
+      }
+      if (field === 'relation') {
+        if (!searchRelation) return false;
+        const r = _normalize(rec?.relation || '');
+        const q = _normalize(searchRelation);
+        return q.split(/\s+/).filter(Boolean).some(tok => r.includes(tok));
+      }
+      if (field === 'voterid') {
+        if (!searchEpic) return false;
+        return _normalize(rec?.voterid || '') === _normalize(searchEpic);
+      }
+      // house / partial / other fields — trust the backend
+      return true;
+    });
+  };
+
   // Build merged rows for each roll
   const rows25 = [];
   if (in2025 && record2025?.name) {
@@ -411,7 +439,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     rows25.push({ ...record2025, _matched: exact, _notExact: !exact, matched_by: exact ? ['confirmed'] : (record2025.matched_by || []) });
   }
   (similar2025 || []).forEach(r => {
-    if (!rows25.find(x => x.voterid && x.voterid === r.voterid)) rows25.push(r);
+    if (!rows25.find(x => x.voterid && x.voterid === r.voterid)) {
+      rows25.push({ ...r, matched_by: _sanitizeMatchedBy(r, r.matched_by) });
+    }
   });
 
   const rows02 = [];
@@ -420,7 +450,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     rows02.push({ ...record2002, _matched: exact, _notExact: !exact, matched_by: exact ? ['confirmed'] : (record2002.matched_by || []) });
   }
   (similar2002 || []).forEach(r => {
-    if (!rows02.find(x => x.voterid && x.voterid === r.voterid)) rows02.push(r);
+    if (!rows02.find(x => x.voterid && x.voterid === r.voterid)) {
+      rows02.push({ ...r, matched_by: _sanitizeMatchedBy(r, r.matched_by) });
+    }
   });
 
   if (!rows25.length && !rows02.length) return null;
@@ -893,7 +925,7 @@ function LiveCheckPanel() {
         />
       )}
 
-      {/* Checking / retrying skeleton */}
+      {/* Checking skeleton */}
       {(state === 'checking' || state === 'error') && (
         <div style={{ marginTop:20, display:'flex', flexDirection:'column', gap:10 }}>
           {[80, 60, 90, 50].map((w, i) => (
