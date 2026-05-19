@@ -1136,30 +1136,6 @@ function LiveCheckPanel() {
       {state === 'result' && effectivePrimary && (
         <div style={{ marginTop:20, display:'flex', flexDirection:'column', gap:12, animation:'fadeIn 0.3s ease' }}>
 
-          {/* Status banner */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'14px 18px', borderRadius:12, border:`1px solid ${catMeta.border}`, background:catMeta.bg, flexWrap:'wrap' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-              <div style={{ width:42, height:42, borderRadius:10, border:`1px solid ${catMeta.border}`, background:catMeta.bg, display:'flex', alignItems:'center', justifyContent:'center', color:catMeta.color, flexShrink:0 }}>
-                <catMeta.Icon />
-              </div>
-              <div>
-                <div style={{ fontSize:15, fontWeight:700, color:catMeta.color, display:'flex', alignItems:'center', gap:8 }}>
-                  {effectivePrimary?.label}
-                  {confirmedRec && primary?.category !== effectivePrimary?.category && (
-                    <span style={{ fontSize:10, background:'rgba(16,185,129,0.15)', color:'#10b981', padding:'2px 8px', borderRadius:10, fontWeight:700, border:'1px solid rgba(16,185,129,0.3)' }}>
-                      ↑ upgraded
-                    </span>
-                  )}
-                </div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:2 }}>{effectivePrimary?.detail}</div>
-              </div>
-            </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <RollBadge label="2002" found={found_2002} />
-              <RollBadge label="2025" found={result.in_2025} />
-            </div>
-          </div>
-
           {/* 2002 vs 2025 record comparison */}
           {(found_2002 || result.in_2025) && (
             <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:10 }}>
