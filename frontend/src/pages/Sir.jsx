@@ -402,7 +402,7 @@ function VoterInfoModal({ record, roll, onClose }) {
 }
 
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
-function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '', searchEpic = '', searchInputs = {}, confirmedEpics = new Set() }) {
+function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '', searchEpic = '', searchInputs = {} }) {
   const [infoRecord,     setInfoRecord]     = useState(null);
   // ── Confirmation selection state ──────────────────────────────────────────
   // selected25 / selected02 = the row object the user ticked, or null
@@ -653,12 +653,11 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   };
 
   // ── Per-roll section — collapsible header + scrollable body ──────────────────
-  const RollSection = ({ rows, year, accentColor, borderColor, selectedRow, onSelectRow, notFoundChecked, onMarkNotFound, confirmedEpics = new Set() }) => {
+  const RollSection = ({ rows, year, accentColor, borderColor, selectedRow, onSelectRow, notFoundChecked, onMarkNotFound }) => {
     const groups = groupRows(rows);
     const total  = rows.length;
     const [open, setOpen] = useState(true);
-    const isSelected  = (r) => selectedRow && selectedRow.voterid === r.voterid && selectedRow.name === r.name;
-    const isConfirmed = (r) => r.voterid && confirmedEpics.has((r.voterid || '').toUpperCase());
+    const isSelected = (r) => selectedRow && selectedRow.voterid === r.voterid && selectedRow.name === r.name;
 
     return (
       <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden', display:'flex', flexDirection:'column' }}>
@@ -669,16 +668,6 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.05)', borderRadius:8, padding:'1px 7px', fontWeight:600 }}>
             {total} record{total !== 1 ? 's' : ''}{total >= 300 ? ' (top 300)' : ''}
           </span>
-          {(() => {
-            const lockedCount = rows.filter(r => r.voterid && confirmedEpics.has((r.voterid||'').toUpperCase())).length;
-            if (!lockedCount) return null;
-            return (
-              <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:9, fontWeight:800, color:'#10b981', background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.3)', borderRadius:6, padding:'2px 7px' }}>
-                <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 7V5a3 3 0 00-6 0v2M4 7h8a1 1 0 011 1v5a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"/></svg>
-                {lockedCount} SIR done
-              </span>
-            );
-          })()}
           {open && groups.map(g => (
             <span key={g.key} style={{ fontSize:9, fontWeight:700, color: g.isAlmost ? '#f59e0b' : g.color, background:`${g.isAlmost ? '#f59e0b' : g.color}14`, border:`1px solid ${g.isAlmost ? '#f59e0b' : g.color}28`, borderRadius:6, padding:'1px 6px', display:'inline-flex', alignItems:'center', gap:3 }}>
               {g.isAlmost && <span style={{ fontSize:8 }}>⚡</span>}
@@ -737,65 +726,45 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                       </tr>
                     </thead>
                     <tbody>
-                      {group.rows.map((r, i) => {
-                        const locked = isConfirmed(r);
-                        return (
+                      {group.rows.map((r, i) => (
                         <tr
                           key={i}
-                          onClick={() => !locked && onSelectRow(r)}
-                          className={locked ? undefined : 'sir-selectable-row'}
+                          onClick={() => onSelectRow(r)}
+                          className="sir-selectable-row"
                           style={{
-                            background: locked
-                              ? 'rgba(16,185,129,0.06)'
-                              : isSelected(r)
+                            background: isSelected(r)
                               ? `${accentColor}28`
                               : r._matched ? `${accentColor}12`
                               : r._notExact ? 'rgba(239,68,68,0.07)'
                               : group.isAlmost ? 'rgba(245,158,11,0.04)'
                               : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
-                            borderBottom: locked
-                              ? '1px solid rgba(16,185,129,0.15)'
-                              : isSelected(r)
+                            borderBottom: isSelected(r)
                               ? `1px solid ${accentColor}55`
                               : '1px solid rgba(255,255,255,0.03)',
-                            cursor: locked ? 'not-allowed' : 'pointer',
+                            cursor: 'pointer',
                             outline: 'none',
                             transition: 'background 0.1s',
-                            opacity: locked ? 0.72 : 1,
                           }}
                         >
-                          {/* Select / Locked indicator */}
+                          {/* Select */}
                           <td style={{ padding:'7px 10px', textAlign:'center', verticalAlign:'middle' }}>
-                            {locked ? (
-                              <span title="SIR already completed for this voter" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:'50%', background:'rgba(16,185,129,0.18)', border:'1.5px solid rgba(16,185,129,0.5)' }}>
-                                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M4 8.5l2.5 2.5 5-5"/>
-                                </svg>
-                              </span>
-                            ) : (
-                              <Icon.Radio checked={isSelected(r)} color={accentColor} />
-                            )}
+                            <Icon.Radio checked={isSelected(r)} color={accentColor} />
                           </td>
                           {/* House */}
-                          <td style={{ padding:'7px 10px', fontSize:12, color: locked ? '#10b981' : r._matched ? accentColor : r._notExact ? '#f87171' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: locked || r._matched || r._notExact || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
-                            {locked && <span style={{ display:'inline-flex', marginRight:5, color:'#10b981' }}><Icon.Check /></span>}
-                            {!locked && r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
-                            {!locked && r._notExact && <span style={{ display:'inline-flex', marginRight:5, color:'#f87171' }}><Icon.XCircle /></span>}
+                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : r._notExact ? '#f87171' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: r._matched || r._notExact || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                            {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
+                            {r._notExact && <span style={{ display:'inline-flex', marginRight:5, color:'#f87171' }}><Icon.XCircle /></span>}
                             {r.house || '—'}
                           </td>
                           {/* Name */}
                           <td style={{ padding:'7px 10px', fontSize:12, maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                            {locked ? (
-                              <span style={{ color:'#10b981', fontWeight:700 }}>{r.name || '—'}</span>
-                            ) : (
-                              <HighlightText
-                                text={r.name || '—'}
-                                query={searchName}
-                                highlightColor={r._matched ? accentColor : r._notExact ? '#fca5a5' : group.isAlmost ? '#fde68a' : '#22d3ee'}
-                                baseColor={r._matched ? '#e2e8f0' : r._notExact ? '#fca5a5' : group.isAlmost ? '#fde68a' : '#cbd5e1'}
-                                bold={r._matched || r._notExact || group.isAlmost}
-                              />
-                            )}
+                            <HighlightText
+                              text={r.name || '—'}
+                              query={searchName}
+                              highlightColor={r._matched ? accentColor : r._notExact ? '#fca5a5' : group.isAlmost ? '#fde68a' : '#22d3ee'}
+                              baseColor={r._matched ? '#e2e8f0' : r._notExact ? '#fca5a5' : group.isAlmost ? '#fde68a' : '#cbd5e1'}
+                              bold={r._matched || r._notExact || group.isAlmost}
+                            />
                           </td>
                           {/* Relation */}
                           <td style={{ padding:'7px 10px', fontSize:11, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -803,29 +772,20 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                               text={r.relation || '—'}
                               query={searchRelation}
                               highlightColor={r._matched ? '#f59e0b' : group.isAlmost ? '#fcd34d' : '#f59e0b'}
-                              baseColor={locked ? 'rgba(16,185,129,0.55)' : r._matched ? 'rgba(255,255,255,0.6)' : group.isAlmost ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.4)'}
+                              baseColor={r._matched ? 'rgba(255,255,255,0.6)' : group.isAlmost ? 'rgba(253,230,138,0.7)' : 'rgba(255,255,255,0.4)'}
                               bold={r._matched}
                             />
                           </td>
-                          {/* Matched-by tags or SIR Done badge */}
+                          {/* Matched-by tags */}
                           <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
-                            {locked ? (
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:10, fontWeight:800, color:'#10b981', background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.35)', borderRadius:8, padding:'2px 8px', whiteSpace:'nowrap' }}>
-                                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M11 7V5a3 3 0 00-6 0v2M4 7h8a1 1 0 011 1v5a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"/>
-                                </svg>
-                                SIR Done
-                              </span>
-                            ) : (
-                              <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
-                                {(r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
-                              </div>
-                            )}
+                            <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
+                              {(r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
+                            </div>
                           </td>
                           {/* Booth */}
                           <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
                             {r.booth ? (
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:4, color: locked ? '#10b981' : accentColor, fontWeight:700, background: locked ? 'rgba(16,185,129,0.1)' : `${accentColor}12`, border:`1px solid ${locked ? 'rgba(16,185,129,0.25)' : accentColor+'28'}`, borderRadius:6, padding:'2px 7px' }}>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:4, color:accentColor, fontWeight:700, background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, padding:'2px 7px' }}>
                                 <Icon.Booth />{r.booth}
                               </span>
                             ) : <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>}
@@ -836,28 +796,27 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                               text={r.voterid || '—'}
                               query={searchEpic}
                               highlightColor='#10b981'
-                              baseColor={locked ? '#10b981' : 'rgba(255,255,255,0.3)'}
-                              bold={locked}
+                              baseColor='rgba(255,255,255,0.3)'
+                              bold={false}
                             />
                           </td>
                           <td style={{ padding:'7px 8px', textAlign:'center' }}>
-                            {!locked && r.score != null ? (
+                            {r.score != null ? (
                               <span style={{ fontSize:10, fontWeight:700, borderRadius:6, padding:'1px 5px', background:'rgba(0,0,0,0.2)', color: r.score>=80?'#10b981':r.score>=60?'#f59e0b':'#94a3b8' }}>{r.score}</span>
                             ) : null}
                           </td>
                           {/* Info */}
                           <td style={{ padding:'7px 8px', textAlign:'center' }}>
-                            <button onClick={(e) => { e.stopPropagation(); setInfoRecord({ record: r, roll: year }); }} title="View full voter details"
-                              style={{ background:`${locked ? 'rgba(16,185,129,0.1)' : accentColor+'12'}`, border:`1px solid ${locked ? 'rgba(16,185,129,0.25)' : accentColor+'28'}`, borderRadius:6, color: locked ? '#10b981' : accentColor, width: isMobile ? 36 : 26, height: isMobile ? 36 : 26, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'background 0.15s', touchAction:'manipulation' }}
-                              onMouseEnter={e => e.currentTarget.style.background = locked ? 'rgba(16,185,129,0.2)' : `${accentColor}25`}
-                              onMouseLeave={e => e.currentTarget.style.background = locked ? 'rgba(16,185,129,0.1)' : `${accentColor}12`}
+                            <button onClick={() => setInfoRecord({ record: r, roll: year })} title="View full voter details"
+                              style={{ background:`${accentColor}12`, border:`1px solid ${accentColor}28`, borderRadius:6, color:accentColor, width: isMobile ? 36 : 26, height: isMobile ? 36 : 26, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'background 0.15s', touchAction:'manipulation' }}
+                              onMouseEnter={e => e.currentTarget.style.background = `${accentColor}25`}
+                              onMouseLeave={e => e.currentTarget.style.background = `${accentColor}12`}
                             >
                               <Icon.Info />
                             </button>
                           </td>
                         </tr>
-                        );
-                      })}
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -907,13 +866,11 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
             rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)"
             selectedRow={selected25} onSelectRow={handleSelect25}
             notFoundChecked={notFound25} onMarkNotFound={handleNotFound25}
-            confirmedEpics={confirmedEpics}
           />
           <RollSection
             rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)"
             selectedRow={selected02} onSelectRow={handleSelect02}
             notFoundChecked={notFound02} onMarkNotFound={handleNotFound02}
-            confirmedEpics={confirmedEpics}
           />
         </div>
 
@@ -1148,7 +1105,6 @@ function LiveCheckPanel() {
           searchRelation={form.relation.trim()}
           searchEpic={form.epic.trim().toUpperCase()}
           searchInputs={{ name: form.name.trim(), epic: form.epic.trim().toUpperCase(), house: form.house.trim(), relation: form.relation.trim() }}
-          confirmedEpics={new Set((result?.already_confirmed_epics || []).map(e => e.toUpperCase()))}
         />
       )}
 
