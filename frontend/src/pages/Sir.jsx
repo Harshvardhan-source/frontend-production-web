@@ -1425,13 +1425,25 @@ function ConfirmedMatchesPanel() {
   const [loading,   setLoading]   = useState(true);
   const [page,      setPage]      = useState(1);
 
+  // Wait for the cc_token to appear in sessionStorage (set by App.jsx auth flow).
+  // Returns the token string, or null after ~3s of waiting.
+  const waitForToken = () => new Promise((resolve) => {
+    const token = sessionStorage.getItem('cc_token');
+    if (token) { resolve(token); return; }
+    let attempts = 0;
+    const id = setInterval(() => {
+      const t = sessionStorage.getItem('cc_token');
+      if (t || ++attempts >= 12) { clearInterval(id); resolve(t || null); }
+    }, 250);
+  });
+
   const fetchConfirmed = useCallback(async (cat, pg) => {
     setLoading(true);
     try {
+      const token   = await waitForToken();
+      if (!token) { setLoading(false); return; }
       const params  = new URLSearchParams({ category: cat, page: pg, limit: 20 });
-      const token   = sessionStorage.getItem('cc_token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
       const res  = await fetch(`${API}/sir/confirmed/?${params}`, { credentials:'include', headers });
       const json = await res.json();
       if (json.success) setData(json);
