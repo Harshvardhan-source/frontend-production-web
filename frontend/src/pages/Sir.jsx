@@ -1387,6 +1387,62 @@ function RecordCard({ rec }) {
 }
 
 // ─── CONFIRMED MATCHES PANEL ─────────────────────────────────────────────────
+
+// Ward → booth mapping (booth numbers are on records; ward/name are not)
+const WARD_FULL_DATA = {
+  21: { name:'PADAVU',              booths:[31,32,33,55,56,57,58] },
+  24: { name:'DEREBAIL SOUTH',      booths:[9,11,13,17] },
+  25: { name:'DEREBAIL WEST',       booths:[1,2,3,5,6,7,8] },
+  26: { name:'DEREBAIL SOUTH WEST', booths:[4,10,89,90,91,92,94] },
+  27: { name:'BOLOOR',              booths:[82,83,84,88,93,95,96,97] },
+  28: { name:'MANNAGUDDA',          booths:[12,75,78,79,80,81,85,86,87] },
+  29: { name:'KAMBLA',              booths:[68,69,71,72,73] },
+  30: { name:'KODIALBAIL',          booths:[14,22,24,25,26,66,67,70] },
+  31: { name:'BEJAI',               booths:[15,16,18,19,20,21,23] },
+  32: { name:'KADRI NORTH',         booths:[27,28,29,30,63] },
+  33: { name:'KADRI SOUTH',         booths:[59,61,62,64,65] },
+  34: { name:'SHIVBHAG',            booths:[45,60,134,135,136,139] },
+  35: { name:'PADAVU CENTRAL',      booths:[34,35,39,40,43,44] },
+  36: { name:'PADAVU POORVA',       booths:[36,37,38,41,42] },
+  37: { name:'MAROLI',              booths:[48,49,50,51,52,53,54] },
+  38: { name:'BENDUR',              booths:[133,138,140,166,167,171] },
+  39: { name:'FALNIR',              booths:[162,163,164,165,172,173,174,175] },
+  40: { name:'COURT',               booths:[129,130,131,132,146,147] },
+  41: { name:'CENTRAL',             booths:[124,125,126,127,128] },
+  42: { name:'DONGERKERY',          booths:[74,76,77,112,115,117,118] },
+  43: { name:'KUDROLI',             booths:[108,109,110,111,113,114] },
+  44: { name:'NAVAYATH',            booths:[116,119,120,121,122,123] },
+  45: { name:'PORT',                booths:[148,151,152,153,238,239] },
+  46: { name:'CANTONMENT',          booths:[141,145,149,150] },
+  47: { name:'MILAGRIS',            booths:[142,143,144,168,169,170] },
+  48: { name:'VALENCIA',            booths:[137,176,177,178,187] },
+  49: { name:'KANKANADY',           booths:[179,180,181,182,183,184,185,186] },
+  50: { name:'ALAPE DAKSHINA',      booths:[188,189,190,191,192,213,214,215] },
+  51: { name:'ALAPE UTTARA',        booths:[46,47,193,194,195,196,202] },
+  52: { name:'KANNUR',              booths:[197,198,199,200,201,203,204,205] },
+  53: { name:'BAJAL',               booths:[206,207,208,209,210,211,212] },
+  54: { name:'JEPPINAMUGER',        booths:[216,217,218,219,220,221,222,223,249] },
+  55: { name:'ATTAVARA',            booths:[154,155,156,157,226,227,247,248] },
+  56: { name:'MANGALADEVI',         booths:[228,229,231,232,233] },
+  57: { name:'HOIGE BAZAR',         booths:[235,237,240,244] },
+  58: { name:'BOLAR',               booths:[230,234,236,241,242,243] },
+  59: { name:'JEPPU',               booths:[158,159,160,161,224,225,245,246] },
+  60: { name:'BENGRE',              booths:[98,99,100,101,102,103,104,105,106,107] },
+};
+
+// Build a reverse map: booth number → ward number
+const BOOTH_TO_WARD = {};
+Object.entries(WARD_FULL_DATA).forEach(([ward, { booths }]) => {
+  booths.forEach(b => { BOOTH_TO_WARD[b] = Number(ward); });
+});
+
+// Given a confirmed doc, extract the best booth number (from either record)
+function getDocBooth(doc) {
+  const b = doc.record_2025?.booth ?? doc.record_2002?.booth ?? doc.booth ?? null;
+  if (b == null) return null;
+  return Number(b);
+}
+
 const CONFIRMED_CATS = [
   { key:'ALL',            label:'All',              color:'#94a3b8', bg:'rgba(148,163,184,0.08)', border:'rgba(148,163,184,0.2)',  icon: Icon.List    },
   { key:'MATCHED',        label:'Found in Both',    color:'#10b981', bg:'rgba(16,185,129,0.08)',  border:'rgba(16,185,129,0.25)',  icon: Icon.Check   },
@@ -1476,13 +1532,14 @@ function ConfirmedRecordRow({ doc }) {
 }
 
 function ConfirmedMatchesPanel() {
-  const [activeCat, setActiveCat] = useState('ALL');
-  const [data,      setData]      = useState(null);
-  const [loading,   setLoading]   = useState(true);
-  const [page,      setPage]      = useState(1);
+  const [activeCat,  setActiveCat]  = useState('ALL');
+  const [data,       setData]       = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [page,       setPage]       = useState(1);
+  // Ward-wise view state
+  const [viewMode,   setViewMode]   = useState('category'); // 'category' | 'ward'
+  const [activeWard, setActiveWard] = useState(null);       // ward number or null = show picker
 
-  // Wait for the cc_token to appear in sessionStorage (set by App.jsx auth flow).
-  // Returns the token string, or null after ~3s of waiting.
   const waitForToken = () => new Promise((resolve) => {
     const token = sessionStorage.getItem('cc_token');
     if (token) { resolve(token); return; }
@@ -1507,19 +1564,62 @@ function ConfirmedMatchesPanel() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchConfirmed(activeCat, page); }, [activeCat, page, fetchConfirmed]);
+  // Fetch all records (high limit) for ward view
+  const [allRecords, setAllRecords] = useState([]);
+  const [allLoading, setAllLoading] = useState(false);
+  const fetchAll = useCallback(async () => {
+    setAllLoading(true);
+    try {
+      const token = await waitForToken();
+      if (!token) { setAllLoading(false); return; }
+      const params  = new URLSearchParams({ category: 'ALL', page: 1, limit: 1000 });
+      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+      const res  = await fetch(`${API}/sir/confirmed/?${params}`, { credentials:'include', headers });
+      const json = await res.json();
+      if (json.success) setAllRecords(json.records || []);
+    } catch { /**/ }
+    finally { setAllLoading(false); }
+  }, []);
 
-  const handleCat = (cat) => { setActiveCat(cat); setPage(1); };
+  useEffect(() => { fetchConfirmed(activeCat, page); }, [activeCat, page, fetchConfirmed]);
+  useEffect(() => { if (viewMode === 'ward') fetchAll(); }, [viewMode, fetchAll]);
+
+  const handleCat  = (cat)  => { setActiveCat(cat); setPage(1); };
+  const handleWard = (ward) => { setActiveWard(ward); };
 
   const counts  = data?.counts  || {};
   const records = data?.records || [];
   const total   = data?.total   || 0;
 
-  if (!loading && counts.TOTAL === 0) return null; // hide if nothing confirmed yet
+  // Build per-ward booth Sets for fast lookup
+  const WARD_TO_BOOTHS = Object.fromEntries(
+    Object.entries(WARD_FULL_DATA).map(([w, { booths }]) => [Number(w), new Set(booths)])
+  );
+
+  // Ward-filtered records: match booth field from either nested record
+  const wardRecords = activeWard
+    ? allRecords.filter(doc => {
+        const booth = getDocBooth(doc);
+        return booth != null && WARD_TO_BOOTHS[activeWard]?.has(booth);
+      })
+    : [];
+
+  // Build ward summary counts from allRecords
+  const wardCounts = {};
+  allRecords.forEach(doc => {
+    const booth = getDocBooth(doc);
+    if (booth == null) return;
+    const ward = BOOTH_TO_WARD[booth];
+    if (ward == null) return;
+    wardCounts[ward] = (wardCounts[ward] || 0) + 1;
+  });
+
+  if (!loading && counts.TOTAL === 0) return null;
 
   return (
     <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:16, padding: isMobile ? 14 : 20, marginTop:10, marginBottom:8 }}>
-      {/* Header */}
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14, flexWrap:'wrap' }}>
         <span style={{ color:'#10b981' }}><Icon.Check /></span>
         <span style={{ fontSize:15, fontWeight:700, color:'var(--text-1)' }}>Confirmed Records</span>
@@ -1531,48 +1631,172 @@ function ConfirmedMatchesPanel() {
         )}
       </div>
 
-      {/* Category tabs */}
-      <div style={{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap' }}>
-        {CONFIRMED_CATS.map(({ key, label, color, bg, border, icon: TabIcon }) => {
-          const active = activeCat === key;
-          const count  = key === 'ALL' ? counts.TOTAL : counts[key];
-          return (
-            <button key={key} onClick={() => handleCat(key)} style={{ display:'flex', alignItems:'center', gap:5, background: active ? bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? border : 'rgba(255,255,255,0.07)'}`, borderRadius:8, padding:'7px 12px', cursor:'pointer', color: active ? color : 'rgba(255,255,255,0.4)', fontWeight: active ? 700 : 400, fontSize:12, transition:'all 0.15s', touchAction:'manipulation', WebkitTapHighlightColor:'transparent', minHeight:36 }}>
-              <TabIcon />
-              {label}
-              {count != null && (
-                <span style={{ fontSize:10, background:'rgba(0,0,0,0.25)', borderRadius:10, padding:'1px 6px', marginLeft:1 }}>{count}</span>
-              )}
-            </button>
-          );
-        })}
+      {/* ── View mode toggle ────────────────────────────────────────────────── */}
+      <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+        <button
+          onClick={() => { setViewMode('category'); setActiveWard(null); }}
+          style={{ display:'flex', alignItems:'center', gap:5, background: viewMode === 'category' ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.025)', border:`1px solid ${viewMode === 'category' ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.07)'}`, borderRadius:8, padding:'6px 13px', cursor:'pointer', color: viewMode === 'category' ? '#818cf8' : 'rgba(255,255,255,0.35)', fontWeight: viewMode === 'category' ? 700 : 400, fontSize:12, transition:'all 0.15s' }}>
+          <Icon.List /> Category View
+        </button>
+        <button
+          onClick={() => { setViewMode('ward'); setActiveWard(null); }}
+          style={{ display:'flex', alignItems:'center', gap:5, background: viewMode === 'ward' ? 'rgba(34,211,238,0.10)' : 'rgba(255,255,255,0.025)', border:`1px solid ${viewMode === 'ward' ? 'rgba(34,211,238,0.4)' : 'rgba(255,255,255,0.07)'}`, borderRadius:8, padding:'6px 13px', cursor:'pointer', color: viewMode === 'ward' ? '#22d3ee' : 'rgba(255,255,255,0.35)', fontWeight: viewMode === 'ward' ? 700 : 400, fontSize:12, transition:'all 0.15s' }}>
+          <Icon.Booth /> Ward View
+        </button>
       </div>
 
-      {/* Records */}
-      {loading ? (
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {[0.8, 0.6, 0.9].map((w, i) => (
-            <div key={i} style={{ height:48, borderRadius:10, width:`${w*100}%`, background:'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%)', backgroundSize:'400px 100%', animation:'shimmer 1.4s infinite' }} />
-          ))}
+      {/* ══ CATEGORY VIEW ════════════════════════════════════════════════════ */}
+      {viewMode === 'category' && (<>
+        {/* Category tabs */}
+        <div style={{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap' }}>
+          {CONFIRMED_CATS.map(({ key, label, color, bg, border, icon: TabIcon }) => {
+            const active = activeCat === key;
+            const count  = key === 'ALL' ? counts.TOTAL : counts[key];
+            return (
+              <button key={key} onClick={() => handleCat(key)} style={{ display:'flex', alignItems:'center', gap:5, background: active ? bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? border : 'rgba(255,255,255,0.07)'}`, borderRadius:8, padding:'7px 12px', cursor:'pointer', color: active ? color : 'rgba(255,255,255,0.4)', fontWeight: active ? 700 : 400, fontSize:12, transition:'all 0.15s', touchAction:'manipulation', WebkitTapHighlightColor:'transparent', minHeight:36 }}>
+                <TabIcon />
+                {label}
+                {count != null && (
+                  <span style={{ fontSize:10, background:'rgba(0,0,0,0.25)', borderRadius:10, padding:'1px 6px', marginLeft:1 }}>{count}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      ) : records.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'28px 16px', color:'rgba(255,255,255,0.2)', fontSize:13 }}>
-          No records in this category yet.
-        </div>
-      ) : (
-        <>
-          {records.map((doc, i) => (
-            <ConfirmedRecordRow key={doc._id || i} doc={doc} />
-          ))}
-          {total > 20 && (
-            <div style={{ display:'flex', gap:8, justifyContent:'center', marginTop:12 }}>
-              <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1} className="btn btn-ghost" style={{ padding:'6px 14px', fontSize:12 }}>← Prev</button>
-              <span style={{ padding:'6px 14px', color:'var(--text-2)', fontSize:12 }}>Page {page}</span>
-              <button onClick={() => setPage(p => p+1)} disabled={records.length < 20} className="btn btn-ghost" style={{ padding:'6px 14px', fontSize:12 }}>Next →</button>
+
+        {/* Records */}
+        {loading ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {[0.8, 0.6, 0.9].map((w, i) => (
+              <div key={i} style={{ height:48, borderRadius:10, width:`${w*100}%`, background:'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%)', backgroundSize:'400px 100%', animation:'shimmer 1.4s infinite' }} />
+            ))}
+          </div>
+        ) : records.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'28px 16px', color:'rgba(255,255,255,0.2)', fontSize:13 }}>
+            No records in this category yet.
+          </div>
+        ) : (
+          <>
+            {records.map((doc, i) => (
+              <ConfirmedRecordRow key={doc._id || i} doc={doc} />
+            ))}
+            {total > 20 && (
+              <div style={{ display:'flex', gap:8, justifyContent:'center', marginTop:12 }}>
+                <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1} className="btn btn-ghost" style={{ padding:'6px 14px', fontSize:12 }}>← Prev</button>
+                <span style={{ padding:'6px 14px', color:'var(--text-2)', fontSize:12 }}>Page {page}</span>
+                <button onClick={() => setPage(p => p+1)} disabled={records.length < 20} className="btn btn-ghost" style={{ padding:'6px 14px', fontSize:12 }}>Next →</button>
+              </div>
+            )}
+          </>
+        )}
+      </>)}
+
+      {/* ══ WARD VIEW ════════════════════════════════════════════════════════ */}
+      {viewMode === 'ward' && (<>
+        {!activeWard ? (
+          /* Ward picker grid */
+          allLoading ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {[0.8, 0.6, 0.9].map((w, i) => (
+                <div key={i} style={{ height:40, borderRadius:10, width:`${w*100}%`, background:'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%)', backgroundSize:'400px 100%', animation:'shimmer 1.4s infinite' }} />
+              ))}
             </div>
-          )}
-        </>
-      )}
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:8 }}>
+              {Object.entries(WARD_FULL_DATA).sort((a,b) => Number(a[0]) - Number(b[0])).map(([wardNum, { name, booths }]) => {
+                const wn    = Number(wardNum);
+                const count = wardCounts[wn] || 0;
+                return (
+                  <button
+                    key={wn}
+                    onClick={() => handleWard(wn)}
+                    style={{
+                      display:'flex', flexDirection:'column', alignItems:'flex-start', gap:3,
+                      background: count > 0 ? 'rgba(34,211,238,0.05)' : 'rgba(255,255,255,0.02)',
+                      border:`1px solid ${count > 0 ? 'rgba(34,211,238,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                      borderRadius:10, padding:'10px 12px', cursor:'pointer',
+                      transition:'all 0.15s', textAlign:'left',
+                      opacity: count === 0 ? 0.45 : 1,
+                    }}
+                    onMouseEnter={e => { if (count > 0) e.currentTarget.style.background = 'rgba(34,211,238,0.10)'; }}
+                    onMouseLeave={e => { if (count > 0) e.currentTarget.style.background = 'rgba(34,211,238,0.05)'; }}
+                  >
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%' }}>
+                      <span style={{ fontSize:10, fontWeight:800, color: count > 0 ? '#22d3ee' : 'rgba(255,255,255,0.25)', letterSpacing:'0.4px' }}>Ward {wn}</span>
+                      {count > 0 && (
+                        <span style={{ fontSize:10, fontWeight:700, background:'rgba(16,185,129,0.15)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)', borderRadius:10, padding:'1px 7px' }}>{count}</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize:11, fontWeight:600, color: count > 0 ? 'var(--text-1)' : 'rgba(255,255,255,0.25)', lineHeight:1.3 }}>{name}</span>
+                    <span style={{ fontSize:9, color:'rgba(255,255,255,0.2)' }}>{booths.length} booth{booths.length !== 1 ? 's' : ''}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          /* Ward detail view */
+          <>
+            {/* Back + Ward header */}
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, flexWrap:'wrap' }}>
+              <button
+                onClick={() => setActiveWard(null)}
+                style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'5px 12px', cursor:'pointer', color:'rgba(255,255,255,0.5)', fontSize:12, fontWeight:600 }}>
+                ← Back
+              </button>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:13, fontWeight:800, color:'#22d3ee' }}>Ward {activeWard}</span>
+                <span style={{ fontSize:13, fontWeight:600, color:'var(--text-1)' }}>— {WARD_FULL_DATA[activeWard]?.name}</span>
+              </div>
+              <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:20, padding:'2px 10px' }}>
+                Booths: {WARD_FULL_DATA[activeWard]?.booths.join(', ')}
+              </span>
+              {wardRecords.length > 0 && (
+                <span style={{ marginLeft:'auto', fontSize:12, fontWeight:700, color:'#10b981', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:20, padding:'2px 10px' }}>
+                  {wardRecords.length} record{wardRecords.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            {allLoading ? (
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[0.8, 0.6, 0.9].map((w, i) => (
+                  <div key={i} style={{ height:48, borderRadius:10, width:`${w*100}%`, background:'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%)', backgroundSize:'400px 100%', animation:'shimmer 1.4s infinite' }} />
+                ))}
+              </div>
+            ) : wardRecords.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'32px 16px', color:'rgba(255,255,255,0.2)', fontSize:13 }}>
+                No confirmed records found for this ward yet.<br />
+                <span style={{ fontSize:11, marginTop:4, display:'block' }}>Records are matched by booth number ({WARD_FULL_DATA[activeWard]?.booths.join(', ')}).</span>
+              </div>
+            ) : (
+              /* Group by booth within ward */
+              (() => {
+                const byBooth = {};
+                wardRecords.forEach(doc => {
+                  const b = getDocBooth(doc);
+                  const key = b ?? 'unknown';
+                  if (!byBooth[key]) byBooth[key] = [];
+                  byBooth[key].push(doc);
+                });
+                return Object.entries(byBooth).sort((a,b) => Number(a[0]) - Number(b[0])).map(([booth, docs]) => (
+                  <div key={booth} style={{ marginBottom:14 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:8, padding:'3px 10px', fontSize:11, fontWeight:700, color:'#22d3ee' }}>
+                        <Icon.Booth /> Booth {booth}
+                      </span>
+                      <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.04)', borderRadius:10, padding:'1px 7px' }}>{docs.length} record{docs.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    {docs.map((doc, i) => (
+                      <ConfirmedRecordRow key={doc._id || i} doc={doc} />
+                    ))}
+                  </div>
+                ));
+              })()
+            )}
+          </>
+        )}
+      </>)}
     </div>
   );
 }
