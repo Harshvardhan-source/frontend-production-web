@@ -485,7 +485,7 @@ function SwotAIOverview({ tab }) {
     setOpen(true);
     try {
       // Django is on a different subdomain — cookie not forwarded cross-domain.
-      // Must send token as Authorization: Bearer (stored in sessionStorage by client.js).
+      // Read token from sessionStorage (saved there by client.js on login/me).
       const token = sessionStorage.getItem('cc_token');
       const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
       const tabData = buildTabData(tab).slice(0, 5000); // hard cap — prevents 502 on Render
@@ -2423,9 +2423,10 @@ function MLIntelligenceTab() {
   const [error, setError] = React.useState(null);
   const [wardList, setWardList] = React.useState([]);
 
-  // Auth header helper — token lives in sessionStorage (saved there by client.js
-  // after FastAPI login/me).  Django is on a different subdomain so the httponly
-  // cookie is never forwarded; we must send the token as Authorization: Bearer.
+  // Django is on a different subdomain than FastAPI (Render free tier).
+  // The httponly cookie is NOT forwarded cross-subdomain by the browser.
+  // Token is saved to sessionStorage by client.js after login/me, and must
+  // be sent as Authorization: Bearer on every raw fetch() to Django.
   const authHeaders = () => {
     const token = sessionStorage.getItem('cc_token');
     return token
