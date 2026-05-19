@@ -2142,13 +2142,27 @@ function ConstituencySIRSummary() {
 // Stored in MongoDB 'WardData' collection via /api/ward-places/
 // ════════════════════════════════════════════════════════════════════════════════
 
+// ── Contact-field config per place type ───────────────────────────────────────
+// contactRole: label shown for the primary contact's role
+// hasCommittee: true → temple-style multi-member committee UI
+const PLACE_TYPE_CONTACT = {
+  club:                         { contactRole: 'Club President',          hasCommittee: false },
+  temple:                       { contactRole: 'Temple Head (Archakar)',   hasCommittee: true  },
+  church:                       { contactRole: "Father's Name",           hasCommittee: false },
+  mosque:                       { contactRole: 'Imam / Mullah / Maulvi',  hasCommittee: false },
+  school_govt:                  { contactRole: 'Headmaster / Headmistress / Principal', hasCommittee: false },
+  school_private:               { contactRole: 'Principal',               hasCommittee: false },
+  school_christian_missionary:  { contactRole: 'Principal / Head',        hasCommittee: false },
+  anganwadi:                    { contactRole: 'Anganwadi Teacher',        hasCommittee: false },
+  college:                      { contactRole: 'Principal',               hasCommittee: false },
+  orphanage:                    { contactRole: 'Warden / Manager',        hasCommittee: false },
+  old_age_home:                 { contactRole: 'Warden / Manager',        hasCommittee: false },
+};
+
 const PLACE_TYPES = [
   {
-    key: 'club',
-    label: 'Local Club',
-    color: '#f59e0b',
-    accent: 'rgba(245,158,11,0.12)',
-    border: 'rgba(245,158,11,0.25)',
+    key: 'club', label: 'Local Club',
+    color: '#f59e0b', accent: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -2157,11 +2171,8 @@ const PLACE_TYPES = [
     ),
   },
   {
-    key: 'temple',
-    label: 'Temple',
-    color: '#f97316',
-    accent: 'rgba(249,115,22,0.12)',
-    border: 'rgba(249,115,22,0.25)',
+    key: 'temple', label: 'Temple',
+    color: '#f97316', accent: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.25)',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2L2 7h20L12 2z"/><rect x="4" y="7" width="16" height="13"/><rect x="9" y="12" width="6" height="8"/>
@@ -2170,11 +2181,8 @@ const PLACE_TYPES = [
     ),
   },
   {
-    key: 'church',
-    label: 'Church',
-    color: '#8b5cf6',
-    accent: 'rgba(139,92,246,0.12)',
-    border: 'rgba(139,92,246,0.25)',
+    key: 'church', label: 'Church',
+    color: '#8b5cf6', accent: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/>
@@ -2183,16 +2191,88 @@ const PLACE_TYPES = [
     ),
   },
   {
-    key: 'mosque',
-    label: 'Mosque',
-    color: '#10b981',
-    accent: 'rgba(16,185,129,0.12)',
-    border: 'rgba(16,185,129,0.25)',
+    key: 'mosque', label: 'Mosque',
+    color: '#10b981', accent: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.25)',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/>
         <path d="M12 3a3 3 0 0 1 3 3"/><path d="M9 6a3 3 0 0 1 3-3"/>
         <rect x="9" y="14" width="6" height="6"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'school_govt', label: 'Govt School',
+    color: '#22d3ee', accent: 'rgba(34,211,238,0.10)', border: 'rgba(34,211,238,0.22)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 20h20"/><path d="M4 20V10l8-6 8 6v10"/>
+        <rect x="9" y="14" width="6" height="6"/>
+        <path d="M12 3v1"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'school_private', label: 'Pvt School',
+    color: '#38bdf8', accent: 'rgba(56,189,248,0.10)', border: 'rgba(56,189,248,0.22)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 20h20"/><path d="M4 20V10l8-6 8 6v10"/>
+        <rect x="9" y="14" width="6" height="6"/>
+        <line x1="12" y1="4" x2="12" y2="8"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'school_christian_missionary', label: 'Mission School',
+    color: '#a78bfa', accent: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.22)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 20h20"/><path d="M4 20V10l8-6 8 6v10"/>
+        <rect x="9" y="14" width="6" height="6"/>
+        <line x1="12" y1="2" x2="12" y2="6"/><line x1="10" y1="4" x2="14" y2="4"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'anganwadi', label: 'Anganwadi',
+    color: '#fb923c', accent: 'rgba(251,146,60,0.10)', border: 'rgba(251,146,60,0.22)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        <circle cx="5" cy="10" r="2" opacity="0.5"/><circle cx="19" cy="10" r="2" opacity="0.5"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'college', label: 'College',
+    color: '#6366f1', accent: 'rgba(99,102,241,0.10)', border: 'rgba(99,102,241,0.22)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/><line x1="20" y1="7" x2="20" y2="17"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'orphanage', label: 'Orphanage',
+    color: '#ec4899', accent: 'rgba(236,72,153,0.10)', border: 'rgba(236,72,153,0.22)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+        <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'old_age_home', label: 'Old Age Home',
+    color: '#94a3b8', accent: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.22)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <rect x="9" y="14" width="6" height="8"/>
+        <path d="M9 10 q1-2 3-2 t3 2" opacity="0.6"/>
       </svg>
     ),
   },
@@ -2207,7 +2287,10 @@ function WardLocalPlaces({ wardNum }) {
   const [activeType,    setActiveType]    = useState('club');
   const [showForm,      setShowForm]      = useState(false);
   const [deletingId,    setDeletingId]    = useState(null);
-  const [form,          setForm]          = useState({ name: '', address: '' });
+  const [form,          setForm]          = useState({
+    name: '', address: '', contactName: '', contactPhone: '',
+    committeeMembers: [{ name: '', phone: '' }],
+  });
   const [formErr,       setFormErr]       = useState('');
 
   // Load places for this ward
@@ -2227,9 +2310,14 @@ function WardLocalPlaces({ wardNum }) {
     return acc;
   }, {});
 
+  const contactCfg = PLACE_TYPE_CONTACT[activeType] || { contactRole: 'Contact Person', hasCommittee: false };
+
   const handleAdd = async () => {
     if (!form.name.trim()) { setFormErr('Name is required.'); return; }
     setSaving(true); setFormErr('');
+    // Build committee list — filter blank rows
+    const committeeMembers = (contactCfg.hasCommittee ? form.committeeMembers : [])
+      .filter(m => m.name.trim());
     try {
       const r = await api.post('/api/ward-places/', {
         ward:     wardNum,
@@ -2237,10 +2325,14 @@ function WardLocalPlaces({ wardNum }) {
         type:     activeType,
         name:     form.name.trim(),
         address:  form.address.trim(),
+        contactName:  form.contactName.trim(),
+        contactPhone: form.contactPhone.trim(),
+        contactRole:  contactCfg.contactRole,
+        committeeMembers,
       });
       if (r.data.success) {
         setPlaces(prev => [...prev, r.data.place]);
-        setForm({ name: '', address: '' });
+        setForm({ name: '', address: '', contactName: '', contactPhone: '', committeeMembers: [{ name: '', phone: '' }] });
         setShowForm(false);
       } else {
         setFormErr(r.data.message || 'Save failed.');
@@ -2282,7 +2374,7 @@ function WardLocalPlaces({ wardNum }) {
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Ward {wardNum} · {wardName}</div>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); setFormErr(''); setForm({ name:'', address:'' }); }}
+          onClick={() => { setShowForm(!showForm); setFormErr(''); setForm({ name:'', address:'', contactName:'', contactPhone:'', committeeMembers:[{name:'',phone:''}] }); }}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: showForm ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.14)',
@@ -2314,7 +2406,7 @@ function WardLocalPlaces({ wardNum }) {
           const count    = groupedPlaces[t.key]?.length || 0;
           return (
             <button key={t.key}
-              onClick={() => { setActiveType(t.key); setShowForm(false); setForm({ name:'', address:'' }); }}
+              onClick={() => { setActiveType(t.key); setShowForm(false); setForm({ name:'', address:'', contactName:'', contactPhone:'', committeeMembers:[{name:'',phone:''}] }); }}
               style={{
                 flex: 1, minWidth: 72, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                 padding: '10px 8px',
@@ -2352,13 +2444,8 @@ function WardLocalPlaces({ wardNum }) {
               <input
                 value={form.name}
                 onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErr(''); }}
-                placeholder={`e.g. ${activeType === 'club' ? 'Padavu Youth Club' : activeType === 'temple' ? 'Sri Vinayaka Temple' : activeType === 'church' ? 'St. Joseph Church' : 'Masjid-e-Noor'}`}
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  background: 'rgba(15,23,42,0.8)', border: `1px solid ${formErr ? '#ef4444' : activeCfg.border}`,
-                  borderRadius: 10, padding: '10px 14px',
-                  color: '#e2e8f0', fontSize: 14, fontFamily: 'inherit', outline: 'none',
-                }}
+                placeholder={`e.g. ${activeType === 'club' ? 'Padavu Youth Club' : activeType === 'temple' ? 'Sri Vinayaka Temple' : activeType === 'church' ? 'St. Joseph Church' : activeType === 'mosque' ? 'Masjid-e-Noor' : activeType === 'college' ? 'St. Aloysius College' : activeType === 'anganwadi' ? 'Anganwadi Centre No. 5' : activeType === 'orphanage' ? 'Don Bosco Orphanage' : activeType === 'old_age_home' ? 'Snehalaya Old Age Home' : 'Institution name'}`}
+                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${formErr ? '#ef4444' : activeCfg.border}`, borderRadius: 10, padding: '10px 14px', color: '#e2e8f0', fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
               />
             </div>
             {/* Address field */}
@@ -2370,14 +2457,82 @@ function WardLocalPlaces({ wardNum }) {
                 value={form.address}
                 onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
                 placeholder="Street, area or landmark"
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`,
-                  borderRadius: 10, padding: '10px 14px',
-                  color: '#e2e8f0', fontSize: 14, fontFamily: 'inherit', outline: 'none',
-                }}
+                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 10, padding: '10px 14px', color: '#e2e8f0', fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
               />
             </div>
+
+            {/* ── Contact person ── */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 8, marginTop: 2 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, marginBottom: 8, opacity: 0.85 }}>
+                Contact Details
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                    {contactCfg.contactRole}
+                  </label>
+                  <input
+                    value={form.contactName}
+                    onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))}
+                    placeholder="Full name"
+                    style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 10, padding: '10px 14px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                    Phone Number
+                  </label>
+                  <input
+                    value={form.contactPhone}
+                    onChange={e => setForm(f => ({ ...f, contactPhone: e.target.value }))}
+                    placeholder="10-digit number"
+                    type="tel"
+                    style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 10, padding: '10px 14px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Committee members (temples only) ── */}
+            {contactCfg.hasCommittee && (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 8, marginTop: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, opacity: 0.85 }}>Committee Members</div>
+                  <button
+                    onClick={() => setForm(f => ({ ...f, committeeMembers: [...f.committeeMembers, { name: '', phone: '' }] }))}
+                    style={{ background: `${activeCfg.color}22`, border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '4px 10px', color: activeCfg.color, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    + Add Member
+                  </button>
+                </div>
+                {form.committeeMembers.map((m, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center' }}>
+                    <input
+                      value={m.name}
+                      onChange={e => setForm(f => { const arr = [...f.committeeMembers]; arr[idx] = { ...arr[idx], name: e.target.value }; return { ...f, committeeMembers: arr }; })}
+                      placeholder={`Member ${idx + 1} name`}
+                      style={{ flex: 2, background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 9, padding: '8px 12px', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
+                    />
+                    <input
+                      value={m.phone}
+                      onChange={e => setForm(f => { const arr = [...f.committeeMembers]; arr[idx] = { ...arr[idx], phone: e.target.value }; return { ...f, committeeMembers: arr }; })}
+                      placeholder="Phone"
+                      type="tel"
+                      style={{ flex: 1, background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 9, padding: '8px 12px', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
+                    />
+                    {form.committeeMembers.length > 1 && (
+                      <button
+                        onClick={() => setForm(f => ({ ...f, committeeMembers: f.committeeMembers.filter((_, i) => i !== idx) }))}
+                        style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {formErr && <div style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}>⚠ {formErr}</div>}
             {/* Save button */}
             <button
@@ -2452,6 +2607,29 @@ function WardLocalPlaces({ wardNum }) {
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                       {place.address}
+                    </div>
+                  )}
+                  {place.contactName && (
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                      <span style={{ color: activeCfg.color, fontWeight: 600 }}>{place.contactRole || 'Contact'}:</span>&nbsp;{place.contactName}
+                      {place.contactPhone && (
+                        <a href={`tel:${place.contactPhone}`} style={{ color: '#22d3ee', textDecoration: 'none', marginLeft: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 9.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.65a16 16 0 0 0 6.29 6.29l1.01-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                          {place.contactPhone}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {/* Temple committee members */}
+                  {Array.isArray(place.committeeMembers) && place.committeeMembers.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      {place.committeeMembers.map((m, i) => (
+                        <div key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.32)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                          {m.name}{m.phone ? ` · ${m.phone}` : ''}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
