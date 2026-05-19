@@ -2967,7 +2967,7 @@ function LocalPlacesModal({ onClose }) {
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
   const [total,        setTotal]        = useState(0);
-  const [counts,       setCounts]       = useState({ club:0, temple:0, church:0, mosque:0 });
+  const [counts,       setCounts]       = useState({ club:0, temple:0, church:0, mosque:0, school_govt:0, school_private:0, school_christian_missionary:0, anganwadi:0, college:0, orphanage:0, old_age_home:0 });
   const [byWard,       setByWard]       = useState([]);
   const [search,       setSearch]       = useState('');
   const [activeType,   setActiveType]   = useState('all');
@@ -4253,8 +4253,8 @@ export default function Dashboard() {
       icon: <MapPin size={20} />,
       color: '#f59e0b',
       sub: localPlacesTotal != null
-        ? `${localPlacesCounts.temple||0} temples · ${localPlacesCounts.church||0} churches · ${localPlacesCounts.mosque||0} mosques · ${localPlacesCounts.club||0} clubs`
-        : 'Clubs, temples, churches, mosques',
+        ? `${localPlacesCounts.temple||0} temples · ${localPlacesCounts.church||0} churches · ${localPlacesCounts.mosque||0} mosques · ${localPlacesCounts.club||0} clubs · ${localPlacesCounts.school_govt||0} govt schools · ${localPlacesCounts.school_private||0} pvt schools · ${localPlacesCounts.school_christian_missionary||0} mission schools · ${localPlacesCounts.anganwadi||0} anganwadis · ${localPlacesCounts.college||0} colleges · ${localPlacesCounts.orphanage||0} orphanages · ${localPlacesCounts.old_age_home||0} old age homes`
+        : 'Clubs, temples, churches, mosques, schools, anganwadis & more',
       isLocalPlaces: true,
     },
   ];
@@ -4827,18 +4827,25 @@ export default function Dashboard() {
                       {/* Centre: 4 category chips in a row */}
                       <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
                         {[
-                          { key: 'temple', label: 'Temple',  color: '#f97316', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7h20L12 2z"/><rect x="4" y="7" width="16" height="13"/><rect x="9" y="12" width="6" height="8"/></svg> },
-                          { key: 'church', label: 'Church',  color: '#8b5cf6', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/><path d="M5 20v-8l7-5 7 5v8H5z"/><rect x="9" y="14" width="6" height="6"/></svg> },
-                          { key: 'mosque', label: 'Mosque',  color: '#10b981', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/><rect x="9" y="14" width="6" height="6"/></svg> },
-                          { key: 'club',   label: 'Club',    color: '#f59e0b', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+                          { key: 'temple',                     label: 'Temple',         color: '#f97316', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7h20L12 2z"/><rect x="4" y="7" width="16" height="13"/><rect x="9" y="12" width="6" height="8"/></svg> },
+                          { key: 'church',                     label: 'Church',         color: '#8b5cf6', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/><path d="M5 20v-8l7-5 7 5v8H5z"/><rect x="9" y="14" width="6" height="6"/></svg> },
+                          { key: 'mosque',                     label: 'Mosque',         color: '#10b981', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/><rect x="9" y="14" width="6" height="6"/></svg> },
+                          { key: 'club',                       label: 'Club',           color: '#f59e0b', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+                          { key: 'school_govt',                label: 'Govt School',    color: '#22d3ee', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20"/><path d="M4 20V10l8-6 8 6v10"/><rect x="9" y="14" width="6" height="6"/><path d="M12 3v1"/></svg> },
+                          { key: 'school_private',             label: 'Pvt School',     color: '#38bdf8', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20"/><path d="M4 20V10l8-6 8 6v10"/><rect x="9" y="14" width="6" height="6"/><line x1="12" y1="4" x2="12" y2="8"/></svg> },
+                          { key: 'school_christian_missionary', label: 'Mission School', color: '#a78bfa', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20"/><path d="M4 20V10l8-6 8 6v10"/><rect x="9" y="14" width="6" height="6"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="10" y1="4" x2="14" y2="4"/></svg> },
+                          { key: 'anganwadi',                  label: 'Anganwadi',      color: '#fb923c', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> },
+                          { key: 'college',                    label: 'College',        color: '#6366f1', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/><line x1="20" y1="7" x2="20" y2="17"/></svg> },
+                          { key: 'orphanage',                  label: 'Orphanage',      color: '#ec4899', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+                          { key: 'old_age_home',               label: 'Old Age Home',   color: '#94a3b8', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><rect x="9" y="14" width="6" height="8"/></svg> },
                         ].map(t => {
                           const n = localPlacesCounts[t.key] || 0;
                           return (
                             <div key={t.key} style={{
-                              display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 120,
+                              display: 'flex', alignItems: 'center', gap: 6, flex: '1 1 140px', minWidth: 100,
                               background: n > 0 ? `${t.color}10` : 'rgba(255,255,255,0.025)',
                               border: `1px solid ${n > 0 ? t.color + '30' : 'rgba(255,255,255,0.06)'}`,
-                              borderRadius: 10, padding: '10px 14px',
+                              borderRadius: 10, padding: '8px 12px',
                             }}>
                               <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: n > 0 ? `${t.color}15` : 'rgba(255,255,255,0.04)', border: `1px solid ${n > 0 ? t.color + '25' : 'rgba(255,255,255,0.06)'}`, color: n > 0 ? t.color : 'rgba(255,255,255,0.2)' }}>
                                 {t.icon}
