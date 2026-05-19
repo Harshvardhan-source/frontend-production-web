@@ -1428,8 +1428,11 @@ function ConfirmedMatchesPanel() {
   const fetchConfirmed = useCallback(async (cat, pg) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ category: cat, page: pg, limit: 20 });
-      const res  = await fetch(`${API}/sir/confirmed/?${params}`, { credentials:'include' });
+      const params  = new URLSearchParams({ category: cat, page: pg, limit: 20 });
+      const token   = sessionStorage.getItem('cc_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res  = await fetch(`${API}/sir/confirmed/?${params}`, { credentials:'include', headers });
       const json = await res.json();
       if (json.success) setData(json);
     } catch { /**/ }
