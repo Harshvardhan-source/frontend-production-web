@@ -1260,14 +1260,7 @@ function LiveCheckPanel() {
             </div>
           )}
 
-          {/* Relative name echo */}
-          {form.relation.trim() && (
-            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'rgba(255,255,255,0.02)', borderRadius:8, border:'1px solid rgba(255,255,255,0.06)', flexWrap:'wrap' }}>
-              <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)', fontWeight:600 }}>Relative entered</span>
-              <span style={{ fontSize:12, color:'rgba(255,255,255,0.6)', fontFamily:'ui-monospace,monospace' }}>{form.relation}</span>
-              <span style={{ fontSize:10, color:'rgba(255,255,255,0.18)', marginLeft:'auto' }}>For reference only</span>
-            </div>
-          )}
+
         </div>
       )}
 
