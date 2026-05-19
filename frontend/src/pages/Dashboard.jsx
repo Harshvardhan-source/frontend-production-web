@@ -2215,7 +2215,10 @@ function WardLocalPlaces({ wardNum }) {
     setLoading(true); setError('');
     localPlacesApi.ward(wardNum)
       .then(r => { if (r.data.success) setPlaces(r.data.places || []); else setError(r.data.message || 'Failed to load.'); })
-      .catch(e => setError(e.userMessage || 'Network error.'))
+      .catch(e => {
+        // 401 = cookie not yet propagated; silently show empty, don't alarm the user
+        if (e.response?.status !== 401) setError(e.userMessage || 'Network error.');
+      })
       .finally(() => setLoading(false));
   }, [wardNum]);
 
@@ -2802,7 +2805,10 @@ function LocalPlacesModal({ onClose }) {
           if (r.data.byWard?.length) setExpandedWard(r.data.byWard[0].ward);
         } else { setError(r.data.message || 'Failed to load.'); }
       })
-      .catch(e => setError(e.userMessage || 'Network error.'))
+      .catch(e => {
+        // 401 = cookie not yet propagated; silently show empty, don't alarm the user
+        if (e.response?.status !== 401) setError(e.userMessage || 'Network error.');
+      })
       .finally(() => setLoading(false));
   }, []);
 

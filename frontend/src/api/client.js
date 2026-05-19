@@ -2,23 +2,31 @@ import axios from 'axios';
 
 // ── Axios instances ───────────────────────────────────────────────────────────
 //
-// SEC-4 (main.py): The JWT is stored in an httponly cookie named "cc_token".
-// It is NEVER accessible via JavaScript / sessionStorage.
-// Both instances set withCredentials: true so the browser attaches the cookie
-// automatically on every cross-origin request — no manual token injection needed.
+// Architecture: two separate Render services on different subdomains.
+//   authClient → FastAPI  (production-web-conn-1-e8bq.onrender.com)
+//   api        → Django   (production-web-conn-bzpt.onrender.com)
 //
-// DO NOT add sessionStorage.getItem('cc_token') back to request interceptors.
-// The cookie is httponly; sessionStorage will always be empty for this key.
+// Auth token flow:
+//   1. FastAPI login/me returns { token: "..." } in the response body.
+//   2. authClient response interceptor saves it to sessionStorage as 'cc_token'.
+//   3. api request interceptor reads it from sessionStorage and sends it as
+//      Authorization: Bearer <token> on every Django API call.
+//
+// Why not rely on the httponly cookie alone?
+//   The cookie is set on the FastAPI domain. The browser will NOT forward it to
+//   Django's different subdomain even with withCredentials:true — that only works
+//   for same-domain or same-site origins.  sessionStorage + Bearer header is the
+//   correct pattern for a cross-subdomain microservice setup.
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com',
-  withCredentials: true,                    // sends cc_token cookie automatically
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
 const authClient = axios.create({
   baseURL: process.env.REACT_APP_AUTH_URL || 'https://production-web-conn-1-e8bq.onrender.com',
-  withCredentials: true,                    // sends cc_token cookie automatically
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -43,19 +51,18 @@ function getCookie(name) {
 }
 
 // ── Request interceptors ──────────────────────────────────────────────────────
-//
-// authClient: no manual token header — cookie is sent automatically.
 
-authClient.interceptors.request.use((config) => {
-  // Cookie is httponly and attached automatically via withCredentials.
-  // No sessionStorage read needed or possible.
-  return config;
-});
+// authClient: cookie is sent automatically to same-domain FastAPI via withCredentials.
+// No manual header needed for /auth/* calls.
+authClient.interceptors.request.use((config) => config);
 
-// api (Django): attach CSRF header for mutating methods only.
+// api (Django): must send token as Authorization header because the cc_token
+// cookie was set on FastAPI's domain and won't be forwarded cross-subdomain.
 api.interceptors.request.use(async (config) => {
-  // Cookie is httponly and attached automatically via withCredentials.
-  // No sessionStorage read needed or possible.
+  const token = sessionStorage.getItem('cc_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
   if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
     await ensureCsrf();
     config.headers['X-CSRFToken'] = getCookie('csrftoken');
@@ -65,22 +72,24 @@ api.interceptors.request.use(async (config) => {
 
 // ── Response interceptors ─────────────────────────────────────────────────────
 
-// Helper: clear any residual client-side state and redirect to login.
-// This should only be called for primary / session-critical requests.
-// Background / optional requests must set config.skipAuthRedirect = true
-// to opt out (see localPlacesApi below for an example).
 function handleUnauthenticated() {
-  // Nothing to remove from sessionStorage — token lives in httponly cookie.
-  // The server clears the cookie on logout; we just redirect.
+  sessionStorage.removeItem('cc_token');
   const { pathname } = window.location;
   if (pathname !== '/login' && pathname !== '/signup') {
     window.location.href = '/login';
   }
 }
 
-// authClient response interceptor
+// authClient: save token from login/me responses into sessionStorage so Django
+// calls can use it via the Authorization header (cross-subdomain requirement).
 authClient.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Persist token whenever FastAPI returns one (login, /auth/me rotation)
+    if (res.data?.token) {
+      sessionStorage.setItem('cc_token', res.data.token);
+    }
+    return res;
+  },
   (err) => {
     if (err.response?.status === 401) {
       const url = err.config?.url || '';
@@ -101,16 +110,8 @@ api.interceptors.response.use(
       err.userMessage = 'Cannot reach the server. Please try again later.';
 
     } else if (err.response.status === 401) {
-      // ── skipAuthRedirect ────────────────────────────────────────────────────
-      // Some background/optional requests (e.g. local-places-summary on the
-      // Dashboard) must NOT redirect to login on 401 — the main session is still
-      // valid and the failure is a soft one.  Callers set this flag to opt out:
-      //
-      //   api.get('/api/some-optional/', { skipAuthRedirect: true })
-      //
-      // Without this flag, a single background 401 would wipe the user's session
-      // and redirect them to login even though dashboard/ returned 200 moments
-      // before — which is exactly the bug that was seen in the network tab.
+      // skipAuthRedirect: true — caller opts out of the auto-redirect.
+      // Use this for background/optional requests that should fail silently.
       if (!err.config?.skipAuthRedirect) {
         handleUnauthenticated();
       }
@@ -137,8 +138,7 @@ export const authApi = {
   register:    (data) => authClient.post('/auth/register',     data),
   login:       (data) => authClient.post('/auth/login',        data),
   logout:      ()     => {
-    // Token lives in an httponly cookie — nothing to clear from sessionStorage.
-    // The FastAPI /auth/logout endpoint clears the cookie server-side.
+    sessionStorage.removeItem('cc_token');
     return authClient.post('/auth/logout');
   },
   me:          ()     => authClient.get('/auth/me'),
@@ -154,14 +154,7 @@ export const dashboardApi = {
   boothStats:   (ward, booth) => api.get(`/api/booth-dashboard/?ward=${ward}&booth=${booth}`),
 };
 
-// ── Local Places — uses skipAuthRedirect so a 401 never kicks the user out ────
-//
-// This is the endpoint that was causing the login-redirect bug.
-// The Dashboard fires this as a background stat-card request at mount time.
-// If the server returns 401 (e.g. cookie not yet propagated after a fast
-// redirect from login), the component's .catch(() => {}) should absorb it
-// silently — but only if the interceptor doesn't redirect first.
-// skipAuthRedirect: true prevents the redirect; the .catch runs normally.
+// ── Local Places — skipAuthRedirect so a 401 never kicks the user out ─────────
 export const localPlacesApi = {
   summary: () =>
     api.get('/api/local-places-summary/', { skipAuthRedirect: true }),
