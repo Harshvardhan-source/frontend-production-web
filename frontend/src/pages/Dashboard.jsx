@@ -2196,80 +2196,6 @@ const PLACE_TYPES = [
       </svg>
     ),
   },
-  {
-    key: 'gov_school',
-    label: 'Govt School',
-    color: '#3b82f6',
-    accent: 'rgba(59,130,246,0.12)',
-    border: 'rgba(59,130,246,0.25)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-        <line x1="12" y1="2" x2="12" y2="6"/>
-        <line x1="9" y1="6" x2="15" y2="6"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'private_school',
-    label: 'Pvt School',
-    color: '#6366f1',
-    accent: 'rgba(99,102,241,0.12)',
-    border: 'rgba(99,102,241,0.25)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2"/>
-        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-        <line x1="12" y1="12" x2="12" y2="16"/>
-        <line x1="10" y1="14" x2="14" y2="14"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'muslim_school',
-    label: 'Muslim School',
-    color: '#06b6d4',
-    accent: 'rgba(6,182,212,0.12)',
-    border: 'rgba(6,182,212,0.25)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7z"/>
-        <path d="M12 6a2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2 2 2 0 0 1 2-2z"/>
-        <path d="M9 14h6"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'missionary_school',
-    label: 'Missionary',
-    color: '#a855f7',
-    accent: 'rgba(168,85,247,0.12)',
-    border: 'rgba(168,85,247,0.25)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <line x1="12" y1="2" x2="12" y2="7"/>
-        <line x1="10" y1="4.5" x2="14" y2="4.5"/>
-        <rect x="9" y="14" width="6" height="8"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'old_age_school',
-    label: 'Old Age School',
-    color: '#f43f5e',
-    accent: 'rgba(244,63,94,0.12)',
-    border: 'rgba(244,63,94,0.25)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="8" r="4"/>
-        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-        <path d="M16 14l2 2 2-2"/>
-        <path d="M18 16v4"/>
-      </svg>
-    ),
-  },
 ];
 
 function WardLocalPlaces({ wardNum }) {
@@ -2423,7 +2349,7 @@ function WardLocalPlaces({ wardNum }) {
               <input
                 value={form.name}
                 onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErr(''); }}
-                placeholder={`e.g. ${activeType === 'club' ? 'Padavu Youth Club' : activeType === 'temple' ? 'Sri Vinayaka Temple' : activeType === 'church' ? 'St. Joseph Church' : activeType === 'mosque' ? 'Masjid-e-Noor' : activeType === 'gov_school' ? 'Govt High School Padavu' : activeType === 'private_school' ? 'Canara High School' : activeType === 'muslim_school' ? 'Anjuman High School' : activeType === 'missionary_school' ? 'St. Aloysius School' : 'Old Age School Derebail'}`}
+                placeholder={`e.g. ${activeType === 'club' ? 'Padavu Youth Club' : activeType === 'temple' ? 'Sri Vinayaka Temple' : activeType === 'church' ? 'St. Joseph Church' : 'Masjid-e-Noor'}`}
                 style={{
                   width: '100%', boxSizing: 'border-box',
                   background: 'rgba(15,23,42,0.8)', border: `1px solid ${formErr ? '#ef4444' : activeCfg.border}`,
@@ -2851,23 +2777,8 @@ const PLACE_TYPE_CFG = {
   church:  { label:'Church',     color:'#8b5cf6', icon:(
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/><path d="M5 20v-8l7-5 7 5v8H5z"/><rect x="9" y="14" width="6" height="6"/></svg>
   )},
-  mosque:           { label:'Mosque',          color:'#10b981', icon:(
+  mosque:  { label:'Mosque',     color:'#10b981', icon:(
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/><path d="M12 3a3 3 0 0 1 3 3"/><path d="M9 6a3 3 0 0 1 3-3"/><rect x="9" y="14" width="6" height="6"/></svg>
-  )},
-  gov_school:       { label:'Govt School',     color:'#3b82f6', icon:(
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="9" y1="6" x2="15" y2="6"/></svg>
-  )},
-  private_school:   { label:'Pvt School',      color:'#6366f1', icon:(
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
-  )},
-  muslim_school:    { label:'Muslim School',   color:'#06b6d4', icon:(
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7z"/><path d="M12 6a2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2 2 2 0 0 1 2-2z"/><path d="M9 14h6"/></svg>
-  )},
-  missionary_school:{ label:'Missionary',      color:'#a855f7', icon:(
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="2" x2="12" y2="7"/><line x1="10" y1="4.5" x2="14" y2="4.5"/><rect x="9" y="14" width="6" height="8"/></svg>
-  )},
-  old_age_school:   { label:'Old Age School',  color:'#f43f5e', icon:(
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 14l2 2 2-2"/><path d="M18 16v4"/></svg>
   )},
 };
 
@@ -2875,7 +2786,7 @@ function LocalPlacesModal({ onClose }) {
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
   const [total,        setTotal]        = useState(0);
-  const [counts,       setCounts]       = useState({ club:0, temple:0, church:0, mosque:0, gov_school:0, private_school:0, muslim_school:0, missionary_school:0, old_age_school:0 });
+  const [counts,       setCounts]       = useState({ club:0, temple:0, church:0, mosque:0 });
   const [byWard,       setByWard]       = useState([]);
   const [search,       setSearch]       = useState('');
   const [activeType,   setActiveType]   = useState('all');
@@ -2930,7 +2841,7 @@ function LocalPlacesModal({ onClose }) {
                   Local Places
                   {!loading && <span style={{ marginLeft:8, fontSize:12, fontWeight:400, color:'rgba(255,255,255,0.35)' }}>{total} places across {byWard.length} wards</span>}
                 </div>
-                <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Clubs · Temples · Churches · Mosques · Schools</div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:1 }}>Clubs · Temples · Churches · Mosques</div>
               </div>
             </div>
             <button onClick={onClose} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32, cursor:'pointer', color:'rgba(255,255,255,0.45)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}><X size={14} /></button>
@@ -2981,7 +2892,7 @@ function LocalPlacesModal({ onClose }) {
             <div style={{ textAlign:'center', padding:'48px 0', color:'rgba(255,255,255,0.25)' }}>
               <div style={{ fontSize:34, marginBottom:8 }}>📍</div>
               <div style={{ fontWeight:600 }}>No local places added yet</div>
-              <div style={{ fontSize:12, marginTop:6, color:'rgba(255,255,255,0.15)' }}>Add clubs, temples, churches, mosques & schools from the Ward dashboard</div>
+              <div style={{ fontSize:12, marginTop:6, color:'rgba(255,255,255,0.15)' }}>Add clubs, temples, churches & mosques from the Ward dashboard</div>
             </div>
           )}
           {!loading && total > 0 && filtered.length === 0 && (
@@ -4158,8 +4069,8 @@ export default function Dashboard() {
       icon: <MapPin size={20} />,
       color: '#f59e0b',
       sub: localPlacesTotal != null
-        ? `${localPlacesCounts.temple||0} temples · ${localPlacesCounts.church||0} churches · ${localPlacesCounts.mosque||0} mosques · ${localPlacesCounts.club||0} clubs · ${(localPlacesCounts.gov_school||0)+(localPlacesCounts.private_school||0)+(localPlacesCounts.muslim_school||0)+(localPlacesCounts.missionary_school||0)+(localPlacesCounts.old_age_school||0)} schools`
-        : 'Clubs, temples, churches, mosques & schools',
+        ? `${localPlacesCounts.temple||0} temples · ${localPlacesCounts.church||0} churches · ${localPlacesCounts.mosque||0} mosques · ${localPlacesCounts.club||0} clubs`
+        : 'Clubs, temples, churches, mosques',
       isLocalPlaces: true,
     },
   ];
@@ -4729,18 +4640,15 @@ export default function Dashboard() {
                       {/* Divider */}
                       <div style={{ width: 1, alignSelf: 'stretch', background: `${c.color}18`, flexShrink: 0 }} />
 
-                      {/* Centre: category chips (religion + school totals) */}
+                      {/* Centre: 4 category chips in a row */}
                       <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
                         {[
                           { key: 'temple', label: 'Temple',  color: '#f97316', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7h20L12 2z"/><rect x="4" y="7" width="16" height="13"/><rect x="9" y="12" width="6" height="8"/></svg> },
                           { key: 'church', label: 'Church',  color: '#8b5cf6', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><line x1="9.5" y1="4.5" x2="14.5" y2="4.5"/><path d="M5 20v-8l7-5 7 5v8H5z"/><rect x="9" y="14" width="6" height="6"/></svg> },
                           { key: 'mosque', label: 'Mosque',  color: '#10b981', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 20h18"/><path d="M5 20V10a7 7 0 0 1 14 0v10"/><rect x="9" y="14" width="6" height="6"/></svg> },
                           { key: 'club',   label: 'Club',    color: '#f59e0b', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-                          { key: '__schools__', label: 'Schools', color: '#3b82f6', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="9" y1="6" x2="15" y2="6"/></svg> },
                         ].map(t => {
-                          const n = t.key === '__schools__'
-                            ? (localPlacesCounts.gov_school||0)+(localPlacesCounts.private_school||0)+(localPlacesCounts.muslim_school||0)+(localPlacesCounts.missionary_school||0)+(localPlacesCounts.old_age_school||0)
-                            : localPlacesCounts[t.key] || 0;
+                          const n = localPlacesCounts[t.key] || 0;
                           return (
                             <div key={t.key} style={{
                               display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 120,
