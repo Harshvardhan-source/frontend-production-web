@@ -1,27 +1,28 @@
 import axios from 'axios';
 
-// ── Axios instance ───────────────────────────────────────────────────────────
+// ── Axios instances ───────────────────────────────────────────────────────────
+//
+// SEC-4 (main.py): The JWT is stored in an httponly cookie named "cc_token".
+// It is NEVER accessible via JavaScript / sessionStorage.
+// Both instances set withCredentials: true so the browser attaches the cookie
+// automatically on every cross-origin request — no manual token injection needed.
+//
+// DO NOT add sessionStorage.getItem('cc_token') back to request interceptors.
+// The cookie is httponly; sessionStorage will always be empty for this key.
+
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com',
-  withCredentials: true,
+  withCredentials: true,                    // sends cc_token cookie automatically
   headers: { 'Content-Type': 'application/json' },
 });
 
 const authClient = axios.create({
   baseURL: process.env.REACT_APP_AUTH_URL || 'https://production-web-conn-1-e8bq.onrender.com',
-  withCredentials: true,
+  withCredentials: true,                    // sends cc_token cookie automatically
   headers: { 'Content-Type': 'application/json' },
 });
 
-authClient.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('cc_token');
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// ── CSRF token helper ────────────────────────────────────────────────────────
+// ── CSRF token helper ─────────────────────────────────────────────────────────
 let csrfReady = false;
 
 async function ensureCsrf() {
@@ -41,11 +42,20 @@ function getCookie(name) {
   return match ? decodeURIComponent(match[2]) : '';
 }
 
+// ── Request interceptors ──────────────────────────────────────────────────────
+//
+// authClient: no manual token header — cookie is sent automatically.
+
+authClient.interceptors.request.use((config) => {
+  // Cookie is httponly and attached automatically via withCredentials.
+  // No sessionStorage read needed or possible.
+  return config;
+});
+
+// api (Django): attach CSRF header for mutating methods only.
 api.interceptors.request.use(async (config) => {
-  const token = sessionStorage.getItem('cc_token');
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
-  }
+  // Cookie is httponly and attached automatically via withCredentials.
+  // No sessionStorage read needed or possible.
   if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
     await ensureCsrf();
     config.headers['X-CSRFToken'] = getCookie('csrftoken');
@@ -53,25 +63,26 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// ── Response interceptors ────────────────────────────────────────────────────
+// ── Response interceptors ─────────────────────────────────────────────────────
 
-// Helper: clear session and redirect to login
+// Helper: clear any residual client-side state and redirect to login.
+// This should only be called for primary / session-critical requests.
+// Background / optional requests must set config.skipAuthRedirect = true
+// to opt out (see localPlacesApi below for an example).
 function handleUnauthenticated() {
-  sessionStorage.removeItem('cc_token');
-  // Only redirect if not already on login/signup to avoid redirect loops
+  // Nothing to remove from sessionStorage — token lives in httponly cookie.
+  // The server clears the cookie on logout; we just redirect.
   const { pathname } = window.location;
   if (pathname !== '/login' && pathname !== '/signup') {
     window.location.href = '/login';
   }
 }
 
-// Auth client — handles 401 from /auth/me and other auth routes
+// authClient response interceptor
 authClient.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      // Not authenticated — clear token and go to login
-      // BUT: don't redirect on login/signup calls themselves (they expect 401 on bad creds)
       const url = err.config?.url || '';
       const isLoginAttempt = url.includes('/auth/login') || url.includes('/auth/register');
       if (!isLoginAttempt) {
@@ -82,22 +93,37 @@ authClient.interceptors.response.use(
   }
 );
 
-// Main API client — handles 401/403/404/500
+// Main API (Django) response interceptor
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (!err.response) {
       err.userMessage = 'Cannot reach the server. Please try again later.';
+
     } else if (err.response.status === 401) {
-      // Session expired on Django side — clear and redirect
-      handleUnauthenticated();
+      // ── skipAuthRedirect ────────────────────────────────────────────────────
+      // Some background/optional requests (e.g. local-places-summary on the
+      // Dashboard) must NOT redirect to login on 401 — the main session is still
+      // valid and the failure is a soft one.  Callers set this flag to opt out:
+      //
+      //   api.get('/api/some-optional/', { skipAuthRedirect: true })
+      //
+      // Without this flag, a single background 401 would wipe the user's session
+      // and redirect them to login even though dashboard/ returned 200 moments
+      // before — which is exactly the bug that was seen in the network tab.
+      if (!err.config?.skipAuthRedirect) {
+        handleUnauthenticated();
+      }
       err.userMessage = 'Session expired. Please log in again.';
+
     } else if (err.response.status === 403) {
       err.userMessage = 'Session expired or CSRF error. Please refresh the page.';
+
     } else if (err.response.status === 404) {
       err.userMessage =
         `API route not found (${err.config?.url}). ` +
         'Check that the URL exists in calc/urls.py.';
+
     } else if (err.response.status >= 500) {
       err.userMessage =
         'Django returned a server error. Check the terminal for the Python traceback.';
@@ -106,44 +132,60 @@ api.interceptors.response.use(
   }
 );
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────────────
 export const authApi = {
   register:    (data) => authClient.post('/auth/register',     data),
   login:       (data) => authClient.post('/auth/login',        data),
   logout:      ()     => {
-    sessionStorage.removeItem('cc_token');
+    // Token lives in an httponly cookie — nothing to clear from sessionStorage.
+    // The FastAPI /auth/logout endpoint clears the cookie server-side.
     return authClient.post('/auth/logout');
   },
   me:          ()     => authClient.get('/auth/me'),
   verifyAdmin: (data) => authClient.post('/auth/verify-admin', data),
 };
 
-// ── Dashboard ────────────────────────────────────────────────────────────────
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 export const dashboardApi = {
-  stats:         ()             => api.get('/api/dashboard/'),
-  serialNumber:  ()             => api.get('/api/serial-number/'),
-  houseSearch:   (q)            => api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
-  wardStats:     (ward)         => api.get(`/api/ward-dashboard/?ward=${ward}`),
-  boothStats:    (ward, booth)  => api.get(`/api/booth-dashboard/?ward=${ward}&booth=${booth}`),
+  stats:        ()            => api.get('/api/dashboard/'),
+  serialNumber: ()            => api.get('/api/serial-number/'),
+  houseSearch:  (q)           => api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
+  wardStats:    (ward)        => api.get(`/api/ward-dashboard/?ward=${ward}`),
+  boothStats:   (ward, booth) => api.get(`/api/booth-dashboard/?ward=${ward}&booth=${booth}`),
 };
 
-// ── Survey ───────────────────────────────────────────────────────────────────
+// ── Local Places — uses skipAuthRedirect so a 401 never kicks the user out ────
+//
+// This is the endpoint that was causing the login-redirect bug.
+// The Dashboard fires this as a background stat-card request at mount time.
+// If the server returns 401 (e.g. cookie not yet propagated after a fast
+// redirect from login), the component's .catch(() => {}) should absorb it
+// silently — but only if the interceptor doesn't redirect first.
+// skipAuthRedirect: true prevents the redirect; the .catch runs normally.
+export const localPlacesApi = {
+  summary: () =>
+    api.get('/api/local-places-summary/', { skipAuthRedirect: true }),
+  ward: (ward) =>
+    api.get(`/api/ward-places/?ward=${ward}`, { skipAuthRedirect: true }),
+};
+
+// ── Survey ────────────────────────────────────────────────────────────────────
 export const surveyApi = {
-  serialNumber:    () => api.get('/api/serial-number/'),
-  save:            (data) => api.post('/api/save-survey/', data),
-  saveFutureVoters:(data) => api.post('/api/save-future-voters/', data),
-  saveDeceased:    (data) => api.post('/api/save-deceased/', data),
+  serialNumber:     ()     => api.get('/api/serial-number/'),
+  save:             (data) => api.post('/api/save-survey/',        data),
+  saveFutureVoters: (data) => api.post('/api/save-future-voters/', data),
+  saveDeceased:     (data) => api.post('/api/save-deceased/',      data),
 };
 
-// ── Schemes ──────────────────────────────────────────────────────────────────
+// ── Schemes ───────────────────────────────────────────────────────────────────
 export const schemeApi = {
   voterList:  (ward)      => api.post('/api/scheme-voter-list/', { ward }),
   viewScheme: (voterData) => api.post('/api/view-scheme/',       { voterData }),
 };
 
-// ── Data ─────────────────────────────────────────────────────────────────────
+// ── Data ──────────────────────────────────────────────────────────────────────
 export const dataApi = {
-  view:   (params) => api.get('/api/data/', { params }),
+  view: (params) => api.get('/api/data/', { params }),
 
   upload: (file) => {
     const form = new FormData();
@@ -157,22 +199,22 @@ export const dataApi = {
   updateSurvey: (payload) => api.post('/api/update-survey/', payload),
 };
 
-// ── Voters ───────────────────────────────────────────────────────────────────
+// ── Voters ────────────────────────────────────────────────────────────────────
 export const voterApi = {
   list:   (limit = 2000) => api.get('/api/voters/', { params: { limit } }),
   search: (q, page = 1)  => api.get('/api/voters/', { params: { q, page } }),
   family: (house)        => api.get('/api/voter-family/', { params: { house } }),
 };
 
-// ── Wards ────────────────────────────────────────────────────────────────────
+// ── Wards ─────────────────────────────────────────────────────────────────────
 export const wardsApi = {
   list: () => api.get('/api/wards/'),
 };
 
 // ── ML Intelligence ───────────────────────────────────────────────────────────
 export const mlApi = {
-  constituencySwot: () => api.get('/api/ml/constituency-swot/'),
-  wardSwot: (wardNumber) => api.get('/api/ml/ward-swot/', { params: { ward: wardNumber } }),
+  constituencySwot: ()           => api.get('/api/ml/constituency-swot/'),
+  wardSwot:         (wardNumber) => api.get('/api/ml/ward-swot/', { params: { ward: wardNumber } }),
 };
 
 // ── AI Insights ───────────────────────────────────────────────────────────────
@@ -191,9 +233,9 @@ export const adminApi = {
   surveyProgress: (params = {}) => api.get('/api/admin/survey-progress/', { params }),
   liveLocations:  (email = '')  =>
     api.get('/api/admin/locations/', { params: { mode: 'live', ...(email ? { email } : {}) } }),
-  locationHistory:(email, date = '') =>
+  locationHistory: (email, date = '') =>
     api.get('/api/admin/locations/', { params: { mode: 'history', email, ...(date ? { date } : {}) } }),
-  locationDates:  (email)       => api.get('/api/admin/location-dates/', { params: { email } }),
+  locationDates: (email) => api.get('/api/admin/location-dates/', { params: { email } }),
 };
 
 // ── Location Ping ─────────────────────────────────────────────────────────────

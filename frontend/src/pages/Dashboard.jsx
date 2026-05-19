@@ -15,7 +15,7 @@ import {
   UserCheck, MapIcon, ClipboardCheck,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import { dashboardApi } from '../api/client';
+import { dashboardApi, localPlacesApi } from '../api/client';
 import api from '../api/client';
 import { useAuth } from '../App';
 
@@ -2213,7 +2213,7 @@ function WardLocalPlaces({ wardNum }) {
   // Load places for this ward
   useEffect(() => {
     setLoading(true); setError('');
-    api.get('/api/ward-places/', { params: { ward: wardNum } })
+    localPlacesApi.ward(wardNum)
       .then(r => { if (r.data.success) setPlaces(r.data.places || []); else setError(r.data.message || 'Failed to load.'); })
       .catch(e => setError(e.userMessage || 'Network error.'))
       .finally(() => setLoading(false));
@@ -2793,7 +2793,7 @@ function LocalPlacesModal({ onClose }) {
   const [expandedWard, setExpandedWard] = useState(null);
 
   useEffect(() => {
-    api.get('/api/local-places-summary/')
+    localPlacesApi.summary()
       .then(r => {
         if (r.data.success) {
           setTotal(r.data.total || 0);
@@ -3961,7 +3961,7 @@ export default function Dashboard() {
       .catch(() => {});
 
     // Local Places — constituency-wide count for stat card
-    api.get('/api/local-places-summary/')
+    localPlacesApi.summary()
       .then(r => {
         if (r.data.success) {
           setLocalPlacesTotal(r.data.total || 0);
