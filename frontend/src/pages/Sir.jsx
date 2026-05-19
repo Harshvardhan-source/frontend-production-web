@@ -1340,85 +1340,60 @@ const CONFIRMED_CATS = [
 ];
 
 function ConfirmedRecordRow({ doc }) {
-  const [open, setOpen] = useState(false);
-  const cat   = CONFIRMED_CATS.find(c => c.key === doc.status) || CONFIRMED_CATS[0];
+  const cat     = CONFIRMED_CATS.find(c => c.key === doc.status) || CONFIRMED_CATS[0];
   const CatIcon = cat.icon;
-  const ts    = doc.confirmed_at ? new Date(doc.confirmed_at).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+  const ts      = doc.confirmed_at ? new Date(doc.confirmed_at).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+
+  const LockIcon = () => (
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="7" width="10" height="8" rx="1.5"/>
+      <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+    </svg>
+  );
 
   return (
-    <div style={{ background:'rgba(255,255,255,0.02)', border:`1px solid ${open ? cat.border : 'rgba(255,255,255,0.06)'}`, borderRadius:10, marginBottom:6, overflow:'hidden', transition:'border-color 0.2s' }}>
-      <div onClick={() => setOpen(p => !p)} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', cursor:'pointer', touchAction:'manipulation', WebkitTapHighlightColor:'transparent' }}>
+    <div style={{
+      background: 'rgba(255,255,255,0.015)',
+      border: '1px solid rgba(255,255,255,0.055)',
+      borderRadius: 10, marginBottom: 6, overflow: 'hidden',
+      opacity: 0.75,
+      cursor: 'default',
+      userSelect: 'none',
+      pointerEvents: 'none',
+    }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px' }}>
         {/* Category badge */}
         <div style={{ width:30, height:30, borderRadius:7, flexShrink:0, background:cat.bg, border:`1px solid ${cat.border}`, display:'flex', alignItems:'center', justifyContent:'center', color:cat.color }}>
           <CatIcon />
         </div>
+
         {/* Name + meta */}
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontWeight:600, fontSize:13, color:'var(--text-1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          <div style={{ fontWeight:600, fontSize:13, color:'rgba(255,255,255,0.5)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {doc.name || '—'}
           </div>
-          <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:2, display:'flex', gap:10, flexWrap:'wrap' }}>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.22)', marginTop:2, display:'flex', gap:10, flexWrap:'wrap' }}>
             {doc.voterid && <span style={{ fontFamily:'ui-monospace,monospace' }}>{doc.voterid}</span>}
             {doc.house   && <span><Icon.House /> {doc.house}</span>}
           </div>
         </div>
-        {/* Status pill + timestamp */}
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0 }}>
+
+        {/* Right: status + locked badge + timestamp */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
           <span style={{ fontSize:10, fontWeight:700, color:cat.color, background:cat.bg, border:`1px solid ${cat.border}`, borderRadius:20, padding:'2px 8px', whiteSpace:'nowrap' }}>
             {cat.label}
           </span>
-          <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', gap:4 }}>
+          <span style={{ display:'flex', alignItems:'center', gap:3, fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, padding:'2px 7px', letterSpacing:'0.04em', whiteSpace:'nowrap' }}>
+            <LockIcon /> SIR COMPLETED
+          </span>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', gap:4 }}>
             <Icon.Clock />{ts}
           </span>
         </div>
-        <span style={{ color:'rgba(255,255,255,0.2)', transition:'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink:0 }}>
-          <Icon.ChevronDown />
-        </span>
       </div>
-
-      {open && (
-        <div style={{ padding:'10px 14px', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:8 }}>
-            {[
-              { year:'2002', rec: doc.record_2002, absent: doc.not_found_2002, color:'#f59e0b' },
-              { year:'2025', rec: doc.record_2025, absent: doc.not_found_2025, color:'#22d3ee' },
-            ].map(({ year, rec, absent, color }) => {
-              const hasRec = rec && rec.name;
-              return (
-                <div key={year} style={{ background:'rgba(0,0,0,0.2)', borderRadius:8, padding:'10px 12px', border:`1px solid ${hasRec ? 'rgba(255,255,255,0.06)' : 'rgba(239,68,68,0.15)'}` }}>
-                  <div style={{ fontSize:10, fontWeight:700, color, letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:6 }}>{year} Roll</div>
-                  {hasRec ? (
-                    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-                      {[
-                        ['Name',     rec.name],
-                        ['Relation', rec.relation],
-                        ['House',    rec.house],
-                        ['EPIC',     rec.voterid],
-                        ['Age',      rec.age],
-                        ['Gender',   rec.gender],
-                        ['Booth',    rec.booth],
-                      ].filter(([,v]) => v).map(([lbl, val]) => (
-                        <div key={lbl} style={{ display:'flex', gap:8, alignItems:'baseline' }}>
-                          <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)', minWidth:50, fontWeight:600 }}>{lbl}</span>
-                          <span style={{ fontSize:12, color:'#e2e8f0', fontFamily: lbl === 'EPIC' ? 'ui-monospace,monospace' : 'inherit', wordBreak:'break-all' }}>{val}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ display:'flex', alignItems:'center', gap:6, color:'#f87171', fontSize:12, fontWeight:600 }}>
-                      <Icon.XCircle /> {absent ? 'Marked absent' : 'No record'}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-
 function ConfirmedMatchesPanel() {
   const [activeCat, setActiveCat] = useState('ALL');
   const [data,      setData]      = useState(null);
