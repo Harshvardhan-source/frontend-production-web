@@ -148,6 +148,33 @@ const Icon = {
       <circle cx="8" cy="5" r="0.6" fill="currentColor" stroke="none"/>
     </svg>
   ),
+  // Select radio circle — for row selection
+  Radio: ({ checked, color }) => checked ? (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="8" cy="8" r="7" fill={color || '#10b981'} fillOpacity="0.15" stroke={color || '#10b981'} strokeWidth="1.5"/>
+      <circle cx="8" cy="8" r="3.5" fill={color || '#10b981'}/>
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="8" cy="8" r="7" stroke="rgba(255,255,255,0.2)"/>
+    </svg>
+  ),
+  // Save / floppy
+  Save: () => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13 13H3a1 1 0 01-1-1V4l3-3h7a1 1 0 011 1v10a1 1 0 01-1 1z"/>
+      <path d="M5 2v4h6V2"/>
+      <rect x="4" y="9" width="8" height="4" rx="0.5"/>
+    </svg>
+  ),
+  // Not found / ghost
+  Ghost: () => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 14V7a5 5 0 0110 0v7l-2-1.5-2 1.5-2-1.5L5 14z"/>
+      <circle cx="6" cy="8" r="0.8" fill="currentColor" stroke="none"/>
+      <circle cx="10" cy="8" r="0.8" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
   // Booth / location pin — new
   Booth: () => (
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -375,8 +402,58 @@ function VoterInfoModal({ record, roll, onClose }) {
 }
 
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
-function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '', searchEpic = '' }) {
-  const [infoRecord, setInfoRecord] = useState(null);
+function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '', searchEpic = '', searchInputs = {} }) {
+  const [infoRecord,     setInfoRecord]     = useState(null);
+  // ── Confirmation selection state ──────────────────────────────────────────
+  // selected25 / selected02 = the row object the user ticked, or null
+  // notFound25 / notFound02 = true when user explicitly says "not in this roll"
+  const [selected25,    setSelected25]    = useState(null);
+  const [selected02,    setSelected02]    = useState(null);
+  const [notFound25,    setNotFound25]    = useState(false);
+  const [notFound02,    setNotFound02]    = useState(false);
+  const [confirmStatus, setConfirmStatus] = useState('idle'); // idle | saving | saved | error
+
+  const decided25  = selected25 !== null || notFound25;
+  const decided02  = selected02 !== null || notFound02;
+  const canConfirm = decided25 && decided02;
+
+  const handleSelect25 = (row) => {
+    setSelected25(prev => (prev?.voterid === row.voterid && prev?.name === row.name ? null : row));
+    setNotFound25(false);
+    setConfirmStatus('idle');
+  };
+  const handleSelect02 = (row) => {
+    setSelected02(prev => (prev?.voterid === row.voterid && prev?.name === row.name ? null : row));
+    setNotFound02(false);
+    setConfirmStatus('idle');
+  };
+  const handleNotFound25 = () => { setSelected25(null); setNotFound25(p => !p); setConfirmStatus('idle'); };
+  const handleNotFound02 = () => { setSelected02(null); setNotFound02(p => !p); setConfirmStatus('idle'); };
+
+  const handleConfirm = async () => {
+    setConfirmStatus('saving');
+    try {
+      const token = sessionStorage.getItem('cc_token');
+      const hdrs = { 'Content-Type': 'application/json' };
+      if (token) hdrs['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${API}/sir/confirm/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: hdrs,
+        body: JSON.stringify({
+          record_2025:    notFound25 ? null : selected25,
+          record_2002:    notFound02 ? null : selected02,
+          not_found_2025: notFound25,
+          not_found_2002: notFound02,
+          search_inputs:  searchInputs,
+        }),
+      });
+      const data = await res.json();
+      setConfirmStatus(data.success ? 'saved' : 'error');
+    } catch {
+      setConfirmStatus('error');
+    }
+  };
 
   // ── Validate whether a "confirmed" record is truly an exact/close match ──────
   // The backend's Tier-1/Tier-2 lookup can return a fuzzy match that doesn't
@@ -576,10 +653,11 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   };
 
   // ── Per-roll section — collapsible header + scrollable body ──────────────────
-  const RollSection = ({ rows, year, accentColor, borderColor }) => {
+  const RollSection = ({ rows, year, accentColor, borderColor, selectedRow, onSelectRow, notFoundChecked, onMarkNotFound }) => {
     const groups = groupRows(rows);
     const total  = rows.length;
     const [open, setOpen] = useState(true);
+    const isSelected = (r) => selectedRow && selectedRow.voterid === r.voterid && selectedRow.name === r.name;
 
     return (
       <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden', display:'flex', flexDirection:'column' }}>
@@ -637,6 +715,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                   <table style={{ width:'100%', borderCollapse:'collapse', minWidth:420 }}>
                     <thead>
                       <tr>
+                        <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:32 }} />
                         <ColHeader>House No</ColHeader>
                         <ColHeader>Name</ColHeader>
                         <ColHeader>Relation</ColHeader>
@@ -648,7 +727,11 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                     </thead>
                     <tbody>
                       {group.rows.map((r, i) => (
-                        <tr key={i} style={{ background: r._matched ? `${accentColor}12` : r._notExact ? 'rgba(239,68,68,0.07)' : group.isAlmost ? 'rgba(245,158,11,0.04)' : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                        <tr key={i} onClick={() => onSelectRow(r)} style={{ background: isSelected(r) ? `${accentColor}22` : r._matched ? `${accentColor}12` : r._notExact ? 'rgba(239,68,68,0.07)' : group.isAlmost ? 'rgba(245,158,11,0.04)' : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,0.03)', cursor:'pointer', outline: isSelected(r) ? `1px solid ${accentColor}60` : 'none', transition:'background 0.12s' }}>
+                          {/* Select */}
+                          <td style={{ padding:'7px 8px', textAlign:'center' }}>
+                            <Icon.Radio checked={isSelected(r)} color={accentColor} />
+                          </td>
                           {/* House */}
                           <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : r._notExact ? '#f87171' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: r._matched || r._notExact || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
                             {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
@@ -723,6 +806,22 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
             ))}
           </div>
         )}
+
+        {/* Not-found toggle */}
+        <div
+          onClick={onMarkNotFound}
+          style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 14px', borderTop:'1px solid rgba(255,255,255,0.05)', background: notFoundChecked ? 'rgba(239,68,68,0.08)' : 'transparent', cursor:'pointer', transition:'background 0.15s', userSelect:'none' }}
+        >
+          <Icon.Radio checked={notFoundChecked} color="#f87171" />
+          <span style={{ fontSize:11, fontWeight:600, color: notFoundChecked ? '#f87171' : 'rgba(255,255,255,0.3)' }}>
+            Not found in {year} roll
+          </span>
+          {notFoundChecked && (
+            <span style={{ fontSize:10, color:'#f87171', background:'rgba(239,68,68,0.12)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:6, padding:'1px 7px', marginLeft:'auto' }}>
+              Marked absent
+            </span>
+          )}
+        </div>
       </div>
     );
   };
@@ -745,8 +844,73 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           </div>
         </div>
         <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:10 }}>
-          <RollSection rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)" />
-          <RollSection rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)" />
+          <RollSection
+            rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)"
+            selectedRow={selected25} onSelectRow={handleSelect25}
+            notFoundChecked={notFound25} onMarkNotFound={handleNotFound25}
+          />
+          <RollSection
+            rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)"
+            selectedRow={selected02} onSelectRow={handleSelect02}
+            notFoundChecked={notFound02} onMarkNotFound={handleNotFound02}
+          />
+        </div>
+
+        {/* ── Confirm & Save bar ────────────────────────────────────────── */}
+        <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(0,0,0,0.2)', padding:'12px 16px', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+          {/* Step indicators */}
+          <div style={{ display:'flex', gap:8, flex:1, flexWrap:'wrap' }}>
+            {[
+              { year:'2025', decided: decided25, sel: selected25, notF: notFound25, color:'#22d3ee' },
+              { year:'2002', decided: decided02, sel: selected02, notF: notFound02, color:'#f59e0b' },
+            ].map(({ year, decided, sel, notF, color }) => (
+              <div key={year} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, padding:'4px 10px', borderRadius:8, background: decided ? `${color}14` : 'rgba(255,255,255,0.04)', border:`1px solid ${decided ? color + '40' : 'rgba(255,255,255,0.07)'}` }}>
+                {decided
+                  ? <span style={{ color }}><Icon.Check /></span>
+                  : <span style={{ width:10, height:10, borderRadius:'50%', border:'1.5px solid rgba(255,255,255,0.2)', display:'inline-block' }} />
+                }
+                <span style={{ color: decided ? color : 'rgba(255,255,255,0.3)', fontWeight: decided ? 700 : 400 }}>
+                  {year}: {notF ? 'Absent' : sel ? sel.name || sel.voterid || 'Selected' : 'Pick a row'}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Confirm button */}
+          {confirmStatus === 'saved' ? (
+            <div style={{ display:'flex', alignItems:'center', gap:6, color:'#10b981', fontWeight:700, fontSize:13 }}>
+              <Icon.Check /> Saved to database
+            </div>
+          ) : confirmStatus === 'error' ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              <span style={{ color:'#f87171', fontWeight:700, fontSize:12 }}>Save failed — retry?</span>
+              <button onClick={handleConfirm} style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:8, color:'#f87171', fontSize:12, padding:'5px 12px', cursor:'pointer', fontWeight:600 }}>
+                Retry
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleConfirm}
+              disabled={!canConfirm || confirmStatus === 'saving'}
+              style={{
+                display:'flex', alignItems:'center', gap:8,
+                background: canConfirm ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)',
+                border:`1px solid ${canConfirm ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                borderRadius:10, padding:'10px 18px',
+                cursor: canConfirm ? 'pointer' : 'default',
+                color: canConfirm ? '#10b981' : 'rgba(255,255,255,0.25)',
+                fontWeight:700, fontSize:13,
+                transition:'all 0.2s',
+                opacity: canConfirm ? 1 : 0.6,
+                minHeight:42,
+              }}
+            >
+              {confirmStatus === 'saving'
+                ? <><span className="spinner" /> Saving…</>
+                : <><Icon.Save /> Confirm &amp; Save</>
+              }
+            </button>
+          )}
         </div>
       </div>
       {infoRecord && <VoterInfoModal record={infoRecord.record} roll={infoRecord.roll} onClose={() => setInfoRecord(null)} />}
@@ -922,6 +1086,7 @@ function LiveCheckPanel() {
           searchName={form.name.trim()}
           searchRelation={form.relation.trim()}
           searchEpic={form.epic.trim().toUpperCase()}
+          searchInputs={{ name: form.name.trim(), epic: form.epic.trim().toUpperCase(), house: form.house.trim(), relation: form.relation.trim() }}
         />
       )}
 

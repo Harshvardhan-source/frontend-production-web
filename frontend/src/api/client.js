@@ -245,6 +245,26 @@ export const aiChatApi = {
   dataFiles: () => api.get('/api/ai/data-files/'),
 };
 
+// ── SIR Confirm Match ─────────────────────────────────────────────────────────
+export const sirApi = {
+  /**
+   * Persist the user's confirmation decision from the SimilarRecordsPanel.
+   * @param {Object|null} record2025   - ticked 2025 row (null = not found)
+   * @param {Object|null} record2002   - ticked 2002 row (null = not found)
+   * @param {boolean}     notFound2025 - user marked "not in 2025 roll"
+   * @param {boolean}     notFound2002 - user marked "not in 2002 roll"
+   * @param {Object}      searchInputs - { name, epic, house, relation }
+   */
+  confirmMatch: (record2025, record2002, notFound2025, notFound2002, searchInputs) =>
+    api.post('/api/sir/confirm/', {
+      record_2025:    record2025,
+      record_2002:    record2002,
+      not_found_2025: notFound2025,
+      not_found_2002: notFound2002,
+      search_inputs:  searchInputs,
+    }),
+};
+
 // ── SWOT Beneficiary List ─────────────────────────────────────────────────────
 export const beneficiaryApi = {
   list: (query, page = 1, limit = 50) =>
