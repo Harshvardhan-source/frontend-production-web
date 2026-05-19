@@ -1330,6 +1330,182 @@ function RecordCard({ rec }) {
   );
 }
 
+// ─── CONFIRMED MATCHES PANEL ─────────────────────────────────────────────────
+const CONFIRMED_CATS = [
+  { key:'ALL',            label:'All',              color:'#94a3b8', bg:'rgba(148,163,184,0.08)', border:'rgba(148,163,184,0.2)',  icon: Icon.List    },
+  { key:'MATCHED',        label:'Found in Both',    color:'#10b981', bg:'rgba(16,185,129,0.08)',  border:'rgba(16,185,129,0.25)',  icon: Icon.Check   },
+  { key:'NOT_FOUND_2025', label:'Absent in 2025',   color:'#22d3ee', bg:'rgba(34,211,238,0.08)',  border:'rgba(34,211,238,0.25)',  icon: Icon.XCircle },
+  { key:'NOT_FOUND_2002', label:'Absent in 2002',   color:'#f59e0b', bg:'rgba(245,158,11,0.08)',  border:'rgba(245,158,11,0.25)',  icon: Icon.XCircle },
+  { key:'NOT_FOUND_BOTH', label:'Absent in Both',   color:'#f87171', bg:'rgba(239,68,68,0.08)',   border:'rgba(239,68,68,0.25)',   icon: Icon.Ghost   },
+];
+
+function ConfirmedRecordRow({ doc }) {
+  const [open, setOpen] = useState(false);
+  const cat   = CONFIRMED_CATS.find(c => c.key === doc.status) || CONFIRMED_CATS[0];
+  const CatIcon = cat.icon;
+  const ts    = doc.confirmed_at ? new Date(doc.confirmed_at).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+
+  return (
+    <div style={{ background:'rgba(255,255,255,0.02)', border:`1px solid ${open ? cat.border : 'rgba(255,255,255,0.06)'}`, borderRadius:10, marginBottom:6, overflow:'hidden', transition:'border-color 0.2s' }}>
+      <div onClick={() => setOpen(p => !p)} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', cursor:'pointer', touchAction:'manipulation', WebkitTapHighlightColor:'transparent' }}>
+        {/* Category badge */}
+        <div style={{ width:30, height:30, borderRadius:7, flexShrink:0, background:cat.bg, border:`1px solid ${cat.border}`, display:'flex', alignItems:'center', justifyContent:'center', color:cat.color }}>
+          <CatIcon />
+        </div>
+        {/* Name + meta */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontWeight:600, fontSize:13, color:'var(--text-1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {doc.name || '—'}
+          </div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:2, display:'flex', gap:10, flexWrap:'wrap' }}>
+            {doc.voterid && <span style={{ fontFamily:'ui-monospace,monospace' }}>{doc.voterid}</span>}
+            {doc.house   && <span><Icon.House /> {doc.house}</span>}
+          </div>
+        </div>
+        {/* Status pill + timestamp */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0 }}>
+          <span style={{ fontSize:10, fontWeight:700, color:cat.color, background:cat.bg, border:`1px solid ${cat.border}`, borderRadius:20, padding:'2px 8px', whiteSpace:'nowrap' }}>
+            {cat.label}
+          </span>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', gap:4 }}>
+            <Icon.Clock />{ts}
+          </span>
+        </div>
+        <span style={{ color:'rgba(255,255,255,0.2)', transition:'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink:0 }}>
+          <Icon.ChevronDown />
+        </span>
+      </div>
+
+      {open && (
+        <div style={{ padding:'10px 14px', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:8 }}>
+            {[
+              { year:'2002', rec: doc.record_2002, absent: doc.not_found_2002, color:'#f59e0b' },
+              { year:'2025', rec: doc.record_2025, absent: doc.not_found_2025, color:'#22d3ee' },
+            ].map(({ year, rec, absent, color }) => {
+              const hasRec = rec && rec.name;
+              return (
+                <div key={year} style={{ background:'rgba(0,0,0,0.2)', borderRadius:8, padding:'10px 12px', border:`1px solid ${hasRec ? 'rgba(255,255,255,0.06)' : 'rgba(239,68,68,0.15)'}` }}>
+                  <div style={{ fontSize:10, fontWeight:700, color, letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:6 }}>{year} Roll</div>
+                  {hasRec ? (
+                    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                      {[
+                        ['Name',     rec.name],
+                        ['Relation', rec.relation],
+                        ['House',    rec.house],
+                        ['EPIC',     rec.voterid],
+                        ['Age',      rec.age],
+                        ['Gender',   rec.gender],
+                        ['Booth',    rec.booth],
+                      ].filter(([,v]) => v).map(([lbl, val]) => (
+                        <div key={lbl} style={{ display:'flex', gap:8, alignItems:'baseline' }}>
+                          <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)', minWidth:50, fontWeight:600 }}>{lbl}</span>
+                          <span style={{ fontSize:12, color:'#e2e8f0', fontFamily: lbl === 'EPIC' ? 'ui-monospace,monospace' : 'inherit', wordBreak:'break-all' }}>{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ display:'flex', alignItems:'center', gap:6, color:'#f87171', fontSize:12, fontWeight:600 }}>
+                      <Icon.XCircle /> {absent ? 'Marked absent' : 'No record'}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfirmedMatchesPanel() {
+  const [activeCat, setActiveCat] = useState('ALL');
+  const [data,      setData]      = useState(null);
+  const [loading,   setLoading]   = useState(true);
+  const [page,      setPage]      = useState(1);
+
+  const fetchConfirmed = useCallback(async (cat, pg) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ category: cat, page: pg, limit: 20 });
+      const res  = await fetch(`${API}/sir/confirmed/?${params}`, { credentials:'include' });
+      const json = await res.json();
+      if (json.success) setData(json);
+    } catch { /**/ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchConfirmed(activeCat, page); }, [activeCat, page, fetchConfirmed]);
+
+  const handleCat = (cat) => { setActiveCat(cat); setPage(1); };
+
+  const counts  = data?.counts  || {};
+  const records = data?.records || [];
+  const total   = data?.total   || 0;
+
+  if (!loading && counts.TOTAL === 0) return null; // hide if nothing confirmed yet
+
+  return (
+    <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:16, padding: isMobile ? 14 : 20, marginTop:10, marginBottom:8 }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14, flexWrap:'wrap' }}>
+        <span style={{ color:'#10b981' }}><Icon.Check /></span>
+        <span style={{ fontSize:15, fontWeight:700, color:'var(--text-1)' }}>Confirmed Records</span>
+        <span style={{ fontSize:12, color:'rgba(255,255,255,0.3)' }}>— saved SIR decisions</span>
+        {counts.TOTAL > 0 && (
+          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:700, color:'#10b981', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:20, padding:'2px 10px' }}>
+            {counts.TOTAL} total
+          </span>
+        )}
+      </div>
+
+      {/* Category tabs */}
+      <div style={{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap' }}>
+        {CONFIRMED_CATS.map(({ key, label, color, bg, border, icon: TabIcon }) => {
+          const active = activeCat === key;
+          const count  = key === 'ALL' ? counts.TOTAL : counts[key];
+          return (
+            <button key={key} onClick={() => handleCat(key)} style={{ display:'flex', alignItems:'center', gap:5, background: active ? bg : 'rgba(255,255,255,0.025)', border:`1px solid ${active ? border : 'rgba(255,255,255,0.07)'}`, borderRadius:8, padding:'7px 12px', cursor:'pointer', color: active ? color : 'rgba(255,255,255,0.4)', fontWeight: active ? 700 : 400, fontSize:12, transition:'all 0.15s', touchAction:'manipulation', WebkitTapHighlightColor:'transparent', minHeight:36 }}>
+              <TabIcon />
+              {label}
+              {count != null && (
+                <span style={{ fontSize:10, background:'rgba(0,0,0,0.25)', borderRadius:10, padding:'1px 6px', marginLeft:1 }}>{count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Records */}
+      {loading ? (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {[0.8, 0.6, 0.9].map((w, i) => (
+            <div key={i} style={{ height:48, borderRadius:10, width:`${w*100}%`, background:'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%)', backgroundSize:'400px 100%', animation:'shimmer 1.4s infinite' }} />
+          ))}
+        </div>
+      ) : records.length === 0 ? (
+        <div style={{ textAlign:'center', padding:'28px 16px', color:'rgba(255,255,255,0.2)', fontSize:13 }}>
+          No records in this category yet.
+        </div>
+      ) : (
+        <>
+          {records.map((doc, i) => (
+            <ConfirmedRecordRow key={doc._id || i} doc={doc} />
+          ))}
+          {total > 20 && (
+            <div style={{ display:'flex', gap:8, justifyContent:'center', marginTop:12 }}>
+              <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1} className="btn btn-ghost" style={{ padding:'6px 14px', fontSize:12 }}>← Prev</button>
+              <span style={{ padding:'6px 14px', color:'var(--text-2)', fontSize:12 }}>Page {page}</span>
+              <button onClick={() => setPage(p => p+1)} disabled={records.length < 20} className="btn btn-ghost" style={{ padding:'6px 14px', fontSize:12 }}>Next →</button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   return (
@@ -1426,6 +1602,9 @@ export default function SIR() {
 
         {/* Live check panel */}
         <LiveCheckPanel />
+
+        {/* Confirmed matches / not-found panel */}
+        <ConfirmedMatchesPanel />
 
         {/* Divider */}
         <div style={{ display:'flex', alignItems:'center', gap:12, margin:'28px 0 20px' }}>
