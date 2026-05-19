@@ -484,13 +484,13 @@ function SwotAIOverview({ tab }) {
     setState('loading');
     setOpen(true);
     try {
-      // Token is in an httponly cookie — credentials:'include' sends it automatically.
-      // Never read from sessionStorage; the cookie is not accessible to JavaScript.
+      const token = sessionStorage.getItem('cc_token');
+      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
       const tabData = buildTabData(tab).slice(0, 5000); // hard cap — prevents 502 on Render
       const res = await window.fetch(`${BASE}/api/ai/swot-overview/`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ tab, tabData }),
       });
       const data = await res.json();
@@ -1683,13 +1683,14 @@ function QueryCard({ q, ctxKey, ctxColor }) {
 
     try {
       // Route through Django backend to avoid CORS — never call Anthropic directly from browser
-      // Token is in an httponly cookie — credentials:'include' sends it automatically.
+      const token = sessionStorage.getItem('cc_token');
+      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
       const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com';
 
       const res = await fetch(`${BASE}/api/ai/query-insight/`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({
           query: query,
           columns: cols,
@@ -2258,12 +2259,15 @@ function BirdsEyeAIPanel({ queries, selectedCtx }) {
 
     try {
       // Route through Django backend to avoid CORS — never call Anthropic directly from browser
-      // Token is in an httponly cookie — credentials:'include' sends it automatically.
       const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com';
+      const token = sessionStorage.getItem('cc_token');
+      const headers = token
+        ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' };
       const res = await fetch(`${BASE}/api/ai/birdseye-view/`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ contextKey: selectedCtx, queries, totalVoters }),
       });
       const data = await res.json();
@@ -2417,9 +2421,11 @@ function MLIntelligenceTab() {
   const [error, setError] = React.useState(null);
   const [wardList, setWardList] = React.useState([]);
 
-  // Token is in an httponly cookie — sent automatically via credentials:'include'.
-  // Never read from sessionStorage; cc_token is not accessible to JavaScript.
-  const authHeaders = () => ({ 'Content-Type': 'application/json' });
+  // Helper: get JWT token from sessionStorage (same as client.js interceptor)
+  const authHeaders = () => {
+    const token = sessionStorage.getItem('cc_token');
+    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  };
 
   const BASE = process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com';
 
