@@ -151,12 +151,12 @@ const Icon = {
   // Select radio circle — for row selection
   Radio: ({ checked, color }) => checked ? (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="8" cy="8" r="7" fill={color || '#10b981'} fillOpacity="0.15" stroke={color || '#10b981'} strokeWidth="1.5"/>
-      <circle cx="8" cy="8" r="3.5" fill={color || '#10b981'}/>
+      <circle cx="8" cy="8" r="7" fill={color || '#10b981'} fillOpacity="0.18" stroke={color || '#10b981'} strokeWidth="1.8"/>
+      <circle cx="8" cy="8" r="3.8" fill={color || '#10b981'}/>
     </svg>
   ) : (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="8" cy="8" r="7" stroke="rgba(255,255,255,0.2)"/>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" strokeWidth="1.5">
+      <circle cx="8" cy="8" r="7" stroke="rgba(255,255,255,0.45)" strokeDasharray="none"/>
     </svg>
   ),
   // Save / floppy
@@ -715,7 +715,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                   <table style={{ width:'100%', borderCollapse:'collapse', minWidth:420 }}>
                     <thead>
                       <tr>
-                        <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:32 }} />
+                        <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:34, textAlign:'center', fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'0.5px' }}>Pick</th>
                         <ColHeader>House No</ColHeader>
                         <ColHeader>Name</ColHeader>
                         <ColHeader>Relation</ColHeader>
@@ -727,9 +727,27 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                     </thead>
                     <tbody>
                       {group.rows.map((r, i) => (
-                        <tr key={i} onClick={() => onSelectRow(r)} style={{ background: isSelected(r) ? `${accentColor}22` : r._matched ? `${accentColor}12` : r._notExact ? 'rgba(239,68,68,0.07)' : group.isAlmost ? 'rgba(245,158,11,0.04)' : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,0.03)', cursor:'pointer', outline: isSelected(r) ? `1px solid ${accentColor}60` : 'none', transition:'background 0.12s' }}>
+                        <tr
+                          key={i}
+                          onClick={() => onSelectRow(r)}
+                          className="sir-selectable-row"
+                          style={{
+                            background: isSelected(r)
+                              ? `${accentColor}28`
+                              : r._matched ? `${accentColor}12`
+                              : r._notExact ? 'rgba(239,68,68,0.07)'
+                              : group.isAlmost ? 'rgba(245,158,11,0.04)'
+                              : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
+                            borderBottom: isSelected(r)
+                              ? `1px solid ${accentColor}55`
+                              : '1px solid rgba(255,255,255,0.03)',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            transition: 'background 0.1s',
+                          }}
+                        >
                           {/* Select */}
-                          <td style={{ padding:'7px 8px', textAlign:'center' }}>
+                          <td style={{ padding:'7px 10px', textAlign:'center', verticalAlign:'middle' }}>
                             <Icon.Radio checked={isSelected(r)} color={accentColor} />
                           </td>
                           {/* House */}
@@ -1602,6 +1620,8 @@ export default function SIR() {
         *, *::before, *::after { box-sizing: border-box; }
         input, button, select, textarea { -webkit-tap-highlight-color: transparent; }
         .sir-scroll { -webkit-overflow-scrolling: touch; overflow-scrolling: touch; }
+        .sir-selectable-row:hover { filter: brightness(1.15); }
+        .sir-selectable-row:active { filter: brightness(1.25); }
         @media (max-width: 480px) {
           .sir-live-panel { padding: 16px !important; }
           .sir-header-wrap { flex-direction: column !important; align-items: flex-start !important; }
