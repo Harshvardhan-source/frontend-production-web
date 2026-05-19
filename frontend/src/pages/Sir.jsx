@@ -412,29 +412,25 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   const [notFound25,    setNotFound25]    = useState(false);
   const [notFound02,    setNotFound02]    = useState(false);
   const [confirmStatus, setConfirmStatus] = useState('idle'); // idle | saving | saved | error
-  const savingRef = useRef(false); // guard against concurrent/double submits
 
   const decided25  = selected25 !== null || notFound25;
   const decided02  = selected02 !== null || notFound02;
-  const canConfirm = decided25 && decided02 && confirmStatus !== 'saved';
+  const canConfirm = decided25 && decided02;
 
   const handleSelect25 = (row) => {
     setSelected25(prev => (prev?.voterid === row.voterid && prev?.name === row.name ? null : row));
     setNotFound25(false);
-    // Don't reset status after a successful save — show re-save warning instead
-    if (confirmStatus !== 'saved') setConfirmStatus('idle');
+    setConfirmStatus('idle');
   };
   const handleSelect02 = (row) => {
     setSelected02(prev => (prev?.voterid === row.voterid && prev?.name === row.name ? null : row));
     setNotFound02(false);
-    if (confirmStatus !== 'saved') setConfirmStatus('idle');
+    setConfirmStatus('idle');
   };
-  const handleNotFound25 = () => { setSelected25(null); setNotFound25(p => !p); if (confirmStatus !== 'saved') setConfirmStatus('idle'); };
-  const handleNotFound02 = () => { setSelected02(null); setNotFound02(p => !p); if (confirmStatus !== 'saved') setConfirmStatus('idle'); };
+  const handleNotFound25 = () => { setSelected25(null); setNotFound25(p => !p); setConfirmStatus('idle'); };
+  const handleNotFound02 = () => { setSelected02(null); setNotFound02(p => !p); setConfirmStatus('idle'); };
 
   const handleConfirm = async () => {
-    if (savingRef.current || confirmStatus === 'saving' || confirmStatus === 'saved') return;
-    savingRef.current = true;
     setConfirmStatus('saving');
     try {
       const token = sessionStorage.getItem('cc_token');
@@ -453,12 +449,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
         }),
       });
       const data = await res.json();
-      // already_saved = backend prevented a duplicate — still treat as success
       setConfirmStatus(data.success ? 'saved' : 'error');
     } catch {
       setConfirmStatus('error');
-    } finally {
-      savingRef.current = false;
     }
   };
 
@@ -741,14 +734,12 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                           style={{
                             background: isSelected(r)
                               ? `${accentColor}28`
-                              : r._already_confirmed ? 'rgba(245,158,11,0.10)'
                               : r._matched ? `${accentColor}12`
                               : r._notExact ? 'rgba(239,68,68,0.07)'
                               : group.isAlmost ? 'rgba(245,158,11,0.04)'
                               : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
                             borderBottom: isSelected(r)
                               ? `1px solid ${accentColor}55`
-                              : r._already_confirmed ? '1px solid rgba(245,158,11,0.30)'
                               : '1px solid rgba(255,255,255,0.03)',
                             cursor: 'pointer',
                             outline: 'none',
@@ -760,14 +751,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                             <Icon.Radio checked={isSelected(r)} color={accentColor} />
                           </td>
                           {/* House */}
-                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : r._notExact ? '#f87171' : r._already_confirmed ? '#f59e0b' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: r._matched || r._notExact || r._already_confirmed || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : r._notExact ? '#f87171' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: r._matched || r._notExact || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
                             {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
                             {r._notExact && <span style={{ display:'inline-flex', marginRight:5, color:'#f87171' }}><Icon.XCircle /></span>}
-                            {r._already_confirmed && !r._matched && !r._notExact && (
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:3, marginRight:5, fontSize:9, fontWeight:700, color:'#f59e0b', background:'rgba(245,158,11,0.18)', border:'1px solid rgba(245,158,11,0.4)', borderRadius:4, padding:'1px 5px' }}>
-                                <Icon.Save /> Saved
-                              </span>
-                            )}
                             {r.house || '—'}
                           </td>
                           {/* Name */}
@@ -870,7 +856,6 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           {/* Legend */}
           <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
             <span style={{ fontSize:9, color:'#f59e0b', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:4, padding:'1px 6px', fontWeight:700 }}>⚡ Almost matched</span>
-            <span style={{ fontSize:9, color:'#f59e0b', background:'rgba(245,158,11,0.18)', border:'1px solid rgba(245,158,11,0.4)', borderRadius:4, padding:'1px 6px', fontWeight:700, display:'inline-flex', alignItems:'center', gap:3 }}><Icon.Save /> Already Saved</span>
             {[['voterid','Voter ID'],['name','Voter Name'],['house','House No'],['relation','Relation'],['partial','Partial']].map(([f, lbl]) => (
               <span key={f} style={{ fontSize:9, color:FIELD_META[f].color, background:`${FIELD_META[f].color}14`, border:`1px solid ${FIELD_META[f].color}28`, borderRadius:4, padding:'1px 6px', fontWeight:700 }}>{lbl}</span>
             ))}
