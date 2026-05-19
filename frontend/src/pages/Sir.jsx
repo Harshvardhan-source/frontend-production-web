@@ -402,7 +402,7 @@ function VoterInfoModal({ record, roll, onClose }) {
 }
 
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
-function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '', searchEpic = '', searchInputs = {} }) {
+function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '', searchEpic = '', searchInputs = {}, confirmedVoterIds = new Set() }) {
   const [infoRecord,     setInfoRecord]     = useState(null);
   // ── Confirmation selection state ──────────────────────────────────────────
   // selected25 / selected02 = the row object the user ticked, or null
@@ -412,6 +412,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   const [notFound25,    setNotFound25]    = useState(false);
   const [notFound02,    setNotFound02]    = useState(false);
   const [confirmStatus, setConfirmStatus] = useState('idle'); // idle | saving | saved | error
+  // Local set of voter IDs saved this session (merges with prop)
+  const [localSavedIds, setLocalSavedIds] = useState(new Set());
+  const allSavedIds = new Set([...confirmedVoterIds, ...localSavedIds]);
 
   const decided25  = selected25 !== null || notFound25;
   const decided02  = selected02 !== null || notFound02;
@@ -449,7 +452,17 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
         }),
       });
       const data = await res.json();
-      setConfirmStatus(data.success ? 'saved' : 'error');
+      if (data.success) {
+        setConfirmStatus('saved');
+        setLocalSavedIds(prev => {
+          const next = new Set(prev);
+          if (selected25?.voterid) next.add(selected25.voterid);
+          if (selected02?.voterid) next.add(selected02.voterid);
+          return next;
+        });
+      } else {
+        setConfirmStatus('error');
+      }
     } catch {
       setConfirmStatus('error');
     }
@@ -653,11 +666,12 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   };
 
   // ── Per-roll section — collapsible header + scrollable body ──────────────────
-  const RollSection = ({ rows, year, accentColor, borderColor, selectedRow, onSelectRow, notFoundChecked, onMarkNotFound }) => {
+  const RollSection = ({ rows, year, accentColor, borderColor, selectedRow, onSelectRow, notFoundChecked, onMarkNotFound, confirmedVoterIds = new Set() }) => {
     const groups = groupRows(rows);
     const total  = rows.length;
     const [open, setOpen] = useState(true);
     const isSelected = (r) => selectedRow && selectedRow.voterid === r.voterid && selectedRow.name === r.name;
+    const isSavedSIR = (r) => r.voterid && confirmedVoterIds.has(r.voterid);
 
     return (
       <div style={{ flex:1, minWidth:0, background:'rgba(0,0,0,0.18)', borderRadius:10, border:`1px solid ${borderColor}`, overflow:'hidden', display:'flex', flexDirection:'column' }}>
@@ -726,34 +740,45 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                       </tr>
                     </thead>
                     <tbody>
-                      {group.rows.map((r, i) => (
+                      {group.rows.map((r, i) => {
+                        const saved = isSavedSIR(r);
+                        return (
                         <tr
                           key={i}
-                          onClick={() => onSelectRow(r)}
-                          className="sir-selectable-row"
+                          onClick={() => !saved && onSelectRow(r)}
+                          className={saved ? undefined : "sir-selectable-row"}
                           style={{
-                            background: isSelected(r)
+                            background: saved
+                              ? 'rgba(16,185,129,0.06)'
+                              : isSelected(r)
                               ? `${accentColor}28`
                               : r._matched ? `${accentColor}12`
                               : r._notExact ? 'rgba(239,68,68,0.07)'
                               : group.isAlmost ? 'rgba(245,158,11,0.04)'
                               : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
-                            borderBottom: isSelected(r)
+                            borderBottom: saved
+                              ? '1px solid rgba(16,185,129,0.12)'
+                              : isSelected(r)
                               ? `1px solid ${accentColor}55`
                               : '1px solid rgba(255,255,255,0.03)',
-                            cursor: 'pointer',
+                            cursor: saved ? 'not-allowed' : 'pointer',
                             outline: 'none',
                             transition: 'background 0.1s',
+                            opacity: saved ? 0.65 : 1,
                           }}
                         >
                           {/* Select */}
                           <td style={{ padding:'7px 10px', textAlign:'center', verticalAlign:'middle' }}>
-                            <Icon.Radio checked={isSelected(r)} color={accentColor} />
+                            {saved
+                              ? <span style={{ display:'inline-flex', color:'#10b981' }}><Icon.Check /></span>
+                              : <Icon.Radio checked={isSelected(r)} color={accentColor} />
+                            }
                           </td>
                           {/* House */}
-                          <td style={{ padding:'7px 10px', fontSize:12, color: r._matched ? accentColor : r._notExact ? '#f87171' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: r._matched || r._notExact || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
-                            {r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
-                            {r._notExact && <span style={{ display:'inline-flex', marginRight:5, color:'#f87171' }}><Icon.XCircle /></span>}
+                          <td style={{ padding:'7px 10px', fontSize:12, color: saved ? '#10b981' : r._matched ? accentColor : r._notExact ? '#f87171' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: saved || r._matched || r._notExact || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
+                            {saved && <span style={{ display:'inline-flex', marginRight:5, color:'#10b981' }}><Icon.Check /></span>}
+                            {!saved && r._matched && <span style={{ display:'inline-flex', marginRight:5, color:accentColor }}><Icon.Check /></span>}
+                            {!saved && r._notExact && <span style={{ display:'inline-flex', marginRight:5, color:'#f87171' }}><Icon.XCircle /></span>}
                             {r.house || '—'}
                           </td>
                           {/* Name */}
@@ -778,9 +803,15 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                           </td>
                           {/* Matched-by tags */}
                           <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
-                            <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
-                              {(r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
-                            </div>
+                            {saved ? (
+                              <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(16,185,129,0.15)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)', display:'inline-flex', alignItems:'center', gap:4 }}>
+                                <Icon.Shield /> SIR Completed
+                              </span>
+                            ) : (
+                              <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
+                                {(r.matched_by || []).map(f => <MatchTag key={f} field={f} />)}
+                              </div>
+                            )}
                           </td>
                           {/* Booth */}
                           <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
@@ -816,7 +847,8 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -866,11 +898,13 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
             rows={rows25} year="2025" accentColor="#22d3ee" borderColor="rgba(34,211,238,0.15)"
             selectedRow={selected25} onSelectRow={handleSelect25}
             notFoundChecked={notFound25} onMarkNotFound={handleNotFound25}
+            confirmedVoterIds={allSavedIds}
           />
           <RollSection
             rows={rows02} year="2002" accentColor="#f59e0b" borderColor="rgba(245,158,11,0.15)"
             selectedRow={selected02} onSelectRow={handleSelect02}
             notFoundChecked={notFound02} onMarkNotFound={handleNotFound02}
+            confirmedVoterIds={allSavedIds}
           />
         </div>
 
@@ -945,6 +979,27 @@ function LiveCheckPanel() {
   const abortRef            = useRef(null);
   const retryRef            = useRef(null);
   const [confirmedRec, setConfirmedRec] = useState(null);
+  const [confirmedVoterIds, setConfirmedVoterIds] = useState(new Set());
+
+  // Fetch all confirmed voter IDs once on mount so we can mark saved rows
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = sessionStorage.getItem('cc_token');
+        if (!token) return;
+        const res  = await fetch(`${API}/sir/confirmed/?category=ALL&page=1&limit=200`, { credentials:'include', headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` } });
+        const json = await res.json();
+        if (json.success && json.records) {
+          const ids = new Set();
+          json.records.forEach(doc => {
+            if (doc.record_2025?.voterid) ids.add(doc.record_2025.voterid);
+            if (doc.record_2002?.voterid) ids.add(doc.record_2002.voterid);
+          });
+          setConfirmedVoterIds(ids);
+        }
+      } catch { /**/ }
+    })();
+  }, []);
 
   const hasInput = form.name.trim() || form.epic.trim() || form.house.trim() || form.relation.trim();
 
@@ -1105,6 +1160,7 @@ function LiveCheckPanel() {
           searchRelation={form.relation.trim()}
           searchEpic={form.epic.trim().toUpperCase()}
           searchInputs={{ name: form.name.trim(), epic: form.epic.trim().toUpperCase(), house: form.house.trim(), relation: form.relation.trim() }}
+          confirmedVoterIds={confirmedVoterIds}
         />
       )}
 
