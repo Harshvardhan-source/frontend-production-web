@@ -2256,8 +2256,8 @@ const PLACE_TYPES = [
     ),
   },
   {
-    key: 'old_age_home',
-    label: 'Old Age Home',
+    key: 'old_age_school',
+    label: 'Old Age School',
     color: '#f43f5e',
     accent: 'rgba(244,63,94,0.12)',
     border: 'rgba(244,63,94,0.25)',
@@ -2267,49 +2267,6 @@ const PLACE_TYPES = [
         <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
         <path d="M16 14l2 2 2-2"/>
         <path d="M18 16v4"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'orphanage',
-    label: 'Orphanage',
-    color: '#fb923c',
-    accent: 'rgba(251,146,60,0.12)',
-    border: 'rgba(251,146,60,0.25)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <circle cx="9" cy="14" r="2"/>
-        <circle cx="15" cy="14" r="2"/>
-        <path d="M9 16v2"/><path d="M15 16v2"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'college',
-    label: 'College',
-    color: '#38bdf8',
-    accent: 'rgba(56,189,248,0.12)',
-    border: 'rgba(56,189,248,0.25)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'shishu_mandir',
-    label: 'Shishu/Anganwadi',
-    color: '#34d399',
-    accent: 'rgba(52,211,153,0.12)',
-    border: 'rgba(52,211,153,0.25)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="6" r="3"/>
-        <path d="M12 9v5"/>
-        <path d="M8 14h8"/>
-        <path d="M9 19l3-5 3 5"/>
       </svg>
     ),
   },
@@ -2324,7 +2281,7 @@ function WardLocalPlaces({ wardNum }) {
   const [activeType,    setActiveType]    = useState('club');
   const [showForm,      setShowForm]      = useState(false);
   const [deletingId,    setDeletingId]    = useState(null);
-  const [form,          setForm]          = useState({ name: '', address: '', headName: '', headPhone: '', committeeMembers: [] });
+  const [form,          setForm]          = useState({ name: '', address: '' });
   const [formErr,       setFormErr]       = useState('');
 
   // Load places for this ward
@@ -2351,13 +2308,10 @@ function WardLocalPlaces({ wardNum }) {
         type:     activeType,
         name:     form.name.trim(),
         address:  form.address.trim(),
-        headName: form.headName.trim(),
-        headPhone: form.headPhone.trim(),
-        committeeMembers: (form.committeeMembers || []).filter(m => m.name.trim() || m.phone.trim()),
       });
       if (r.data.success) {
         setPlaces(prev => [...prev, r.data.place]);
-        setForm({ name: '', address: '', headName: '', headPhone: '', committeeMembers: [] });
+        setForm({ name: '', address: '' });
         setShowForm(false);
       } else {
         setFormErr(r.data.message || 'Save failed.');
@@ -2399,7 +2353,7 @@ function WardLocalPlaces({ wardNum }) {
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Ward {wardNum} · {wardName}</div>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); setFormErr(''); setForm({ name:'', address:'', headName:'', headPhone:'', committeeMembers:[] }); }}
+          onClick={() => { setShowForm(!showForm); setFormErr(''); setForm({ name:'', address:'' }); }}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: showForm ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.14)',
@@ -2431,7 +2385,7 @@ function WardLocalPlaces({ wardNum }) {
           const count    = groupedPlaces[t.key]?.length || 0;
           return (
             <button key={t.key}
-              onClick={() => { setActiveType(t.key); setShowForm(false); setForm({ name:'', address:'', headName:'', headPhone:'', committeeMembers:[] }); }}
+              onClick={() => { setActiveType(t.key); setShowForm(false); setForm({ name:'', address:'' }); }}
               style={{
                 flex: 1, minWidth: 72, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                 padding: '10px 8px',
@@ -2469,7 +2423,7 @@ function WardLocalPlaces({ wardNum }) {
               <input
                 value={form.name}
                 onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErr(''); }}
-                placeholder={`e.g. ${activeType === 'club' ? 'Padavu Youth Club' : activeType === 'temple' ? 'Sri Vinayaka Temple' : activeType === 'church' ? 'St. Joseph Church' : activeType === 'mosque' ? 'Masjid-e-Noor' : activeType === 'gov_school' ? 'Govt High School Padavu' : activeType === 'private_school' ? 'Canara High School' : activeType === 'muslim_school' ? 'Anjuman High School' : activeType === 'missionary_school' ? 'St. Aloysius School' : activeType === 'college' ? 'St. Aloysius College' : activeType === 'orphanage' ? 'Bal Niketan Orphanage' : activeType === 'shishu_mandir' ? 'Shishu Mandir Padavu' : 'Old Age Home Derebail'}`}
+                placeholder={`e.g. ${activeType === 'club' ? 'Padavu Youth Club' : activeType === 'temple' ? 'Sri Vinayaka Temple' : activeType === 'church' ? 'St. Joseph Church' : activeType === 'mosque' ? 'Masjid-e-Noor' : activeType === 'gov_school' ? 'Govt High School Padavu' : activeType === 'private_school' ? 'Canara High School' : activeType === 'muslim_school' ? 'Anjuman High School' : activeType === 'missionary_school' ? 'St. Aloysius School' : 'Old Age School Derebail'}`}
                 style={{
                   width: '100%', boxSizing: 'border-box',
                   background: 'rgba(15,23,42,0.8)', border: `1px solid ${formErr ? '#ef4444' : activeCfg.border}`,
@@ -2495,246 +2449,6 @@ function WardLocalPlaces({ wardNum }) {
                 }}
               />
             </div>
-
-            {/* ── Dynamic extra fields per place type ── */}
-            {/* School types: Gov School, Pvt School, Muslim School, Missionary School, College, Orphanage → Principal / HM name + phone */}
-            {['gov_school','private_school','muslim_school','missionary_school','college','orphanage'].includes(activeType) && (() => {
-              const isCollege = activeType === 'college';
-              const headLabel = isCollege ? 'Principal' : 'Principal / Head Master / Head Mistress';
-              return (
-                <>
-                  <div style={{ borderTop: `1px solid ${activeCfg.border}`, paddingTop: 8, marginTop: 2 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, marginBottom: 6 }}>👤 Head Contact</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>{headLabel} Name</label>
-                        <input
-                          value={form.headName}
-                          onChange={e => setForm(f => ({ ...f, headName: e.target.value }))}
-                          placeholder="Full name"
-                          style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Phone Number</label>
-                        <input
-                          value={form.headPhone}
-                          onChange={e => setForm(f => ({ ...f, headPhone: e.target.value }))}
-                          placeholder="e.g. 9876543210"
-                          type="tel"
-                          style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-
-            {/* Temple → temple head + phone + committee members */}
-            {activeType === 'temple' && (
-              <div style={{ borderTop: `1px solid ${activeCfg.border}`, paddingTop: 8, marginTop: 2 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, marginBottom: 6 }}>🛕 Temple Administration</div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Temple Head Name</label>
-                    <input
-                      value={form.headName}
-                      onChange={e => setForm(f => ({ ...f, headName: e.target.value }))}
-                      placeholder="Head / Trustee name"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Phone Number</label>
-                    <input
-                      value={form.headPhone}
-                      onChange={e => setForm(f => ({ ...f, headPhone: e.target.value }))}
-                      placeholder="e.g. 9876543210"
-                      type="tel"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-                {/* Committee members */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>Committee Members</label>
-                    <button
-                      onClick={() => setForm(f => ({ ...f, committeeMembers: [...(f.committeeMembers||[]), { name:'', phone:'' }] }))}
-                      style={{ fontSize: 10, color: activeCfg.color, background: `${activeCfg.color}18`, border: `1px solid ${activeCfg.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}
-                    >+ Add Member</button>
-                  </div>
-                  {(form.committeeMembers||[]).map((m, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: 6, marginBottom: 5, alignItems: 'center' }}>
-                      <input
-                        value={m.name}
-                        onChange={e => setForm(f => { const cm=[...(f.committeeMembers||[])]; cm[idx]={...cm[idx],name:e.target.value}; return {...f,committeeMembers:cm}; })}
-                        placeholder="Member name"
-                        style={{ flex: 2, background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 7, padding: '7px 9px', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
-                      />
-                      <input
-                        value={m.phone}
-                        onChange={e => setForm(f => { const cm=[...(f.committeeMembers||[])]; cm[idx]={...cm[idx],phone:e.target.value}; return {...f,committeeMembers:cm}; })}
-                        placeholder="Phone"
-                        type="tel"
-                        style={{ flex: 1, background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 7, padding: '7px 9px', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
-                      />
-                      <button
-                        onClick={() => setForm(f => { const cm=[...(f.committeeMembers||[])]; cm.splice(idx,1); return {...f,committeeMembers:cm}; })}
-                        style={{ width: 26, height: 26, borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-                      >
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    </div>
-                  ))}
-                  {(form.committeeMembers||[]).length === 0 && (
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>No committee members added. Tap "+ Add Member" above.</div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Church → Father's name + phone */}
-            {activeType === 'church' && (
-              <div style={{ borderTop: `1px solid ${activeCfg.border}`, paddingTop: 8, marginTop: 2 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, marginBottom: 6 }}>⛪ Church Head</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Father's Name</label>
-                    <input
-                      value={form.headName}
-                      onChange={e => setForm(f => ({ ...f, headName: e.target.value }))}
-                      placeholder="Rev. Father name"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Phone Number</label>
-                    <input
-                      value={form.headPhone}
-                      onChange={e => setForm(f => ({ ...f, headPhone: e.target.value }))}
-                      placeholder="e.g. 9876543210"
-                      type="tel"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Mosque → Imam / Mullah / Maulvi name + phone */}
-            {activeType === 'mosque' && (
-              <div style={{ borderTop: `1px solid ${activeCfg.border}`, paddingTop: 8, marginTop: 2 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, marginBottom: 6 }}>🕌 Mosque Head</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Imam / Mullah / Maulvi Name</label>
-                    <input
-                      value={form.headName}
-                      onChange={e => setForm(f => ({ ...f, headName: e.target.value }))}
-                      placeholder="Inam / Mullah name"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Phone Number</label>
-                    <input
-                      value={form.headPhone}
-                      onChange={e => setForm(f => ({ ...f, headPhone: e.target.value }))}
-                      placeholder="e.g. 9876543210"
-                      type="tel"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Shishu Mandir / Anganwadi → Teacher name + phone */}
-            {activeType === 'shishu_mandir' && (
-              <div style={{ borderTop: `1px solid ${activeCfg.border}`, paddingTop: 8, marginTop: 2 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, marginBottom: 6 }}>👩‍🏫 Teacher Contact</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Teacher Name</label>
-                    <input
-                      value={form.headName}
-                      onChange={e => setForm(f => ({ ...f, headName: e.target.value }))}
-                      placeholder="Teacher / Sevikar name"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Phone Number</label>
-                    <input
-                      value={form.headPhone}
-                      onChange={e => setForm(f => ({ ...f, headPhone: e.target.value }))}
-                      placeholder="e.g. 9876543210"
-                      type="tel"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Club → President name + phone */}
-            {activeType === 'club' && (
-              <div style={{ borderTop: `1px solid ${activeCfg.border}`, paddingTop: 8, marginTop: 2 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, marginBottom: 6 }}>🤝 Club President</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>President Name</label>
-                    <input
-                      value={form.headName}
-                      onChange={e => setForm(f => ({ ...f, headName: e.target.value }))}
-                      placeholder="Club president name"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Phone Number</label>
-                    <input
-                      value={form.headPhone}
-                      onChange={e => setForm(f => ({ ...f, headPhone: e.target.value }))}
-                      placeholder="e.g. 9876543210"
-                      type="tel"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Old Age Home → head name + phone */}
-            {(activeType === 'old_age_home') && (
-              <div style={{ borderTop: `1px solid ${activeCfg.border}`, paddingTop: 8, marginTop: 2 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: activeCfg.color, marginBottom: 6 }}>🏠 Home Head Contact</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Head / Manager Name</label>
-                    <input
-                      value={form.headName}
-                      onChange={e => setForm(f => ({ ...f, headName: e.target.value }))}
-                      placeholder="Manager / In-charge name"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, display: 'block', marginBottom: 3 }}>Phone Number</label>
-                    <input
-                      value={form.headPhone}
-                      onChange={e => setForm(f => ({ ...f, headPhone: e.target.value }))}
-                      placeholder="e.g. 9876543210"
-                      type="tel"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,23,42,0.8)', border: `1px solid ${activeCfg.border}`, borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
             {formErr && <div style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}>⚠ {formErr}</div>}
             {/* Save button */}
             <button
@@ -2809,20 +2523,6 @@ function WardLocalPlaces({ wardNum }) {
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                       {place.address}
-                    </div>
-                  )}
-                  {place.headName && (
-                    <div style={{ fontSize: 11, color: activeCfg.color, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, opacity: 0.85 }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                      {place.headName}
-                      {place.headPhone && <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 4 }}>· {place.headPhone}</span>}
-                    </div>
-                  )}
-                  {place.committeeMembers && place.committeeMembers.length > 0 && (
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>
-                      Committee: {place.committeeMembers.map((m, i) => (
-                        <span key={i}>{m.name}{m.phone ? ` (${m.phone})` : ''}{i < place.committeeMembers.length - 1 ? ', ' : ''}</span>
-                      ))}
                     </div>
                   )}
                 </div>
@@ -3166,7 +2866,7 @@ const PLACE_TYPE_CFG = {
   missionary_school:{ label:'Missionary',      color:'#a855f7', icon:(
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="2" x2="12" y2="7"/><line x1="10" y1="4.5" x2="14" y2="4.5"/><rect x="9" y="14" width="6" height="8"/></svg>
   )},
-  old_age_home:   { label:'Old Age Home',  color:'#f43f5e', icon:(
+  old_age_school:   { label:'Old Age School',  color:'#f43f5e', icon:(
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 14l2 2 2-2"/><path d="M18 16v4"/></svg>
   )},
 };
@@ -3175,7 +2875,7 @@ function LocalPlacesModal({ onClose }) {
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
   const [total,        setTotal]        = useState(0);
-  const [counts,       setCounts]       = useState({ club:0, temple:0, church:0, mosque:0, gov_school:0, private_school:0, muslim_school:0, missionary_school:0, old_age_home:0, orphanage:0, college:0, shishu_mandir:0 });
+  const [counts,       setCounts]       = useState({ club:0, temple:0, church:0, mosque:0, gov_school:0, private_school:0, muslim_school:0, missionary_school:0, old_age_school:0 });
   const [byWard,       setByWard]       = useState([]);
   const [search,       setSearch]       = useState('');
   const [activeType,   setActiveType]   = useState('all');
@@ -4458,7 +4158,7 @@ export default function Dashboard() {
       icon: <MapPin size={20} />,
       color: '#f59e0b',
       sub: localPlacesTotal != null
-        ? `${localPlacesCounts.temple||0} temples · ${localPlacesCounts.church||0} churches · ${localPlacesCounts.mosque||0} mosques · ${localPlacesCounts.club||0} clubs · ${(localPlacesCounts.gov_school||0)+(localPlacesCounts.private_school||0)+(localPlacesCounts.muslim_school||0)+(localPlacesCounts.missionary_school||0)+(localPlacesCounts.old_age_home||0)+(localPlacesCounts.orphanage||0)+(localPlacesCounts.college||0)+(localPlacesCounts.shishu_mandir||0)} schools`
+        ? `${localPlacesCounts.temple||0} temples · ${localPlacesCounts.church||0} churches · ${localPlacesCounts.mosque||0} mosques · ${localPlacesCounts.club||0} clubs · ${(localPlacesCounts.gov_school||0)+(localPlacesCounts.private_school||0)+(localPlacesCounts.muslim_school||0)+(localPlacesCounts.missionary_school||0)+(localPlacesCounts.old_age_school||0)} schools`
         : 'Clubs, temples, churches, mosques & schools',
       isLocalPlaces: true,
     },
@@ -5039,7 +4739,7 @@ export default function Dashboard() {
                           { key: '__schools__', label: 'Schools', color: '#3b82f6', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="9" y1="6" x2="15" y2="6"/></svg> },
                         ].map(t => {
                           const n = t.key === '__schools__'
-                            ? (localPlacesCounts.gov_school||0)+(localPlacesCounts.private_school||0)+(localPlacesCounts.muslim_school||0)+(localPlacesCounts.missionary_school||0)+(localPlacesCounts.old_age_home||0)+(localPlacesCounts.orphanage||0)+(localPlacesCounts.college||0)+(localPlacesCounts.shishu_mandir||0)
+                            ? (localPlacesCounts.gov_school||0)+(localPlacesCounts.private_school||0)+(localPlacesCounts.muslim_school||0)+(localPlacesCounts.missionary_school||0)+(localPlacesCounts.old_age_school||0)
                             : localPlacesCounts[t.key] || 0;
                           return (
                             <div key={t.key} style={{
