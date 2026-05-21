@@ -161,13 +161,12 @@ const COMMUNITY_DETAILED_DATA = {
   2025: [
     ['Unclassified',                  114178, 'Unknown'],
     ['Muslim',                          37353, 'Muslim'],
-    ['Mangalorean Catholic',            27345, 'Christian - OC'],
+    // Grouped row — communities array + combined count
+    [['Mangalorean Catholic', 'Christian', 'Possibly Christian'], 33781, 'Christian - OC', 'Christian Community (All)'],
     ['GSB (Goud Saraswat Brahmin)',     25750, 'Hindu - Brahmin'],
     ['Bunt',                            15903, 'Hindu - OC'],
     ['Billava',                         11968, 'Hindu - OBC'],
-    ['Christian',                        4513, 'Christian - OC'],
     ['Vishwakarma',                      2459, 'Hindu - OBC'],
-    ['Possibly Christian',               1923, 'Christian (Unverified)'],
     ['Billava / Mogaveera',              1636, 'Hindu - OBC'],
     ['Devadiga',                         1568, 'Hindu - OBC'],
     ['Multiple communities (Naik)',      1437, 'Hindu - Shared'],
@@ -220,7 +219,9 @@ const BROAD_COLORS = {
 };
 
 // ─── Community Records Modal ──────────────────────────────────────────────────
-function CommunityRecordsModal({ community, category, totalCount, onClose }) {
+// community: string (single) OR communities: string[] (grouped)
+// displayName: label shown in modal header (for grouped rows)
+function CommunityRecordsModal({ community, communities, displayName, category, totalCount, onClose }) {
   const [records, setRecords]   = useState([]);
   const [page, setPage]         = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -231,11 +232,19 @@ function CommunityRecordsModal({ community, category, totalCount, onClose }) {
   const LIMIT = 25;
   const color = BROAD_COLORS[category] || '#888';
 
+  // Label shown in the modal header
+  const headerLabel = displayName || (Array.isArray(communities) ? communities.join(' · ') : community);
+
+  // Comma-joined if grouped — backend splits on comma and ORs them
+  const communityParam = Array.isArray(communities)
+    ? communities.join(',')
+    : (communities || community);
+
   const fetchRecords = useCallback(async (pg, q) => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ community, page: pg, limit: LIMIT });
+      const params = new URLSearchParams({ community: communityParam, page: pg, limit: LIMIT });
       if (q) params.append('q', q);
       const res = await api.get(`/api/community-records/?${params}`);
       setRecords(res.data.records || []);
@@ -245,7 +254,7 @@ function CommunityRecordsModal({ community, category, totalCount, onClose }) {
     } finally {
       setLoading(false);
     }
-  }, [community]);
+  }, [communityParam]);
 
   useEffect(() => { fetchRecords(page, search); }, [page, search, fetchRecords]);
 
@@ -297,10 +306,13 @@ function CommunityRecordsModal({ community, category, totalCount, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}` }} />
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)' }}>{community}</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)' }}>{headerLabel}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
                 <span style={{ color, fontWeight: 700 }}>{category}</span>
                 &nbsp;·&nbsp;{totalCount.toLocaleString()} voters in 2025_caste_comm_hmc
+                {Array.isArray(communities) && (
+                  <span style={{ color: 'rgba(255,255,255,0.2)' }}> · grouped: {communities.join(', ')}</span>
+                )}
               </div>
             </div>
           </div>
@@ -458,7 +470,7 @@ function CommunityClassificationPanel() {
           <div>
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 2 }}>Classified Community Breakdown</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-              {detailedRows.length} communities · sorted by count · source: 2025_caste_comm_hmc
+              {detailedRows.length} entries · sorted by count · source: 2025_caste_comm_hmc
             </div>
           </div>
           <div style={{
@@ -476,7 +488,14 @@ function CommunityClassificationPanel() {
         </div>
 
         {/* Rows */}
-        {displayRows.map(([name, count, cat], idx) => {
+        {displayRows.map((row, idx) => {
+          // Grouped row: [string[], count, cat, displayName]
+          // Single row:  [string,   count, cat]
+          const isGrouped   = Array.isArray(row[0]);
+          const communities = isGrouped ? row[0] : null;
+          const name        = isGrouped ? row[3] : row[0];   // display label
+          const count       = row[1];
+          const cat         = row[2];
           const barW  = Math.round((count / maxDetail) * 100);
           const pct   = ((count / total2025) * 100).toFixed(1);
           const color = BROAD_COLORS[cat] || '#888';
@@ -488,9 +507,21 @@ function CommunityClassificationPanel() {
               background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)',
               alignItems: 'center',
             }}>
-              {/* Name + bar */}
+              {/* Name + bar (+ sub-labels for grouped rows) */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 4, lineHeight: 1.3 }}>{name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: isGrouped ? 2 : 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.3 }}>{name}</span>
+                  {isGrouped && (
+                    <span style={{ fontSize: 9, fontWeight: 600, background: `${color}20`, color, border: `1px solid ${color}30`, borderRadius: 4, padding: '1px 5px', whiteSpace: 'nowrap' }}>
+                      {communities.length} groups
+                    </span>
+                  )}
+                </div>
+                {isGrouped && (
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', marginBottom: 4, lineHeight: 1.4 }}>
+                    {communities.join(' · ')}
+                  </div>
+                )}
                 <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden', maxWidth: 160 }}>
                   <div style={{ width: `${barW}%`, height: '100%', background: `linear-gradient(90deg,${color}60,${color})`, borderRadius: 2 }} />
                 </div>
@@ -513,7 +544,11 @@ function CommunityClassificationPanel() {
               {/* View Records btn */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => setRecordsModal({ community: name, category: cat, count })}
+                  onClick={() => setRecordsModal(
+                    isGrouped
+                      ? { communities, displayName: name, category: cat, count }
+                      : { community: name, category: cat, count }
+                  )}
                   style={{
                     background: `${color}14`, border: `1px solid ${color}30`,
                     borderRadius: 7, padding: '4px 10px', cursor: 'pointer',
@@ -550,6 +585,8 @@ function CommunityClassificationPanel() {
       {recordsModal && (
         <CommunityRecordsModal
           community={recordsModal.community}
+          communities={recordsModal.communities}
+          displayName={recordsModal.displayName}
           category={recordsModal.category}
           totalCount={recordsModal.count}
           onClose={() => setRecordsModal(null)}
