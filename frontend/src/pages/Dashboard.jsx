@@ -459,7 +459,7 @@ function CommunityClassificationPanel() {
   const [showAll, setShowAll]         = useState(false);
   const [recordsModal, setRecordsModal] = useState(null); // { community, category, count }
 
-  const total2025     = 251998; // rows in 2025_caste_community_HMC.csv
+  const total2025     = 251998;
   const detailedRows  = COMMUNITY_DETAILED_DATA[2025];
   const displayRows   = showAll ? detailedRows : detailedRows.slice(0, 12);
   const maxDetail     = detailedRows[0]?.[1] || 1;
@@ -1029,11 +1029,10 @@ function HMCWidget({ hmc, loading, label = 'Constituency', onViewRecords }) {
   }
   if (!hmc) return null;
 
-  // hmc is either HMC_2025 (corrected CSV, constituency level)
-  // or API ward/booth data; use directly
-  const H = hmc.H || 0;
-  const M = hmc.M || 0;
-  const C = hmc.C || 0;
+  // Use API data if available, else fall back to corrected 2025 roll counts
+  const H = (hmc.H && hmc.H > 0) ? hmc.H : HMC_2025.H;
+  const M = (hmc.M && hmc.M > 0) ? hmc.M : HMC_2025.M;
+  const C = (hmc.C && hmc.C > 0) ? hmc.C : HMC_2025.C;
   const total = H + M + C || 1;
   const bars = [
     { key:'H', label:'Hindu',     count:H, color:'#f97316', bg:'rgba(249,115,22,0.1)',  border:'rgba(249,115,22,0.25)' },
@@ -1345,15 +1344,15 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency', onViewRec
 // ─── Static 2023 Polled vs NotPolled: Broad Category (with Age Group filter) ──
 // Source: polled_notpolled_hmc_caste_comm.csv — Category field
 const BROAD_DEFS = [
-  { key:'Hindu - OBC',             label:'Hindu - OBC',              color:'#8b5cf6' },
-  { key:'Muslim',                  label:'Muslim',                   color:'#10b981' },
-  { key:'Christian - OC',          label:'Christian - OC',           color:'#a78bfa' },
-  { key:'Hindu - Brahmin',         label:'Hindu - Brahmin',          color:'#f97316' },
-  { key:'Hindu - OC',              label:'Hindu - OC',               color:'#f59e0b' },
-  { key:'Unknown',                 label:'Unknown',                  color:'#64748b' },
-  { key:'Hindu - Shared',          label:'Hindu - Shared',           color:'#6b7280' },
-  { key:'Hindu - GC',              label:'Hindu - GC',               color:'#22d3ee' },
-  { key:'Christian (Unverified)',   label:'Christian (Unverified)',   color:'#94a3b8' },
+  { key:'Hindu - OBC',             label:'Hindu - OBC',              abbr:'HO',  color:'#8b5cf6' },
+  { key:'Muslim',                  label:'Muslim',                   abbr:'M',   color:'#10b981' },
+  { key:'Christian - OC',          label:'Christian - OC',           abbr:'CO',  color:'#a78bfa' },
+  { key:'Hindu - Brahmin',         label:'Hindu - Brahmin',          abbr:'HB',  color:'#f97316' },
+  { key:'Hindu - OC',              label:'Hindu - OC',               abbr:'HC',  color:'#f59e0b' },
+  { key:'Unknown',                 label:'Unknown',                  abbr:'?',   color:'#64748b' },
+  { key:'Hindu - Shared',          label:'Hindu - Shared',           abbr:'HS',  color:'#6b7280' },
+  { key:'Hindu - GC',              label:'Hindu - GC',               abbr:'HG',  color:'#22d3ee' },
+  { key:'Christian (Unverified)',   label:'Christian (Unverified)',   abbr:'C?',  color:'#94a3b8' },
 ];
 
 function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewRecords }) {
@@ -1414,7 +1413,7 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewReco
 
       {/* Per-category rows */}
       <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {displayed.map(({ key, label:lbl, color, polled, notPolled }) => {
+        {displayed.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
           const rowTotal  = polled + notPolled || 1;
           const polledPct = ((polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
@@ -1422,7 +1421,7 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewReco
             <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                  <div style={{ width:22, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:800, color, letterSpacing:'-0.3px', padding:'0 3px' }}>{key}</div>
+                  <div style={{ minWidth:26, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color, letterSpacing:'0px', padding:'0 5px' }}>{abbr}</div>
                   <span style={{ fontSize:12, fontWeight:700, color }}>{lbl}</span>
                 </div>
                 <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{(polled+notPolled).toLocaleString()} total</span>
@@ -1474,16 +1473,16 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewReco
 // ─── Static 2023 Polled vs NotPolled: Community (with Age Group filter) ────────
 // Source: polled_notpolled_hmc_caste_comm.csv — top 10 communities by count
 const COMM_DEFS = [
-  { key:'Muslim',                          label:'Muslim',                       color:'#10b981' },
-  { key:'Billava',                         label:'Billava',                      color:'#f59e0b' },
-  { key:'GSB (Goud Saraswat Brahmin)',      label:'GSB (Goud Saraswat Brahmin)',  color:'#22d3ee' },
-  { key:'Mangalorean Catholic',            label:'Mangalorean Catholic',         color:'#8b5cf6' },
-  { key:'Bunt',                            label:'Bunt',                         color:'#f97316' },
-  { key:'Christian',                       label:'Christian',                    color:'#a78bfa' },
-  { key:'Billava/Mogaveera',               label:'Billava / Mogaveera',          color:'#34d399' },
-  { key:'Vishwakarma',                     label:'Vishwakarma',                  color:'#6ee7b7' },
-  { key:'Devadiga',                        label:'Devadiga',                     color:'#4ade80' },
-  { key:'Possibly Christian',              label:'Possibly Christian',           color:'#94a3b8' },
+  { key:'Muslim',                          label:'Muslim',                       abbr:'M',   color:'#10b981' },
+  { key:'Billava',                         label:'Billava',                      abbr:'Bi',  color:'#f59e0b' },
+  { key:'GSB (Goud Saraswat Brahmin)',      label:'GSB (Goud Saraswat Brahmin)',  abbr:'GSB', color:'#22d3ee' },
+  { key:'Mangalorean Catholic',            label:'Mangalorean Catholic',         abbr:'MC',  color:'#8b5cf6' },
+  { key:'Bunt',                            label:'Bunt',                         abbr:'Bu',  color:'#f97316' },
+  { key:'Christian',                       label:'Christian',                    abbr:'Ch',  color:'#a78bfa' },
+  { key:'Billava/Mogaveera',               label:'Billava / Mogaveera',          abbr:'BM',  color:'#34d399' },
+  { key:'Vishwakarma',                     label:'Vishwakarma',                  abbr:'Vk',  color:'#6ee7b7' },
+  { key:'Devadiga',                        label:'Devadiga',                     abbr:'Dv',  color:'#4ade80' },
+  { key:'Possibly Christian',              label:'Possibly Christian',           abbr:'PC',  color:'#94a3b8' },
 ];
 
 function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords }) {
@@ -1544,16 +1543,16 @@ function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords 
 
       {/* Per-community rows */}
       <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {displayed.map(({ key, label:lbl, color, polled, notPolled }) => {
+        {displayed.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
           const rowTotal  = polled + notPolled || 1;
           const polledPct = ((polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
-          const initial   = lbl.charAt(0).toUpperCase();
+
           return (
             <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                  <div style={{ width:20, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color }}>{initial}</div>
+                  <div style={{ minWidth:26, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color, padding:'0 4px' }}>{abbr}</div>
                   <span style={{ fontSize:12, fontWeight:700, color }}>{lbl}</span>
                 </div>
                 <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{(polled+notPolled).toLocaleString()} total</span>
@@ -5454,7 +5453,7 @@ export default function Dashboard() {
                 hmc={
                   selectedBooth ? s.boothHMC :
                   selectedWard  ? s.voterHMC || (s.totalHindu || s.totalMuslim || s.totalChristian ? { H: s.totalHindu || 0, M: s.totalMuslim || 0, C: s.totalChristian || 0 } : null) :
-                  HMC_2025
+                  s.voterHMC
                 }
                 loading={activeLoading}
                 label={
