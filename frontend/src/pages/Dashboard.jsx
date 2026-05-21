@@ -224,93 +224,6 @@ function CommunityClassificationPanel() {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {/* ── Header ── */}
-      <div style={{
-        background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
-        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
-        padding: '20px 18px', marginBottom: 14,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
-      }}>
-        {/* Title row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>Community Classification</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Voter roll 2002 vs 2025 — broad category counts</div>
-          </div>
-          {/* Summary pills */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {[
-              { year: 2002, total: total2002, color: '#f59e0b' },
-              { year: 2025, total: total2025, color: '#22d3ee' },
-            ].map(({ year, total: t, color }) => (
-              <div key={year} style={{ background: `${color}12`, border: `1px solid ${color}30`, borderRadius: 10, padding: '6px 12px', textAlign: 'center' }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: `${color}99`, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{year}</div>
-                <div style={{ fontSize: 16, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{(t / 1000).toFixed(0)}k</div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>voters</div>
-              </div>
-            ))}
-            <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '6px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(16,185,129,0.7)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Growth</div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#10b981', fontFamily: 'var(--font-display)' }}>+31%</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>+59,976</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Broad category comparison bars */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {broadCategories.map(cat => {
-            const v02 = COMMUNITY_BROAD_DATA[2002][cat] || 0;
-            const v25 = COMMUNITY_BROAD_DATA[2025][cat] || 0;
-            const pct02 = ((v02 / maxBroadVal) * 100).toFixed(1);
-            const pct25 = ((v25 / maxBroadVal) * 100).toFixed(1);
-            const color = BROAD_COLORS[cat] || '#888';
-            const diff  = v25 - v02;
-            return (
-              <div key={cat}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', minWidth: 90 }}>{cat}</span>
-                    {v02 > 0 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{v02.toLocaleString()}</span>}
-                    <span style={{ fontSize: 9, color: `${color}99` }}>→</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color }}>{v25.toLocaleString()}</span>
-                  </div>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 7px',
-                    background: diff > 0 ? 'rgba(34,211,238,0.1)' : diff < 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)',
-                    color: diff > 0 ? '#22d3ee' : diff < 0 ? '#ef4444' : 'rgba(255,255,255,0.3)',
-                  }}>
-                    {diff > 0 ? '+' : ''}{diff.toLocaleString()}
-                  </span>
-                </div>
-                {/* 2002 bar */}
-                {v02 > 0 && (
-                  <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', marginBottom: 2 }}>
-                    <div style={{ width: `${pct02}%`, height: '100%', background: `${color}55`, borderRadius: 3, transition: 'width 0.6s ease' }} />
-                  </div>
-                )}
-                {/* 2025 bar */}
-                <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ width: `${pct25}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-            <div style={{ width: 28, height: 5, background: 'rgba(255,255,255,0.3)', borderRadius: 2, opacity: 0.5 }} />
-            <span>2002</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-            <div style={{ width: 28, height: 5, background: '#22d3ee', borderRadius: 2 }} />
-            <span>2025</span>
-          </div>
-        </div>
-      </div>
-
       {/* ── Detailed community table ── */}
       <div style={{
         background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
@@ -324,15 +237,12 @@ function CommunityClassificationPanel() {
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{detailedRows.length} communities · sorted by count</div>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            {[2025, 2002].map(yr => (
-              <button key={yr} onClick={() => { setActiveYear(yr); setShowAll(false); }} style={{
-                padding: '7px 16px', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                background: activeYear === yr ? (yr === 2025 ? 'rgba(34,211,238,0.15)' : 'rgba(245,158,11,0.15)') : 'rgba(255,255,255,0.04)',
-                border: activeYear === yr ? `1px solid ${yr === 2025 ? 'rgba(34,211,238,0.4)' : 'rgba(245,158,11,0.4)'}` : '1px solid rgba(255,255,255,0.08)',
-                color: activeYear === yr ? (yr === 2025 ? '#22d3ee' : '#f59e0b') : 'rgba(255,255,255,0.4)',
-                transition: 'all 0.15s',
-              }}>{yr}</button>
-            ))}
+            <div style={{
+              padding: '7px 16px', borderRadius: 9, fontSize: 13, fontWeight: 700,
+              background: 'rgba(34,211,238,0.15)',
+              border: '1px solid rgba(34,211,238,0.4)',
+              color: '#22d3ee',
+            }}>2025</div>
           </div>
         </div>
 
