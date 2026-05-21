@@ -294,4 +294,40 @@ export const communityApi = {
   },
 };
 
+// ── HMC Records (2025_new) ───────────────────────────────────────────────────
+export const hmcApi = {
+  /**
+   * Fetch voter records from 2025_new collection filtered by Religion (H/M/C).
+   * @param {string} religion  - 'H' | 'M' | 'C'
+   * @param {number} page      - 1-based page
+   * @param {number} limit     - max 100
+   * @param {string} [q]       - free-text search
+   */
+  records: (religion, page = 1, limit = 25, q = '') => {
+    const params = { religion, page, limit };
+    if (q) params.q = q;
+    return api.get('/api/hmc-records/', { params });
+  },
+};
+
+// ── Polled / NotPolled Records (2023_polled_notpolled_caste_comm_hmc) ─────────
+export const polledApi = {
+  /**
+   * Fetch voter records from the 2023 polled/notpolled dataset.
+   * @param {string} filterType  - 'religion' | 'category' | 'community'
+   * @param {string} value       - filter value (e.g. 'H', 'Hindu - OBC', 'Billava')
+   * @param {string} [status]    - 'Polled' | 'NotPolled' | 'All' (default 'All')
+   * @param {number} [page]      - 1-based
+   * @param {number} [limit]     - max 100
+   * @param {string} [q]         - free-text search
+   *
+   * Response: { success, filter_type, value, status, total_count, total_pages, page, limit, records[] }
+   */
+  records: (filterType, value, status = 'All', page = 1, limit = 25, q = '') => {
+    const params = { filter_type: filterType, value, status, page, limit };
+    if (q) params.q = q;
+    return api.get('/api/polled-records/', { params });
+  },
+};
+
 export default api;

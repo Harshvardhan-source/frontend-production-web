@@ -159,40 +159,47 @@ const COMMUNITY_DETAILED_DATA = {
     ['Shivalli Brahmin', 43, 'GC'],
   ],
   2025: [
-    ['Unclassified',                  114178, 'Unknown'],
-    ['Muslim',                          37353, 'Muslim'],
-    // Grouped row — communities array + combined count
-    [['Mangalorean Catholic', 'Christian', 'Possibly Christian'], 33781, 'Christian - OC', 'Christian Community (All)'],
-    ['GSB (Goud Saraswat Brahmin)',     25750, 'Hindu - Brahmin'],
-    ['Bunt',                            15903, 'Hindu - OC'],
-    ['Billava',                         11968, 'Hindu - OBC'],
-    ['Vishwakarma',                      2459, 'Hindu - OBC'],
-    ['Billava / Mogaveera',              1636, 'Hindu - OBC'],
-    ['Devadiga',                         1568, 'Hindu - OBC'],
-    ['Multiple communities (Naik)',      1437, 'Hindu - Shared'],
-    ['Possibly Muslim',                  1332, 'Muslim (Unverified)'],
-    ['Okkaliga / Vokkaliga',             1028, 'Hindu - GC'],
-    ['OBC',                               749, 'Hindu - OBC'],
-    ['Kottari (OBC)',                      587, 'Hindu - OBC'],
-    ['Multiple communities',              435, 'Hindu - Shared'],
-    ['Potter community',                  432, 'Hindu - OBC'],
-    ['Kulala / agricultural groups',      319, 'Hindu - OBC'],
-    ['Ganiga (OBC)',                       222, 'Hindu - OBC'],
-    ['Shivalli Brahmin',                   210, 'Hindu - Brahmin'],
-    ['Trading / agricultural groups',      201, 'Hindu - Shared'],
-    ['Agrarian / coastal groups',          104, 'Hindu - Shared'],
-    ['Havyaka Brahmin',                     98, 'Hindu - Brahmin'],
-    ['Kotekshatriya',                       84, 'Hindu - OBC'],
-    ['ST (Scheduled Tribe)',                61, 'Hindu - ST'],
-    ['Washer community',                    44, 'Hindu - OBC'],
-    ['SC (Scheduled Caste)',                23, 'Hindu - SC'],
-    ['Vishwakarma / Brahmin / shared',      10, 'Hindu - Shared'],
-    ['Billava / Bunt variants',              8, 'Hindu - OBC/Shared'],
-    ['Weaver community',                     8, 'Hindu - OBC'],
-    ['Mogaveera',                            4, 'Hindu - OBC'],
-    ['Vishwakarma / Artisan',                3, 'Hindu - OBC/Shared'],
-    ['Coastal communities',                  2, 'Hindu - OBC'],
-    ['Billava / Temple service groups',      1, 'Hindu - OBC'],
+    // Source: 2025_caste_community_HMC.csv  (total 251,998 rows)
+    ['Unclassified',                                      95127, 'Unknown'],
+    ['Muslim',                                            47886, 'Muslim'],
+    // Grouped row: 3 Christian sub-communities combined
+    [['Mangalorean Catholic', 'Christian', 'Possibly Christian'], 36023, 'Christian - OC', 'Christian Community (All)'],
+    ['GSB (Goud Saraswat Brahmin)',                        26229, 'Hindu - Brahmin'],
+    ['Bunt',                                              16487, 'Hindu - OC'],
+    ['Billava',                                           10821, 'Hindu - OBC'],
+    ['Billava/Mogaveera',                                  4374, 'Hindu - OBC'],
+    ['Vishwakarma',                                        2781, 'Hindu - OBC'],
+    ['Devadiga',                                           1570, 'Hindu - OBC'],
+    ['Multiple communities (Naik)',                        1441, 'Hindu - Shared'],
+    ['Possibly Christian',                                 1377, 'Christian (Unverified)'],
+    ['OBC (Shet)',                                         1341, 'Hindu - OBC'],
+    ['Mogaveera',                                          1168, 'Hindu - OBC'],
+    ['Okkaliga/Vokkaliga',                                 1131, 'Hindu - GC'],
+    ['OBC',                                                 741, 'Hindu - OBC'],
+    ['Kottari (OBC)',                                       585, 'Hindu - OBC'],
+    ['Multiple communities',                                434, 'Hindu - Shared'],
+    ['Potter community',                                    433, 'Hindu - OBC'],
+    ['Nair (Kerala GC)',                                    355, 'Hindu - GC'],
+    ['Shivalli Brahmin',                                    310, 'Hindu - Brahmin'],
+    ['Jogi (OBC)',                                          264, 'Hindu - OBC'],
+    ['Brahmin (Coastal)',                                   226, 'Hindu - Brahmin'],
+    ['Ganiga (OBC)',                                        222, 'Hindu - OBC'],
+    ['Trading/agricultural groups',                        200, 'Hindu - Shared'],
+    ['Possibly Muslim',                                    192, 'Muslim (Unverified)'],
+    ['Chettiyar (Tamil/Telugu GC)',                        127, 'Hindu - GC'],
+    ['Agrarian/coastal groups',                            102, 'Hindu - Shared'],
+    ['Havyaka Brahmin',                                     98, 'Hindu - Brahmin'],
+    ['Kotekshatriya',                                       83, 'Hindu - OBC'],
+    ['ST (Scheduled Tribe)',                                54, 'Hindu - ST'],
+    ['Washer community',                                    42, 'Hindu - OBC'],
+    ['SC (Scheduled Caste)',                                23, 'Hindu - SC'],
+    ['Parekh (Gujarati GC)',                                11, 'Hindu - GC'],
+    ['Vishwakarma/Brahmin/shared',                          10, 'Hindu - Shared'],
+    ['Billava/Bunt variants',                                8, 'Hindu - OBC/Shared'],
+    ['Weaver community',                                     8, 'Hindu - OBC'],
+    ['Vishwakarma/Artisan',                                  3, 'Hindu - OBC/Shared'],
+    ['Coastal communities',                                  2, 'Hindu - OBC'],
+    ['Billava/Temple service groups',                        1, 'Hindu - OBC'],
   ],
 };
 
@@ -778,8 +785,238 @@ const ChartTip = ({ active, payload, label }) => {
 };
 
 // ─── NEW: Ward SIR Political Intelligence Panel ───────────────────────────────
+// ─── HMC Records Modal (2025_new collection) ─────────────────────────────────
+function HMCRecordsModal({ religion, label, totalCount, color, onClose }) {
+  const [records, setRecords]         = useState([]);
+  const [page, setPage]               = useState(1);
+  const [totalPages, setTotalPages]   = useState(1);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState(null);
+  const [search, setSearch]           = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const LIMIT = 25;
+
+  const fetchRecords = useCallback(async (pg, q) => {
+    setLoading(true); setError(null);
+    try {
+      const params = new URLSearchParams({ religion, page: pg, limit: LIMIT });
+      if (q) params.append('q', q);
+      const res = await api.get(`/api/hmc-records/?${params}`);
+      setRecords(res.data.records || []);
+      setTotalPages(res.data.total_pages || 1);
+    } catch (e) {
+      setError(e?.response?.data?.message || 'Failed to load records.');
+    } finally { setLoading(false); }
+  }, [religion]);
+
+  useEffect(() => { fetchRecords(page, search); }, [page, search, fetchRecords]);
+  useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = ''; }; }, []);
+
+  const COLS = [
+    { key:'Serial No', label:'#',       w:50  },
+    { key:'Epic NO',   label:'Epic No', w:110 },
+    { key:'Name',      label:'Name',    w:180 },
+    { key:'Relation Name', label:'Relation', w:140 },
+    { key:'Age',       label:'Age',     w:50  },
+    { key:'Gender',    label:'Gender',  w:65  },
+    { key:'Booth No',  label:'Booth',   w:60  },
+    { key:'Religion',  label:'Rel',     w:50  },
+  ];
+
+  return createPortal(
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:900, maxHeight:'90vh', background:'linear-gradient(145deg,rgba(12,21,38,0.99),rgba(7,13,26,0.99))', border:'1px solid rgba(255,255,255,0.1)', borderRadius:20, display:'flex', flexDirection:'column', boxShadow:'0 40px 100px rgba(0,0,0,0.8)', overflow:'hidden' }}>
+        {/* Header */}
+        <div style={{ padding:'18px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between', background:`linear-gradient(135deg,${color}10,transparent)`, flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:10, height:10, borderRadius:'50%', background:color, boxShadow:`0 0 8px ${color}` }} />
+            <div>
+              <div style={{ fontSize:15, fontWeight:800, color:'var(--text-1)' }}>{label} Voter Records</div>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:1 }}>
+                <span style={{ color, fontWeight:700 }}>Religion: {religion}</span>
+                &nbsp;·&nbsp;{(totalCount||0).toLocaleString()} voters · source: 2025_new
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'6px 8px', cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex', alignItems:'center' }}><X size={16} /></button>
+        </div>
+        {/* Search */}
+        <form onSubmit={e => { e.preventDefault(); setPage(1); setSearch(searchInput); }} style={{ padding:'12px 20px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', gap:8, flexShrink:0 }}>
+          <div style={{ flex:1, position:'relative' }}>
+            <Search size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,0.3)', pointerEvents:'none' }} />
+            <input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search by name, Epic No, booth…" style={{ width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.09)', borderRadius:9, padding:'8px 12px 8px 32px', color:'var(--text-1)', fontSize:13, outline:'none', boxSizing:'border-box' }} />
+          </div>
+          <button type="submit" style={{ background:`${color}22`, border:`1px solid ${color}40`, borderRadius:9, padding:'8px 16px', cursor:'pointer', color, fontSize:12, fontWeight:700 }}>Search</button>
+          {search && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:9, padding:'8px 10px', cursor:'pointer', color:'rgba(255,255,255,0.4)', fontSize:12 }}>Clear</button>}
+        </form>
+        {/* Table */}
+        <div style={{ flex:1, overflowY:'auto', overflowX:'auto' }}>
+          {loading ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200, gap:10, color:'rgba(255,255,255,0.4)' }}><Loader2 size={20} style={{ animation:'spin 1s linear infinite' }} /><span style={{ fontSize:13 }}>Loading…</span></div>
+          ) : error ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200, flexDirection:'column', gap:8 }}><AlertTriangle size={20} style={{ color:'#ef4444' }} /><span style={{ fontSize:13, color:'#ef4444' }}>{error}</span></div>
+          ) : records.length === 0 ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:160, color:'rgba(255,255,255,0.25)', fontSize:13 }}>No records found.</div>
+          ) : (
+            <table style={{ width:'100%', borderCollapse:'collapse', minWidth:700 }}>
+              <thead>
+                <tr style={{ background:'rgba(255,255,255,0.03)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+                  {COLS.map(c => <th key={c.key} style={{ padding:'8px 14px', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.6px', textAlign:'left', whiteSpace:'nowrap', minWidth:c.w, position:'sticky', top:0, background:'rgba(10,18,35,0.98)' }}>{c.label}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((rec, idx) => (
+                  <tr key={rec['Epic NO'] || idx} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)', background: idx%2===0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                    {COLS.map(c => (
+                      <td key={c.key} style={{ padding:'9px 14px', fontSize:12, color: c.key==='Name' ? 'rgba(255,255,255,0.85)' : c.key==='Religion' ? color : 'rgba(255,255,255,0.5)', fontWeight: c.key==='Religion' ? 700 : 400, whiteSpace: c.key==='Name' ? 'normal' : 'nowrap', lineHeight:1.4 }}>
+                        {rec[c.key] ?? '—'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {/* Pagination */}
+        {totalPages > 1 && !loading && (
+          <div style={{ padding:'12px 20px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+            <span style={{ fontSize:12, color:'rgba(255,255,255,0.3)' }}>Page {page} of {totalPages}</span>
+            <div style={{ display:'flex', gap:6 }}>
+              {[{label:'«',onClick:()=>setPage(1),disabled:page===1},{label:'‹',onClick:()=>setPage(p=>Math.max(1,p-1)),disabled:page===1},{label:'›',onClick:()=>setPage(p=>Math.min(totalPages,p+1)),disabled:page===totalPages},{label:'»',onClick:()=>setPage(totalPages),disabled:page===totalPages}].map(btn => (
+                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{ width:32, height:32, borderRadius:7, cursor:btn.disabled?'default':'pointer', background:btn.disabled?'rgba(255,255,255,0.03)':`${color}18`, border:`1px solid ${btn.disabled?'rgba(255,255,255,0.06)':color+'40'}`, color:btn.disabled?'rgba(255,255,255,0.2)':color, fontSize:13, fontWeight:700 }}>{btn.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>,
+    document.body
+  );
+}
+
+// ─── Polled Records Modal (2023_polled_notpolled_caste_comm_hmc collection) ────
+function PolledRecordsModal({ filterType, value, status, displayLabel, totalCount, color, onClose }) {
+  const [records, setRecords]         = useState([]);
+  const [page, setPage]               = useState(1);
+  const [totalPages, setTotalPages]   = useState(1);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState(null);
+  const [search, setSearch]           = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const LIMIT = 25;
+
+  const fetchRecords = useCallback(async (pg, q) => {
+    setLoading(true); setError(null);
+    try {
+      const params = new URLSearchParams({ filter_type: filterType, value, status, page: pg, limit: LIMIT });
+      if (q) params.append('q', q);
+      const res = await api.get(`/api/polled-records/?${params}`);
+      setRecords(res.data.records || []);
+      setTotalPages(res.data.total_pages || 1);
+    } catch (e) {
+      setError(e?.response?.data?.message || 'Failed to load records.');
+    } finally { setLoading(false); }
+  }, [filterType, value, status]);
+
+  useEffect(() => { fetchRecords(page, search); }, [page, search, fetchRecords]);
+  useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = ''; }; }, []);
+
+  const statusLabel = status === 'All' ? 'All' : status === 'Polled' ? '✓ Polled' : '✗ Not Polled';
+  const COLS = [
+    { key:'booth',          label:'Booth',    w:55  },
+    { key:'voterId',        label:'Epic No',  w:110 },
+    { key:'name',           label:'Name',     w:180 },
+    { key:'relationName',   label:'Relation', w:130 },
+    { key:'age',            label:'Age',      w:45  },
+    { key:'gender',         label:'Gender',   w:60  },
+    { key:'religion',       label:'Rel',      w:40  },
+    { key:'Community',      label:'Community',w:140 },
+    { key:'Category',       label:'Category', w:130 },
+    { key:'Polling Status', label:'Status',   w:90  },
+  ];
+
+  return createPortal(
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:1050, maxHeight:'90vh', background:'linear-gradient(145deg,rgba(12,21,38,0.99),rgba(7,13,26,0.99))', border:'1px solid rgba(255,255,255,0.1)', borderRadius:20, display:'flex', flexDirection:'column', boxShadow:'0 40px 100px rgba(0,0,0,0.8)', overflow:'hidden' }}>
+        {/* Header */}
+        <div style={{ padding:'18px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between', background:`linear-gradient(135deg,${color}10,transparent)`, flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:10, height:10, borderRadius:'50%', background:color, boxShadow:`0 0 8px ${color}` }} />
+            <div>
+              <div style={{ fontSize:15, fontWeight:800, color:'var(--text-1)' }}>{displayLabel} — {statusLabel}</div>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:1 }}>
+                <span style={{ color, fontWeight:700 }}>{filterType}: {value}</span>
+                &nbsp;·&nbsp;{(totalCount||0).toLocaleString()} voters · source: 2023_polled_notpolled_caste_comm_hmc
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'6px 8px', cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex', alignItems:'center' }}><X size={16} /></button>
+        </div>
+        {/* Search */}
+        <form onSubmit={e => { e.preventDefault(); setPage(1); setSearch(searchInput); }} style={{ padding:'12px 20px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', gap:8, flexShrink:0 }}>
+          <div style={{ flex:1, position:'relative' }}>
+            <Search size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,0.3)', pointerEvents:'none' }} />
+            <input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search by name, Epic No, booth…" style={{ width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.09)', borderRadius:9, padding:'8px 12px 8px 32px', color:'var(--text-1)', fontSize:13, outline:'none', boxSizing:'border-box' }} />
+          </div>
+          <button type="submit" style={{ background:`${color}22`, border:`1px solid ${color}40`, borderRadius:9, padding:'8px 16px', cursor:'pointer', color, fontSize:12, fontWeight:700 }}>Search</button>
+          {search && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:9, padding:'8px 10px', cursor:'pointer', color:'rgba(255,255,255,0.4)', fontSize:12 }}>Clear</button>}
+        </form>
+        {/* Table */}
+        <div style={{ flex:1, overflowY:'auto', overflowX:'auto' }}>
+          {loading ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200, gap:10, color:'rgba(255,255,255,0.4)' }}><Loader2 size={20} style={{ animation:'spin 1s linear infinite' }} /><span style={{ fontSize:13 }}>Loading…</span></div>
+          ) : error ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200, flexDirection:'column', gap:8 }}><AlertTriangle size={20} style={{ color:'#ef4444' }} /><span style={{ fontSize:13, color:'#ef4444' }}>{error}</span></div>
+          ) : records.length === 0 ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:160, color:'rgba(255,255,255,0.25)', fontSize:13 }}>No records found.</div>
+          ) : (
+            <table style={{ width:'100%', borderCollapse:'collapse', minWidth:850 }}>
+              <thead>
+                <tr style={{ background:'rgba(255,255,255,0.03)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+                  {COLS.map(c => <th key={c.key} style={{ padding:'8px 12px', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.6px', textAlign:'left', whiteSpace:'nowrap', minWidth:c.w, position:'sticky', top:0, background:'rgba(10,18,35,0.98)' }}>{c.label}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((rec, idx) => (
+                  <tr key={rec['voterId'] || idx} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)', background: idx%2===0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                    {COLS.map(c => {
+                      const v = rec[c.key];
+                      const isStatus = c.key === 'Polling Status';
+                      const statusColor = v === 'Polled' ? '#10b981' : '#ef4444';
+                      return (
+                        <td key={c.key} style={{ padding:'9px 12px', fontSize:12, color: c.key==='name' ? 'rgba(255,255,255,0.85)' : isStatus ? statusColor : 'rgba(255,255,255,0.5)', fontWeight: isStatus ? 700 : 400, whiteSpace: c.key==='name' || c.key==='Community' ? 'normal' : 'nowrap', lineHeight:1.4 }}>
+                          {v ?? '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {/* Pagination */}
+        {totalPages > 1 && !loading && (
+          <div style={{ padding:'12px 20px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+            <span style={{ fontSize:12, color:'rgba(255,255,255,0.3)' }}>Page {page} of {totalPages}</span>
+            <div style={{ display:'flex', gap:6 }}>
+              {[{label:'«',onClick:()=>setPage(1),disabled:page===1},{label:'‹',onClick:()=>setPage(p=>Math.max(1,p-1)),disabled:page===1},{label:'›',onClick:()=>setPage(p=>Math.min(totalPages,p+1)),disabled:page===totalPages},{label:'»',onClick:()=>setPage(totalPages),disabled:page===totalPages}].map(btn => (
+                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{ width:32, height:32, borderRadius:7, cursor:btn.disabled?'default':'pointer', background:btn.disabled?'rgba(255,255,255,0.03)':`${color}18`, border:`1px solid ${btn.disabled?'rgba(255,255,255,0.06)':color+'40'}`, color:btn.disabled?'rgba(255,255,255,0.2)':color, fontSize:13, fontWeight:700 }}>{btn.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>,
+    document.body
+  );
+}
+
 // ─── HMC Religion Breakdown Widget ───────────────────────────────────────────
-function HMCWidget({ hmc, loading, label = 'Constituency' }) {
+function HMCWidget({ hmc, loading, label = 'Constituency', onViewRecords }) {
   if (loading) {
     return (
       <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
@@ -792,7 +1029,10 @@ function HMCWidget({ hmc, loading, label = 'Constituency' }) {
   }
   if (!hmc) return null;
 
-  const H = hmc.H || 0, M = hmc.M || 0, C = hmc.C || 0;
+  // Use API data if available, else fall back to corrected 2025 roll counts
+  const H = (hmc.H && hmc.H > 0) ? hmc.H : HMC_2025.H;
+  const M = (hmc.M && hmc.M > 0) ? hmc.M : HMC_2025.M;
+  const C = (hmc.C && hmc.C > 0) ? hmc.C : HMC_2025.C;
   const total = H + M + C || 1;
   const bars = [
     { key:'H', label:'Hindu',     count:H, color:'#f97316', bg:'rgba(249,115,22,0.1)',  border:'rgba(249,115,22,0.25)' },
@@ -823,6 +1063,12 @@ function HMCWidget({ hmc, loading, label = 'Constituency' }) {
                 <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(90deg,${color}80,${color})`, borderRadius:2, transition:'width 0.6s ease' }} />
               </div>
               <div style={{ fontSize:10, fontWeight:700, color, marginTop:4 }}>{pct}%</div>
+              <button
+                onClick={() => onViewRecords && onViewRecords(key, lbl, count, color)}
+                style={{ marginTop:6, width:'100%', background:`${color}14`, border:`1px solid ${color}30`, borderRadius:6, padding:'4px 0', cursor:'pointer', fontSize:9, fontWeight:700, color, display:'flex', alignItems:'center', justifyContent:'center', gap:3 }}
+              >
+                <Users size={9} /> View
+              </button>
             </div>
           );
         })}
@@ -851,6 +1097,7 @@ function HMCWidget({ hmc, loading, label = 'Constituency' }) {
 // since the full polled voter list lives in MongoDB (not the xlsx).
 const AGE_GROUPS = ['All', '18-25', '26-30', '31-35', '36-40', '41-45', '46-50', '51-60', '60+'];
 
+// Source: polled_notpolled_hmc_caste_comm.csv (246,960 rows, 2023 election)
 const NP_HMC_BY_AGE = {
   'All':   { H: 62734, M: 22587, C: 19932 },
   '18-25': { H:  5234, M:  2529, C:  1491 },
@@ -862,6 +1109,9 @@ const NP_HMC_BY_AGE = {
   '51-60': { H:  9804, M:  3084, C:  2879 },
   '60+':   { H: 18538, M:  3410, C:  6197 },
 };
+// 2025 voter roll corrected counts (predictions_2025_corrected.csv)
+const HMC_2025 = { H: 159857, M: 48285, C: 43802 };
+// 2023 polled/notpolled actual counts
 const HMC_POLLED_ALL = { H: 97317, M: 22487, C: 21903 };
 const HMC_TOTALS     = { H: 160051, M: 45074, C: 41835 };
 const HMC_RATE       = { H: HMC_POLLED_ALL.H/HMC_TOTALS.H, M: HMC_POLLED_ALL.M/HMC_TOTALS.M, C: HMC_POLLED_ALL.C/HMC_TOTALS.C };
@@ -892,18 +1142,19 @@ function _hmcForAge(ag, livePolledHMC) {
   return r;
 }
 
+// Source: polled_notpolled_hmc_caste_comm.csv — actual Category×Age×Status counts
 const NP_BROAD_BY_AGE = {
-  'All':   { GC:10777, OBC:5281, 'GC/OBC':6279, Minority:42246, 'OBC/SC':561, ST:31, Ambiguous:528 },
-  '18-25': { GC: 745,  OBC: 456, 'GC/OBC': 556, Minority: 4017, 'OBC/SC':  50, ST:  0, Ambiguous:  75 },
-  '26-30': { GC: 906,  OBC: 446, 'GC/OBC': 589, Minority: 4880, 'OBC/SC':  63, ST:  0, Ambiguous:  81 },
-  '31-35': { GC: 959,  OBC: 483, 'GC/OBC': 616, Minority: 5338, 'OBC/SC':  64, ST:  0, Ambiguous:  64 },
-  '36-40': { GC: 944,  OBC: 491, 'GC/OBC': 615, Minority: 5006, 'OBC/SC':  60, ST:  2, Ambiguous:  63 },
-  '41-45': { GC: 833,  OBC: 416, 'GC/OBC': 560, Minority: 3987, 'OBC/SC':  56, ST:  1, Ambiguous:  54 },
-  '46-50': { GC: 698,  OBC: 464, 'GC/OBC': 518, Minority: 3601, 'OBC/SC':  36, ST:  2, Ambiguous:  60 },
-  '51-60': { GC:1415,  OBC: 890, 'GC/OBC': 972, Minority: 5917, 'OBC/SC':  97, ST:  7, Ambiguous: 116 },
-  '60+':   { GC:4277,  OBC:1878, 'GC/OBC':1941, Minority: 9500, 'OBC/SC': 153, ST: 19, Ambiguous: 221 },
+  'All':   { 'Hindu - OBC':31972, 'Muslim':24589, 'Christian - OC':18071, 'Hindu - Brahmin':13613, 'Hindu - OC':7462, 'Unknown':5996, 'Hindu - Shared':1091, 'Hindu - GC':1033, 'Christian (Unverified)':1111 },
+  '18-25': { 'Hindu - OBC': 2418, 'Muslim': 2793, 'Christian - OC': 1399, 'Hindu - Brahmin': 1025, 'Hindu - OC':  644, 'Unknown':  720, 'Hindu - Shared':  79, 'Hindu - GC':  68, 'Christian (Unverified)':  79 },
+  '26-30': { 'Hindu - OBC': 2683, 'Muslim': 3215, 'Christian - OC': 1744, 'Hindu - Brahmin': 1153, 'Hindu - OC':  725, 'Unknown':  657, 'Hindu - Shared':  91, 'Hindu - GC':  63, 'Christian (Unverified)': 109 },
+  '31-35': { 'Hindu - OBC': 3053, 'Muslim': 3411, 'Christian - OC': 1911, 'Hindu - Brahmin': 1247, 'Hindu - OC':  761, 'Unknown':  676, 'Hindu - Shared': 117, 'Hindu - GC':  99, 'Christian (Unverified)': 121 },
+  '36-40': { 'Hindu - OBC': 3319, 'Muslim': 3153, 'Christian - OC': 1857, 'Hindu - Brahmin': 1301, 'Hindu - OC':  757, 'Unknown':  702, 'Hindu - Shared': 109, 'Hindu - GC':  86, 'Christian (Unverified)': 115 },
+  '41-45': { 'Hindu - OBC': 3039, 'Muslim': 2524, 'Christian - OC': 1514, 'Hindu - Brahmin': 1128, 'Hindu - OC':  667, 'Unknown':  537, 'Hindu - Shared': 113, 'Hindu - GC': 110, 'Christian (Unverified)':  93 },
+  '46-50': { 'Hindu - OBC': 3025, 'Muslim': 2250, 'Christian - OC': 1395, 'Hindu - Brahmin':  929, 'Hindu - OC':  591, 'Unknown':  469, 'Hindu - Shared':  81, 'Hindu - GC': 118, 'Christian (Unverified)':  77 },
+  '51-60': { 'Hindu - OBC': 5495, 'Muslim': 3341, 'Christian - OC': 2650, 'Hindu - Brahmin': 1842, 'Hindu - OC': 1105, 'Unknown':  760, 'Hindu - Shared': 178, 'Hindu - GC': 199, 'Christian (Unverified)': 158 },
+  '60+':   { 'Hindu - OBC': 8940, 'Muslim': 3902, 'Christian - OC': 5601, 'Hindu - Brahmin': 4988, 'Hindu - OC': 2212, 'Unknown': 1475, 'Hindu - Shared': 323, 'Hindu - GC': 290, 'Christian (Unverified)': 359 },
 };
-const BROAD_POLLED_ALL = { GC:16684, OBC:9011, 'GC/OBC':10167, Minority:44055, 'OBC/SC':843, ST:47, Ambiguous:1053 };
+const BROAD_POLLED_ALL = { 'Hindu - OBC':53412, 'Muslim':24643, 'Christian - OC':20668, 'Hindu - Brahmin':20707, 'Hindu - OC':11724, 'Unknown':6522, 'Hindu - Shared':1530, 'Hindu - GC':1209, 'Christian (Unverified)':985 };
 
 function _broadForAge(ag) {
   const np = NP_BROAD_BY_AGE[ag];
@@ -916,18 +1167,19 @@ function _broadForAge(ag) {
   });
 }
 
+// Source: polled_notpolled_hmc_caste_comm.csv — actual Community×Age×Status counts
 const NP_COMM_BY_AGE = {
-  'All':   { Muslim:22510, MangCath:10394, ChristCath:9342, GSB:5743, BuntBillMog:4422, BrahmiMulti:2292, Brahmin:1613, Bunt:1455, Mogaveera:1201, BillDev:940, BillArt:862, BuntGSB:805, Devadiga:501, VishwGSB:528, BillSCovlap:561 },
-  '18-25': { Muslim: 2526, MangCath:  846, ChristCath: 645, GSB: 388, BuntBillMog: 379, BrahmiMulti: 140, Brahmin: 124, Bunt: 136, Mogaveera: 126, BillDev: 64, BillArt: 87, BuntGSB: 60, Devadiga: 40, VishwGSB: 57, BillSCovlap: 49 },
-  '26-30': { Muslim: 2952, MangCath: 1030, ChristCath: 898, GSB: 467, BuntBillMog: 410, BrahmiMulti: 181, Brahmin: 146, Bunt: 145, Mogaveera: 117, BillDev: 69, BillArt: 68, BuntGSB: 68, Devadiga: 40, VishwGSB: 70, BillSCovlap: 61 },
-  '31-35': { Muslim: 3201, MangCath: 1087, ChristCath:1050, GSB: 503, BuntBillMog: 430, BrahmiMulti: 194, Brahmin: 144, Bunt: 138, Mogaveera: 117, BillDev: 68, BillArt: 86, BuntGSB: 93, Devadiga: 43, VishwGSB: 47, BillSCovlap: 63 },
-  '36-40': { Muslim: 2931, MangCath: 1083, ChristCath: 992, GSB: 493, BuntBillMog: 441, BrahmiMulti: 203, Brahmin: 142, Bunt: 134, Mogaveera: 114, BillDev: 83, BillArt: 91, BuntGSB: 79, Devadiga: 36, VishwGSB: 43, BillSCovlap: 56 },
-  '41-45': { Muslim: 2359, MangCath:  826, ChristCath: 802, GSB: 427, BuntBillMog: 400, BrahmiMulti: 197, Brahmin: 126, Bunt: 121, Mogaveera:  76, BillDev: 59, BillArt: 72, BuntGSB: 66, Devadiga: 39, VishwGSB: 35, BillSCovlap: 52 },
-  '46-50': { Muslim: 2103, MangCath:  800, ChristCath: 698, GSB: 358, BuntBillMog: 379, BrahmiMulti: 144, Brahmin: 111, Bunt: 107, Mogaveera:  86, BillDev: 88, BillArt: 81, BuntGSB: 64, Devadiga: 44, VishwGSB: 45, BillSCovlap: 35 },
-  '51-60': { Muslim: 3071, MangCath: 1526, ChristCath:1320, GSB: 754, BuntBillMog: 684, BrahmiMulti: 285, Brahmin: 223, Bunt: 208, Mogaveera: 195, BillDev:162, BillArt:128, BuntGSB:109, Devadiga: 71, VishwGSB: 89, BillSCovlap: 94 },
-  '60+':   { Muslim: 3367, MangCath: 3196, ChristCath:2937, GSB:2353, BuntBillMog:1299, BrahmiMulti: 948, Brahmin: 597, Bunt: 466, Mogaveera: 370, BillDev:347, BillArt:249, BuntGSB:266, Devadiga:188, VishwGSB:142, BillSCovlap:151 },
+  'All':   { 'Muslim':24636, 'Mangalorean Catholic':13693, 'GSB (Goud Saraswat Brahmin)':16089, 'Billava':19803, 'Bunt':9588, 'Christian':4419, 'Billava/Mogaveera':2427, 'Vishwakarma':1487, 'Devadiga':724, 'Possibly Christian':1205 },
+  '18-25': { 'Muslim': 2797, 'Mangalorean Catholic': 1135, 'GSB (Goud Saraswat Brahmin)': 1192, 'Billava': 1367, 'Bunt':  773, 'Christian':  269, 'Billava/Mogaveera':  249, 'Vishwakarma':  130, 'Devadiga':  75, 'Possibly Christian':  88 },
+  '26-30': { 'Muslim': 3222, 'Mangalorean Catholic': 1341, 'GSB (Goud Saraswat Brahmin)': 1322, 'Billava': 1567, 'Bunt':  916, 'Christian':  411, 'Billava/Mogaveera':  240, 'Vishwakarma':  147, 'Devadiga':  60, 'Possibly Christian': 119 },
+  '31-35': { 'Muslim': 3421, 'Mangalorean Catholic': 1488, 'GSB (Goud Saraswat Brahmin)': 1463, 'Billava': 1844, 'Bunt':  992, 'Christian':  431, 'Billava/Mogaveera':  278, 'Vishwakarma':  132, 'Devadiga':  74, 'Possibly Christian': 125 },
+  '36-40': { 'Muslim': 3162, 'Mangalorean Catholic': 1393, 'GSB (Goud Saraswat Brahmin)': 1578, 'Billava': 2046, 'Bunt': 1008, 'Christian':  479, 'Billava/Mogaveera':  261, 'Vishwakarma':  146, 'Devadiga':  68, 'Possibly Christian': 117 },
+  '41-45': { 'Muslim': 2530, 'Mangalorean Catholic': 1101, 'GSB (Goud Saraswat Brahmin)': 1411, 'Billava': 1874, 'Bunt':  890, 'Christian':  422, 'Billava/Mogaveera':  224, 'Vishwakarma':  127, 'Devadiga':  70, 'Possibly Christian': 103 },
+  '46-50': { 'Muslim': 2253, 'Mangalorean Catholic': 1040, 'GSB (Goud Saraswat Brahmin)': 1172, 'Billava': 1960, 'Bunt':  782, 'Christian':  358, 'Billava/Mogaveera':  208, 'Vishwakarma':  143, 'Devadiga':  68, 'Possibly Christian':  87 },
+  '51-60': { 'Muslim': 3345, 'Mangalorean Catholic': 1991, 'GSB (Goud Saraswat Brahmin)': 2323, 'Billava': 3498, 'Bunt': 1486, 'Christian':  664, 'Billava/Mogaveera':  365, 'Vishwakarma':  257, 'Devadiga': 103, 'Possibly Christian': 166 },
+  '60+':   { 'Muslim': 3906, 'Mangalorean Catholic': 4204, 'GSB (Goud Saraswat Brahmin)': 5628, 'Billava': 5647, 'Bunt': 2741, 'Christian': 1385, 'Billava/Mogaveera':  602, 'Vishwakarma':  405, 'Devadiga': 206, 'Possibly Christian': 400 },
 };
-const COMM_POLLED_ALL = { Muslim:22359, MangCath:12234, ChristCath:9462, GSB:9062, BuntBillMog:7146, BrahmiMulti:3155, Brahmin:2467, Bunt:2467, Mogaveera:2008, BillDev:1631, BillArt:1411, BuntGSB:1440, Devadiga:1105, VishwGSB:1053, BillSCovlap:843 };
+const COMM_POLLED_ALL = { 'Muslim':24693, 'Mangalorean Catholic':16062, 'GSB (Goud Saraswat Brahmin)':24492, 'Billava':32961, 'Bunt':15263, 'Christian':4649, 'Billava/Mogaveera':4133, 'Vishwakarma':2648, 'Devadiga':1501, 'Possibly Christian':1078 };
 
 function _commForAge(ag) {
   const np = NP_COMM_BY_AGE[ag];
@@ -976,7 +1228,7 @@ function AgeNote() {
 }
 
 // ─── Polled / NotPolled HMC Widget (with Age Group filter) ───────────────────
-function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
+function PolledHMCWidget({ polledHMC, loading, label = 'Constituency', onViewRecords }) {
   const [ageGroup, setAgeGroup] = useState('All');
 
   if (loading) {
@@ -1071,6 +1323,15 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
                   </div>
                 </div>
               </div>
+              {ageGroup === 'All' && (
+                <div style={{ display:'flex', gap:4, marginTop:7 }}>
+                  {['Polled','NotPolled','All'].map(s => (
+                    <button key={s} onClick={() => onViewRecords && onViewRecords('religion', key, s, lbl, d.total, color)} style={{ flex:1, background:`${color}10`, border:`1px solid ${color}25`, borderRadius:5, padding:'3px 0', cursor:'pointer', fontSize:8, fontWeight:700, color, display:'flex', alignItems:'center', justifyContent:'center', gap:2 }}>
+                      <Users size={8}/>{s === 'All' ? 'All' : s === 'Polled' ? '✓ P' : '✗ NP'}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -1081,17 +1342,20 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency' }) {
 }
 
 // ─── Static 2023 Polled vs NotPolled: Broad Category (with Age Group filter) ──
+// Source: polled_notpolled_hmc_caste_comm.csv — Category field
 const BROAD_DEFS = [
-  { key:'GC',        label:'General Category', color:'#22d3ee' },
-  { key:'OBC',       label:'OBC',              color:'#10b981' },
-  { key:'GC/OBC',   label:'GC / OBC',         color:'#f59e0b' },
-  { key:'Minority',  label:'Minority',          color:'#8b5cf6' },
-  { key:'OBC/SC',   label:'OBC / SC',          color:'#ec4899' },
-  { key:'ST',        label:'Scheduled Tribe',   color:'#f97316' },
-  { key:'Ambiguous', label:'Ambiguous',         color:'#64748b' },
+  { key:'Hindu - OBC',             label:'Hindu - OBC',              color:'#8b5cf6' },
+  { key:'Muslim',                  label:'Muslim',                   color:'#10b981' },
+  { key:'Christian - OC',          label:'Christian - OC',           color:'#a78bfa' },
+  { key:'Hindu - Brahmin',         label:'Hindu - Brahmin',          color:'#f97316' },
+  { key:'Hindu - OC',              label:'Hindu - OC',               color:'#f59e0b' },
+  { key:'Unknown',                 label:'Unknown',                  color:'#64748b' },
+  { key:'Hindu - Shared',          label:'Hindu - Shared',           color:'#6b7280' },
+  { key:'Hindu - GC',              label:'Hindu - GC',               color:'#22d3ee' },
+  { key:'Christian (Unverified)',   label:'Christian (Unverified)',   color:'#94a3b8' },
 ];
 
-function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
+function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewRecords }) {
   const [showAll,  setShowAll]  = useState(false);
   const [ageGroup, setAgeGroup] = useState('All');
 
@@ -1182,6 +1446,15 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
                   </div>
                 </div>
               </div>
+              {ageGroup === 'All' && (
+                <div style={{ display:'flex', gap:4, marginTop:7 }}>
+                  {['Polled','NotPolled','All'].map(s => (
+                    <button key={s} onClick={() => onViewRecords && onViewRecords('category', key, s, lbl, polled+notPolled, color)} style={{ flex:1, background:`${color}10`, border:`1px solid ${color}25`, borderRadius:5, padding:'3px 0', cursor:'pointer', fontSize:8, fontWeight:700, color, display:'flex', alignItems:'center', justifyContent:'center', gap:2 }}>
+                      <Users size={8}/>{s === 'All' ? 'All' : s === 'Polled' ? '✓ P' : '✗ NP'}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -1198,25 +1471,21 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency' }) {
 }
 
 // ─── Static 2023 Polled vs NotPolled: Community (with Age Group filter) ────────
+// Source: polled_notpolled_hmc_caste_comm.csv — top 10 communities by count
 const COMM_DEFS = [
-  { key:'Muslim',      label:'Muslim',                    color:'#10b981' },
-  { key:'MangCath',    label:'Mangalorean Catholic',       color:'#8b5cf6' },
-  { key:'ChristCath',  label:'Christian / Catholic',       color:'#a78bfa' },
-  { key:'GSB',         label:'GSB',                       color:'#22d3ee' },
-  { key:'BuntBillMog', label:'Bunt / Billava / Mogaveera', color:'#f59e0b' },
-  { key:'BrahmiMulti', label:'Brahmin / Multi-community',  color:'#f97316' },
-  { key:'Brahmin',     label:'Brahmin',                   color:'#fb923c' },
-  { key:'Bunt',        label:'Bunt',                      color:'#fbbf24' },
-  { key:'Mogaveera',   label:'Mogaveera',                 color:'#34d399' },
-  { key:'BillDev',     label:'Billava / Devadiga',         color:'#6ee7b7' },
-  { key:'BillArt',     label:'Billava / Artisan',          color:'#5eead4' },
-  { key:'BuntGSB',     label:'Bunt / GSB',                 color:'#67e8f9' },
-  { key:'Devadiga',    label:'Devadiga',                  color:'#4ade80' },
-  { key:'VishwGSB',    label:'Vishwakarma / GSB',          color:'#64748b' },
-  { key:'BillSCovlap', label:'Billava / SC overlap',       color:'#ec4899' },
+  { key:'Muslim',                          label:'Muslim',                       color:'#10b981' },
+  { key:'Billava',                         label:'Billava',                      color:'#f59e0b' },
+  { key:'GSB (Goud Saraswat Brahmin)',      label:'GSB (Goud Saraswat Brahmin)',  color:'#22d3ee' },
+  { key:'Mangalorean Catholic',            label:'Mangalorean Catholic',         color:'#8b5cf6' },
+  { key:'Bunt',                            label:'Bunt',                         color:'#f97316' },
+  { key:'Christian',                       label:'Christian',                    color:'#a78bfa' },
+  { key:'Billava/Mogaveera',               label:'Billava / Mogaveera',          color:'#34d399' },
+  { key:'Vishwakarma',                     label:'Vishwakarma',                  color:'#6ee7b7' },
+  { key:'Devadiga',                        label:'Devadiga',                     color:'#4ade80' },
+  { key:'Possibly Christian',              label:'Possibly Christian',           color:'#94a3b8' },
 ];
 
-function PolledCommunityWidget({ loading, label = 'Constituency' }) {
+function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords }) {
   const [showAll,  setShowAll]  = useState(false);
   const [ageGroup, setAgeGroup] = useState('All');
 
@@ -1308,6 +1577,15 @@ function PolledCommunityWidget({ loading, label = 'Constituency' }) {
                   </div>
                 </div>
               </div>
+              {ageGroup === 'All' && (
+                <div style={{ display:'flex', gap:4, marginTop:7 }}>
+                  {['Polled','NotPolled','All'].map(s => (
+                    <button key={s} onClick={() => onViewRecords && onViewRecords('community', key, s, lbl, polled+notPolled, color)} style={{ flex:1, background:`${color}10`, border:`1px solid ${color}25`, borderRadius:5, padding:'3px 0', cursor:'pointer', fontSize:8, fontWeight:700, color, display:'flex', alignItems:'center', justifyContent:'center', gap:2 }}>
+                      <Users size={8}/>{s === 'All' ? 'All' : s === 'Polled' ? '✓ P' : '✗ NP'}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -4320,6 +4598,8 @@ export default function Dashboard() {
 
   const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
   const [localPlacesOpen,   setLocalPlacesOpen]   = useState(false);
+  const [hmcRecordsModal,   setHmcRecordsModal]   = useState(null); // { religion, label, totalCount, color }
+  const [polledRecordsModal,setPolledRecordsModal] = useState(null); // { filterType, value, status, displayLabel, totalCount, color }
   const [localPlacesTotal,  setLocalPlacesTotal]  = useState(null);
   const [localPlacesCounts, setLocalPlacesCounts] = useState({});
 
@@ -5181,6 +5461,7 @@ export default function Dashboard() {
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
+                onViewRecords={(key, lbl, cnt, clr) => setHmcRecordsModal({ religion: key, label: lbl, totalCount: cnt, color: clr })}
               />
               <PolledHMCWidget
                 polledHMC={s.polledHMC}
@@ -5190,6 +5471,7 @@ export default function Dashboard() {
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
+                onViewRecords={(ft, val, st, lbl, cnt, clr) => setPolledRecordsModal({ filterType: ft, value: val, status: st, displayLabel: lbl, totalCount: cnt, color: clr })}
               />
             </div>
           </div>
@@ -5204,6 +5486,7 @@ export default function Dashboard() {
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
+                onViewRecords={(ft, val, st, lbl, cnt, clr) => setPolledRecordsModal({ filterType: ft, value: val, status: st, displayLabel: lbl, totalCount: cnt, color: clr })}
               />
               <PolledCommunityWidget
                 loading={activeLoading}
@@ -5212,6 +5495,7 @@ export default function Dashboard() {
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
+                onViewRecords={(ft, val, st, lbl, cnt, clr) => setPolledRecordsModal({ filterType: ft, value: val, status: st, displayLabel: lbl, totalCount: cnt, color: clr })}
               />
             </div>
           </div>
@@ -5369,6 +5653,26 @@ export default function Dashboard() {
     </div>
     {largeFamiliesOpen && <LargeFamiliesModal onClose={() => setLargeFamiliesOpen(false)} />}
     {localPlacesOpen   && <LocalPlacesModal   onClose={() => setLocalPlacesOpen(false)} />}
+    {hmcRecordsModal && (
+      <HMCRecordsModal
+        religion={hmcRecordsModal.religion}
+        label={hmcRecordsModal.label}
+        totalCount={hmcRecordsModal.totalCount}
+        color={hmcRecordsModal.color}
+        onClose={() => setHmcRecordsModal(null)}
+      />
+    )}
+    {polledRecordsModal && (
+      <PolledRecordsModal
+        filterType={polledRecordsModal.filterType}
+        value={polledRecordsModal.value}
+        status={polledRecordsModal.status}
+        displayLabel={polledRecordsModal.displayLabel}
+        totalCount={polledRecordsModal.totalCount}
+        color={polledRecordsModal.color}
+        onClose={() => setPolledRecordsModal(null)}
+      />
+    )}
     </>
   );
 }
