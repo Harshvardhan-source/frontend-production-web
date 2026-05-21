@@ -273,4 +273,25 @@ export const beneficiaryApi = {
     api.post('/api/swot/beneficiaries/', { query, page, limit }),
 };
 
+// ── Community Records — 2025_caste_comm_hmc ───────────────────────────────────
+export const communityApi = {
+  /**
+   * Fetch paginated voter records from the `2025_caste_comm_hmc` collection.
+   *
+   * @param {string} community  Exact Community field value (e.g. "Mangalorean Catholic")
+   * @param {number} page       1-based page number (default 1)
+   * @param {number} limit      Records per page, max 100 (default 25)
+   * @param {string} [q]        Optional free-text search — Name, Epic No, or Booth No
+   *
+   * Response shape:
+   *   { success, community, total_count, total_pages, page, limit, records[] }
+   * Each record: { Serial No, Epic No, Name, Relation Name, Age, Gender, Booth No, Category, Community }
+   */
+  records: (community, page = 1, limit = 25, q = '') => {
+    const params = { community, page, limit };
+    if (q) params.q = q;
+    return api.get('/api/community-records/', { params });
+  },
+};
+
 export default api;

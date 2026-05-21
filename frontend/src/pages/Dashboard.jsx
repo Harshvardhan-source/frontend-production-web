@@ -122,6 +122,8 @@ const COMMUNITY_BROAD_DATA = {
     'OBC/GC': 692, 'GC/Minority': 468, 'ST': 29, 'ST/Minority': 3, 'SC': 2,
   },
 };
+
+// ─── Updated from 2025_Voter_Community_Classified_v6_SpellChecked (251,998 rows)
 const COMMUNITY_DETAILED_DATA = {
   2002: [
     ['Mangalorean Catholic', 17308, 'Minority'],
@@ -157,70 +159,291 @@ const COMMUNITY_DETAILED_DATA = {
     ['Shivalli Brahmin', 43, 'GC'],
   ],
   2025: [
-    ['Mangalorean Catholic', 23035, 'Minority'],
-    ['GSB', 14325, 'GC'],
-    ['Bunt / Billava / Mogaveera', 11700, 'GC/OBC'],
-    ['Muslim', 6932, 'Minority'],
-    ['Brahmin / Multi-community', 5348, 'GC'],
-    ['Bunt', 4058, 'GC'],
-    ['Brahmin', 4021, 'GC'],
-    ['Mogaveera', 3180, 'OBC'],
-    ['Billava / Devadiga', 2236, 'OBC'],
-    ['Bunt / GSB', 2221, 'GC/OBC'],
-    ['Billava / Artisan', 2039, 'OBC'],
-    ['Vishwakarma/GSB Ambiguous', 1556, 'Ambiguous'],
-    ['Devadiga', 1552, 'OBC'],
-    ['Billava / Namadari / SC overlap', 1417, 'OBC/SC'],
-    ['Billava / Mogaveera', 1064, 'OBC'],
-    ['Havyaka / Bunt / Gauda', 1010, 'GC/OBC'],
-    ['Vokkaliga', 984, 'OBC'],
-    ['Vishwakarma', 952, 'OBC'],
-    ['Billava / Muslim title', 947, 'OBC/Minority'],
-    ['Trading communities', 692, 'OBC/GC'],
-    ['Goan / Mangalorean Catholic', 597, 'Minority'],
-    ['Coastal Tulu communities', 580, 'OBC'],
-    ['GSB / Goan Catholic', 468, 'GC/Minority'],
-    ['GSB / Bunt', 404, 'GC/OBC'],
-    ['Bhandari / Nalke', 381, 'OBC'],
-    ['Kharvi', 218, 'OBC'],
-    ['Bunt / Jain', 202, 'GC'],
-    ['Sapaliga / Mogaveera', 172, 'OBC'],
-    ['Shivalli Brahmin', 100, 'GC'],
-    ['Devadiga / Billava', 90, 'OBC'],
-    ['Billava', 48, 'OBC'],
-    ['Sapaliga', 43, 'OBC'],
-    ['Koraga', 29, 'ST'],
-    ['Mangalorean Catholic (Da Silva)', 19, 'Minority'],
-    ['Siddi', 3, 'ST/Minority'],
-    ['Nalike', 2, 'SC'],
-    ['GSB / Daivajna', 2, 'GC'],
+    ['Unclassified',                  114178, 'Unknown'],
+    ['Muslim',                          37353, 'Muslim'],
+    ['Mangalorean Catholic',            27345, 'Christian - OC'],
+    ['GSB (Goud Saraswat Brahmin)',     25750, 'Hindu - Brahmin'],
+    ['Bunt',                            15903, 'Hindu - OC'],
+    ['Billava',                         11968, 'Hindu - OBC'],
+    ['Christian',                        4513, 'Christian - OC'],
+    ['Vishwakarma',                      2459, 'Hindu - OBC'],
+    ['Possibly Christian',               1923, 'Christian (Unverified)'],
+    ['Billava / Mogaveera',              1636, 'Hindu - OBC'],
+    ['Devadiga',                         1568, 'Hindu - OBC'],
+    ['Multiple communities (Naik)',      1437, 'Hindu - Shared'],
+    ['Possibly Muslim',                  1332, 'Muslim (Unverified)'],
+    ['Okkaliga / Vokkaliga',             1028, 'Hindu - GC'],
+    ['OBC',                               749, 'Hindu - OBC'],
+    ['Kottari (OBC)',                      587, 'Hindu - OBC'],
+    ['Multiple communities',              435, 'Hindu - Shared'],
+    ['Potter community',                  432, 'Hindu - OBC'],
+    ['Kulala / agricultural groups',      319, 'Hindu - OBC'],
+    ['Ganiga (OBC)',                       222, 'Hindu - OBC'],
+    ['Shivalli Brahmin',                   210, 'Hindu - Brahmin'],
+    ['Trading / agricultural groups',      201, 'Hindu - Shared'],
+    ['Agrarian / coastal groups',          104, 'Hindu - Shared'],
+    ['Havyaka Brahmin',                     98, 'Hindu - Brahmin'],
+    ['Kotekshatriya',                       84, 'Hindu - OBC'],
+    ['ST (Scheduled Tribe)',                61, 'Hindu - ST'],
+    ['Washer community',                    44, 'Hindu - OBC'],
+    ['SC (Scheduled Caste)',                23, 'Hindu - SC'],
+    ['Vishwakarma / Brahmin / shared',      10, 'Hindu - Shared'],
+    ['Billava / Bunt variants',              8, 'Hindu - OBC/Shared'],
+    ['Weaver community',                     8, 'Hindu - OBC'],
+    ['Mogaveera',                            4, 'Hindu - OBC'],
+    ['Vishwakarma / Artisan',                3, 'Hindu - OBC/Shared'],
+    ['Coastal communities',                  2, 'Hindu - OBC'],
+    ['Billava / Temple service groups',      1, 'Hindu - OBC'],
   ],
 };
 
 const BROAD_COLORS = {
+  // legacy broad categories (2002 view)
   'Unclassified': '#64748b', 'GC': '#f97316', 'OBC': '#8b5cf6',
   'Minority': '#10b981', 'GC/OBC': '#f59e0b', 'Ambiguous': '#6b7280',
   'OBC/Minority': '#06b6d4', 'OBC/GC': '#a78bfa', 'GC/Minority': '#34d399',
   'ST': '#ef4444', 'OBC/SC': '#ec4899', 'ST/Minority': '#f87171', 'SC': '#fbbf24',
+  // granular categories from 2025 Excel
+  'Unknown':                '#64748b',
+  'Muslim':                 '#10b981',
+  'Christian - OC':         '#34d399',
+  'Hindu - Brahmin':        '#f97316',
+  'Hindu - OBC':            '#8b5cf6',
+  'Hindu - OC':             '#fb923c',
+  'Hindu - GC':             '#f59e0b',
+  'Hindu - Shared':         '#6b7280',
+  'Hindu - ST':             '#ef4444',
+  'Hindu - SC':             '#fbbf24',
+  'Hindu - OBC/Shared':     '#a78bfa',
+  'Christian (Unverified)': '#94a3b8',
+  'Muslim (Unverified)':    '#94a3b8',
 };
 
-function CommunityClassificationPanel() {
-  const [activeYear, setActiveYear] = React.useState(2025);
-  const [showAll, setShowAll] = React.useState(false);
+// ─── Community Records Modal ──────────────────────────────────────────────────
+function CommunityRecordsModal({ community, category, totalCount, onClose }) {
+  const [records, setRecords]   = useState([]);
+  const [page, setPage]         = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
+  const [search, setSearch]     = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const LIMIT = 25;
+  const color = BROAD_COLORS[category] || '#888';
 
-  const total2002 = 192022;
-  const total2025 = 251998;
-  const totalMap  = { 2002: total2002, 2025: total2025 };
+  const fetchRecords = useCallback(async (pg, q) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ community, page: pg, limit: LIMIT });
+      if (q) params.append('q', q);
+      const res = await api.get(`/api/community-records/?${params}`);
+      setRecords(res.data.records || []);
+      setTotalPages(res.data.total_pages || 1);
+    } catch (e) {
+      setError(e?.response?.data?.message || 'Failed to load records.');
+    } finally {
+      setLoading(false);
+    }
+  }, [community]);
 
-  const broadCategories = Object.keys({ ...COMMUNITY_BROAD_DATA[2002], ...COMMUNITY_BROAD_DATA[2025] });
-  const maxBroadVal = Math.max(
-    ...broadCategories.map(k => Math.max(COMMUNITY_BROAD_DATA[2002][k] || 0, COMMUNITY_BROAD_DATA[2025][k] || 0))
+  useEffect(() => { fetchRecords(page, search); }, [page, search, fetchRecords]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setPage(1);
+    setSearch(searchInput);
+  };
+
+  // lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const COLS = [
+    { key: 'Serial No',   label: '#',         w: 50  },
+    { key: 'Epic No',     label: 'Epic No',   w: 110 },
+    { key: 'Name',        label: 'Name',      w: 180 },
+    { key: 'Relation Name', label: 'Relation',w: 140 },
+    { key: 'Age',         label: 'Age',       w: 50  },
+    { key: 'Gender',      label: 'Gender',    w: 70  },
+    { key: 'Booth No',    label: 'Booth',     w: 60  },
+    { key: 'Category',    label: 'Category',  w: 140 },
+  ];
+
+  return createPortal(
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '16px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: '100%', maxWidth: 900, maxHeight: '90vh',
+        background: 'linear-gradient(145deg,rgba(12,21,38,0.99),rgba(7,13,26,0.99))',
+        border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 40px 100px rgba(0,0,0,0.8)',
+        overflow: 'hidden',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: `linear-gradient(135deg,${color}10,transparent)`,
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}` }} />
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)' }}>{community}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
+                <span style={{ color, fontWeight: 700 }}>{category}</span>
+                &nbsp;·&nbsp;{totalCount.toLocaleString()} voters in 2025_caste_comm_hmc
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: 'rgba(255,255,255,0.5)',
+            display: 'flex', alignItems: 'center',
+          }}><X size={16} /></button>
+        </div>
+
+        {/* Search bar */}
+        <form onSubmit={handleSearch} style={{
+          padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex', gap: 8, flexShrink: 0,
+        }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
+            <input
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              placeholder="Search by name, Epic No, booth…"
+              style={{
+                width: '100%', background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.09)', borderRadius: 9,
+                padding: '8px 12px 8px 32px', color: 'var(--text-1)', fontSize: 13,
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+          <button type="submit" style={{
+            background: `${color}22`, border: `1px solid ${color}40`,
+            borderRadius: 9, padding: '8px 16px', cursor: 'pointer',
+            color, fontSize: 12, fontWeight: 700,
+          }}>Search</button>
+          {search && (
+            <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }} style={{
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 9, padding: '8px 10px', cursor: 'pointer', color: 'rgba(255,255,255,0.4)',
+              fontSize: 12,
+            }}>Clear</button>
+          )}
+        </form>
+
+        {/* Table */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, gap: 10, color: 'rgba(255,255,255,0.4)' }}>
+              <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: 13 }}>Loading records…</span>
+            </div>
+          ) : error ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, flexDirection: 'column', gap: 8 }}>
+              <AlertTriangle size={20} style={{ color: '#ef4444' }} />
+              <span style={{ fontSize: 13, color: '#ef4444' }}>{error}</span>
+            </div>
+          ) : records.length === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
+              No records found.
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+              <thead>
+                <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  {COLS.map(c => (
+                    <th key={c.key} style={{
+                      padding: '8px 14px', fontSize: 10, fontWeight: 700,
+                      color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase',
+                      letterSpacing: '0.6px', textAlign: 'left',
+                      whiteSpace: 'nowrap', minWidth: c.w,
+                      position: 'sticky', top: 0,
+                      background: 'rgba(10,18,35,0.98)',
+                    }}>{c.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((rec, idx) => (
+                  <tr key={rec['Epic No'] || idx} style={{
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                  }}>
+                    {COLS.map(c => (
+                      <td key={c.key} style={{
+                        padding: '9px 14px', fontSize: 12,
+                        color: c.key === 'Name' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.5)',
+                        fontWeight: c.key === 'Name' ? 600 : 400,
+                        whiteSpace: c.key === 'Name' ? 'normal' : 'nowrap',
+                        lineHeight: 1.4,
+                      }}>
+                        {c.key === 'Category'
+                          ? <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 6px', background: `${BROAD_COLORS[rec[c.key]] || '#888'}18`, color: BROAD_COLORS[rec[c.key]] || '#888', border: `1px solid ${BROAD_COLORS[rec[c.key]] || '#888'}30` }}>{rec[c.key] ?? '—'}</span>
+                          : (rec[c.key] ?? '—')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && !loading && (
+          <div style={{
+            padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.07)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Page {page} of {totalPages}</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[
+                { label: '«', onClick: () => setPage(1),      disabled: page === 1 },
+                { label: '‹', onClick: () => setPage(p => Math.max(1, p-1)), disabled: page === 1 },
+                { label: '›', onClick: () => setPage(p => Math.min(totalPages, p+1)), disabled: page === totalPages },
+                { label: '»', onClick: () => setPage(totalPages), disabled: page === totalPages },
+              ].map(btn => (
+                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{
+                  width: 32, height: 32, borderRadius: 7, cursor: btn.disabled ? 'default' : 'pointer',
+                  background: btn.disabled ? 'rgba(255,255,255,0.03)' : `${color}18`,
+                  border: `1px solid ${btn.disabled ? 'rgba(255,255,255,0.06)' : color + '40'}`,
+                  color: btn.disabled ? 'rgba(255,255,255,0.2)' : color,
+                  fontSize: 13, fontWeight: 700,
+                }}>{btn.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>,
+    document.body
   );
+}
 
-  const detailedRows = COMMUNITY_DETAILED_DATA[activeYear];
-  const displayRows  = showAll ? detailedRows : detailedRows.slice(0, 12);
-  const maxDetail    = detailedRows[0]?.[1] || 1;
-  const total        = totalMap[activeYear];
+// ─── Community Classification Panel ──────────────────────────────────────────
+function CommunityClassificationPanel() {
+  const [showAll, setShowAll]         = useState(false);
+  const [recordsModal, setRecordsModal] = useState(null); // { community, category, count }
+
+  const total2025     = 251998;
+  const detailedRows  = COMMUNITY_DETAILED_DATA[2025];
+  const displayRows   = showAll ? detailedRows : detailedRows.slice(0, 12);
+  const maxDetail     = detailedRows[0]?.[1] || 1;
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -230,37 +453,36 @@ function CommunityClassificationPanel() {
         border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
         overflow: 'hidden', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
       }}>
-        {/* Tab switcher */}
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px 0', marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 2 }}>Classified Community Breakdown</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{detailedRows.length} communities · sorted by count</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+              {detailedRows.length} communities · sorted by count · source: 2025_caste_comm_hmc
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <div style={{
-              padding: '7px 16px', borderRadius: 9, fontSize: 13, fontWeight: 700,
-              background: 'rgba(34,211,238,0.15)',
-              border: '1px solid rgba(34,211,238,0.4)',
-              color: '#22d3ee',
-            }}>2025</div>
-          </div>
+          <div style={{
+            padding: '7px 16px', borderRadius: 9, fontSize: 13, fontWeight: 700,
+            background: 'rgba(34,211,238,0.15)', border: '1px solid rgba(34,211,238,0.4)',
+            color: '#22d3ee',
+          }}>2025</div>
         </div>
 
         {/* Table header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 90px 80px', gap: 0, padding: '8px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          {['Community', 'Category', 'Count', 'Share'].map(h => (
-            <div key={h} style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: h === 'Count' || h === 'Share' ? 'right' : 'left' }}>{h}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 90px 64px 80px', gap: 0, padding: '8px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {['Community', 'Category', 'Count', 'Share', ''].map((h, i) => (
+            <div key={i} style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: (h === 'Count' || h === 'Share') ? 'right' : 'left' }}>{h}</div>
           ))}
         </div>
 
         {/* Rows */}
         {displayRows.map(([name, count, cat], idx) => {
-          const barW = Math.round((count / maxDetail) * 100);
-          const pct  = ((count / total) * 100).toFixed(1);
+          const barW  = Math.round((count / maxDetail) * 100);
+          const pct   = ((count / total2025) * 100).toFixed(1);
           const color = BROAD_COLORS[cat] || '#888';
           return (
             <div key={name} style={{
-              display: 'grid', gridTemplateColumns: '1fr 80px 90px 80px',
+              display: 'grid', gridTemplateColumns: '1fr 130px 90px 64px 80px',
               gap: 0, padding: '11px 18px',
               borderBottom: '1px solid rgba(255,255,255,0.04)',
               background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)',
@@ -278,15 +500,32 @@ function CommunityClassificationPanel() {
                 <span style={{
                   fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '3px 7px',
                   background: `${color}18`, color, border: `1px solid ${color}30`,
-                  whiteSpace: 'nowrap',
+                  whiteSpace: 'nowrap', display: 'inline-block', maxWidth: 120,
+                  overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{cat}</span>
               </div>
               {/* Count */}
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {count.toLocaleString()}
               </div>
-              {/* Pct */}
+              {/* Share */}
               <div style={{ fontSize: 12, fontWeight: 600, color, textAlign: 'right' }}>{pct}%</div>
+              {/* View Records btn */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setRecordsModal({ community: name, category: cat, count })}
+                  style={{
+                    background: `${color}14`, border: `1px solid ${color}30`,
+                    borderRadius: 7, padding: '4px 10px', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 700, color,
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    transition: 'all 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Users size={11} />View
+                </button>
+              </div>
             </div>
           );
         })}
@@ -299,11 +538,23 @@ function CommunityClassificationPanel() {
               borderRadius: 10, padding: '9px 24px', cursor: 'pointer', fontSize: 13,
               fontWeight: 700, color: 'rgba(255,255,255,0.5)', transition: 'all 0.15s',
             }}>
-              {showAll ? <><ChevronUp size={13} style={{ display: 'inline', marginRight: 4 }} /> Show less</> : <><ChevronDown size={13} style={{ display: 'inline', marginRight: 4 }} /> Show all {detailedRows.length} communities</>}
+              {showAll
+                ? <><ChevronUp size={13} style={{ display: 'inline', marginRight: 4 }} />Show less</>
+                : <><ChevronDown size={13} style={{ display: 'inline', marginRight: 4 }} />Show all {detailedRows.length} communities</>}
             </button>
           </div>
         )}
       </div>
+
+      {/* Records modal */}
+      {recordsModal && (
+        <CommunityRecordsModal
+          community={recordsModal.community}
+          category={recordsModal.category}
+          totalCount={recordsModal.count}
+          onClose={() => setRecordsModal(null)}
+        />
+      )}
     </div>
   );
 }
