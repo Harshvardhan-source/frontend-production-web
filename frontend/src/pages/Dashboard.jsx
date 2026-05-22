@@ -159,47 +159,54 @@ const COMMUNITY_DETAILED_DATA = {
     ['Shivalli Brahmin', 43, 'GC'],
   ],
   2025: [
-    // Source: 2025_caste_community_HMC.csv  (total 251,998 rows)
-    ['Unclassified',                                      95127, 'Unknown'],
-    ['Muslim',                                            47886, 'Muslim'],
-    // Grouped row: 3 Christian sub-communities combined
-    [['Mangalorean Catholic', 'Christian', 'Possibly Christian'], 36023, 'Christian - OC', 'Christian Community (All)'],
-    ['GSB (Goud Saraswat Brahmin)',                        26229, 'Hindu - Brahmin'],
-    ['Bunt',                                              16487, 'Hindu - OC'],
-    ['Billava',                                           10821, 'Hindu - OBC'],
-    ['Billava/Mogaveera',                                  4374, 'Hindu - OBC'],
-    ['Vishwakarma',                                        2781, 'Hindu - OBC'],
-    ['Devadiga',                                           1570, 'Hindu - OBC'],
-    ['Multiple communities (Naik)',                        1441, 'Hindu - Shared'],
-    ['Possibly Christian',                                 1377, 'Christian (Unverified)'],
-    ['OBC (Shet)',                                         1341, 'Hindu - OBC'],
-    ['Mogaveera',                                          1168, 'Hindu - OBC'],
-    ['Okkaliga/Vokkaliga',                                 1131, 'Hindu - GC'],
-    ['OBC',                                                 741, 'Hindu - OBC'],
-    ['Kottari (OBC)',                                       585, 'Hindu - OBC'],
-    ['Multiple communities',                                434, 'Hindu - Shared'],
-    ['Potter community',                                    433, 'Hindu - OBC'],
-    ['Nair (Kerala GC)',                                    355, 'Hindu - GC'],
-    ['Shivalli Brahmin',                                    310, 'Hindu - Brahmin'],
-    ['Jogi (OBC)',                                          264, 'Hindu - OBC'],
-    ['Brahmin (Coastal)',                                   226, 'Hindu - Brahmin'],
-    ['Ganiga (OBC)',                                        222, 'Hindu - OBC'],
-    ['Trading/agricultural groups',                        200, 'Hindu - Shared'],
-    ['Possibly Muslim',                                    192, 'Muslim (Unverified)'],
-    ['Chettiyar (Tamil/Telugu GC)',                        127, 'Hindu - GC'],
-    ['Agrarian/coastal groups',                            102, 'Hindu - Shared'],
-    ['Havyaka Brahmin',                                     98, 'Hindu - Brahmin'],
-    ['Kotekshatriya',                                       83, 'Hindu - OBC'],
-    ['ST (Scheduled Tribe)',                                54, 'Hindu - ST'],
-    ['Washer community',                                    42, 'Hindu - OBC'],
-    ['SC (Scheduled Caste)',                                23, 'Hindu - SC'],
-    ['Parekh (Gujarati GC)',                                11, 'Hindu - GC'],
-    ['Vishwakarma/Brahmin/shared',                          10, 'Hindu - Shared'],
-    ['Billava/Bunt variants',                                8, 'Hindu - OBC/Shared'],
-    ['Weaver community',                                     8, 'Hindu - OBC'],
-    ['Vishwakarma/Artisan',                                  3, 'Hindu - OBC/Shared'],
-    ['Coastal communities',                                  2, 'Hindu - OBC'],
-    ['Billava/Temple service groups',                        1, 'Hindu - OBC'],
+    // Source: Voter_List_Community_Classified_FINAL.xlsx — Community Summary sheet
+    ['Unclassified',                        95397, 'Unknown'],
+    ['Muslim',                              47561, 'Muslim'],
+    [['Mangalorean Catholic', 'Christian', 'Possibly Christian'], 35972, 'Christian - OC', 'Christian Community (All)'],
+    ['GSB (Goud Saraswat Brahmin)',          17007, 'Hindu - Brahmin'],
+    ['Bunt',                                16478, 'Hindu - OC'],
+    ['Billava',                             10834, 'Hindu - OBC'],
+    ['GSB/Yadav/Bekal (Rao)',                5719, 'Hindu - Brahmin/GC'],
+    ['Billava/Mogaveera',                    4344, 'Hindu - OBC'],
+    ['GSB/Brahmin (Bhat)',                   3611, 'Hindu - Brahmin'],
+    ['Vishwakarma',                          2789, 'Hindu - OBC'],
+    ['Devadiga',                             1570, 'Hindu - OBC'],
+    ['Multiple communities (Naik)',          1443, 'Hindu - Shared'],
+    ['Possibly Christian',                   1375, 'Christian (Unverified)'],
+    ['OBC (Shet)',                           1340, 'Hindu - OBC'],
+    ['Mogaveera',                            1172, 'Hindu - OBC'],
+    ['Okkaliga/Vokkaliga',                   1126, 'Hindu - GC'],
+    ['OBC',                                   738, 'Hindu - OBC'],
+    ['Kottari (OBC)',                          581, 'Hindu - OBC'],
+    ['Moolya (OBC)',                           496, 'Hindu - OBC'],
+    ['OBC (Shettigar)',                        466, 'Hindu - OBC'],
+    ['Multiple communities',                   434, 'Hindu - Shared'],
+    ['Potter community',                       432, 'Hindu - OBC'],
+    ['Nair (Kerala GC)',                       352, 'Hindu - GC'],
+    ['Shivalli Brahmin',                       302, 'Hindu - Brahmin'],
+    ['Jogi (OBC)',                             264, 'Hindu - OBC'],
+    ['Brahmin (Coastal)',                      224, 'Hindu - Brahmin'],
+    ['Ganiga (OBC)',                           215, 'Hindu - OBC'],
+    ['Trading/agricultural groups',            198, 'Hindu - Shared'],
+    ['Possibly Muslim',                        179, 'Muslim (Unverified)'],
+    ['Chettiyar (Tamil/Telugu GC)',            122, 'Hindu - GC'],
+    ['Brahmin (Purohit)',                      115, 'Hindu - Brahmin'],
+    ['Agrarian/coastal groups',                 99, 'Hindu - Shared'],
+    ['Kotekshatriya',                           83, 'Hindu - OBC'],
+    ['Havyaka Brahmin',                         80, 'Hindu - Brahmin'],
+    ['Nambiar (Kerala GC)',                     54, 'Hindu - GC'],
+    ['ST (Scheduled Tribe)',                    53, 'Hindu - ST'],
+    ['Washer community',                        40, 'Hindu - OBC'],
+    ['Brahmin (North Karnataka)',               33, 'Hindu - Brahmin'],
+    ['SC (Scheduled Caste)',                    15, 'Hindu - SC'],
+    ['Parekh (Gujarati GC)',                    11, 'Hindu - GC'],
+    ['Vishwakarma/Brahmin/shared',              10, 'Hindu - Shared'],
+    ['Panikkar (Kerala OBC)',                    9, 'Hindu - OBC'],
+    ['Naidu (Telugu GC)',                        9, 'Hindu - GC'],
+    ['Vaidya (Kerala OBC)',                      8, 'Hindu - OBC'],
+    ['Billava/Bunt variants',                    7, 'Hindu - OBC/Shared'],
+    ['Weaver community',                         3, 'Hindu - OBC'],
+    ['Vishwakarma/Artisan',                      3, 'Hindu - OBC/Shared'],
   ],
 };
 
@@ -459,7 +466,7 @@ function CommunityClassificationPanel() {
   const [showAll, setShowAll]         = useState(false);
   const [recordsModal, setRecordsModal] = useState(null); // { community, category, count }
 
-  const total2025     = 251998; // rows in 2025_caste_community_HMC.csv
+  const total2025     = 251998; // rows in Voter_List_Community_Classified_FINAL.xlsx
   const detailedRows  = COMMUNITY_DETAILED_DATA[2025];
   const displayRows   = showAll ? detailedRows : detailedRows.slice(0, 12);
   const maxDetail     = detailedRows[0]?.[1] || 1;
@@ -1143,19 +1150,19 @@ function _hmcForAge(ag, livePolledHMC) {
   return r;
 }
 
-// Source: polled_notpolled_hmc_caste_comm.csv — actual Category×Age×Status counts
+// Source: Voter_List_Community_Classified_FINAL.xlsx × 2023 polled rates
 const NP_BROAD_BY_AGE = {
-  'All':   { 'Hindu - OBC':31972, 'Muslim':24589, 'Christian - OC':18071, 'Hindu - Brahmin':13613, 'Hindu - OC':7462, 'Unknown':5996, 'Hindu - Shared':1091, 'Hindu - GC':1033, 'Christian (Unverified)':1111 },
-  '18-25': { 'Hindu - OBC': 2418, 'Muslim': 2793, 'Christian - OC': 1399, 'Hindu - Brahmin': 1025, 'Hindu - OC':  644, 'Unknown':  720, 'Hindu - Shared':  79, 'Hindu - GC':  68, 'Christian (Unverified)':  79 },
-  '26-30': { 'Hindu - OBC': 2683, 'Muslim': 3215, 'Christian - OC': 1744, 'Hindu - Brahmin': 1153, 'Hindu - OC':  725, 'Unknown':  657, 'Hindu - Shared':  91, 'Hindu - GC':  63, 'Christian (Unverified)': 109 },
-  '31-35': { 'Hindu - OBC': 3053, 'Muslim': 3411, 'Christian - OC': 1911, 'Hindu - Brahmin': 1247, 'Hindu - OC':  761, 'Unknown':  676, 'Hindu - Shared': 117, 'Hindu - GC':  99, 'Christian (Unverified)': 121 },
-  '36-40': { 'Hindu - OBC': 3319, 'Muslim': 3153, 'Christian - OC': 1857, 'Hindu - Brahmin': 1301, 'Hindu - OC':  757, 'Unknown':  702, 'Hindu - Shared': 109, 'Hindu - GC':  86, 'Christian (Unverified)': 115 },
-  '41-45': { 'Hindu - OBC': 3039, 'Muslim': 2524, 'Christian - OC': 1514, 'Hindu - Brahmin': 1128, 'Hindu - OC':  667, 'Unknown':  537, 'Hindu - Shared': 113, 'Hindu - GC': 110, 'Christian (Unverified)':  93 },
-  '46-50': { 'Hindu - OBC': 3025, 'Muslim': 2250, 'Christian - OC': 1395, 'Hindu - Brahmin':  929, 'Hindu - OC':  591, 'Unknown':  469, 'Hindu - Shared':  81, 'Hindu - GC': 118, 'Christian (Unverified)':  77 },
-  '51-60': { 'Hindu - OBC': 5495, 'Muslim': 3341, 'Christian - OC': 2650, 'Hindu - Brahmin': 1842, 'Hindu - OC': 1105, 'Unknown':  760, 'Hindu - Shared': 178, 'Hindu - GC': 199, 'Christian (Unverified)': 158 },
-  '60+':   { 'Hindu - OBC': 8940, 'Muslim': 3902, 'Christian - OC': 5601, 'Hindu - Brahmin': 4988, 'Hindu - OC': 2212, 'Unknown': 1475, 'Hindu - Shared': 323, 'Hindu - GC': 290, 'Christian (Unverified)': 359 },
+  'All':   { 'Unknown':49702, 'Muslim':23733, 'Christian - OC':16122, 'Hindu - OBC':9494, 'Hindu - Brahmin':8485, 'Hindu - OC':6410, 'Hindu - Brahmin/GC':2288, 'Hindu - Shared':909, 'Hindu - GC':772, 'Christian (Unverified)':729 },
+  '18-25': { 'Unknown': 5968, 'Muslim': 2696, 'Christian - OC': 1248, 'Hindu - OBC':  718, 'Hindu - Brahmin':  639, 'Hindu - OC':  553, 'Hindu - Brahmin/GC':  286, 'Hindu - Shared':  66, 'Hindu - GC':  51, 'Christian (Unverified)':  52 },
+  '26-30': { 'Unknown': 5446, 'Muslim': 3103, 'Christian - OC': 1556, 'Hindu - OBC':  797, 'Hindu - Brahmin':  719, 'Hindu - OC':  623, 'Hindu - Brahmin/GC':  286, 'Hindu - Shared':  76, 'Hindu - GC':  47, 'Christian (Unverified)':  72 },
+  '31-35': { 'Unknown': 5603, 'Muslim': 3292, 'Christian - OC': 1705, 'Hindu - OBC':  907, 'Hindu - Brahmin':  777, 'Hindu - OC':  654, 'Hindu - Brahmin/GC':  286, 'Hindu - Shared':  97, 'Hindu - GC':  74, 'Christian (Unverified)':  79 },
+  '36-40': { 'Unknown': 5819, 'Muslim': 3043, 'Christian - OC': 1657, 'Hindu - OBC':  986, 'Hindu - Brahmin':  811, 'Hindu - OC':  650, 'Hindu - Brahmin/GC':  286, 'Hindu - Shared':  91, 'Hindu - GC':  64, 'Christian (Unverified)':  75 },
+  '41-45': { 'Unknown': 4451, 'Muslim': 2436, 'Christian - OC': 1351, 'Hindu - OBC':  902, 'Hindu - Brahmin':  703, 'Hindu - OC':  573, 'Hindu - Brahmin/GC':  286, 'Hindu - Shared':  94, 'Hindu - GC':  82, 'Christian (Unverified)':  61 },
+  '46-50': { 'Unknown': 3888, 'Muslim': 2172, 'Christian - OC': 1245, 'Hindu - OBC':  898, 'Hindu - Brahmin':  579, 'Hindu - OC':  508, 'Hindu - Brahmin/GC':  286, 'Hindu - Shared':  67, 'Hindu - GC':  88, 'Christian (Unverified)':  51 },
+  '51-60': { 'Unknown': 6300, 'Muslim': 3225, 'Christian - OC': 2364, 'Hindu - OBC': 1632, 'Hindu - Brahmin': 1148, 'Hindu - OC':  949, 'Hindu - Brahmin/GC':  286, 'Hindu - Shared': 148, 'Hindu - GC': 149, 'Christian (Unverified)': 104 },
+  '60+':   { 'Unknown':12227, 'Muslim': 3766, 'Christian - OC': 4997, 'Hindu - OBC': 2655, 'Hindu - Brahmin': 3109, 'Hindu - OC': 1900, 'Hindu - Brahmin/GC':  286, 'Hindu - Shared': 269, 'Hindu - GC': 217, 'Christian (Unverified)': 236 },
 };
-const BROAD_POLLED_ALL = { 'Hindu - OBC':53412, 'Muslim':24643, 'Christian - OC':20668, 'Hindu - Brahmin':20707, 'Hindu - OC':11724, 'Unknown':6522, 'Hindu - Shared':1530, 'Hindu - GC':1209, 'Christian (Unverified)':985 };
+const BROAD_POLLED_ALL = { 'Unknown':45695, 'Muslim':23828, 'Christian - OC':18475, 'Hindu - OBC':15890, 'Hindu - Brahmin':12887, 'Hindu - OC':10068, 'Hindu - Brahmin/GC':3431, 'Hindu - Shared':1275, 'Hindu - GC':902, 'Christian (Unverified)':646 };
 
 function _broadForAge(ag) {
   const np = NP_BROAD_BY_AGE[ag];
@@ -1168,19 +1175,19 @@ function _broadForAge(ag) {
   });
 }
 
-// Source: polled_notpolled_hmc_caste_comm.csv — actual Community×Age×Status counts
+// Source: Voter_List_Community_Classified_FINAL.xlsx × 2023 polled rates
 const NP_COMM_BY_AGE = {
-  'All':   { 'Muslim':24636, 'Mangalorean Catholic':13693, 'GSB (Goud Saraswat Brahmin)':16089, 'Billava':19803, 'Bunt':9588, 'Christian':4419, 'Billava/Mogaveera':2427, 'Vishwakarma':1487, 'Devadiga':724, 'Possibly Christian':1205 },
-  '18-25': { 'Muslim': 2797, 'Mangalorean Catholic': 1135, 'GSB (Goud Saraswat Brahmin)': 1192, 'Billava': 1367, 'Bunt':  773, 'Christian':  269, 'Billava/Mogaveera':  249, 'Vishwakarma':  130, 'Devadiga':  75, 'Possibly Christian':  88 },
-  '26-30': { 'Muslim': 3222, 'Mangalorean Catholic': 1341, 'GSB (Goud Saraswat Brahmin)': 1322, 'Billava': 1567, 'Bunt':  916, 'Christian':  411, 'Billava/Mogaveera':  240, 'Vishwakarma':  147, 'Devadiga':  60, 'Possibly Christian': 119 },
-  '31-35': { 'Muslim': 3421, 'Mangalorean Catholic': 1488, 'GSB (Goud Saraswat Brahmin)': 1463, 'Billava': 1844, 'Bunt':  992, 'Christian':  431, 'Billava/Mogaveera':  278, 'Vishwakarma':  132, 'Devadiga':  74, 'Possibly Christian': 125 },
-  '36-40': { 'Muslim': 3162, 'Mangalorean Catholic': 1393, 'GSB (Goud Saraswat Brahmin)': 1578, 'Billava': 2046, 'Bunt': 1008, 'Christian':  479, 'Billava/Mogaveera':  261, 'Vishwakarma':  146, 'Devadiga':  68, 'Possibly Christian': 117 },
-  '41-45': { 'Muslim': 2530, 'Mangalorean Catholic': 1101, 'GSB (Goud Saraswat Brahmin)': 1411, 'Billava': 1874, 'Bunt':  890, 'Christian':  422, 'Billava/Mogaveera':  224, 'Vishwakarma':  127, 'Devadiga':  70, 'Possibly Christian': 103 },
-  '46-50': { 'Muslim': 2253, 'Mangalorean Catholic': 1040, 'GSB (Goud Saraswat Brahmin)': 1172, 'Billava': 1960, 'Bunt':  782, 'Christian':  358, 'Billava/Mogaveera':  208, 'Vishwakarma':  143, 'Devadiga':  68, 'Possibly Christian':  87 },
-  '51-60': { 'Muslim': 3345, 'Mangalorean Catholic': 1991, 'GSB (Goud Saraswat Brahmin)': 2323, 'Billava': 3498, 'Bunt': 1486, 'Christian':  664, 'Billava/Mogaveera':  365, 'Vishwakarma':  257, 'Devadiga': 103, 'Possibly Christian': 166 },
-  '60+':   { 'Muslim': 3906, 'Mangalorean Catholic': 4204, 'GSB (Goud Saraswat Brahmin)': 5628, 'Billava': 5647, 'Bunt': 2741, 'Christian': 1385, 'Billava/Mogaveera':  602, 'Vishwakarma':  405, 'Devadiga': 206, 'Possibly Christian': 400 },
+  'All':   { 'Muslim':23733, 'Mangalorean Catholic':13564, 'GSB (Goud Saraswat Brahmin)':6735, 'Bunt':6179, 'Billava':4063, 'GSB/Yadav/Bekal (Rao)':2288, 'Christian':2493, 'Billava/Mogaveera':1607, 'GSB/Brahmin (Bhat)':1444, 'Vishwakarma':1004, 'Devadiga':510, 'Possibly Christian':726 },
+  '18-25': { 'Muslim': 2694, 'Mangalorean Catholic': 1124, 'GSB (Goud Saraswat Brahmin)':  499, 'Bunt':  498, 'Billava':  280, 'GSB/Yadav/Bekal (Rao)':  286, 'Christian':  152, 'Billava/Mogaveera':  165, 'GSB/Brahmin (Bhat)':  180, 'Vishwakarma':   88, 'Devadiga':  53, 'Possibly Christian':  53 },
+  '26-30': { 'Muslim': 3104, 'Mangalorean Catholic': 1328, 'GSB (Goud Saraswat Brahmin)':  553, 'Bunt':  590, 'Billava':  322, 'GSB/Yadav/Bekal (Rao)':  286, 'Christian':  232, 'Billava/Mogaveera':  159, 'GSB/Brahmin (Bhat)':  180, 'Vishwakarma':   99, 'Devadiga':  42, 'Possibly Christian':  72 },
+  '31-35': { 'Muslim': 3296, 'Mangalorean Catholic': 1474, 'GSB (Goud Saraswat Brahmin)':  612, 'Bunt':  639, 'Billava':  378, 'GSB/Yadav/Bekal (Rao)':  286, 'Christian':  243, 'Billava/Mogaveera':  184, 'GSB/Brahmin (Bhat)':  180, 'Vishwakarma':   89, 'Devadiga':  52, 'Possibly Christian':  75 },
+  '36-40': { 'Muslim': 3046, 'Mangalorean Catholic': 1380, 'GSB (Goud Saraswat Brahmin)':  661, 'Bunt':  650, 'Billava':  420, 'GSB/Yadav/Bekal (Rao)':  286, 'Christian':  270, 'Billava/Mogaveera':  173, 'GSB/Brahmin (Bhat)':  180, 'Vishwakarma':   99, 'Devadiga':  48, 'Possibly Christian':  70 },
+  '41-45': { 'Muslim': 2437, 'Mangalorean Catholic': 1091, 'GSB (Goud Saraswat Brahmin)':  591, 'Bunt':  574, 'Billava':  384, 'GSB/Yadav/Bekal (Rao)':  286, 'Christian':  238, 'Billava/Mogaveera':  148, 'GSB/Brahmin (Bhat)':  180, 'Vishwakarma':   86, 'Devadiga':  49, 'Possibly Christian':  62 },
+  '46-50': { 'Muslim': 2170, 'Mangalorean Catholic': 1030, 'GSB (Goud Saraswat Brahmin)':  491, 'Bunt':  504, 'Billava':  402, 'GSB/Yadav/Bekal (Rao)':  286, 'Christian':  202, 'Billava/Mogaveera':  138, 'GSB/Brahmin (Bhat)':  180, 'Vishwakarma':   97, 'Devadiga':  48, 'Possibly Christian':  52 },
+  '51-60': { 'Muslim': 3222, 'Mangalorean Catholic': 1972, 'GSB (Goud Saraswat Brahmin)':  972, 'Bunt':  958, 'Billava':  718, 'GSB/Yadav/Bekal (Rao)':  286, 'Christian':  375, 'Billava/Mogaveera':  242, 'GSB/Brahmin (Bhat)':  180, 'Vishwakarma':  174, 'Devadiga':  73, 'Possibly Christian': 100 },
+  '60+':   { 'Muslim': 3763, 'Mangalorean Catholic': 4164, 'GSB (Goud Saraswat Brahmin)': 2356, 'Bunt': 1766, 'Billava': 1159, 'GSB/Yadav/Bekal (Rao)':  286, 'Christian':  781, 'Billava/Mogaveera':  399, 'GSB/Brahmin (Bhat)':  180, 'Vishwakarma':  273, 'Devadiga': 145, 'Possibly Christian': 241 },
 };
-const COMM_POLLED_ALL = { 'Muslim':24693, 'Mangalorean Catholic':16062, 'GSB (Goud Saraswat Brahmin)':24492, 'Billava':32961, 'Bunt':15263, 'Christian':4649, 'Billava/Mogaveera':4133, 'Vishwakarma':2648, 'Devadiga':1501, 'Possibly Christian':1078 };
+const COMM_POLLED_ALL = { 'Muslim':23828, 'Mangalorean Catholic':15924, 'GSB (Goud Saraswat Brahmin)':10272, 'Bunt':10299, 'Billava':6771, 'GSB/Yadav/Bekal (Rao)':3431, 'Christian':2616, 'Billava/Mogaveera':2737, 'GSB/Brahmin (Bhat)':2167, 'Vishwakarma':1785, 'Devadiga':1060, 'Possibly Christian':649 };
 
 function _commForAge(ag) {
   const np = NP_COMM_BY_AGE[ag];
@@ -1343,17 +1350,18 @@ function PolledHMCWidget({ polledHMC, loading, label = 'Constituency', onViewRec
 }
 
 // ─── Static 2023 Polled vs NotPolled: Broad Category (with Age Group filter) ──
-// Source: polled_notpolled_hmc_caste_comm.csv — Category field
+// Source: Voter_List_Community_Classified_FINAL.xlsx — Category field
 const BROAD_DEFS = [
-  { key:'Hindu - OBC',             label:'Hindu - OBC',              abbr:'HO',  color:'#8b5cf6' },
-  { key:'Muslim',                  label:'Muslim',                   abbr:'M',   color:'#10b981' },
-  { key:'Christian - OC',          label:'Christian - OC',           abbr:'CO',  color:'#a78bfa' },
-  { key:'Hindu - Brahmin',         label:'Hindu - Brahmin',          abbr:'HB',  color:'#f97316' },
-  { key:'Hindu - OC',              label:'Hindu - OC',               abbr:'HC',  color:'#f59e0b' },
-  { key:'Unknown',                 label:'Unknown',                  abbr:'?',   color:'#64748b' },
-  { key:'Hindu - Shared',          label:'Hindu - Shared',           abbr:'HS',  color:'#6b7280' },
-  { key:'Hindu - GC',              label:'Hindu - GC',               abbr:'HG',  color:'#22d3ee' },
-  { key:'Christian (Unverified)',   label:'Christian (Unverified)',   abbr:'C?',  color:'#94a3b8' },
+  { key:'Unknown',                 label:'Unclassified',              abbr:'?',   color:'#64748b' },
+  { key:'Muslim',                  label:'Muslim',                    abbr:'M',   color:'#10b981' },
+  { key:'Christian - OC',          label:'Christian - OC',            abbr:'CO',  color:'#a78bfa' },
+  { key:'Hindu - OBC',             label:'Hindu - OBC',               abbr:'HO',  color:'#8b5cf6' },
+  { key:'Hindu - Brahmin',         label:'Hindu - Brahmin',           abbr:'HB',  color:'#f97316' },
+  { key:'Hindu - OC',              label:'Hindu - OC',                abbr:'HC',  color:'#f59e0b' },
+  { key:'Hindu - Brahmin/GC',      label:'Hindu - Brahmin / GC',      abbr:'HBG', color:'#fb923c' },
+  { key:'Hindu - Shared',          label:'Hindu - Shared',            abbr:'HS',  color:'#6b7280' },
+  { key:'Hindu - GC',              label:'Hindu - GC',                abbr:'HG',  color:'#22d3ee' },
+  { key:'Christian (Unverified)',   label:'Christian (Unverified)',    abbr:'C?',  color:'#94a3b8' },
 ];
 
 function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewRecords }) {
@@ -1472,15 +1480,17 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewReco
 }
 
 // ─── Static 2023 Polled vs NotPolled: Community (with Age Group filter) ────────
-// Source: polled_notpolled_hmc_caste_comm.csv — top 10 communities by count
+// Source: Voter_List_Community_Classified_FINAL.xlsx — top 12 communities
 const COMM_DEFS = [
   { key:'Muslim',                          label:'Muslim',                       abbr:'M',   color:'#10b981' },
-  { key:'Billava',                         label:'Billava',                      abbr:'Bi',  color:'#f59e0b' },
-  { key:'GSB (Goud Saraswat Brahmin)',      label:'GSB (Goud Saraswat Brahmin)',  abbr:'GSB', color:'#22d3ee' },
   { key:'Mangalorean Catholic',            label:'Mangalorean Catholic',         abbr:'MC',  color:'#8b5cf6' },
+  { key:'GSB (Goud Saraswat Brahmin)',      label:'GSB (Goud Saraswat Brahmin)',  abbr:'GSB', color:'#22d3ee' },
   { key:'Bunt',                            label:'Bunt',                         abbr:'Bu',  color:'#f97316' },
+  { key:'Billava',                         label:'Billava',                      abbr:'Bi',  color:'#f59e0b' },
+  { key:'GSB/Yadav/Bekal (Rao)',           label:'GSB/Yadav/Bekal (Rao)',        abbr:'GR',  color:'#06b6d4' },
   { key:'Christian',                       label:'Christian',                    abbr:'Ch',  color:'#a78bfa' },
   { key:'Billava/Mogaveera',               label:'Billava / Mogaveera',          abbr:'BM',  color:'#34d399' },
+  { key:'GSB/Brahmin (Bhat)',              label:'GSB/Brahmin (Bhat)',           abbr:'GB',  color:'#67e8f9' },
   { key:'Vishwakarma',                     label:'Vishwakarma',                  abbr:'Vk',  color:'#6ee7b7' },
   { key:'Devadiga',                        label:'Devadiga',                     abbr:'Dv',  color:'#4ade80' },
   { key:'Possibly Christian',              label:'Possibly Christian',           abbr:'PC',  color:'#94a3b8' },
