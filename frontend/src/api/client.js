@@ -30,6 +30,20 @@ const authClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// ── /auth/me deduplication ───────────────────────────────────────────────────
+// main.py FIX-1 revokes the current token on every /auth/me and issues a fresh
+// one.  Two concurrent /auth/me calls cause the second to 401 (revoked token).
+// We prevent that by coalescing all in-flight /auth/me calls into one promise.
+let _meInFlight = null;
+
+export function callAuthMe() {
+  if (_meInFlight) return _meInFlight;
+  _meInFlight = authClient
+    .get('/auth/me')
+    .finally(() => { _meInFlight = null; });
+  return _meInFlight;
+}
+
 // ── CSRF token helper ─────────────────────────────────────────────────────────
 let csrfReady = false;
 
@@ -52,9 +66,18 @@ function getCookie(name) {
 
 // ── Request interceptors ──────────────────────────────────────────────────────
 
-// authClient: cookie is sent automatically to same-domain FastAPI via withCredentials.
-// No manual header needed for /auth/* calls.
-authClient.interceptors.request.use((config) => config);
+// authClient: send cc_token as Authorization Bearer header in addition to the
+// httponly cookie.  FastAPI's _token_from_request() already prefers the cookie
+// but falls back to the header — this means Render cold-start restarts (which
+// drop the in-memory cookie) no longer cause a spurious 401 on /auth/me.
+authClient.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('cc_token');
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // api (Django): must send token as Authorization header because the cc_token
 // cookie was set on FastAPI's domain and won't be forwarded cross-subdomain.
@@ -94,9 +117,27 @@ authClient.interceptors.response.use(
     if (err.response?.status === 401) {
       const url = err.config?.url || '';
       const isLoginAttempt = url.includes('/auth/login') || url.includes('/auth/register');
-      if (!isLoginAttempt) {
-        handleUnauthenticated();
+      const isMeCheck      = url.includes('/auth/me');
+
+      if (isLoginAttempt) {
+        // Wrong credentials — let the caller handle the error, no redirect.
+        return Promise.reject(err);
       }
+
+      if (isMeCheck) {
+        // /auth/me returned 401.
+        // If there is NO token in sessionStorage the session is truly gone →
+        // clear and redirect to login.
+        // If there IS a token, this is likely a Render cold-start cookie loss or
+        // a race condition from FIX-1 token rotation.  The request interceptor
+        // above already sent the Bearer header, so this 401 means the token itself
+        // is invalid — clear it and redirect too, but do it cleanly.
+        handleUnauthenticated();
+        return Promise.reject(err);
+      }
+
+      // All other protected endpoints: standard redirect.
+      handleUnauthenticated();
     }
     return Promise.reject(err);
   }
@@ -141,7 +182,7 @@ export const authApi = {
     sessionStorage.removeItem('cc_token');
     return authClient.post('/auth/logout');
   },
-  me:          ()     => authClient.get('/auth/me'),
+  me:          ()     => callAuthMe(),          // deduplicated — see callAuthMe above
   verifyAdmin: (data) => authClient.post('/auth/verify-admin', data),
 };
 
