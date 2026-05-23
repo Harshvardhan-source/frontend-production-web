@@ -921,8 +921,6 @@ function PoliticalIntelligenceHub() {
         boxShadow:'0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
         overflow:'hidden',
       }}>
-        {/* Header accent bar */}
-        <div style={{height:3,background:'linear-gradient(90deg,#dc2626 0%,#f97316 50%,transparent 100%)'}}/>
 
         {/* Header */}
         <div style={{padding:'20px 22px 0',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
