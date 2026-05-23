@@ -862,6 +862,227 @@ function WhyTab({ WARDS_FULL, clsCfg, pColor }) {
   );
 }
 
+
+// ─── Community Tab — Full Card Layout ────────────────────────────────────────
+function CommunityTab({ RELIGION_DATA, COMMUNITY_DATA }) {
+  const [activeComm, setActiveComm] = React.useState(null);
+
+  const GENDER_DATA = [
+    { rel:'Hindu',    male:76513, mPoll:46656, mT:61.0, female:83497, fPoll:50652, fT:60.7,
+      gap:'Male > Female by 0.3%',  note:'Hindu WOMEN turnout 60.7% — mobilise further for +5% gain', color:'#f59e0b' },
+    { rel:'Muslim',   male:22792, mPoll:11087, mT:48.6, female:22279, fPoll:11398, fT:51.2,
+      gap:'Female > Male by 2.6%',  note:'Muslim women vote MORE than men — Congress-aligned; intercept with welfare schemes', color:'#8b5cf6' },
+    { rel:'Christian',male:18849, mPoll:9573,  mT:50.8, female:22983, fPoll:12330, fT:53.6,
+      gap:'Female > Male by 2.8%',  note:'Christian women are the SWING DRIVER — targeted womens welfare scheme is critical', color:'#60a5fa' },
+  ];
+
+  const alignColor = (a) =>
+    a.includes('STRONG') || a.includes('MOSTLY') ? '#10b981'
+    : a.includes('SWING') || a.includes('OPPOSITION') ? '#ef4444'
+    : '#f59e0b';
+
+  const relColor = { Hindu:'#f59e0b', Muslim:'#8b5cf6', Christian:'#60a5fa' };
+  const relBg    = { Hindu:'rgba(245,158,11,0.08)', Muslim:'rgba(139,92,246,0.08)', Christian:'rgba(96,165,250,0.08)' };
+  const relBorder= { Hindu:'rgba(245,158,11,0.2)',  Muslim:'rgba(139,92,246,0.2)',  Christian:'rgba(96,165,250,0.2)' };
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:24}}>
+
+      {/* ── Section 1: Religion Snapshot ── */}
+      <div>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:1.2,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',marginBottom:12}}>Religion-wise Voter Profile</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+          {RELIGION_DATA.map(r=>{
+            const c  = relColor[r.religion]  || '#94a3b8';
+            const bg = relBg[r.religion]     || 'rgba(255,255,255,0.03)';
+            const bd = relBorder[r.religion] || 'rgba(255,255,255,0.08)';
+            const unpolled = r.total - r.polled;
+            const pct = (r.polled / r.total * 100).toFixed(1);
+            return (
+              <div key={r.religion} style={{background:bg,border:`1px solid ${bd}`,borderTop:`3px solid ${c}`,borderRadius:12,padding:'16px 18px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+                  <div style={{fontSize:18,fontWeight:900,color:c}}>{r.religion}</div>
+                  <span style={{fontSize:9,fontWeight:800,padding:'3px 8px',borderRadius:20,background:c+'22',color:c,letterSpacing:0.6,border:`1px solid ${c}44`,whiteSpace:'nowrap'}}>{r.alignment}</span>
+                </div>
+
+                {/* Big turnout number */}
+                <div style={{fontSize:36,fontWeight:900,color:c,lineHeight:1,marginBottom:4}}>{r.turnout.toFixed(1)}<span style={{fontSize:18}}>%</span></div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',marginBottom:12}}>Turnout rate</div>
+
+                {/* Turnout bar */}
+                <div style={{height:6,background:'rgba(255,255,255,0.07)',borderRadius:3,overflow:'hidden',marginBottom:12}}>
+                  <div style={{width:`${r.turnout}%`,height:'100%',background:`linear-gradient(90deg,${c}99,${c})`,borderRadius:3}}/>
+                </div>
+
+                {/* Stats row */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
+                  {[
+                    {l:'Total',    v:r.total.toLocaleString()},
+                    {l:'Polled',   v:r.polled.toLocaleString()},
+                    {l:'Non-Polled',v:unpolled.toLocaleString()},
+                  ].map(s=>(
+                    <div key={s.l} style={{background:'rgba(255,255,255,0.05)',borderRadius:7,padding:'6px 8px',textAlign:'center'}}>
+                      <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',marginBottom:2}}>{s.l}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:'#e2e8f0'}}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* BJP note */}
+                <div style={{marginTop:10,padding:'8px 10px',background:'rgba(255,255,255,0.04)',borderRadius:7,fontSize:11,color:'rgba(255,255,255,0.55)',lineHeight:1.5}}>
+                  <span style={{fontWeight:700,color:c}}>BJP: </span>{r.bjp}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Section 2: Community Intelligence Cards ── */}
+      <div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:1.2,color:'rgba(255,255,255,0.3)',textTransform:'uppercase'}}>Community Turnout Ranking — BJP Relevance</div>
+          <div style={{fontSize:10,color:'rgba(255,255,255,0.25)'}}>{COMMUNITY_DATA.length} communities · click to expand</div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}}>
+          {COMMUNITY_DATA.map((r,idx)=>{
+            const isOpen = activeComm === r.c;
+            const tColor = r.turnout>65?'#10b981':r.turnout>58?'#f59e0b':'#ef4444';
+            const aColor = alignColor(r.align);
+            const catColors = {OBC:'#22d3ee',GC:'#f59e0b',Minority:'#a78bfa'};
+            const catC = catColors[r.cat] || '#94a3b8';
+            const nonPolled = r.total - r.polled;
+
+            return (
+              <div key={r.c}
+                onClick={()=>setActiveComm(isOpen?null:r.c)}
+                style={{
+                  background: isOpen?'rgba(255,255,255,0.04)':'rgba(255,255,255,0.02)',
+                  border:`1px solid ${isOpen?aColor+'55':'rgba(255,255,255,0.07)'}`,
+                  borderLeft:`3px solid ${aColor}`,
+                  borderRadius:10, cursor:'pointer',
+                  transition:'all 0.2s ease', overflow:'hidden',
+                }}
+              >
+                {/* Collapsed header */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 70px 70px 70px 110px 18px',alignItems:'center',gap:8,padding:'11px 14px'}}>
+
+                  <div>
+                    <span style={{fontSize:13,fontWeight:700,color:'#e2e8f0'}}>{r.c}</span>
+                    <span style={{marginLeft:7,fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:4,background:catC+'22',color:catC,border:`1px solid ${catC}33`}}>{r.cat}</span>
+                  </div>
+
+                  <div style={{textAlign:'center'}}>
+                    <div style={{fontSize:9,color:'rgba(255,255,255,0.28)',marginBottom:1}}>TOTAL</div>
+                    <div style={{fontSize:12,fontWeight:700,color:'#e2e8f0'}}>{r.total.toLocaleString()}</div>
+                  </div>
+
+                  <div style={{textAlign:'center'}}>
+                    <div style={{fontSize:9,color:'rgba(255,255,255,0.28)',marginBottom:1}}>POLLED</div>
+                    <div style={{fontSize:12,fontWeight:700,color:'#22d3ee'}}>{r.polled.toLocaleString()}</div>
+                  </div>
+
+                  <div style={{textAlign:'center'}}>
+                    <div style={{fontSize:9,color:'rgba(255,255,255,0.28)',marginBottom:1}}>TURNOUT</div>
+                    <div style={{fontSize:13,fontWeight:800,color:tColor}}>{r.turnout.toFixed(1)}%</div>
+                  </div>
+
+                  <div style={{fontSize:10,fontWeight:700,color:aColor}}>{r.align}</div>
+
+                  <div style={{fontSize:12,color:'rgba(255,255,255,0.3)',transform:isOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',textAlign:'center'}}>&#9662;</div>
+                </div>
+
+                {/* Expanded detail */}
+                {isOpen && (
+                  <div style={{padding:'0 14px 14px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+
+                    {/* Mini bar */}
+                    <div style={{padding:'10px 0 12px'}}>
+                      <div style={{height:5,background:'rgba(255,255,255,0.07)',borderRadius:3,overflow:'hidden',marginBottom:4}}>
+                        <div style={{width:`${r.turnout}%`,height:'100%',background:`linear-gradient(90deg,${tColor}88,${tColor})`,borderRadius:3}}/>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:9,color:'rgba(255,255,255,0.3)'}}>
+                        <span>0%</span><span style={{fontWeight:700,color:tColor}}>{r.turnout.toFixed(1)}% voted</span><span>100%</span>
+                      </div>
+                    </div>
+
+                    {/* Stat cards */}
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:12}}>
+                      {[
+                        {l:'Registered',v:r.total.toLocaleString(),   c:'#e2e8f0'},
+                        {l:'Polled',    v:r.polled.toLocaleString(),   c:'#22d3ee'},
+                        {l:'Non-Polled',v:nonPolled.toLocaleString(),  c:'#f87171'},
+                        {l:'Turnout',   v:`${r.turnout.toFixed(1)}%`,  c:tColor},
+                      ].map(s=>(
+                        <div key={s.l} style={{background:'rgba(255,255,255,0.04)',borderRadius:7,padding:'7px 10px',textAlign:'center'}}>
+                          <div style={{fontSize:9,color:'rgba(255,255,255,0.28)',marginBottom:2}}>{s.l}</div>
+                          <div style={{fontSize:13,fontWeight:800,color:s.c}}>{s.v}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Strategic note — full text */}
+                    <div style={{background:`${aColor}0f`,border:`1px solid ${aColor}30`,borderRadius:8,padding:'10px 12px'}}>
+                      <div style={{fontSize:9,fontWeight:800,letterSpacing:1,color:aColor,marginBottom:6,textTransform:'uppercase'}}>&#128161; Strategic Intelligence Note</div>
+                      <div style={{fontSize:12,color:'rgba(255,255,255,0.72)',lineHeight:1.8}}>{r.note}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Note preview when collapsed */}
+                {!isOpen && (
+                  <div style={{padding:'0 14px 10px'}}>
+                    <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',lineHeight:1.6}}>{r.note}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Section 3: Gender Analysis ── */}
+      <div>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:1.2,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',marginBottom:12}}>Gender Analysis — The Missing Variable</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+          {GENDER_DATA.map(g=>(
+            <div key={g.rel} style={{background:'rgba(255,255,255,0.025)',border:`1px solid ${g.color}33`,borderTop:`3px solid ${g.color}`,borderRadius:12,padding:'16px 18px'}}>
+              <div style={{fontSize:16,fontWeight:800,color:g.color,marginBottom:14}}>{g.rel}</div>
+
+              {/* Gender comparison bars */}
+              {[
+                {icon:'♂',label:'Male',  voters:g.male,  polled:g.mPoll, rate:g.mT,  color:'#60a5fa'},
+                {icon:'♀',label:'Female',voters:g.female,polled:g.fPoll, rate:g.fT,  color:'#f0abfc'},
+              ].map(gd=>(
+                <div key={gd.label} style={{marginBottom:12}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                    <span style={{fontSize:12,color:gd.color,fontWeight:700}}>{gd.icon} {gd.label}</span>
+                    <span style={{fontSize:13,fontWeight:800,color:gd.color}}>{gd.rate.toFixed(1)}%</span>
+                  </div>
+                  <div style={{height:6,background:'rgba(255,255,255,0.07)',borderRadius:3,overflow:'hidden',marginBottom:3}}>
+                    <div style={{width:`${gd.rate}%`,height:'100%',background:gd.color,borderRadius:3,opacity:0.85}}/>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:9,color:'rgba(255,255,255,0.3)'}}>
+                    <span>{gd.voters.toLocaleString()} registered</span>
+                    <span>{gd.polled.toLocaleString()} polled</span>
+                  </div>
+                </div>
+              ))}
+
+              <div style={{borderTop:'1px solid rgba(255,255,255,0.07)',paddingTop:10,marginTop:4}}>
+                <div style={{fontSize:10,fontWeight:700,color:g.color,marginBottom:4}}>{g.gap}</div>
+                <div style={{fontSize:11,color:'rgba(255,255,255,0.55)',lineHeight:1.6}}>{g.note}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 // ─── Political Intelligence Hub (moved from Dashboard.jsx) ───────────────────
 function PoliticalIntelligenceHub() {
   const [activeTab, setActiveTab] = React.useState('heatmap');
@@ -1216,62 +1437,7 @@ function PoliticalIntelligenceHub() {
 
           {/* COMMUNITY */}
           {activeTab==='community'&&(
-            <div>
-              <div style={{marginBottom:18}}>
-                <div style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.6)',marginBottom:10}}>Religion-wise Voter Profile</div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:8}}>
-                  {RELIGION_DATA.map(r=>(
-                    <div key={r.religion} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'14px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-                        <div style={{fontSize:14,fontWeight:700,color:'var(--text-1)'}}>{r.religion}</div>
-                        <div style={{fontSize:11,color:r.religion==='Hindu'?'#10b981':r.religion==='Muslim'?'#8b5cf6':'#f59e0b'}}>{r.alignment}</div>
-                      </div>
-                      <div style={{fontSize:12,color:'rgba(255,255,255,0.5)',marginBottom:4}}>Total: <b style={{color:'var(--text-1)'}}>{r.total.toLocaleString()}</b> · Polled: <b style={{color:'#22d3ee'}}>{r.polled.toLocaleString()}</b> · Turnout: <b style={{color:r.turnout>58?'#10b981':'#f59e0b'}}>{r.turnout.toFixed(1)}%</b></div>
-                      <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>BJP: {r.bjp}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.6)',marginBottom:10}}>Community Turnout Ranking (BJP Relevance)</div>
-                <div style={{overflowX:'auto'}}>
-                  <table style={{width:'100%',borderCollapse:'collapse',minWidth:700}}>
-                    <thead><tr style={{background:'rgba(255,255,255,0.04)'}}>
-                      {['Community','Total','Polled','Turnout%','Category','BJP Alignment','Strategic Note'].map(h=><th key={h} style={{...C(true,'rgba(255,255,255,0.5)'),textAlign:'left',fontSize:10,whiteSpace:'nowrap'}}>{h}</th>)}
-                    </tr></thead>
-                    <tbody>{COMMUNITY_DATA.map((r,i)=>(
-                      <tr key={r.c} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.015)'}}>
-                        <td style={{...C(),fontWeight:600}}>{r.c}</td>
-                        <td style={C()}>{r.total.toLocaleString()}</td>
-                        <td style={C()}>{r.polled.toLocaleString()}</td>
-                        <td style={{...C(),color:r.turnout>65?'#10b981':r.turnout>58?'#f59e0b':'#ef4444',fontWeight:700}}>{r.turnout.toFixed(1)}%</td>
-                        <td style={C()}>{r.cat}</td>
-                        <td style={{...C(),color:r.align.includes('🟢')?'#10b981':r.align.includes('🔴')?'#ef4444':'#f59e0b'}}>{r.align}</td>
-                        <td style={{...C(),fontSize:11,color:'rgba(255,255,255,0.5)'}}>{r.note}</td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                </div>
-              </div>
-              <div style={{marginTop:18}}>
-                <div style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.6)',marginBottom:10}}>Gender Analysis</div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:8}}>
-                  {[
-                    {rel:'Hindu',   male:76513, mPoll:46656, mT:61.0, female:83497,fPoll:50652,fT:60.7, gap:'Male>Female by 0.3%', note:'Hindu WOMEN turnout 60.7% — mobilise for +5% gain', color:'#10b981'},
-                    {rel:'Muslim',  male:22792, mPoll:11087, mT:48.6, female:22279,fPoll:11398,fT:51.2, gap:'Female>Male by 2.6%', note:'Muslim women vote MORE — Congress-aligned; intercept with welfare', color:'#8b5cf6'},
-                    {rel:'Christian',male:18849,mPoll:9573,  mT:50.8, female:22983,fPoll:12330,fT:53.6, gap:'Female>Male by 2.8%', note:'Christian women are SWING DRIVER — targeted welfare critical', color:'#f59e0b'},
-                  ].map(g=>(
-                    <div key={g.rel} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'12px'}}>
-                      <div style={{fontSize:13,fontWeight:700,color:g.color,marginBottom:6}}>{g.rel}</div>
-                      <div style={{fontSize:11,color:'rgba(255,255,255,0.55)',marginBottom:4}}>♂ {g.male.toLocaleString()} voters · {g.mT.toFixed(1)}% turnout</div>
-                      <div style={{fontSize:11,color:'rgba(255,255,255,0.55)',marginBottom:6}}>♀ {g.female.toLocaleString()} voters · {g.fT.toFixed(1)}% turnout</div>
-                      <div style={{fontSize:10,color:g.color,fontWeight:600,marginBottom:4}}>{g.gap}</div>
-                      <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>{g.note}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <CommunityTab RELIGION_DATA={RELIGION_DATA} COMMUNITY_DATA={COMMUNITY_DATA}/>
           )}
 
           {/* HISTORY */}
