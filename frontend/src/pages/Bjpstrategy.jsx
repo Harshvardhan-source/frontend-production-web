@@ -7,6 +7,7 @@ import {
 import {
   Search, BookOpen, PieChart as PieChartIcon, Layers,
   MapPin, ClipboardList, ClipboardCheck, Vote, ShieldAlert,
+  BarChart2, Users2,
 } from 'lucide-react';
 
 // ─── Ward & SIR data (moved from Dashboard.jsx) ──────────────────────────────
