@@ -786,7 +786,6 @@ function HeatmapTab({ WARDS_FULL, clsCfg, pColor, expandedWard, setExpandedWard 
                     ? `linear-gradient(135deg,${c.color}18,${c.color}08)`
                     : 'rgba(255,255,255,0.025)',
                   border: `1px solid ${isOpen ? c.color + '60' : 'rgba(255,255,255,0.07)'}`,
-                  borderTop: `3px solid ${c.color}`,
                   borderRadius: 12,
                   padding: '11px 13px',
                   cursor: 'pointer',
