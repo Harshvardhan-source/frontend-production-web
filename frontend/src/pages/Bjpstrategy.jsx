@@ -884,7 +884,6 @@ function PoliticalIntelligenceHub() {
     {id:'aidash',   label:'AI Overview',icon:"◑"},
     {id:'simulator',label:'Simulator',  icon:"⧖"},
     {id:'budget',   label:'Budget ₹',   icon:"₹"},
-    {id:'dosdont',  label:"Do's & Don'ts",icon:"✦"},
   ];
 
   const clsCfg = (cls) => {
@@ -897,35 +896,67 @@ function PoliticalIntelligenceHub() {
   };
   const pColor = (p) => p&&p.includes('CRITICAL')?'#ef4444':p&&p.includes('HIGH')?'#f59e0b':p&&p.includes('MEDIUM')?'#a78bfa':p&&p.includes('WATCH')?'#10b981':'rgba(255,255,255,0.3)';
   const C = (bold=false,color='rgba(255,255,255,0.7)') => ({padding:'7px 10px',fontSize:12,color,fontWeight:bold?700:400,borderBottom:'1px solid rgba(255,255,255,0.05)'});
-  const tabBtn = (id) => ({padding:'6px 11px',borderRadius:'8px 8px 0 0',fontSize:11,fontWeight:600,cursor:'pointer',border:'none',whiteSpace:'nowrap',
-    background:activeTab===id?'rgba(245,158,11,0.18)':'rgba(255,255,255,0.03)',
-    color:activeTab===id?'#f59e0b':'rgba(255,255,255,0.4)',
-    borderBottom:activeTab===id?'2px solid #f59e0b':'2px solid transparent',transition:'all 0.15s'});
+  const tabBtn = (id) => ({
+    padding:'5px 13px', borderRadius:20, fontSize:11, fontWeight:600,
+    cursor:'pointer', border:'none', whiteSpace:'nowrap', flexShrink:0,
+    background: activeTab===id ? 'rgba(245,158,11,0.16)' : 'transparent',
+    color: activeTab===id ? '#fbbf24' : 'rgba(255,255,255,0.35)',
+    outline: activeTab===id ? '1px solid rgba(245,158,11,0.4)' : '1px solid transparent',
+    transition:'all 0.2s ease',
+  });
 
   return (
     <div style={{marginBottom:24}}>
-      <div style={{background:'linear-gradient(145deg,rgba(10,18,35,0.99),rgba(17,28,52,0.97))',border:'1px solid rgba(255,255,255,0.08)',borderRadius:18,boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',overflow:'hidden'}}>
+      <div style={{
+        background:'linear-gradient(160deg,#07101f 0%,#0d1b38 100%)',
+        border:'1px solid rgba(255,255,255,0.07)',
+        borderRadius:20,
+        boxShadow:'0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+        overflow:'hidden',
+      }}>
+        {/* Header accent bar */}
+        <div style={{height:3,background:'linear-gradient(90deg,#dc2626 0%,#f97316 50%,transparent 100%)'}}/>
+
         {/* Header */}
-        <div style={{padding:'20px 18px 0',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
-          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:10}}>
+        <div style={{padding:'20px 22px 0',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:12}}>
             <div>
-              <div style={{fontSize:18,fontWeight:900,color:'var(--text-1)',letterSpacing:'-0.3px'}}>BJP Political Intelligence System</div>
-              <div style={{fontSize:12,color:'rgba(255,255,255,0.35)',marginTop:2}}>Mangaluru City South · 38 wards · 246,960 electors · Decadal analysis 2013–2025</div>
+              <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:5}}>
+                <span style={{
+                  background:'linear-gradient(135deg,#dc2626,#7f1d1d)',
+                  color:'#fff', fontSize:9, fontWeight:900, letterSpacing:1.5,
+                  padding:'3px 8px', borderRadius:5, textTransform:'uppercase',
+                }}>BJP</span>
+                <span style={{fontSize:17,fontWeight:800,color:'#f1f5f9',letterSpacing:'-0.5px'}}>Political Intelligence System</span>
+              </div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,0.28)',letterSpacing:0.2}}>
+                Mangaluru City South · 38 wards · 246,960 electors · Decadal analysis 2013–2025
+              </div>
             </div>
-            <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
               {[{v:18,l:'BJP wards',c:'#10b981'},{v:5,l:'Contested',c:'#f97316'},{v:9,l:'Cong wards',c:'#8b5cf6'},{v:'58%',l:'Win probability',c:'#f59e0b'}].map(s=>(
-                <div key={s.l} style={{background:`${s.c}15`,border:`1px solid ${s.c}30`,borderRadius:10,padding:'5px 12px',textAlign:'center'}}>
-                  <div style={{fontSize:17,fontWeight:900,color:s.c}}>{s.v}</div>
-                  <div style={{fontSize:10,color:'rgba(255,255,255,0.4)'}}>{s.l}</div>
+                <div key={s.l} style={{
+                  background:`linear-gradient(135deg,${s.c}18,${s.c}06)`,
+                  border:`1px solid ${s.c}30`,
+                  borderRadius:12, padding:'8px 14px', textAlign:'center',
+                  minWidth:62,
+                }}>
+                  <div style={{fontSize:20,fontWeight:900,color:s.c,lineHeight:1}}>{s.v}</div>
+                  <div style={{fontSize:9,color:'rgba(255,255,255,0.32)',marginTop:3,letterSpacing:0.3}}>{s.l}</div>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{display:'flex',gap:2,overflowX:'auto',paddingBottom:0}}>
+
+          {/* Pill tab bar */}
+          <div style={{
+            display:'flex', gap:3, overflowX:'auto', paddingBottom:12,
+            scrollbarWidth:'none', msOverflowStyle:'none',
+          }}>
             {TABS.map(t=>(
               <button key={t.id} style={tabBtn(t.id)} onClick={()=>setActiveTab(t.id)}>
-                <span style={{display:'flex',alignItems:'center',gap:5}}>
-                  <span style={{opacity: activeTab===t.id ? 1 : 0.6}}>{t.icon}</span>
+                <span style={{display:'flex',alignItems:'center',gap:4}}>
+                  <span style={{fontSize:9,opacity:activeTab===t.id?1:0.5}}>{t.icon}</span>
                   {t.label}
                 </span>
               </button>
@@ -933,7 +964,7 @@ function PoliticalIntelligenceHub() {
           </div>
         </div>
 
-        <div style={{padding:'18px'}}>
+        <div style={{padding:'20px 22px'}}>
 
           {/* HEATMAP */}
           {activeTab==='heatmap'&&(
@@ -943,7 +974,7 @@ function PoliticalIntelligenceHub() {
                 {WARDS_FULL.map(d=>{
                   const cfg=clsCfg(d.cls); const isOpen=expandedWard===d.w;
                   return (
-                    <div key={d.w} style={{background:isOpen?cfg.bg:'rgba(255,255,255,0.025)',border:`1px solid ${isOpen?cfg.color+'55':'rgba(255,255,255,0.07)'}`,borderRadius:12,padding:'11px 13px',cursor:'pointer',transition:'all 0.18s'}} onClick={()=>setExpandedWard(isOpen?null:d.w)}>
+                    <div key={d.w} style={{background:isOpen?cfg.bg:'rgba(255,255,255,0.022)',border:`1px solid ${isOpen?cfg.color+'60':'rgba(255,255,255,0.06)'}`,borderRadius:14,padding:'12px 14px',cursor:'pointer',transition:'all 0.2s ease',boxShadow:isOpen?`0 6px 24px ${cfg.color}18`:'none'}} onClick={()=>setExpandedWard(isOpen?null:d.w)}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:5}}>
                         <div>
                           <div style={{fontSize:12,fontWeight:700,color:'var(--text-1)'}}>W{d.w} · {d.n}</div>
@@ -1198,25 +1229,116 @@ function PoliticalIntelligenceHub() {
           {/* STRATEGY */}
           {activeTab==='strategy'&&(
             <div>
-              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:14}}>5-Pillar Victory Strategy: MOBILISE · CONSOLIDATE · PENETRATE · INSULATE · DOMINATE</div>
+              {/* 5-pillar header */}
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+                <div style={{fontSize:11,color:'rgba(255,255,255,0.3)',letterSpacing:0.5}}>5-PILLAR VICTORY STRATEGY</div>
+                {['MOBILISE','CONSOLIDATE','PENETRATE','INSULATE','DOMINATE'].map((p,i)=>(
+                  <span key={p} style={{
+                    fontSize:9,fontWeight:800,padding:'3px 8px',borderRadius:20,letterSpacing:0.8,
+                    background:['rgba(239,68,68,0.15)','rgba(16,185,129,0.12)','rgba(245,158,11,0.12)','rgba(34,211,238,0.12)','rgba(167,139,250,0.12)'][i],
+                    color:['#f87171','#34d399','#fbbf24','#67e8f9','#c4b5fd'][i],
+                    border:`1px solid ${'rgba(239,68,68,0.3) rgba(16,185,129,0.25) rgba(245,158,11,0.25) rgba(34,211,238,0.25) rgba(167,139,250,0.25)'.split(' ')[i]}`,
+                  }}>{p}</span>
+                ))}
+              </div>
+
               {STRATEGY.map(pillar=>(
-                <div key={pillar.pillar} style={{marginBottom:18}}>
-                  <div style={{fontSize:13,fontWeight:800,color:pillar.color,marginBottom:10,padding:'5px 12px',background:`${pillar.color}15`,borderRadius:8,display:'inline-block'}}>{pillar.pillar}</div>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(275px,1fr))',gap:8}}>
+                <div key={pillar.pillar} style={{marginBottom:20}}>
+                  <div style={{
+                    fontSize:12,fontWeight:800,color:pillar.color,marginBottom:10,
+                    display:'flex',alignItems:'center',gap:8,
+                  }}>
+                    <div style={{width:3,height:18,background:pillar.color,borderRadius:2,flexShrink:0}}/>
+                    {pillar.pillar}
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(270px,1fr))',gap:8}}>
                     {pillar.items.map(item=>(
-                      <div key={item.code} style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:10,padding:'12px 14px',borderLeft:`3px solid ${item.priority==='CRITICAL'?'#ef4444':item.priority==='HIGH'?'#f59e0b':'#22d3ee'}`}}>
-                        <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
-                          <span style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.3)'}}>{item.code}</span>
-                          <span style={{fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:4,background:item.priority==='CRITICAL'?'rgba(239,68,68,0.2)':item.priority==='HIGH'?'rgba(245,158,11,0.2)':'rgba(34,211,238,0.15)',color:item.priority==='CRITICAL'?'#ef4444':item.priority==='HIGH'?'#f59e0b':'#22d3ee'}}>{item.priority}</span>
+                      <div key={item.code} style={{
+                        background:'rgba(255,255,255,0.022)',
+                        border:'1px solid rgba(255,255,255,0.06)',
+                        borderRadius:12,padding:'12px 14px',
+                        borderLeft:`3px solid ${item.priority==='CRITICAL'?'#ef4444':item.priority==='HIGH'?'#f59e0b':'#22d3ee'}`,
+                        transition:'all 0.2s',
+                      }}>
+                        <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                          <span style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.25)',letterSpacing:0.5}}>{item.code}</span>
+                          <span style={{
+                            fontSize:8,fontWeight:800,padding:'2px 6px',borderRadius:4,letterSpacing:0.5,
+                            background:item.priority==='CRITICAL'?'rgba(239,68,68,0.18)':item.priority==='HIGH'?'rgba(245,158,11,0.18)':'rgba(34,211,238,0.12)',
+                            color:item.priority==='CRITICAL'?'#f87171':item.priority==='HIGH'?'#fbbf24':'#67e8f9',
+                          }}>{item.priority}</span>
                         </div>
-                        <div style={{fontSize:13,fontWeight:700,color:'var(--text-1)',marginBottom:5}}>{item.action}</div>
-                        <div style={{fontSize:11,color:'rgba(255,255,255,0.55)',marginBottom:6,lineHeight:1.5}}>{item.desc}</div>
-                        <div style={{fontSize:10,color:pillar.color}}>Target: {item.target}</div>
+                        <div style={{fontSize:12,fontWeight:700,color:'#f1f5f9',marginBottom:5,lineHeight:1.4}}>{item.action}</div>
+                        <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',marginBottom:6,lineHeight:1.55}}>{item.desc}</div>
+                        <div style={{fontSize:10,color:pillar.color,fontWeight:600}}>↗ {item.target}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
+
+              {/* ── Field Playbook — Do's & Don'ts ──────────────────────────────── */}
+              <div style={{marginTop:24,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:20}}>
+                <div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,0.4)',marginBottom:14,letterSpacing:0.5}}>
+                  FIELD PLAYBOOK — QUICK REFERENCE
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+
+                  {/* Do's */}
+                  <div style={{background:'rgba(16,185,129,0.05)',border:'1px solid rgba(16,185,129,0.15)',borderRadius:14,padding:'14px 16px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
+                      <div style={{width:22,height:22,borderRadius:'50%',background:'rgba(16,185,129,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#4ade80',fontWeight:800,flexShrink:0}}>✓</div>
+                      <span style={{fontSize:11,fontWeight:800,color:'#4ade80',letterSpacing:0.3}}>DO — High-Impact Actions</span>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2px 10px'}}>
+                      {[
+                        "WhatsApp booth location to non-pollers 48 hrs before poll",
+                        "Prioritise 46–65 age group — highest polling rate segment",
+                        "Assign female workers to female voters — 2.5% turnout edge",
+                        "Complete SIR in risk wards — every unregistered Hindu = lost BJP vote",
+                        "Deploy vehicles for elderly + outstation voters on poll day",
+                        "Run Tulu/Konkani community meetings to cut voter apathy",
+                        "Track real-time booth data; send agents to low-turnout booths",
+                        "Announce local development works visible before polls",
+                        "Use Confidence-HIGH voter list for targeted outreach",
+                        "Maintain NRI contact list — Valencia, Bejai, Padav diaspora votes",
+                      ].map((d,i)=>(
+                        <div key={i} style={{display:'flex',gap:6,alignItems:'flex-start',padding:'5px 0',borderBottom:'1px solid rgba(16,185,129,0.06)'}}>
+                          <span style={{color:'#4ade80',flexShrink:0,fontSize:9,marginTop:2,fontWeight:900}}>✓</span>
+                          <span style={{fontSize:10,color:'rgba(255,255,255,0.6)',lineHeight:1.45}}>{d}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Don'ts */}
+                  <div style={{background:'rgba(239,68,68,0.05)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:14,padding:'14px 16px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
+                      <div style={{width:22,height:22,borderRadius:'50%',background:'rgba(239,68,68,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#f87171',fontWeight:800,flexShrink:0}}>✕</div>
+                      <span style={{fontSize:11,fontWeight:800,color:'#f87171',letterSpacing:0.3}}>DON'T — Avoid These Mistakes</span>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2px 10px'}}>
+                      {[
+                        "No divisive messaging in mixed wards (Court, Shivabagh, Jeppu)",
+                        "Don't over-promise in Cong-strong wards — hurts swing ward credibility",
+                        "Don't neglect 26–35 age group — 50,000+ non-voters, reachable digitally",
+                        "SIR completion ≠ mobilisation — BLO mapping is just step one",
+                        "Don't spend on posters/hoardings — lowest ROI per vote",
+                        "Zero tolerance for poll-day worker absenteeism — costs 3–5% turnout",
+                        "Don't ignore Unclassified voters (37.86%) — likely BJP-leaning OBCs",
+                        "Don't confront Muslim workers in sensitive wards — causes backlash",
+                        "Don't rely only on historical winning booths — low-poll strongholds = highest swing",
+                        "No generic state-level digital content — only hyper-local Mangaluru issues work",
+                      ].map((d,i)=>(
+                        <div key={i} style={{display:'flex',gap:6,alignItems:'flex-start',padding:'5px 0',borderBottom:'1px solid rgba(239,68,68,0.06)'}}>
+                          <span style={{color:'#f87171',flexShrink:0,fontSize:9,marginTop:2,fontWeight:900}}>✕</span>
+                          <span style={{fontSize:10,color:'rgba(255,255,255,0.6)',lineHeight:1.45}}>{d}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1311,7 +1433,7 @@ function PoliticalIntelligenceHub() {
               <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:14}}>Top 10 Actionable Intelligence Insights — Final Summary</div>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {INSIGHTS.map(ins=>(
-                  <div key={ins.n} style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'14px 16px',display:'flex',gap:14,alignItems:'flex-start'}}>
+                  <div key={ins.n} style={{background:'rgba(255,255,255,0.022)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'15px 18px',display:'flex',gap:14,alignItems:'flex-start',boxShadow:'0 2px 12px rgba(0,0,0,0.2)',transition:'all 0.2s'}}>
                     <div style={{fontSize:22,fontWeight:900,color:ins.sev==='🔴'?'#ef4444':ins.sev==='🟠'?'#f97316':'#f59e0b',minWidth:32,textAlign:'center'}}>{ins.n}</div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:14,fontWeight:800,color:'var(--text-1)',marginBottom:5}}>{ins.title}</div>
@@ -1331,7 +1453,6 @@ function PoliticalIntelligenceHub() {
           {activeTab==='aidash'    && <AIOverviewTab/>}
           {activeTab==='simulator' && <SimulatorTab/>}
           {activeTab==='budget'    && <BudgetTab/>}
-          {activeTab==='dosdont'   && <DosDontsTab/>}
         </div>
       </div>
     </div>
@@ -1738,59 +1859,6 @@ function BudgetTab() {
   );
 }
 
-// ─── Do's & Don'ts Tab ────────────────────────────────────────────────────────
-function DosDontsTab() {
-  const DOS = [
-    "Use voter ID-linked WhatsApp to confirm booth location to non-pollers 48 hours before election day",
-    "Prioritise 46–65 age group mobilisation — they have highest polling rates; reinforce their intent",
-    "Assign female party workers to contact female voters — 2.5% female turnout advantage is measurable",
-    "Focus on complete SIR in risk wards — every unregistered young voter is a lost BJP vote in Hindu-majority areas",
-    "Deploy vehicles for elderly, disabled, and outstation voters on polling day — this segment leans BJP",
-    "Hold local-language (Tulu/Konkani) community meetings — cultural connect reduces apathy",
-    "Track booth-wise real-time polling data on election day; dispatch agents to low-turnout booths immediately",
-    "Announce hyper-local development works (road, drainage, water) visible before polls — strong emotional trigger",
-    "Use Confidence-HIGH classified voter list for targeted outreach — 43% of voters are precisely identified",
-    "Maintain NRI contact list for Valencia, Bejai, Padav — diaspora vote return on polling day is significant",
-  ];
-  const DONTS = [
-    "Don't use communally divisive messaging in mixed wards (Court, Shivabagh, Jeppu) — drives Christian/Muslim voters firmly to INC",
-    "Don't over-promise in Congress-strong wards (Kudroli, Bengre, Bunder) — credibility loss affects swing wards too",
-    "Don't neglect the 26–35 age group — they are the biggest non-voter cohort (50,000+) and are reachable via digital",
-    "Don't assume SIR completion means voter mobilisation — BLO mapping is only a first step",
-    "Don't spend heavily on posters / flex hoardings — lowest ROI per vote; shift funds to field workers",
-    "Don't allow polling-day worker absenteeism — booth presence directly correlates with 3–5% turnout increase per ward",
-    "Don't ignore Unclassified voter segment (37.86%) — may include significant BJP-leaning OBCs not yet identified",
-    "Don't confront Muslim community workers in sensitive wards — counter-productive and creates backlash in adjacent booths",
-    "Don't rely only on historical winning booths — low-poll-rate booths in BJP strongholds have highest swing potential",
-    "Don't run generic state-level digital campaigns — hyper-local Mangaluru-specific issues drive engagement",
-  ];
-  return (
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-      <div style={{background:'rgba(16,185,129,0.04)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:12,padding:14}}>
-        <div style={{fontSize:12,fontWeight:700,color:'#4ade80',marginBottom:12}}>✓ Do's — High-Impact Actions</div>
-        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          {DOS.map((d,i)=>(
-            <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',paddingBottom:8,borderBottom:i<DOS.length-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
-              <span style={{color:'#4ade80',flexShrink:0,fontWeight:700}}>✓</span>
-              <span style={{fontSize:11,color:'#94a3b8',lineHeight:1.5}}>{d}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{background:'rgba(239,68,68,0.04)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:12,padding:14}}>
-        <div style={{fontSize:12,fontWeight:700,color:'#f87171',marginBottom:12}}>✕ Don'ts — Avoid These Mistakes</div>
-        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          {DONTS.map((d,i)=>(
-            <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',paddingBottom:8,borderBottom:i<DONTS.length-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
-              <span style={{color:'#f87171',flexShrink:0,fontWeight:700}}>✕</span>
-              <span style={{fontSize:11,color:'#94a3b8',lineHeight:1.5}}>{d}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 // ─── Main page ────────────────────────────────────────────────────────────────
