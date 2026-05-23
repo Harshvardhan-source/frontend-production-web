@@ -37,7 +37,7 @@ import SIR          from './pages/Sir';
 import AdminPanel   from './pages/AdminPanel';
 import Swot         from './pages/Swot';
 import AiChat       from './pages/Aichat';
-import BJPStrategy  from './pages/BJPStrategy';   // ← NEW
+import BJPStrategy  from './pages/Bjpstrategy';   // ← NEW
  
 export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
