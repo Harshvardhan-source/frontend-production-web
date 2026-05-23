@@ -4,11 +4,6 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip,
   LineChart, Line, ResponsiveContainer, CartesianGrid, Legend
 } from 'recharts';
-import {
-  Search, BookOpen, PieChart as PieChartIcon, Layers,
-  MapPin, ClipboardList, ClipboardCheck, Vote, ShieldAlert,
-  BarChart2, Users2,
-} from 'lucide-react';
 
 // ─── Ward & SIR data (moved from Dashboard.jsx) ──────────────────────────────
 const WARD_FULL_DATA = {
@@ -875,17 +870,17 @@ function PoliticalIntelligenceHub() {
   ];
 
   const TABS = [
-    {id:'heatmap',  label:'Heatmap',   icon:<MapPin size={13}/>},
-    {id:'why',      label:'Why S/M/W', icon:<Search size={13}/>},
-    {id:'wsi',      label:'WSI Scores',icon:<BarChart2 size={13}/>},
-    {id:'community',label:'Community', icon:<Users2 size={13}/>},
-    {id:'history',  label:'History',   icon:<BookOpen size={13}/>},
-    {id:'math',     label:'Math',      icon:<PieChartIcon size={13}/>},
-    {id:'strategy', label:'Strategy',  icon:<Layers size={13}/>},
-    {id:'policy',   label:'Policy',    icon:<ClipboardList size={13}/>},
-    {id:'tracker',  label:'Tracker',   icon:<ClipboardCheck size={13}/>},
-    {id:'calendar', label:'Calendar',  icon:<Vote size={13}/>},
-    {id:'insights', label:'Insights',  icon:<ShieldAlert size={13}/>},
+    {id:'heatmap',  label:'Heatmap',   icon:"◉"},
+    {id:'why',      label:'Why S/M/W', icon:"⌕"},
+    {id:'wsi',      label:'WSI Scores',icon:"▦"},
+    {id:'community',label:'Community', icon:"◎"},
+    {id:'history',  label:'History',   icon:"⊡"},
+    {id:'math',     label:'Math',      icon:"◕"},
+    {id:'strategy', label:'Strategy',  icon:"⊟"},
+    {id:'policy',   label:'Policy',    icon:"☰"},
+    {id:'tracker',  label:'Tracker',   icon:"✓"},
+    {id:'calendar', label:'Calendar',  icon:"◈"},
+    {id:'insights', label:'Insights',  icon:"⚑"},
   ];
 
   const clsCfg = (cls) => {
