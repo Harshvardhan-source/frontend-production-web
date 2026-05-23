@@ -1083,6 +1083,260 @@ function CommunityTab({ RELIGION_DATA, COMMUNITY_DATA }) {
   );
 }
 
+
+// ─── History Tab — Full-Text Card Layout ─────────────────────────────────────
+function HistoryTab({ HIST_SUMMARY, WARDS_FULL, clsCfg, pColor }) {
+  const [expanded, setExpanded] = React.useState(null);
+  const [filter,   setFilter]   = React.useState('ALL');
+  const [search,   setSearch]   = React.useState('');
+
+  const YEARS = ['2013 BBMP','2014 LS','2018 BBMP','2019 LS','2023 Assem.'];
+
+  // Map HIST_SUMMARY keys to year columns
+  const yearVal = (r) => [r.v2013, r.v2014, r.v2018, r.v2019, r.v2023];
+
+  const trendColor = (t) =>
+    t.includes('\u2193') ? '#ef4444' : t.includes('\u2191') ? '#10b981' : '#f59e0b';
+
+  // Metric row accent colours
+  const metricColor = (m) => {
+    if (m.includes('BJP'))        return '#f97316';
+    if (m.includes('Non-Voters')) return '#ef4444';
+    if (m.includes('Turnout'))    return '#f59e0b';
+    if (m.includes('Cong'))       return '#a78bfa';
+    if (m.includes('Margin'))     return '#22d3ee';
+    return '#94a3b8';
+  };
+
+  const FILTER_LIST = ['ALL','STRONGHOLD','STRONG','FAVOURABLE','CONTESTED','CONGRESS'];
+  const FILTER_COLORS = {
+    ALL:'#94a3b8', STRONGHOLD:'#10b981', STRONG:'#22d3ee',
+    FAVOURABLE:'#f59e0b', CONTESTED:'#f97316', CONGRESS:'#a78bfa',
+  };
+
+  const clsGroup = (cls) => {
+    if (cls.includes('STRONGHOLD'))                           return 'STRONGHOLD';
+    if (cls.includes('BJP STRONG') && !cls.includes('FAVO')) return 'STRONG';
+    if (cls.includes('FAVO'))                                 return 'FAVOURABLE';
+    if (cls.includes('CONTESTED'))                            return 'CONTESTED';
+    return 'CONGRESS';
+  };
+
+  const filteredWards = WARDS_FULL
+    .slice()
+    .sort((a,b) => b.hjp - a.hjp)
+    .filter(d => filter === 'ALL' || clsGroup(d.cls) === filter)
+    .filter(d => !search || d.n.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:24}}>
+
+      {/* ── Section 1: Constituency Trend Timeline ── */}
+      <div>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:1.2,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',marginBottom:14}}>
+          Constituency-Level BJP Trend 2013–2023
+        </div>
+
+        {/* Year header strip */}
+        <div style={{display:'grid',gridTemplateColumns:'180px repeat(5,1fr) 120px 130px',gap:0,background:'rgba(255,255,255,0.04)',borderRadius:'10px 10px 0 0',padding:'8px 14px',marginBottom:1}}>
+          <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.35)',letterSpacing:0.5}}>METRIC</div>
+          {YEARS.map(y => (
+            <div key={y} style={{fontSize:10,fontWeight:700,color: y.includes('2023')?'#22d3ee':'rgba(255,255,255,0.35)',textAlign:'center',letterSpacing:0.3}}>{y}</div>
+          ))}
+          <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.35)',textAlign:'center',letterSpacing:0.5}}>TREND</div>
+          <div style={{fontSize:10,fontWeight:700,color:'#f59e0b',textAlign:'center',letterSpacing:0.5}}>2025 PROJ.</div>
+        </div>
+
+        {/* Metric rows */}
+        <div style={{border:'1px solid rgba(255,255,255,0.07)',borderRadius:'0 0 10px 10px',overflow:'hidden'}}>
+          {HIST_SUMMARY.map((r,i) => {
+            const mc = metricColor(r.metric);
+            const vals = yearVal(r);
+            return (
+              <div key={r.metric} style={{
+                display:'grid',
+                gridTemplateColumns:'180px repeat(5,1fr) 120px 130px',
+                gap:0,
+                padding:'11px 14px',
+                background: i%2===0?'transparent':'rgba(255,255,255,0.015)',
+                borderBottom: i < HIST_SUMMARY.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                alignItems:'center',
+              }}>
+                {/* Metric label */}
+                <div style={{display:'flex',alignItems:'center',gap:7}}>
+                  <div style={{width:3,height:18,background:mc,borderRadius:2,flexShrink:0}}/>
+                  <span style={{fontSize:12,fontWeight:700,color:'#e2e8f0'}}>{r.metric}</span>
+                </div>
+
+                {/* Year values */}
+                {vals.map((v,vi) => (
+                  <div key={vi} style={{textAlign:'center'}}>
+                    <span style={{
+                      fontSize: vi===4 ? 14 : 12,
+                      fontWeight: vi===4 ? 800 : 500,
+                      color: vi===4 ? '#22d3ee' : 'rgba(255,255,255,0.5)',
+                    }}>{v}</span>
+                  </div>
+                ))}
+
+                {/* Trend pill */}
+                <div style={{textAlign:'center'}}>
+                  <span style={{
+                    fontSize:11,fontWeight:700,
+                    padding:'3px 10px',borderRadius:20,
+                    background: trendColor(r.trend)+'1a',
+                    color: trendColor(r.trend),
+                    border:`1px solid ${trendColor(r.trend)}40`,
+                  }}>{r.trend}</span>
+                </div>
+
+                {/* 2025 projection */}
+                <div style={{textAlign:'center'}}>
+                  <span style={{fontSize:12,fontWeight:700,color:'#f59e0b'}}>{r.proj}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Section 2: Ward Classification Shift ── */}
+      <div>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:1.2,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',marginBottom:14}}>
+          Ward Classification Shift 2013 → 2023 + 2025 Risk
+        </div>
+
+        {/* Filters */}
+        <div style={{display:'flex',gap:10,marginBottom:14,flexWrap:'wrap',alignItems:'center'}}>
+          <div style={{position:'relative',flexShrink:0}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ward..."
+              style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:8,padding:'6px 10px 6px 28px',color:'#e2e8f0',fontSize:11,outline:'none',width:140}}/>
+            <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',fontSize:11,opacity:0.4}}>&#128269;</span>
+          </div>
+          <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+            {FILTER_LIST.map(f=>(
+              <button key={f} onClick={()=>setFilter(f)} style={{
+                padding:'4px 12px',borderRadius:20,border:'none',cursor:'pointer',
+                fontSize:10,fontWeight:700,letterSpacing:0.4,
+                background: filter===f ? FILTER_COLORS[f]+'28':'rgba(255,255,255,0.04)',
+                color: filter===f ? FILTER_COLORS[f]:'rgba(255,255,255,0.35)',
+                outline: filter===f ? `1px solid ${FILTER_COLORS[f]}55`:'1px solid rgba(255,255,255,0.07)',
+                transition:'all 0.18s',
+              }}>{f}</button>
+            ))}
+          </div>
+          <div style={{marginLeft:'auto',fontSize:10,color:'rgba(255,255,255,0.25)'}}>{filteredWards.length} wards</div>
+        </div>
+
+        {/* Ward cards */}
+        <div style={{display:'flex',flexDirection:'column',gap:5}}>
+          {filteredWards.map((d) => {
+            const cfg    = clsCfg(d.cls);
+            const isOpen = expanded === d.w;
+            const tc     = d.trend.includes('\u2193')?'#ef4444':d.trend.includes('\u2191')?'#10b981':'#f59e0b';
+            const rc     = pColor(d.risk2025);
+
+            return (
+              <div key={d.w}
+                onClick={()=>setExpanded(isOpen?null:d.w)}
+                style={{
+                  background: isOpen?'rgba(255,255,255,0.035)':'rgba(255,255,255,0.018)',
+                  border:`1px solid ${isOpen?cfg.color+'55':'rgba(255,255,255,0.07)'}`,
+                  borderLeft:`3px solid ${cfg.color}`,
+                  borderRadius:10, cursor:'pointer',
+                  transition:'all 0.2s ease', overflow:'hidden',
+                }}
+              >
+                {/* ── Collapsed row ── */}
+                <div style={{display:'grid',gridTemplateColumns:'150px 110px 160px 1fr 140px 18px',alignItems:'center',gap:10,padding:'10px 14px'}}>
+
+                  {/* Ward name */}
+                  <div>
+                    <span style={{fontWeight:800,color:cfg.color,fontSize:11}}>W{d.w}</span>
+                    <span style={{fontSize:12,color:'#e2e8f0',marginLeft:5,fontWeight:600}}>{d.n}</span>
+                  </div>
+
+                  {/* Classification badge */}
+                  <span style={{fontSize:9,fontWeight:800,padding:'3px 8px',borderRadius:5,background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.color}44`,letterSpacing:0.4,whiteSpace:'nowrap'}}>
+                    {cfg.label}
+                  </span>
+
+                  {/* Trend */}
+                  <span style={{fontSize:11,fontWeight:700,color:tc}}>{d.trend}</span>
+
+                  {/* Gap preview (collapsed) / spacer (open) */}
+                  {!isOpen
+                    ? <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{d.gap}</div>
+                    : <div/>
+                  }
+
+                  {/* Risk badge */}
+                  <span style={{fontSize:9,fontWeight:800,padding:'3px 8px',borderRadius:5,background:rc+'22',color:rc,border:`1px solid ${rc}33`,whiteSpace:'nowrap',textAlign:'center'}}>
+                    {d.risk2025.replace(/[\uD83D\uDD34\uD83D\uDFE0\uD83D\uDFE1\uD83D\uDFE2\u2014] ?/gu,'')}
+                  </span>
+
+                  {/* Chevron */}
+                  <div style={{fontSize:12,color:'rgba(255,255,255,0.3)',transform:isOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',textAlign:'center'}}>&#9662;</div>
+                </div>
+
+                {/* ── Expanded body ── */}
+                {isOpen && (
+                  <div style={{padding:'0 14px 16px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+
+                    {/* Stat strip */}
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap',padding:'10px 0 14px',borderBottom:'1px solid rgba(255,255,255,0.05)',marginBottom:14}}>
+                      {[
+                        {l:'Classification', v:cfg.label,                                    c:cfg.color},
+                        {l:'BJP Projection', v:`${d.hjp.toFixed(0)}%`,                       c:cfg.color},
+                        {l:'Poll Rate',      v:`${d.poll.toFixed(1)}%`,                      c:d.poll<55?'#ef4444':d.poll<60?'#f59e0b':'#10b981'},
+                        {l:'Margin',         v:`${d.margin>=0?'+':''}${d.margin.toFixed(0)}%`,c:d.margin>=0?'#10b981':'#ef4444'},
+                        {l:'Hindu',          v:`${d.hindu.toFixed(0)}%`,                     c:'#f59e0b'},
+                        {l:'WSI Score',      v:d.wsi.toFixed(0),                             c:d.wsi>=70?'#10b981':d.wsi>=50?'#f59e0b':'#ef4444'},
+                        {l:'2025 Risk',      v:d.risk2025.replace(/[\uD83D\uDD34\uD83D\uDFE0\uD83D\uDFE1\uD83D\uDFE2\u2014] ?/gu,''), c:rc},
+                        {l:'Prediction',     v:d.prediction,                                 c:'rgba(255,255,255,0.45)'},
+                      ].map(s=>(
+                        <div key={s.l} style={{background:'rgba(255,255,255,0.04)',borderRadius:7,padding:'5px 10px',minWidth:60}}>
+                          <div style={{fontSize:9,color:'rgba(255,255,255,0.28)',marginBottom:2,letterSpacing:0.3}}>{s.l}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:s.c,lineHeight:1.3}}>{s.v}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Two panels: Root Cause/Gap + Corrective Action */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+
+                      <div style={{background:'rgba(252,211,77,0.04)',border:'1px solid rgba(252,211,77,0.15)',borderTop:'2px solid #fcd34d',borderRadius:8,padding:'12px 14px'}}>
+                        <div style={{fontSize:9,fontWeight:800,letterSpacing:1.2,color:'#fcd34d',marginBottom:10,textTransform:'uppercase'}}>&#9888;&#65039; Root Cause / Gap</div>
+                        <div style={{fontSize:12,color:'#fde68a',lineHeight:1.8}}>{d.gap}</div>
+                      </div>
+
+                      <div style={{background:'rgba(110,231,183,0.04)',border:'1px solid rgba(110,231,183,0.15)',borderTop:`2px solid ${cfg.color}`,borderRadius:8,padding:'12px 14px'}}>
+                        <div style={{fontSize:9,fontWeight:800,letterSpacing:1.2,color:cfg.color,marginBottom:10,textTransform:'uppercase'}}>&#9989; Corrective Action</div>
+                        <div style={{fontSize:12,color:'#a7f3d0',lineHeight:1.8,marginBottom:10}}>{d.action}</div>
+                        <div style={{display:'flex',gap:6,flexWrap:'wrap',paddingTop:8,borderTop:`1px solid ${cfg.color}22`}}>
+                          {[
+                            {l:'BJP Target',v:d.bjpTarget,    c:'#22d3ee'},
+                            {l:'Turnout',   v:d.turnoutTarget,c:'#f59e0b'},
+                            {l:'SIR',       v:d.sirTarget,    c:'#a78bfa'},
+                          ].map(t=>(
+                            <div key={t.l} style={{fontSize:10,fontWeight:700,background:t.c+'18',color:t.c,padding:'2px 8px',borderRadius:4,border:`1px solid ${t.c}33`}}>{t.l}: {t.v}</div>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 // ─── Political Intelligence Hub (moved from Dashboard.jsx) ───────────────────
 function PoliticalIntelligenceHub() {
   const [activeTab, setActiveTab] = React.useState('heatmap');
@@ -1442,45 +1696,7 @@ function PoliticalIntelligenceHub() {
 
           {/* HISTORY */}
           {activeTab==='history'&&(
-            <div>
-              <div style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.6)',marginBottom:10}}>Constituency-Level BJP Trend 2013–2023</div>
-              <div style={{overflowX:'auto',marginBottom:20}}>
-                <table style={{width:'100%',borderCollapse:'collapse'}}>
-                  <thead><tr style={{background:'rgba(255,255,255,0.04)'}}>
-                    {['Metric','2013 BBMP','2014 LS','2018 BBMP','2019 LS','2023 Assem.','Trend','2025 Proj.'].map(h=><th key={h} style={{...C(true,'rgba(255,255,255,0.5)'),textAlign:'left',fontSize:10,whiteSpace:'nowrap'}}>{h}</th>)}
-                  </tr></thead>
-                  <tbody>{HIST_SUMMARY.map((r,i)=>(
-                    <tr key={r.metric} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.015)'}}>
-                      <td style={{...C(),fontWeight:600}}>{r.metric}</td>
-                      <td style={C()}>{r.v2013}</td><td style={C()}>{r.v2014}</td><td style={C()}>{r.v2018}</td><td style={C()}>{r.v2019}</td>
-                      <td style={{...C(),fontWeight:700,color:'#22d3ee'}}>{r.v2023}</td>
-                      <td style={{...C(),color:r.trend.includes('↓')?'#ef4444':r.trend.includes('↑')?'#10b981':'#f59e0b',fontWeight:700}}>{r.trend}</td>
-                      <td style={{...C(),color:'#f59e0b',fontWeight:600}}>{r.proj}</td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
-              <div style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.6)',marginBottom:10}}>Ward Classification Shift 2013→2023 + 2025 Risk</div>
-              <div style={{overflowX:'auto'}}>
-                <table style={{width:'100%',borderCollapse:'collapse',minWidth:800}}>
-                  <thead><tr style={{background:'rgba(255,255,255,0.04)'}}>
-                    {['Ward','2023 Status','Direction','Root Cause / Gap','2025 Risk'].map(h=><th key={h} style={{...C(true,'rgba(255,255,255,0.5)'),textAlign:'left',fontSize:10,whiteSpace:'nowrap'}}>{h}</th>)}
-                  </tr></thead>
-                  <tbody>{WARDS_FULL.map((d,i)=>{
-                    const cfg=clsCfg(d.cls);
-                    return (
-                      <tr key={d.w} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.015)'}}>
-                        <td style={{...C(),fontWeight:600,color:cfg.color,whiteSpace:'nowrap'}}>W{d.w} {d.n}</td>
-                        <td style={{...C(),fontSize:10,color:cfg.color,fontWeight:700}}>{cfg.label}</td>
-                        <td style={{...C(),color:d.trend.includes('↓')?'#ef4444':d.trend.includes('↑')?'#10b981':'#f59e0b',fontWeight:700,whiteSpace:'nowrap'}}>{d.trend}</td>
-                        <td style={{...C(),fontSize:11,color:'rgba(255,255,255,0.55)',maxWidth:260}}>{d.gap.slice(0,130)}…</td>
-                        <td style={{...C(),fontSize:10,color:pColor(d.risk2025),fontWeight:600,whiteSpace:'nowrap'}}>{d.risk2025}</td>
-                      </tr>
-                    );
-                  })}</tbody>
-                </table>
-              </div>
-            </div>
+            <HistoryTab HIST_SUMMARY={HIST_SUMMARY} WARDS_FULL={WARDS_FULL} clsCfg={clsCfg} pColor={pColor}/>
           )}
 
           {/* MATH */}
