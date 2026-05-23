@@ -975,7 +975,7 @@ function HeatmapTab({ WARDS_FULL, clsCfg, pColor, expandedWard, setExpandedWard 
 
             <div style={{
               background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)',
-              borderLeft:`3px solid ${cfg.color}`, borderRadius:8, padding:'11px 13px',
+              borderRadius:8, padding:'11px 13px',
             }}>
               <div style={{ fontSize:9, fontWeight:800, color:cfg.color, letterSpacing:0.8, marginBottom:6, textTransform:'uppercase' }}>
                 ◆ Why This Classification
@@ -985,7 +985,7 @@ function HeatmapTab({ WARDS_FULL, clsCfg, pColor, expandedWard, setExpandedWard 
 
             <div style={{
               background:'rgba(252,211,77,0.04)', border:'1px solid rgba(252,211,77,0.2)',
-              borderLeft:'3px solid #fcd34d', borderRadius:8, padding:'11px 13px',
+              borderRadius:8, padding:'11px 13px',
             }}>
               <div style={{ fontSize:9, fontWeight:800, color:'#fcd34d', letterSpacing:0.8, marginBottom:6, textTransform:'uppercase' }}>
                 ⚠ Root Cause / Gap
@@ -995,7 +995,7 @@ function HeatmapTab({ WARDS_FULL, clsCfg, pColor, expandedWard, setExpandedWard 
 
             <div style={{
               background:'rgba(110,231,183,0.04)', border:'1px solid rgba(110,231,183,0.2)',
-              borderLeft:'3px solid #6ee7b7', borderRadius:8, padding:'11px 13px',
+              borderRadius:8, padding:'11px 13px',
             }}>
               <div style={{ fontSize:9, fontWeight:800, color:'#6ee7b7', letterSpacing:0.8, marginBottom:6, textTransform:'uppercase' }}>
                 ✅ Corrective Action
