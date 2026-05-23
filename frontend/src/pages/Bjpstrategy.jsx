@@ -881,6 +881,10 @@ function PoliticalIntelligenceHub() {
     {id:'tracker',  label:'Tracker',   icon:"✓"},
     {id:'calendar', label:'Calendar',  icon:"◈"},
     {id:'insights', label:'Insights',  icon:"⚑"},
+    {id:'aidash',   label:'AI Overview',icon:"◑"},
+    {id:'simulator',label:'Simulator',  icon:"⧖"},
+    {id:'budget',   label:'Budget ₹',   icon:"₹"},
+    {id:'dosdont',  label:"Do's & Don'ts",icon:"✦"},
   ];
 
   const clsCfg = (cls) => {
@@ -1324,6 +1328,464 @@ function PoliticalIntelligenceHub() {
             </div>
           )}
 
+          {activeTab==='aidash'    && <AIOverviewTab/>}
+          {activeTab==='simulator' && <SimulatorTab/>}
+          {activeTab==='budget'    && <BudgetTab/>}
+          {activeTab==='dosdont'   && <DosDontsTab/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AI Overview Tab ─────────────────────────────────────────────────────────
+function AIOverviewTab() {
+  const COMMUNITY_POLL = [
+    { name:'Hindu OBC',          rate:62.6, color:'#f59e0b' },
+    { name:'Hindu OC (Bunt)',    rate:61.1, color:'#f59e0b' },
+    { name:'Hindu Brahmin (GSB)',rate:60.3, color:'#fbbf24' },
+    { name:'Christian',          rate:53.4, color:'#60a5fa' },
+    { name:'Muslim',             rate:50.1, color:'#f87171' },
+  ];
+  const COMMUNITY_PIE = [
+    { name:'Hindu OBC', val:33.8, color:'#f59e0b' },
+    { name:'Muslim',    val:18.9, color:'#34d399' },
+    { name:'Christian', val:14.9, color:'#60a5fa' },
+    { name:'Hindu GSB', val:8.4,  color:'#fbbf24' },
+    { name:'Hindu OC',  val:6.5,  color:'#a78bfa' },
+    { name:'Others',    val:17.5, color:'#475569' },
+  ];
+  const AGE_DATA = [
+    { ag:'18–25', rate:'61.3%', polled:'13,357', type:'ok'   },
+    { ag:'26–35', rate:'49.5%', polled:'21,484', type:'bad'  },
+    { ag:'36–45', rate:'54.4%', polled:'25,305', type:'ok'   },
+    { ag:'46–55', rate:'63.5%', polled:'30,378', type:'good' },
+    { ag:'56–65', rate:'66.3%', polled:'26,702', type:'good' },
+    { ag:'65+',   rate:'51.4%', polled:'23,184', type:'ok'   },
+  ];
+  const CRITICAL_WARDS = [
+    { n:'Mannagudda',    cls:'BJP Stronghold',    poll:54.8, H:93.7, M:1.1,  C:5.2,  bjp:93.7, margin:'+87.4', sir:'Critical' },
+    { n:'Derebail South',cls:'BJP Stronghold',    poll:58.1, H:80.1, M:2.5,  C:17.4, bjp:80.1, margin:'+60.2', sir:'Critical' },
+    { n:'Kadri North',   cls:'BJP Stronghold',    poll:54.5, H:86.8, M:0.7,  C:12.5, bjp:86.8, margin:'+73.6', sir:'High'     },
+    { n:'Dongarakeri',   cls:'BJP Stronghold',    poll:58.4, H:86.2, M:12.0, C:1.8,  bjp:86.2, margin:'+72.4', sir:'High'     },
+    { n:'Kambala',       cls:'BJP Stronghold',    poll:57.9, H:92.6, M:1.8,  C:5.6,  bjp:92.6, margin:'+85.2', sir:'High'     },
+    { n:'Bejai',         cls:'BJP Strong',        poll:58.7, H:68.6, M:4.7,  C:26.7, bjp:68.6, margin:'+37.2', sir:'High'     },
+    { n:'Cantonment',    cls:'BJP Strong',        poll:51.2, H:73.8, M:20.7, C:5.5,  bjp:73.8, margin:'+47.6', sir:'High'     },
+    { n:'Court',         cls:'Contested',         poll:39.5, H:51.0, M:27.7, C:21.4, bjp:51.0, margin:'+2.0',  sir:'Medium'   },
+    { n:'Shivabagh',     cls:'Contested',         poll:50.2, H:52.2, M:11.7, C:36.1, bjp:52.2, margin:'+4.4',  sir:'Medium'   },
+    { n:'Padav East',    cls:'BJP Fav.',          poll:46.9, H:60.2, M:3.9,  C:35.9, bjp:60.2, margin:'+20.4', sir:'Medium'   },
+  ];
+  const sirColor = s => s==='Critical'?'#ef4444':s==='High'?'#f59e0b':'#fbbf24';
+  const clsColor = c => c.includes('Stronghold')?'#3b82f6':c.includes('Strong')&&!c.includes('Fav')?'#60a5fa':c.includes('Fav')?'#4ade80':'#94a3b8';
+
+  // Build SVG donut
+  const buildDonut = (slices) => {
+    let start = 0;
+    return slices.map(s => {
+      const pct = s.val / 100;
+      const large = pct > 0.5 ? 1 : 0;
+      const x1 = 50 + 42*Math.cos(2*Math.PI*start - Math.PI/2);
+      const y1 = 50 + 42*Math.sin(2*Math.PI*start - Math.PI/2);
+      start += pct;
+      const x2 = 50 + 42*Math.cos(2*Math.PI*start - Math.PI/2);
+      const y2 = 50 + 42*Math.sin(2*Math.PI*start - Math.PI/2);
+      return { d:`M50,50 L${x1.toFixed(2)},${y1.toFixed(2)} A42,42 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z`, color:s.color, name:s.name, val:s.val };
+    });
+  };
+  const donutSlices = buildDonut(COMMUNITY_PIE);
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+      {/* KPIs */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+        {[
+          {l:'Total Registered Voters', v:'2,51,998',  c:'#60a5fa', sub:'Current voter list'},
+          {l:'Avg Poll Rate (2023)',     v:'58.3%',     c:'#e2e8f0', sub:'Constituency average'},
+          {l:'Polled (2023)',            v:'1,41,707',  c:'#4ade80', sub:'Actually voted'},
+          {l:'Non-Polled Voters',       v:'1,05,253',  c:'#f87171', sub:"Didn't vote — target pool"},
+          {l:'BJP Stronghold Wards',    v:'8',          c:'#e2e8f0', sub:'BJP proj >80%'},
+          {l:'SIR Critical Wards',      v:'2',          c:'#f87171', sub:'Immediate action needed'},
+        ].map(k => (
+          <div key={k.l} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 14px'}}>
+            <div style={{fontSize:10,color:'#64748b',marginBottom:4}}>{k.l}</div>
+            <div style={{fontSize:22,fontWeight:600,color:k.c,lineHeight:1}}>{k.v}</div>
+            <div style={{fontSize:10,color:'#64748b',marginTop:3}}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pie + community poll rate */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:10}}>Community Composition (classified voters)</div>
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
+            <svg viewBox="0 0 100 100" width={120} height={120} style={{flexShrink:0}}>
+              {donutSlices.map((s,i) => <path key={i} d={s.d} fill={s.color} stroke="#080d1a" strokeWidth="1.5"/>)}
+              <circle cx="50" cy="50" r="24" fill="#080d1a"/>
+              <text x="50" y="48" textAnchor="middle" fill="#94a3b8" fontSize="7" fontWeight="600">38</text>
+              <text x="50" y="57" textAnchor="middle" fill="#64748b" fontSize="6">wards</text>
+            </svg>
+            <div style={{display:'flex',flexDirection:'column',gap:5,flex:1}}>
+              {COMMUNITY_PIE.map(c => (
+                <div key={c.name} style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:'#94a3b8'}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:c.color,flexShrink:0,display:'inline-block'}}/>
+                  <span style={{flex:1}}>{c.name}</span>
+                  <span style={{fontWeight:700,color:'#e2e8f0'}}>{c.val}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:12}}>Polling Rate by Community (2023 actual)</div>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {COMMUNITY_POLL.map(c => (
+              <div key={c.name}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#cbd5e1',marginBottom:4}}>
+                  <span>{c.name}</span>
+                  <span style={{fontWeight:700,color:c.rate>=60?'#4ade80':c.rate>=55?'#fbbf24':'#f87171'}}>{c.rate}%</span>
+                </div>
+                <div style={{height:6,background:'rgba(255,255,255,0.06)',borderRadius:3,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${c.rate}%`,background:c.color,borderRadius:3,transition:'width 0.5s'}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Age grid + Gender */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:10}}>Polling Rate by Age Group (2023)</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+            {AGE_DATA.map(a => (
+              <div key={a.ag} style={{background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'8px',textAlign:'center'}}>
+                <div style={{fontSize:10,color:'#64748b'}}>{a.ag}</div>
+                <div style={{fontSize:16,fontWeight:600,margin:'3px 0',color:a.type==='bad'?'#f87171':a.type==='good'?'#4ade80':'#e2e8f0'}}>{a.rate}</div>
+                <div style={{fontSize:9,color:'#64748b'}}>{a.polled}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:10,color:'#f87171',marginTop:8}}>⚠ Highest gap: 26–35 age group — 50,500 non-pollers</div>
+        </div>
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:10}}>Gender Polling Analysis</div>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:11,marginBottom:12}}>
+            <thead><tr>{['Gender','Polled','Not Polled','Rate'].map(h=>(
+              <th key={h} style={{textAlign:'left',padding:'6px 8px',fontSize:10,color:'#64748b',borderBottom:'1px solid rgba(255,255,255,0.08)',fontWeight:600}}>{h}</th>
+            ))}</tr></thead>
+            <tbody>
+              <tr>
+                <td style={{padding:'7px 8px',color:'#f0abfc'}}>Female</td>
+                <td style={{padding:'7px 8px',color:'#e2e8f0'}}>74,380</td>
+                <td style={{padding:'7px 8px',color:'#64748b'}}>52,604</td>
+                <td style={{padding:'7px 8px',fontWeight:700,color:'#4ade80'}}>58.6%</td>
+              </tr>
+              <tr>
+                <td style={{padding:'7px 8px',color:'#93c5fd'}}>Male</td>
+                <td style={{padding:'7px 8px',color:'#e2e8f0'}}>67,316</td>
+                <td style={{padding:'7px 8px',color:'#64748b'}}>52,649</td>
+                <td style={{padding:'7px 8px',fontWeight:700,color:'#f59e0b'}}>56.1%</td>
+              </tr>
+              <tr><td colSpan={4} style={{padding:'8px',fontSize:10,color:'#64748b',fontStyle:'italic'}}>Female lead +2.5% — a key swing lever</td></tr>
+            </tbody>
+          </table>
+          <div style={{fontSize:10,fontWeight:600,color:'#94a3b8',marginBottom:6}}>Historical Poll Rate Trend</div>
+          {[{y:'2013',r:72},{y:'2014',r:68},{y:'2018',r:65},{y:'2019',r:73},{y:'2023',r:58}].map(t=>(
+            <div key={t.y} style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+              <span style={{fontSize:9,color:'#64748b',width:30}}>{t.y}</span>
+              <div style={{flex:1,height:6,background:'rgba(255,255,255,0.06)',borderRadius:3,overflow:'hidden'}}>
+                <div style={{height:'100%',width:`${(t.r/80)*100}%`,background:t.r>=70?'#4ade80':t.r>=65?'#60a5fa':'#f87171',borderRadius:3}}/>
+              </div>
+              <span style={{fontSize:9,fontWeight:700,color:'#94a3b8',width:28}}>{t.r}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Critical wards table */}
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:10}}>Top 10 Critical Wards Requiring Immediate Attention</div>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+            <thead><tr>{['#','Ward','Classification','Poll Rate','Hindu%','Muslim%','Christian%','BJP Proj','Margin','SIR Status'].map(h=>(
+              <th key={h} style={{textAlign:'left',padding:'7px 10px',fontSize:10,color:'#64748b',borderBottom:'1px solid rgba(255,255,255,0.08)',fontWeight:600,whiteSpace:'nowrap'}}>{h}</th>
+            ))}</tr></thead>
+            <tbody>
+              {CRITICAL_WARDS.map((w,i)=>(
+                <tr key={w.n} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.02)'}}>
+                  <td style={{padding:'6px 10px',color:'#64748b',fontWeight:700}}>{i+1}</td>
+                  <td style={{padding:'6px 10px',color:'#e2e8f0',fontWeight:600,whiteSpace:'nowrap'}}>{w.n}</td>
+                  <td style={{padding:'6px 10px'}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:4,background:clsColor(w.cls)+'22',color:clsColor(w.cls)}}>{w.cls}</span>
+                  </td>
+                  <td style={{padding:'6px 10px',fontWeight:700,color:w.poll<55?'#f87171':w.poll<60?'#f59e0b':'#4ade80'}}>{w.poll}%</td>
+                  <td style={{padding:'6px 10px',color:'#fbbf24'}}>{w.H}</td>
+                  <td style={{padding:'6px 10px',color:'#34d399'}}>{w.M}</td>
+                  <td style={{padding:'6px 10px',color:'#60a5fa'}}>{w.C}</td>
+                  <td style={{padding:'6px 10px',color:'#e2e8f0',fontWeight:700}}>{w.bjp}%</td>
+                  <td style={{padding:'6px 10px',color:'#4ade80',fontWeight:700}}>{w.margin}</td>
+                  <td style={{padding:'6px 10px'}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:4,background:sirColor(w.sir)+'22',color:sirColor(w.sir)}}>{w.sir}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Simulator Tab ───────────────────────────────────────────────────────────
+function SimulatorTab() {
+  const W = [
+    {n:'Mannagudda',    H:93.7,M:1.1, C:5.2, e:8102},  {n:'Kambala',       H:92.6,M:1.8, C:5.6, e:4517},
+    {n:'Central',       H:90.4,M:7.6, C:2.0, e:4882},  {n:'Boloor',        H:87.5,M:1.2, C:11.3,e:6618},
+    {n:'Kadri North',   H:86.8,M:0.7, C:12.5,e:6433},  {n:'Dongarakeri',   H:86.2,M:12.0,C:1.8, e:7664},
+    {n:'Padav West',    H:84.1,M:1.0, C:14.8,e:7542},  {n:'Derebail South',H:80.1,M:2.5, C:17.4,e:4767},
+    {n:'Kodialbail',    H:80.9,M:1.2, C:17.9,e:7871},  {n:'Derebail West', H:85.1,M:0.8, C:14.1,e:7314},
+    {n:'Derebail SW',   H:87.9,M:0.6, C:11.5,e:7801},  {n:'Bejai',         H:68.6,M:4.7, C:26.7,e:7246},
+    {n:'Cantonment',    H:73.8,M:20.7,C:5.5, e:4095},  {n:'Padav Central', H:68.3,M:4.6, C:27.1,e:8462},
+    {n:'Maroli',        H:68.7,M:0.8, C:30.5,e:6718},  {n:'Jappimogar',    H:71.6,M:7.4, C:20.9,e:7266},
+    {n:'Kankanady',     H:76.1,M:10.8,C:13.1,e:7527},  {n:'Alape South',   H:76.1,M:8.9, C:15.0,e:6284},
+    {n:'Alape North',   H:68.5,M:1.4, C:30.0,e:7200},  {n:'Hoige Bazar',   H:65.1,M:30.1,C:4.8, e:4320},
+    {n:'Bolar',         H:71.8,M:19.6,C:8.6, e:7107},  {n:'Padav East',    H:60.2,M:3.9, C:35.9,e:4471},
+    {n:'Kadri South',   H:63.9,M:5.3, C:30.8,e:5843},  {n:'Athavara',      H:62.9,M:24.0,C:13.1,e:7856},
+    {n:'Mangaladevi',   H:62.8,M:26.8,C:10.5,e:5358},  {n:'Court',         H:51.0,M:27.7,C:21.4,e:5980},
+    {n:'Shivabagh',     H:52.2,M:11.7,C:36.1,e:6294},  {n:'Jeppu',         H:52.4,M:18.7,C:29.0,e:7711},
+    {n:'Valencia',      H:53.6,M:11.5,C:34.9,e:5090},  {n:'Bajal',         H:47.8,M:45.2,C:7.1, e:7805},
+    {n:'Port',          H:47.6,M:40.9,C:11.4,e:7153},  {n:'Bendoor',       H:32.2,M:25.2,C:42.6,e:6296},
+    {n:'Bengre',        H:30.9,M:68.3,C:0.8, e:10897}, {n:'Kudroli',       H:28.8,M:68.2,C:3.0, e:5765},
+    {n:'Bunder',        H:34.6,M:65.1,C:0.3, e:5871},  {n:'Falnir',        H:32.1,M:9.2, C:58.7,e:6526},
+    {n:'Kannur',        H:40.1,M:56.9,C:3.0, e:7045},  {n:'Milagress',     H:43.5,M:34.8,C:21.8,e:7210},
+  ];
+  const [sel, setSel] = React.useState(()=>new Set(W.map(w=>w.n)));
+  const [hr, setHr] = React.useState(62);
+  const [mr, setMr] = React.useState(50);
+  const [cr, setCr] = React.useState(53);
+  const [hb, setHb] = React.useState(92);
+  const [mb, setMb] = React.useState(6);
+  const [cb, setCb] = React.useState(30);
+
+  const sw = W.filter(w=>sel.has(w.n));
+  const res = React.useMemo(()=>{
+    let bjp=0,inc=0,p=0,t=0;
+    sw.forEach(w=>{
+      const hv=w.e*(w.H/100),mv=w.e*(w.M/100),cv=w.e*(w.C/100);
+      const hp=hv*(hr/100),mp=mv*(mr/100),cp=cv*(cr/100);
+      bjp+=hp*(hb/100)+mp*(mb/100)+cp*(cb/100);
+      inc+=hp*(1-hb/100)+mp*(1-mb/100)+cp*(1-cb/100);
+      p+=hp+mp+cp; t+=w.e;
+    });
+    const tot=bjp+inc;
+    const bp=tot>0?bjp/tot*100:50;
+    return {bjp,inc,bp,ip:100-bp,margin:bjp-inc,t,p};
+  },[sel,hr,mr,cr,hb,mb,cb]);
+
+  const verdict = res.bp>55?{t:'BJP comfortable win',c:'#4ade80'}
+                : res.bp>51?{t:'BJP narrow win',c:'#60a5fa'}
+                : res.bp>49?{t:'Too close to call',c:'#fbbf24'}
+                : res.bp>45?{t:'INC narrow win',c:'#f59e0b'}
+                :            {t:'INC comfortable win',c:'#f87171'};
+
+  const Sl = ({lbl,val,min,max,color,set}) => (
+    <div style={{marginBottom:14}}>
+      <div style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:4}}>
+        <span style={{color:'#94a3b8'}}>{lbl}</span>
+        <span style={{fontWeight:700,color}}>{val}%</span>
+      </div>
+      <input type="range" min={min} max={max} step={1} value={val} onChange={e=>set(+e.target.value)} style={{width:'100%',accentColor:color}}/>
+    </div>
+  );
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      <div style={{fontSize:11,color:'#64748b'}}>Select wards, adjust community polling rates and partisan lean to predict election outcomes.</div>
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:8}}>Step 1 — Select Wards</div>
+        <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+          {[['All',()=>setSel(new Set(W.map(w=>w.n)))],['Clear',()=>setSel(new Set())],
+            ['Risk wards',()=>setSel(new Set(['Mannagudda','Derebail South','Kadri North','Dongarakeri','Kambala','Bejai','Cantonment','Court','Shivabagh','Jeppu','Padav East','Central','Boloor','Padav West','Valencia','Bendoor','Bengre']))],
+          ].map(([l,fn])=>(
+            <button key={l} onClick={fn} style={{fontSize:10,padding:'4px 10px',borderRadius:6,border:'1px solid rgba(255,255,255,0.12)',background:'rgba(255,255,255,0.05)',color:'#cbd5e1',cursor:'pointer'}}>{l}</button>
+          ))}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))',gap:3,maxHeight:140,overflowY:'auto',border:'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:8}}>
+          {W.map(w=>(
+            <label key={w.n} style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:sel.has(w.n)?'#e2e8f0':'#475569',cursor:'pointer'}}>
+              <input type="checkbox" checked={sel.has(w.n)} onChange={e=>{const s=new Set(sel);e.target.checked?s.add(w.n):s.delete(w.n);setSel(s);}}/>{w.n}
+            </label>
+          ))}
+        </div>
+        <div style={{fontSize:10,color:'#64748b',marginTop:6}}>{sel.size} wards · {sw.reduce((a,w)=>a+w.e,0).toLocaleString()} total voters</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:12}}>Step 2 — Community Poll Rates (%)</div>
+          <Sl lbl="Hindu (all)" val={hr} min={30} max={95} color="#f59e0b" set={setHr}/>
+          <Sl lbl="Muslim" val={mr} min={20} max={90} color="#34d399" set={setMr}/>
+          <Sl lbl="Christian" val={cr} min={20} max={90} color="#60a5fa" set={setCr}/>
+        </div>
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:12}}>Step 3 — Partisan Vote Lean</div>
+          <Sl lbl="% Hindu → BJP" val={hb} min={60} max={99} color="#f59e0b" set={setHb}/>
+          <Sl lbl="% Muslim → BJP" val={mb} min={1} max={30} color="#34d399" set={setMb}/>
+          <Sl lbl="% Christian → BJP" val={cb} min={10} max={60} color="#60a5fa" set={setCb}/>
+        </div>
+      </div>
+      <div style={{background:'rgba(255,255,255,0.04)',border:`1px solid ${verdict.c}44`,borderRadius:12,padding:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+          <div style={{fontSize:13,fontWeight:700,color:'#e2e8f0'}}>Predicted Outcome</div>
+          <span style={{fontSize:11,fontWeight:800,padding:'4px 12px',borderRadius:6,background:verdict.c+'20',color:verdict.c}}>{verdict.t}</span>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:12}}>
+          <div><div style={{fontSize:10,color:'#64748b',marginBottom:3}}>BJP projected votes</div>
+            <div style={{fontSize:26,fontWeight:700,color:'#60a5fa'}}>{Math.round(res.bjp).toLocaleString()}</div>
+            <div style={{fontSize:11,color:'#64748b'}}>{res.bp.toFixed(1)}% of valid votes</div>
+          </div>
+          <div><div style={{fontSize:10,color:'#64748b',marginBottom:3}}>INC projected votes</div>
+            <div style={{fontSize:26,fontWeight:700,color:'#f87171'}}>{Math.round(res.inc).toLocaleString()}</div>
+            <div style={{fontSize:11,color:'#64748b'}}>{res.ip.toFixed(1)}% of valid votes</div>
+          </div>
+        </div>
+        <div style={{height:28,borderRadius:6,background:'rgba(255,255,255,0.06)',position:'relative',overflow:'hidden',marginBottom:12}}>
+          <div style={{position:'absolute',left:0,top:0,height:'100%',width:`${res.bp}%`,background:'linear-gradient(90deg,#1e40af,#3b82f6)',transition:'width 0.4s'}}/>
+          <div style={{position:'absolute',right:0,top:0,height:'100%',width:`${res.ip}%`,background:'linear-gradient(90deg,#991b1b,#dc2626)',transition:'width 0.4s'}}/>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+          {[{l:'Total voters',v:res.t.toLocaleString()},{l:'Est. polled',v:Math.round(res.p).toLocaleString()},{l:'Margin',v:`${res.margin>0?'+':''}${Math.round(res.margin).toLocaleString()}`}].map(k=>(
+            <div key={k.l} style={{textAlign:'center',padding:'8px',background:'rgba(255,255,255,0.03)',borderRadius:8}}>
+              <div style={{fontSize:9,color:'#64748b'}}>{k.l}</div>
+              <div style={{fontSize:13,fontWeight:700,color:'#e2e8f0'}}>{k.v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Budget Tab ───────────────────────────────────────────────────────────────
+function BudgetTab() {
+  const [booths, setBooths] = React.useState(249);
+  const [days,   setDays]   = React.useState(30);
+  const [wpb,    setWpb]    = React.useState(4);
+  const [da,     setDa]     = React.useState(600);
+  const [veh,    setVeh]    = React.useState(50);
+  const c1=booths*wpb*days*da, c2=booths*1200*2, c3=100000+days*3000,
+        c4=booths*500, c5=veh*2500+booths*150, c6=booths*800*days*0.1;
+  const sub=c1+c2+c3+c4+c5+c6, c7=sub*0.1, total=sub+c7;
+  const inr = v => '₹'+Math.round(v).toLocaleString('en-IN');
+  const Sl = ({lbl,val,min,max,step,set}) => (
+    <div style={{marginBottom:14}}>
+      <div style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:4}}>
+        <span style={{color:'#94a3b8'}}>{lbl}</span>
+        <span style={{fontWeight:700,color:'#fbbf24'}}>{val>=1000?'₹'+val.toLocaleString('en-IN'):val}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step||1} value={val} onChange={e=>set(+e.target.value)} style={{width:'100%',accentColor:'#f59e0b'}}/>
+    </div>
+  );
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:12}}>Adjust Parameters</div>
+          <Sl lbl="Active booths targeted" val={booths} min={50} max={249} set={setBooths}/>
+          <Sl lbl="Campaign days (field)" val={days} min={7} max={90} set={setDays}/>
+          <Sl lbl="Workers per booth" val={wpb} min={1} max={10} set={setWpb}/>
+          <Sl lbl="Daily worker allowance (₹)" val={da} min={200} max={2000} step={50} set={setDa}/>
+          <Sl lbl="Vehicles for polling day" val={veh} min={10} max={200} step={5} set={setVeh}/>
+        </div>
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:12}}>Budget Breakdown</div>
+          {[['Worker field allowances',c1],['Print (pamphlets, banners, flags)',c2],['Digital / SMS / WhatsApp',c3],['Community events & meetings',c4],['Polling day logistics',c5],['SIR / BLO support',c6],['Contingency (10%)',c7]].map(([l,v])=>(
+            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid rgba(255,255,255,0.05)',fontSize:11}}>
+              <span style={{color:'#94a3b8'}}>{l}</span><span style={{fontWeight:700,color:'#e2e8f0'}}>{inr(v)}</span>
+            </div>
+          ))}
+          <div style={{display:'flex',justifyContent:'space-between',padding:'12px 0 0',fontSize:14,fontWeight:700}}>
+            <span style={{color:'#e2e8f0'}}>Total Budget</span><span style={{color:'#4ade80'}}>{inr(total)}</span>
+          </div>
+        </div>
+      </div>
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:10}}>Priority ROI — Highest Polling Lift per ₹1L Spent</div>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+          <thead><tr>{['Rank','Activity','Target','Vote Gain/₹1L','Priority'].map(h=>(
+            <th key={h} style={{textAlign:'left',padding:'6px 10px',fontSize:10,color:'#64748b',borderBottom:'1px solid rgba(255,255,255,0.08)',fontWeight:600}}>{h}</th>
+          ))}</tr></thead>
+          <tbody>{[
+            {r:1,a:'Polling-day transport',t:'65+, women','g':'~180–250',p:'Highest',c:'#ef4444'},
+            {r:2,a:'Door-to-door mobilisation',t:'26–35 non-pollers','g':'~120–180',p:'High',c:'#f59e0b'},
+            {r:3,a:'WhatsApp / SMS blasts',t:'18–35 smartphone users','g':'~80–120',p:'High',c:'#f59e0b'},
+            {r:4,a:'Community leader engagement',t:'OBC / GSB associations','g':'~60–100',p:'Medium',c:'#fbbf24'},
+            {r:5,a:'Pamphlets + cable ads',t:'General awareness','g':'~20–50',p:'Low',c:'#64748b'},
+          ].map(row=>(
+            <tr key={row.r} style={{background:row.r%2===0?'rgba(255,255,255,0.015)':'transparent'}}>
+              <td style={{padding:'6px 10px',color:'#64748b',fontWeight:700}}>{row.r}</td>
+              <td style={{padding:'6px 10px',color:'#e2e8f0'}}>{row.a}</td>
+              <td style={{padding:'6px 10px',color:'#94a3b8'}}>{row.t}</td>
+              <td style={{padding:'6px 10px',color:'#4ade80',fontWeight:600}}>{row.g} votes</td>
+              <td style={{padding:'6px 10px'}}><span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:4,background:row.c+'20',color:row.c}}>{row.p}</span></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Do's & Don'ts Tab ────────────────────────────────────────────────────────
+function DosDontsTab() {
+  const DOS = [
+    "Use voter ID-linked WhatsApp to confirm booth location to non-pollers 48 hours before election day",
+    "Prioritise 46–65 age group mobilisation — they have highest polling rates; reinforce their intent",
+    "Assign female party workers to contact female voters — 2.5% female turnout advantage is measurable",
+    "Focus on complete SIR in risk wards — every unregistered young voter is a lost BJP vote in Hindu-majority areas",
+    "Deploy vehicles for elderly, disabled, and outstation voters on polling day — this segment leans BJP",
+    "Hold local-language (Tulu/Konkani) community meetings — cultural connect reduces apathy",
+    "Track booth-wise real-time polling data on election day; dispatch agents to low-turnout booths immediately",
+    "Announce hyper-local development works (road, drainage, water) visible before polls — strong emotional trigger",
+    "Use Confidence-HIGH classified voter list for targeted outreach — 43% of voters are precisely identified",
+    "Maintain NRI contact list for Valencia, Bejai, Padav — diaspora vote return on polling day is significant",
+  ];
+  const DONTS = [
+    "Don't use communally divisive messaging in mixed wards (Court, Shivabagh, Jeppu) — drives Christian/Muslim voters firmly to INC",
+    "Don't over-promise in Congress-strong wards (Kudroli, Bengre, Bunder) — credibility loss affects swing wards too",
+    "Don't neglect the 26–35 age group — they are the biggest non-voter cohort (50,000+) and are reachable via digital",
+    "Don't assume SIR completion means voter mobilisation — BLO mapping is only a first step",
+    "Don't spend heavily on posters / flex hoardings — lowest ROI per vote; shift funds to field workers",
+    "Don't allow polling-day worker absenteeism — booth presence directly correlates with 3–5% turnout increase per ward",
+    "Don't ignore Unclassified voter segment (37.86%) — may include significant BJP-leaning OBCs not yet identified",
+    "Don't confront Muslim community workers in sensitive wards — counter-productive and creates backlash in adjacent booths",
+    "Don't rely only on historical winning booths — low-poll-rate booths in BJP strongholds have highest swing potential",
+    "Don't run generic state-level digital campaigns — hyper-local Mangaluru-specific issues drive engagement",
+  ];
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+      <div style={{background:'rgba(16,185,129,0.04)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:12,padding:14}}>
+        <div style={{fontSize:12,fontWeight:700,color:'#4ade80',marginBottom:12}}>✓ Do's — High-Impact Actions</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {DOS.map((d,i)=>(
+            <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',paddingBottom:8,borderBottom:i<DOS.length-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
+              <span style={{color:'#4ade80',flexShrink:0,fontWeight:700}}>✓</span>
+              <span style={{fontSize:11,color:'#94a3b8',lineHeight:1.5}}>{d}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{background:'rgba(239,68,68,0.04)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:12,padding:14}}>
+        <div style={{fontSize:12,fontWeight:700,color:'#f87171',marginBottom:12}}>✕ Don'ts — Avoid These Mistakes</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {DONTS.map((d,i)=>(
+            <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',paddingBottom:8,borderBottom:i<DONTS.length-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
+              <span style={{color:'#f87171',flexShrink:0,fontWeight:700}}>✕</span>
+              <span style={{fontSize:11,color:'#94a3b8',lineHeight:1.5}}>{d}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
