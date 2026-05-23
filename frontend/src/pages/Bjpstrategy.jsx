@@ -356,8 +356,8 @@ function DashboardTab() {
   );
 }
 
-// ── HEATMAP TAB ───────────────────────────────────────────────────────────────
-function HeatmapTab() {
+// ── HEATMAP TAB (legacy SIR data view) ───────────────────────────────────────
+function HeatmapTabLegacy() {
   const [filter, setFilter] = useState('ALL');
   const [selected, setSelected] = useState(null);
 
@@ -705,6 +705,345 @@ function StrategyTab() {
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 
+// ─── Advanced Heatmap with Side Panel ────────────────────────────────────────
+function HeatmapTab({ WARDS_FULL, clsCfg, pColor, expandedWard, setExpandedWard }) {
+  const [filter, setFilter] = useState('ALL');
+  const selected = WARDS_FULL.find(d => d.w === expandedWard) || null;
+
+  const FILTERS = [
+    { id:'ALL', label:'All Wards' },
+    { id:'STRONGHOLD', label:'Stronghold' },
+    { id:'STRONG', label:'Strong' },
+    { id:'FAVOURABLE', label:'Favourable' },
+    { id:'CONTESTED', label:'Contested' },
+    { id:'CONGRESS', label:'Congress' },
+  ];
+
+  const clsGroup = (cls) => {
+    if (cls.includes('STRONGHOLD')) return 'STRONGHOLD';
+    if (cls.includes('BJP STRONG') && !cls.includes('FAVO')) return 'STRONG';
+    if (cls.includes('FAVO')) return 'FAVOURABLE';
+    if (cls.includes('CONTESTED')) return 'CONTESTED';
+    return 'CONGRESS';
+  };
+
+  const filtered = WARDS_FULL.filter(d => filter === 'ALL' || clsGroup(d.cls) === filter);
+
+  const getReligionBar = (d) => {
+    const total = d.hindu + d.muslim + d.christian;
+    return [
+      { pct: (d.hindu / total) * 100, color: '#f97316' },
+      { pct: (d.muslim / total) * 100, color: '#34d399' },
+      { pct: (d.christian / total) * 100, color: '#818cf8' },
+    ];
+  };
+
+  const cfg = selected ? clsCfg(selected.cls) : null;
+
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
+      {/* Left: Filter + Grid */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+
+        {/* Filter pills */}
+        <div style={{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap', alignItems:'center' }}>
+          {FILTERS.map(f => {
+            const isActive = filter === f.id;
+            const count = f.id === 'ALL' ? WARDS_FULL.length : WARDS_FULL.filter(d => clsGroup(d.cls) === f.id).length;
+            return (
+              <button key={f.id} onClick={() => setFilter(f.id)} style={{
+                padding:'5px 12px', borderRadius:20, fontSize:10.5, fontWeight:700,
+                cursor:'pointer', border:'none', whiteSpace:'nowrap',
+                background: isActive ? 'rgba(245,158,11,0.16)' : 'rgba(255,255,255,0.04)',
+                color: isActive ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+                outline: isActive ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                transition:'all 0.2s',
+              }}>
+                {f.label} <span style={{opacity:0.6}}>({count})</span>
+              </button>
+            );
+          })}
+          <div style={{ marginLeft:'auto', fontSize:10, color:'rgba(255,255,255,0.25)' }}>
+            {filtered.length} wards · click for intelligence detail
+          </div>
+        </div>
+
+        {/* Ward cards grid */}
+        <div style={{ display:'grid', gridTemplateColumns: selected ? 'repeat(auto-fill,minmax(175px,1fr))' : 'repeat(auto-fill,minmax(188px,1fr))', gap:7 }}>
+          {filtered.map(d => {
+            const c = clsCfg(d.cls);
+            const isOpen = expandedWard === d.w;
+            const bars = getReligionBar(d);
+            const priorityRisk = d.priority && (d.priority.includes('CRITICAL') || d.priority.includes('HIGH') || d.priority.includes('MEDIUM'));
+            const isRisk = d.alert && d.alert.includes('RISK');
+
+            return (
+              <div key={d.w}
+                onClick={() => setExpandedWard(isOpen ? null : d.w)}
+                style={{
+                  background: isOpen
+                    ? `linear-gradient(135deg,${c.color}18,${c.color}08)`
+                    : 'rgba(255,255,255,0.025)',
+                  border: `1px solid ${isOpen ? c.color + '60' : 'rgba(255,255,255,0.07)'}`,
+                  borderTop: `3px solid ${c.color}`,
+                  borderRadius: 12,
+                  padding: '11px 13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
+                  boxShadow: isOpen ? `0 8px 32px ${c.color}20` : 'none',
+                  position: 'relative',
+                }}
+              >
+                {isRisk && (
+                  <div style={{
+                    position:'absolute', top:10, right:10,
+                    width:6, height:6, borderRadius:'50%',
+                    background:'#ef4444',
+                    boxShadow:'0 0 0 2px rgba(239,68,68,0.3)',
+                  }}/>
+                )}
+
+                <div style={{ marginBottom:7 }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:'#f1f5f9', letterSpacing:'-0.2px', lineHeight:1.2 }}>
+                    W{d.w} · {d.n}
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:3 }}>
+                    <span style={{
+                      fontSize:8, fontWeight:800, padding:'1px 5px', borderRadius:3,
+                      background: c.bg, color: c.color, border:`1px solid ${c.color}44`,
+                      letterSpacing:0.3,
+                    }}>{c.label}</span>
+                    <span style={{ fontSize:9, color:'rgba(255,255,255,0.25)' }}>{d.totalElectors.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div style={{ height:3, borderRadius:2, overflow:'hidden', display:'flex', marginBottom:7 }}>
+                  {bars.map((b, i) => (
+                    <div key={i} style={{ width:`${b.pct}%`, height:'100%', background:b.color }}/>
+                  ))}
+                </div>
+
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:900, color: d.margin >= 0 ? c.color : '#8b5cf6', lineHeight:1 }}>
+                      {d.margin >= 0 ? '+' : ''}{d.margin.toFixed(0)}%
+                    </div>
+                    <div style={{ fontSize:8, color:'rgba(255,255,255,0.25)', marginTop:1 }}>margin</div>
+                  </div>
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ fontSize:13, fontWeight:900, color: d.poll < 55 ? '#f87171' : d.poll > 62 ? '#4ade80' : '#fbbf24', lineHeight:1 }}>
+                      {d.poll.toFixed(0)}%
+                    </div>
+                    <div style={{ fontSize:8, color:'rgba(255,255,255,0.25)', marginTop:1 }}>turnout</div>
+                  </div>
+                </div>
+
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ flex:1, height:3, background:'rgba(255,255,255,0.07)', borderRadius:2, overflow:'hidden' }}>
+                    <div style={{
+                      width:`${Math.min(100,d.wsi)}%`, height:'100%', borderRadius:2,
+                      background: d.wsi >= 70 ? '#10b981' : d.wsi >= 50 ? '#f59e0b' : '#ef4444',
+                    }}/>
+                  </div>
+                  <span style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', whiteSpace:'nowrap' }}>
+                    WSI {d.wsi.toFixed(0)}
+                  </span>
+                </div>
+
+                {priorityRisk && (
+                  <div style={{ marginTop:6 }}>
+                    <span style={{
+                      fontSize:8, fontWeight:800, padding:'2px 6px', borderRadius:3,
+                      background: pColor(d.priority) + '18', color: pColor(d.priority),
+                      letterSpacing:0.3,
+                    }}>{d.priority}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Right: Intelligence Panel */}
+      {selected && cfg && (
+        <div style={{
+          width: 340, flexShrink:0,
+          background:'linear-gradient(160deg,#0a1628 0%,#0d1f3c 100%)',
+          border:`1px solid ${cfg.color}40`,
+          borderRadius:16,
+          boxShadow:`0 0 0 1px ${cfg.color}15, 0 24px 64px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)`,
+          overflow:'hidden',
+          position:'sticky', top:20,
+          maxHeight:'85vh', overflowY:'auto',
+        }}>
+          <div style={{
+            background:`linear-gradient(135deg,${cfg.color}22,${cfg.color}08)`,
+            borderBottom:`1px solid ${cfg.color}30`,
+            padding:'14px 16px',
+          }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+              <div>
+                <div style={{ fontSize:15, fontWeight:900, color:'#f1f5f9', letterSpacing:'-0.3px' }}>
+                  W{selected.w} · {selected.n}
+                </div>
+                <div style={{ display:'flex', gap:6, marginTop:5, alignItems:'center', flexWrap:'wrap' }}>
+                  <span style={{
+                    fontSize:9, fontWeight:800, padding:'2px 7px', borderRadius:4,
+                    background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.color}50`,
+                  }}>{cfg.label}</span>
+                  <span style={{ fontSize:10, color:'rgba(255,255,255,0.35)' }}>{selected.totalElectors.toLocaleString()} electors</span>
+                </div>
+              </div>
+              <button onClick={() => setExpandedWard(null)} style={{
+                background:'rgba(255,255,255,0.08)', border:'none', color:'rgba(255,255,255,0.5)',
+                cursor:'pointer', fontSize:16, width:28, height:28, borderRadius:7,
+                display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+              }}>×</button>
+            </div>
+            <div style={{
+              marginTop:10, padding:'8px 10px', borderRadius:8,
+              background:'rgba(0,0,0,0.3)', border:`1px solid ${cfg.color}25`,
+            }}>
+              <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', letterSpacing:0.6, marginBottom:2 }}>PREDICTION</div>
+              <div style={{ fontSize:11, fontWeight:700, color:cfg.color }}>{selected.prediction}</div>
+            </div>
+          </div>
+
+          <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:12 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+              {[
+                { l:'Poll', v:`${selected.poll.toFixed(1)}%`, ok:selected.poll>60, icon:'🗳' },
+                { l:'BJP%', v:`${selected.hjp.toFixed(0)}%`, ok:selected.hjp>65, icon:'🔶' },
+                { l:'WSI', v:selected.wsi.toFixed(0), ok:selected.wsi>60, icon:'📊' },
+                { l:'Margin', v:`${selected.margin>=0?'+':''}${selected.margin.toFixed(0)}%`, ok:selected.margin>0, icon:'📈' },
+                { l:'BLO', v:`${selected.blo.toFixed(0)}%`, ok:selected.blo>57, icon:'📋' },
+                { l:'Progeny', v:`${selected.prog.toFixed(0)}%`, ok:selected.prog<100, icon:'👥' },
+              ].map((m,i) => (
+                <div key={i} style={{
+                  background: m.ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.07)',
+                  border: `1px solid ${m.ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.18)'}`,
+                  borderRadius:8, padding:'8px 9px', textAlign:'center',
+                }}>
+                  <div style={{ fontSize:14, marginBottom:2 }}>{m.icon}</div>
+                  <div style={{ fontSize:13, fontWeight:900, color: m.ok ? '#10b981' : '#f87171' }}>{m.v}</div>
+                  <div style={{ fontSize:8, color:'rgba(255,255,255,0.3)', marginTop:1 }}>{m.l}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{
+              background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)',
+              borderRadius:10, padding:'11px 13px',
+            }}>
+              <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.3)', letterSpacing:0.8, marginBottom:8, textTransform:'uppercase' }}>
+                Religion Composition
+              </div>
+              {[
+                { label:'Hindu', val:selected.hindu, color:'#f97316' },
+                { label:'Muslim', val:selected.muslim, color:'#34d399' },
+                { label:'Christian', val:selected.christian, color:'#818cf8' },
+              ].map(r => (
+                <div key={r.label} style={{ marginBottom:6 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
+                    <span style={{ fontSize:10, color:'rgba(255,255,255,0.5)' }}>{r.label}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:r.color }}>{r.val.toFixed(1)}%</span>
+                  </div>
+                  <div style={{ height:4, background:'rgba(255,255,255,0.06)', borderRadius:2, overflow:'hidden' }}>
+                    <div style={{ width:`${r.val}%`, height:'100%', background:r.color, borderRadius:2, opacity:0.85 }}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+              {[
+                { l:`Poll ${selected.poll.toFixed(0)}%`, ok:selected.poll>60 },
+                { l:`BJP ${selected.hjp.toFixed(0)}%`, ok:selected.hjp>65 },
+                { l:`Hindu ${selected.hindu.toFixed(0)}%`, ok:selected.hindu>65 },
+                { l:`BLO ${selected.blo.toFixed(0)}%`, ok:selected.blo>57 },
+                { l:`WSI ${selected.wsi.toFixed(0)}`, ok:selected.wsi>60 },
+              ].map((s,i) => (
+                <span key={i} style={{
+                  fontSize:9.5, padding:'3px 8px', borderRadius:5, fontWeight:700,
+                  background:s.ok?'rgba(16,185,129,0.12)':'rgba(239,68,68,0.1)',
+                  color:s.ok?'#10b981':'#ef4444',
+                  border:`1px solid ${s.ok?'rgba(16,185,129,0.2)':'rgba(239,68,68,0.2)'}`,
+                }}>{s.l}</span>
+              ))}
+            </div>
+
+            <div style={{
+              background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)',
+              borderLeft:`3px solid ${cfg.color}`, borderRadius:8, padding:'11px 13px',
+            }}>
+              <div style={{ fontSize:9, fontWeight:800, color:cfg.color, letterSpacing:0.8, marginBottom:6, textTransform:'uppercase' }}>
+                ◆ Why This Classification
+              </div>
+              <div style={{ fontSize:11.5, color:'rgba(255,255,255,0.65)', lineHeight:1.65 }}>{selected.why}</div>
+            </div>
+
+            <div style={{
+              background:'rgba(252,211,77,0.04)', border:'1px solid rgba(252,211,77,0.2)',
+              borderLeft:'3px solid #fcd34d', borderRadius:8, padding:'11px 13px',
+            }}>
+              <div style={{ fontSize:9, fontWeight:800, color:'#fcd34d', letterSpacing:0.8, marginBottom:6, textTransform:'uppercase' }}>
+                ⚠ Root Cause / Gap
+              </div>
+              <div style={{ fontSize:11.5, color:'#fde68a', lineHeight:1.65 }}>{selected.gap}</div>
+            </div>
+
+            <div style={{
+              background:'rgba(110,231,183,0.04)', border:'1px solid rgba(110,231,183,0.2)',
+              borderLeft:'3px solid #6ee7b7', borderRadius:8, padding:'11px 13px',
+            }}>
+              <div style={{ fontSize:9, fontWeight:800, color:'#6ee7b7', letterSpacing:0.8, marginBottom:6, textTransform:'uppercase' }}>
+                ✅ Corrective Action
+              </div>
+              <div style={{ fontSize:11.5, color:'#a7f3d0', lineHeight:1.65, marginBottom:10 }}>{selected.action}</div>
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', paddingTop:8, borderTop:'1px solid rgba(110,231,183,0.12)' }}>
+                {[
+                  { l:'BJP Target', v:selected.bjpTarget, c:'#22d3ee' },
+                  { l:'Turnout', v:selected.turnoutTarget, c:'#f59e0b' },
+                  { l:'SIR', v:selected.sirTarget, c:'#a78bfa' },
+                ].map(t => (
+                  <div key={t.l} style={{
+                    fontSize:10, fontWeight:700, background:t.c+'15', color:t.c,
+                    padding:'3px 9px', borderRadius:5, border:`1px solid ${t.c}30`,
+                  }}>
+                    <div style={{ fontSize:8, opacity:0.65, marginBottom:1 }}>{t.l}</div>
+                    {t.v}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{
+              display:'flex', gap:8, alignItems:'center',
+              padding:'10px 12px', background:'rgba(255,255,255,0.025)',
+              border:'1px solid rgba(255,255,255,0.06)', borderRadius:8,
+            }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:8, color:'rgba(255,255,255,0.3)', marginBottom:2 }}>RISK 2025</div>
+                <div style={{ fontSize:10.5, fontWeight:700, color: selected.risk2025 && selected.risk2025.includes('NORMAL') ? '#4ade80' : '#fbbf24' }}>
+                  {selected.risk2025 || '— NORMAL'}
+                </div>
+              </div>
+              <div style={{ height:28, width:1, background:'rgba(255,255,255,0.08)' }}/>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:8, color:'rgba(255,255,255,0.3)', marginBottom:2 }}>TREND</div>
+                <div style={{ fontSize:10.5, fontWeight:700, color: selected.trend && selected.trend.includes('↓') ? '#f87171' : selected.trend && selected.trend.includes('↑') ? '#4ade80' : '#94a3b8' }}>
+                  {selected.trend || '→ Stable'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Why Strong/Medium/Weak — Full-Text Card View ────────────────────────────
 function WhyTab({ WARDS_FULL, clsCfg, pColor }) {
@@ -1605,55 +1944,7 @@ function PoliticalIntelligenceHub() {
 
           {/* HEATMAP */}
           {activeTab==='heatmap'&&(
-            <div>
-              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12}}>Click any ward card for full intelligence detail</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(188px,1fr))',gap:8}}>
-                {WARDS_FULL.map(d=>{
-                  const cfg=clsCfg(d.cls); const isOpen=expandedWard===d.w;
-                  return (
-                    <div key={d.w} style={{background:isOpen?cfg.bg:'rgba(255,255,255,0.022)',border:`1px solid ${isOpen?cfg.color+'60':'rgba(255,255,255,0.06)'}`,borderRadius:14,padding:'12px 14px',cursor:'pointer',transition:'all 0.2s ease',boxShadow:isOpen?`0 6px 24px ${cfg.color}18`:'none'}} onClick={()=>setExpandedWard(isOpen?null:d.w)}>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:5}}>
-                        <div>
-                          <div style={{fontSize:12,fontWeight:700,color:'var(--text-1)'}}>W{d.w} · {d.n}</div>
-                          <div style={{fontSize:10,color:'rgba(255,255,255,0.3)'}}>{d.totalElectors.toLocaleString()} electors</div>
-                        </div>
-                        <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.color}44`}}>{cfg.label}</span>
-                      </div>
-                      <div style={{height:4,background:'rgba(255,255,255,0.07)',borderRadius:2,overflow:'hidden',marginBottom:4}}>
-                        <div style={{width:`${Math.min(100,Math.abs(d.margin)/90*100)}%`,height:'100%',background:d.margin>=0?cfg.color:'#8b5cf6',borderRadius:2}}/>
-                      </div>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'rgba(255,255,255,0.4)'}}>
-                        <span>Margin: <b style={{color:d.margin>=0?cfg.color:'#8b5cf6'}}>{d.margin>=0?'+':''}{d.margin.toFixed(0)}%</b></span>
-                        <span style={{color:pColor(d.priority)}}>{d.priority}</span>
-                      </div>
-                      {isOpen&&(
-                        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.07)'}}>
-                          <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:8}}>
-                            {[{l:`Poll ${d.poll.toFixed(0)}%`,ok:d.poll>60},{l:`BJP ${d.hjp.toFixed(0)}%`,ok:d.hjp>65},{l:`H ${d.hindu.toFixed(0)}%`,ok:d.hindu>65},{l:`BLO ${d.blo.toFixed(0)}%`,ok:d.blo>57},{l:`WSI ${d.wsi.toFixed(0)}`,ok:d.wsi>60}].map((s,i)=>(
-                              <span key={i} style={{fontSize:10,padding:'2px 6px',borderRadius:4,fontWeight:600,background:s.ok?'rgba(16,185,129,0.12)':'rgba(239,68,68,0.1)',color:s.ok?'#10b981':'#ef4444'}}>{s.l}</span>
-                            ))}
-                          </div>
-                          <div style={{marginBottom:8}}>
-                            <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.28)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Why</div>
-                            <div style={{fontSize:11,color:'rgba(255,255,255,0.6)',lineHeight:1.5}}>{d.why}</div>
-                          </div>
-                          <div style={{marginBottom:8}}>
-                            <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.28)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Gap</div>
-                            <div style={{fontSize:11,color:'#fcd34d',lineHeight:1.5}}>{d.gap}</div>
-                          </div>
-                          <div style={{marginBottom:8}}>
-                            <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.28)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Action</div>
-                            <div style={{fontSize:11,color:'#6ee7b7',lineHeight:1.5}}>{d.action}</div>
-                          </div>
-                          <div style={{fontSize:10,color:'rgba(255,255,255,0.3)'}}>Targets: {d.bjpTarget} BJP · {d.turnoutTarget} turnout · {d.sirTarget} SIR</div>
-                          <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',marginTop:2}}>Prediction: {d.prediction}</div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <HeatmapTab WARDS_FULL={WARDS_FULL} clsCfg={clsCfg} pColor={pColor} expandedWard={expandedWard} setExpandedWard={setExpandedWard}/>
           )}
 
           {/* WHY S/M/W */}
