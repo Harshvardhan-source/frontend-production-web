@@ -4,6 +4,10 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip,
   LineChart, Line, ResponsiveContainer, CartesianGrid, Legend
 } from 'recharts';
+import {
+  Search, BookOpen, PieChart as PieChartIcon, Layers,
+  MapPin, ClipboardList, ClipboardCheck, Vote, ShieldAlert,
+} from 'lucide-react';
 
 // ─── Ward & SIR data (moved from Dashboard.jsx) ──────────────────────────────
 const WARD_FULL_DATA = {
