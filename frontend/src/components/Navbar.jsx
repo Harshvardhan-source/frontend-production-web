@@ -184,6 +184,8 @@ export default function Navbar() {
           </div>
         )}
       </nav>
+      {/* Spacer so content doesn't hide under fixed navbar */}
+      <div className="nav-spacer" />
 
       {/* ── Bottom tabs (mobile) ────────────────────────── */}
       <nav className="nav-bottom mobile-only">
@@ -214,8 +216,14 @@ export default function Navbar() {
       </Link>
 
       <style>{`
+        /* Global reset — ensures no browser default gap above navbar */
+        html, body { margin: 0; padding: 0; }
+        #root { display: flex; flex-direction: column; min-height: 100vh; }
+
+        .nav-spacer { height: 54px; flex-shrink: 0; }
+
         .nav-top {
-          position: sticky; top: 0; z-index: 900;
+          position: fixed; top: 0; left: 0; right: 0; z-index: 900;
           height: 54px; padding: 0 18px;
           display: flex; align-items: center; gap: 12px;
           background: rgba(8,13,26,0.97);
