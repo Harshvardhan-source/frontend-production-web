@@ -705,6 +705,163 @@ function StrategyTab() {
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 
+
+// ─── Why Strong/Medium/Weak — Full-Text Card View ────────────────────────────
+function WhyTab({ WARDS_FULL, clsCfg, pColor }) {
+  const [expanded, setExpanded] = React.useState(null);
+  const [filter, setFilter]     = React.useState('ALL');
+  const [search, setSearch]     = React.useState('');
+
+  const FILTERS = ['ALL','STRONGHOLD','STRONG','FAVOURABLE','CONTESTED','CONGRESS'];
+
+  const clsGroup = (cls) => {
+    if (cls.includes('STRONGHOLD'))                           return 'STRONGHOLD';
+    if (cls.includes('BJP STRONG') && !cls.includes('FAVO')) return 'STRONG';
+    if (cls.includes('FAVO'))                                 return 'FAVOURABLE';
+    if (cls.includes('CONTESTED'))                            return 'CONTESTED';
+    return 'CONGRESS';
+  };
+
+  const filtered = WARDS_FULL
+    .slice()
+    .sort((a, b) => b.hjp - a.hjp)
+    .filter(d => filter === 'ALL' || clsGroup(d.cls) === filter)
+    .filter(d => !search || d.n.toLowerCase().includes(search.toLowerCase()));
+
+  const trendColor = (t) =>
+    t.includes('\u2193') ? '#ef4444' : t.includes('\u2191') ? '#10b981' : '#f59e0b';
+
+  const communityTag = (d) => {
+    const icon  = d.hindu > 80 ? '\uD83D\uDFE2' : d.hindu > 65 ? '\uD83D\uDFE2' : d.muslim > 50 ? '\uD83D\uDD34' : d.christian > 35 ? '\u271D\uFE0F' : '\uD83D\uDFE1';
+    const label = d.hindu > 80 ? 'Hindu dom' : d.hindu > 65 ? 'Hindu lean' : d.muslim > 50 ? 'Muslim dom' : d.christian > 35 ? 'Chrst dom' : 'Mixed';
+    return { icon, label };
+  };
+
+  const FILTER_COLORS = {
+    ALL:'#94a3b8', STRONGHOLD:'#10b981', STRONG:'#22d3ee',
+    FAVOURABLE:'#f59e0b', CONTESTED:'#f97316', CONGRESS:'#a78bfa',
+  };
+
+  return (
+    <div>
+      <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
+        <div style={{position:'relative',flexShrink:0}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ward..." style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:8,padding:'6px 10px 6px 28px',color:'#e2e8f0',fontSize:11,outline:'none',width:140}}/>
+          <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',fontSize:11,opacity:0.4}}>&#128269;</span>
+        </div>
+        <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+          {FILTERS.map(f=>(
+            <button key={f} onClick={()=>setFilter(f)} style={{padding:'4px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,letterSpacing:0.4,background:filter===f?FILTER_COLORS[f]+'28':'rgba(255,255,255,0.04)',color:filter===f?FILTER_COLORS[f]:'rgba(255,255,255,0.35)',outline:filter===f?`1px solid ${FILTER_COLORS[f]}55`:'1px solid rgba(255,255,255,0.07)',transition:'all 0.18s'}}>{f}</button>
+          ))}
+        </div>
+        <div style={{marginLeft:'auto',fontSize:10,color:'rgba(255,255,255,0.25)'}}>{filtered.length} wards · click card to expand</div>
+      </div>
+
+      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+        {filtered.map((d)=>{
+          const cfg   = clsCfg(d.cls);
+          const isOpen= expanded===d.w;
+          const comm  = communityTag(d);
+          const pollColor = d.poll<55?'#ef4444':d.poll<60?'#f59e0b':'#10b981';
+          const tColor= d.trend.includes('\u2193')?'#ef4444':d.trend.includes('\u2191')?'#10b981':'#f59e0b';
+
+          return (
+            <div key={d.w} onClick={()=>setExpanded(isOpen?null:d.w)} style={{background:isOpen?'rgba(255,255,255,0.035)':'rgba(255,255,255,0.018)',border:`1px solid ${isOpen?cfg.color+'55':'rgba(255,255,255,0.07)'}`,borderLeft:`3px solid ${cfg.color}`,borderRadius:10,cursor:'pointer',transition:'all 0.2s ease',overflow:'hidden'}}>
+
+              {/* Header row */}
+              <div style={{display:'grid',gridTemplateColumns:'140px 58px 58px 175px 160px 1fr 78px 18px',alignItems:'center',gap:8,padding:'10px 14px'}}>
+
+                <div>
+                  <span style={{fontWeight:800,color:cfg.color,fontSize:11}}>W{d.w}</span>
+                  <span style={{fontSize:12,color:'#e2e8f0',marginLeft:5,fontWeight:600}}>{d.n}</span>
+                </div>
+
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontSize:9,color:'rgba(255,255,255,0.28)',marginBottom:1}}>POLL%</div>
+                  <div style={{fontSize:13,fontWeight:800,color:pollColor}}>{d.poll.toFixed(1)}%</div>
+                </div>
+
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontSize:9,color:'rgba(255,255,255,0.28)',marginBottom:1}}>BJP%</div>
+                  <div style={{fontSize:13,fontWeight:800,color:cfg.color}}>{d.hjp.toFixed(0)}%</div>
+                </div>
+
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.5)',background:'rgba(255,255,255,0.05)',borderRadius:6,padding:'3px 7px',lineHeight:1.4}}>
+                  {comm.icon} {comm.label} · H:{d.hindu.toFixed(0)} M:{d.muslim.toFixed(0)} C:{d.christian.toFixed(0)}
+                </div>
+
+                <div style={{fontSize:11,color:tColor,fontWeight:600}}>{d.trend}</div>
+
+                {!isOpen && (
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{d.why}</div>
+                )}
+                {isOpen && <div/>}
+
+                <div style={{fontSize:9,fontWeight:800,padding:'2px 7px',borderRadius:5,background:pColor(d.priority)+'22',color:pColor(d.priority),whiteSpace:'nowrap',textAlign:'center'}}>
+                  {d.priority.replace(/[\uD83D\uDD34\uD83D\uDFE0\uD83D\uDFE1\uD83D\uDFE2\u2014] ?/gu,'')}
+                </div>
+
+                <div style={{fontSize:12,color:'rgba(255,255,255,0.3)',transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',userSelect:'none',textAlign:'center'}}>&#9662;</div>
+              </div>
+
+              {/* Expanded body */}
+              {isOpen&&(
+                <div style={{padding:'0 14px 16px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+
+                  {/* Stat strip */}
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap',padding:'10px 0 14px',borderBottom:'1px solid rgba(255,255,255,0.05)',marginBottom:14}}>
+                    {[
+                      {l:'BJP Proj',  v:`${d.hjp.toFixed(0)}%`,                          c:cfg.color},
+                      {l:'Poll Rate', v:`${d.poll.toFixed(1)}%`,                          c:pollColor},
+                      {l:'Margin',    v:`${d.margin>=0?'+':''}${d.margin.toFixed(0)}%`,   c:d.margin>=0?'#10b981':'#ef4444'},
+                      {l:'Hindu',     v:`${d.hindu.toFixed(0)}%`,                         c:'#f59e0b'},
+                      {l:'Muslim',    v:`${d.muslim.toFixed(0)}%`,                        c:'#34d399'},
+                      {l:'Christian', v:`${d.christian.toFixed(0)}%`,                     c:'#60a5fa'},
+                      {l:'BLO Map',   v:`${d.blo.toFixed(0)}%`,                          c:'#a78bfa'},
+                      {l:'WSI Score', v:d.wsi.toFixed(0),                                c:d.wsi>=70?'#10b981':d.wsi>=50?'#f59e0b':'#ef4444'},
+                      {l:'Prediction',v:d.prediction,                                    c:'rgba(255,255,255,0.45)'},
+                    ].map(s=>(
+                      <div key={s.l} style={{background:'rgba(255,255,255,0.04)',borderRadius:7,padding:'5px 10px',minWidth:60}}>
+                        <div style={{fontSize:9,color:'rgba(255,255,255,0.28)',marginBottom:2,letterSpacing:0.3}}>{s.l}</div>
+                        <div style={{fontSize:12,fontWeight:700,color:s.c,lineHeight:1.3}}>{s.v}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Three content panels */}
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+
+                    <div style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.07)',borderTop:`2px solid ${cfg.color}`,borderRadius:8,padding:'12px 14px'}}>
+                      <div style={{fontSize:9,fontWeight:800,letterSpacing:1.2,color:cfg.color,marginBottom:10,textTransform:'uppercase'}}>&#128202; Why Strong / Weak</div>
+                      <div style={{fontSize:12,color:'rgba(255,255,255,0.72)',lineHeight:1.8}}>{d.why}</div>
+                    </div>
+
+                    <div style={{background:'rgba(252,211,77,0.04)',border:'1px solid rgba(252,211,77,0.12)',borderTop:'2px solid #fcd34d',borderRadius:8,padding:'12px 14px'}}>
+                      <div style={{fontSize:9,fontWeight:800,letterSpacing:1.2,color:'#fcd34d',marginBottom:10,textTransform:'uppercase'}}>&#9888;&#65039; Grassroot Gap Identified</div>
+                      <div style={{fontSize:12,color:'#fde68a',lineHeight:1.8}}>{d.gap}</div>
+                    </div>
+
+                    <div style={{background:'rgba(110,231,183,0.04)',border:'1px solid rgba(110,231,183,0.12)',borderTop:'2px solid #6ee7b7',borderRadius:8,padding:'12px 14px'}}>
+                      <div style={{fontSize:9,fontWeight:800,letterSpacing:1.2,color:'#6ee7b7',marginBottom:10,textTransform:'uppercase'}}>&#9989; Corrective Action</div>
+                      <div style={{fontSize:12,color:'#a7f3d0',lineHeight:1.8,marginBottom:10}}>{d.action}</div>
+                      <div style={{display:'flex',gap:6,flexWrap:'wrap',paddingTop:8,borderTop:'1px solid rgba(110,231,183,0.1)'}}>
+                        {[{l:'BJP Target',v:d.bjpTarget,c:'#22d3ee'},{l:'Turnout',v:d.turnoutTarget,c:'#f59e0b'},{l:'SIR',v:d.sirTarget,c:'#a78bfa'}].map(t=>(
+                          <div key={t.l} style={{fontSize:10,fontWeight:700,background:t.c+'18',color:t.c,padding:'2px 8px',borderRadius:4,border:`1px solid ${t.c}33`}}>{t.l}: {t.v}</div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Political Intelligence Hub (moved from Dashboard.jsx) ───────────────────
 function PoliticalIntelligenceHub() {
   const [activeTab, setActiveTab] = React.useState('heatmap');
@@ -1026,35 +1183,7 @@ function PoliticalIntelligenceHub() {
 
           {/* WHY S/M/W */}
           {activeTab==='why'&&(
-            <div style={{overflowX:'auto'}}>
-              <table style={{width:'100%',borderCollapse:'collapse',minWidth:1000}}>
-                <thead>
-                  <tr style={{background:'rgba(255,255,255,0.04)'}}>
-                    {['Ward','Poll%','BJP%','Community Profile','Hist Trend','Why Strong/Weak','Grassroot Gap Identified','Corrective Action','Risk Level'].map(h=>(
-                      <th key={h} style={{...C(true,'rgba(255,255,255,0.5)'),textAlign:'left',fontSize:10,whiteSpace:'nowrap'}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {WARDS_FULL.slice().sort((a,b)=>b.hjp-a.hjp).map((d,i)=>{
-                    const cfg=clsCfg(d.cls);
-                    return (
-                      <tr key={d.w} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.015)'}}>
-                        <td style={{...C(),whiteSpace:'nowrap'}}><span style={{fontWeight:700,color:cfg.color}}>W{d.w}</span> <span style={{fontSize:11}}>{d.n}</span></td>
-                        <td style={{...C(),color:d.poll<55?'#ef4444':d.poll<60?'#f59e0b':'#10b981',fontWeight:600}}>{d.poll.toFixed(1)}%</td>
-                        <td style={{...C(),color:cfg.color,fontWeight:700}}>{d.hjp.toFixed(0)}%</td>
-                        <td style={{...C(),fontSize:10}}>{d.hindu>80?'🟢 Hindu dom':d.hindu>65?'🟢 Hindu lean':d.muslim>50?'🔴 Muslim dom':d.christian>35?'🔴 Chrst dom':'🟡 Mixed'} H:{d.hindu.toFixed(0)} M:{d.muslim.toFixed(0)} C:{d.christian.toFixed(0)}</td>
-                        <td style={{...C(),fontSize:11,color:d.trend.includes('↓')?'#ef4444':d.trend.includes('↑')?'#10b981':'#f59e0b'}}>{d.trend}</td>
-                        <td style={{...C(),fontSize:11,maxWidth:200,color:'rgba(255,255,255,0.65)'}}>{d.why.slice(0,130)}{d.why.length>130?'…':''}</td>
-                        <td style={{...C(),fontSize:11,maxWidth:190,color:'#fcd34d'}}>{d.gap.slice(0,120)}{d.gap.length>120?'…':''}</td>
-                        <td style={{...C(),fontSize:11,maxWidth:190,color:'#6ee7b7'}}>{d.action.slice(0,110)}{d.action.length>110?'…':''}</td>
-                        <td style={{...C(),whiteSpace:'nowrap',color:pColor(d.priority),fontWeight:700,fontSize:11}}>{d.priority}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <WhyTab WARDS_FULL={WARDS_FULL} clsCfg={clsCfg} pColor={pColor}/>
           )}
 
           {/* WSI SCORES */}
@@ -1875,4 +2004,3 @@ export default function BJPStrategy() {
     </>
   );
 }
-
