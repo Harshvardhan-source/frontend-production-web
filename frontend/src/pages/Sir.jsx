@@ -2075,17 +2075,17 @@ export default function SIR() {
           <p>Voter roll comparison · 2002 vs 2025 · Anomaly detection · Classification</p>
         </div>
 
+        {/* Live check panel — Instant SIR Check */}
+        <LiveCheckPanel />
+
+        {/* Confirmed matches / not-found panel */}
+        <ConfirmedMatchesPanel />
+
         {/* SIR Risk Wards — Political Intelligence */}
         <RiskWardsOverview />
 
         {/* All Wards Heatmap */}
         <AllWardsHeatmap />
-
-        {/* Live check panel */}
-        <LiveCheckPanel />
-
-        {/* Confirmed matches / not-found panel */}
-        <ConfirmedMatchesPanel />
 
       </div>
 
