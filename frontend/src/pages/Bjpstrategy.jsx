@@ -2007,7 +2007,6 @@ function PoliticalIntelligenceHub() {
     {id:'insights', label:'Insights',   icon: IC(<><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></>) },
     {id:'aidash',   label:'AI Overview',icon: IC(<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>) },
     {id:'simulator',label:'Simulator',  icon: IC(<><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></>) },
-    {id:'budget',   label:'Budget',     icon: IC(<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>) },
   ];
 
   const clsCfg = (cls) => {
@@ -2409,7 +2408,6 @@ function PoliticalIntelligenceHub() {
 
           {activeTab==='aidash'    && <AIOverviewTab/>}
           {activeTab==='simulator' && <SimulatorTab/>}
-          {activeTab==='budget'    && <BudgetTab/>}
         </div>
       </div>
     </div>
@@ -2745,77 +2743,6 @@ function SimulatorTab() {
     </div>
   );
 }
-
-// ─── Budget Tab ───────────────────────────────────────────────────────────────
-function BudgetTab() {
-  const [booths, setBooths] = React.useState(249);
-  const [days,   setDays]   = React.useState(30);
-  const [wpb,    setWpb]    = React.useState(4);
-  const [da,     setDa]     = React.useState(600);
-  const [veh,    setVeh]    = React.useState(50);
-  const c1=booths*wpb*days*da, c2=booths*1200*2, c3=100000+days*3000,
-        c4=booths*500, c5=veh*2500+booths*150, c6=booths*800*days*0.1;
-  const sub=c1+c2+c3+c4+c5+c6, c7=sub*0.1, total=sub+c7;
-  const inr = v => '₹'+Math.round(v).toLocaleString('en-IN');
-  const Sl = ({lbl,val,min,max,step,set}) => (
-    <div style={{marginBottom:14}}>
-      <div style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:4}}>
-        <span style={{color:'#94a3b8'}}>{lbl}</span>
-        <span style={{fontWeight:700,color:'#fbbf24'}}>{val>=1000?'₹'+val.toLocaleString('en-IN'):val}</span>
-      </div>
-      <input type="range" min={min} max={max} step={step||1} value={val} onChange={e=>set(+e.target.value)} style={{width:'100%',accentColor:'#f59e0b'}}/>
-    </div>
-  );
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:14}}>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:12}}>Adjust Parameters</div>
-          <Sl lbl="Active booths targeted" val={booths} min={50} max={249} set={setBooths}/>
-          <Sl lbl="Campaign days (field)" val={days} min={7} max={90} set={setDays}/>
-          <Sl lbl="Workers per booth" val={wpb} min={1} max={10} set={setWpb}/>
-          <Sl lbl="Daily worker allowance (₹)" val={da} min={200} max={2000} step={50} set={setDa}/>
-          <Sl lbl="Vehicles for polling day" val={veh} min={10} max={200} step={5} set={setVeh}/>
-        </div>
-        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:12}}>Budget Breakdown</div>
-          {[['Worker field allowances',c1],['Print (pamphlets, banners, flags)',c2],['Digital / SMS / WhatsApp',c3],['Community events & meetings',c4],['Polling day logistics',c5],['SIR / BLO support',c6],['Contingency (10%)',c7]].map(([l,v])=>(
-            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid rgba(255,255,255,0.05)',fontSize:11}}>
-              <span style={{color:'#94a3b8'}}>{l}</span><span style={{fontWeight:700,color:'#e2e8f0'}}>{inr(v)}</span>
-            </div>
-          ))}
-          <div style={{display:'flex',justifyContent:'space-between',padding:'12px 0 0',fontSize:14,fontWeight:700}}>
-            <span style={{color:'#e2e8f0'}}>Total Budget</span><span style={{color:'#4ade80'}}>{inr(total)}</span>
-          </div>
-        </div>
-      </div>
-      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:14}}>
-        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:10}}>Priority ROI — Highest Polling Lift per ₹1L Spent</div>
-        <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-          <thead><tr>{['Rank','Activity','Target','Vote Gain/₹1L','Priority'].map(h=>(
-            <th key={h} style={{textAlign:'left',padding:'6px 10px',fontSize:10,color:'#64748b',borderBottom:'1px solid rgba(255,255,255,0.08)',fontWeight:600}}>{h}</th>
-          ))}</tr></thead>
-          <tbody>{[
-            {r:1,a:'Polling-day transport',t:'65+, women','g':'~180–250',p:'Highest',c:'#ef4444'},
-            {r:2,a:'Door-to-door mobilisation',t:'26–35 non-pollers','g':'~120–180',p:'High',c:'#f59e0b'},
-            {r:3,a:'WhatsApp / SMS blasts',t:'18–35 smartphone users','g':'~80–120',p:'High',c:'#f59e0b'},
-            {r:4,a:'Community leader engagement',t:'OBC / GSB associations','g':'~60–100',p:'Medium',c:'#fbbf24'},
-            {r:5,a:'Pamphlets + cable ads',t:'General awareness','g':'~20–50',p:'Low',c:'#64748b'},
-          ].map(row=>(
-            <tr key={row.r} style={{background:row.r%2===0?'rgba(255,255,255,0.015)':'transparent'}}>
-              <td style={{padding:'6px 10px',color:'#64748b',fontWeight:700}}>{row.r}</td>
-              <td style={{padding:'6px 10px',color:'#e2e8f0'}}>{row.a}</td>
-              <td style={{padding:'6px 10px',color:'#94a3b8'}}>{row.t}</td>
-              <td style={{padding:'6px 10px',color:'#4ade80',fontWeight:600}}>{row.g} votes</td>
-              <td style={{padding:'6px 10px'}}><span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:4,background:row.c+'20',color:row.c}}>{row.p}</span></td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 
 
 // ─── Main page ────────────────────────────────────────────────────────────────
