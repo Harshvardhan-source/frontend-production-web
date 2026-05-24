@@ -3,6 +3,231 @@ import Navbar from '../components/Navbar';
 
 const API = (process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com') + '/api';
 
+// ─── SIR Ward Data (Political Intelligence) ───────────────────────────────────
+const WARD_NAMES = {
+  '21':'Padavu','24':'Derebail South','25':'Derebail West','26':'Derebail SW',
+  '27':'Boloor','28':'Mannagudda','29':'Kambla','30':'Kodialbail',
+  '31':'Bejai','32':'Kadri North','33':'Kadri South','34':'Shivbhag',
+  '35':'Padavu Central','36':'Padavu Poorva','37':'Maroli','38':'Bendur',
+  '39':'Falnir','40':'Court','41':'Central','42':'Dongerkery',
+  '43':'Kudroli','44':'Navayath','45':'Port','46':'Cantonment',
+  '47':'Milagris','48':'Valencia','49':'Kankanady','50':'Alape South',
+  '51':'Alape North','52':'Kannur','53':'Bajal','54':'Jeppinamuger',
+  '55':'Attavara','56':'Mangaladevi','57':'Hoige Bazar','58':'Bolar',
+  '59':'Jeppu','60':'Bengre',
+};
+
+const PRIORITY_CONFIG = {
+  CRITICAL:{ color:'#ef4444', bg:'rgba(239,68,68,0.12)',  border:'rgba(239,68,68,0.3)',  label:'🔴 CRITICAL', order:0 },
+  HIGH:    { color:'#f97316', bg:'rgba(249,115,22,0.12)', border:'rgba(249,115,22,0.3)', label:'🟠 HIGH',     order:1 },
+  MEDIUM:  { color:'#f59e0b', bg:'rgba(245,158,11,0.12)', border:'rgba(245,158,11,0.3)', label:'🟡 MEDIUM',   order:2 },
+  WATCH:   { color:'#22d3ee', bg:'rgba(34,211,238,0.12)', border:'rgba(34,211,238,0.3)', label:'🟢 WATCH',    order:3 },
+  NORMAL:  { color:'#10b981', bg:'rgba(16,185,129,0.08)', border:'rgba(16,185,129,0.2)', label:'— NORMAL',    order:4 },
+};
+
+const CLASSIFICATION_CONFIG = {
+  'BJP STRONGHOLD':        { color:'#f97316', bg:'rgba(249,115,22,0.15)',  label:'🚩 BJP Stronghold' },
+  'BJP STRONG':            { color:'#fb923c', bg:'rgba(251,146,60,0.12)',  label:'🚩 BJP Strong' },
+  'BJP FAVOURABLE':        { color:'#fbbf24', bg:'rgba(251,191,36,0.12)',  label:'📌 BJP Favourable' },
+  'CONTESTED (BJP Lean)':  { color:'#a3a3a3', bg:'rgba(163,163,163,0.1)', label:'⚖️ Contested (BJP Lean)' },
+  'CONTESTED (Cong Lean)': { color:'#a3a3a3', bg:'rgba(163,163,163,0.1)', label:'⚖️ Contested (Cong Lean)' },
+  'CONGRESS FAVOURABLE':   { color:'#34d399', bg:'rgba(52,211,153,0.1)',   label:'🏳️ Congress Favourable' },
+  'CONGRESS STRONG':       { color:'#10b981', bg:'rgba(16,185,129,0.12)', label:'🏳️ Congress Strong' },
+  'CONGRESS STRONGHOLD':   { color:'#059669', bg:'rgba(5,150,105,0.15)',   label:'🏳️ Congress Stronghold' },
+};
+
+const SIR_WARD_DATA = {
+  21:{ classification:'BJP STRONGHOLD', pollRate:55.7, hindu:84.1, muslim:1.0,  christian:14.8, bloMapped:58.95, progeny:90.05, totalMapped:69.32, totalElectors:7542,  bjpProj:84.1, congProj:15.9, margin:68.2,  priority:'MEDIUM'  },
+  24:{ classification:'BJP STRONGHOLD', pollRate:58.1, hindu:80.1, muslim:2.5,  christian:17.4, bloMapped:54.67, progeny:80.04, totalMapped:57.16, totalElectors:4767,  bjpProj:80.1, congProj:19.9, margin:60.2,  priority:'CRITICAL'},
+  25:{ classification:'BJP STRONGHOLD', pollRate:65.9, hindu:85.1, muslim:0.8,  christian:14.1, bloMapped:59.87, progeny:85.34, totalMapped:67.6,  totalElectors:7314,  bjpProj:85.1, congProj:14.9, margin:70.2,  priority:'NORMAL'  },
+  26:{ classification:'BJP STRONGHOLD', pollRate:60.4, hindu:87.9, muslim:0.6,  christian:11.5, bloMapped:56.96, progeny:75.78, totalMapped:62.68, totalElectors:7801,  bjpProj:87.9, congProj:12.1, margin:75.8,  priority:'NORMAL'  },
+  27:{ classification:'BJP STRONGHOLD', pollRate:50.8, hindu:87.5, muslim:1.2,  christian:11.3, bloMapped:60.61, progeny:87.02, totalMapped:68.36, totalElectors:6618,  bjpProj:87.5, congProj:12.5, margin:75.0,  priority:'MEDIUM'  },
+  28:{ classification:'BJP STRONGHOLD', pollRate:54.8, hindu:93.7, muslim:1.1,  christian:5.2,  bloMapped:53.78, progeny:68.15, totalMapped:58.1,  totalElectors:8102,  bjpProj:93.7, congProj:6.3,  margin:87.4,  priority:'CRITICAL'},
+  29:{ classification:'BJP STRONGHOLD', pollRate:57.9, hindu:92.6, muslim:1.8,  christian:5.6,  bloMapped:57.64, progeny:75.09, totalMapped:63.07, totalElectors:4517,  bjpProj:92.6, congProj:7.4,  margin:85.2,  priority:'HIGH'    },
+  30:{ classification:'BJP STRONGHOLD', pollRate:62.9, hindu:80.9, muslim:1.2,  christian:17.9, bloMapped:52.89, progeny:75.01, totalMapped:59.87, totalElectors:7871,  bjpProj:80.9, congProj:19.1, margin:61.8,  priority:'NORMAL'  },
+  31:{ classification:'BJP STRONG',     pollRate:58.7, hindu:68.6, muslim:4.7,  christian:26.7, bloMapped:52.54, progeny:83.98, totalMapped:62.03, totalElectors:7246,  bjpProj:68.6, congProj:31.4, margin:37.2,  priority:'HIGH'    },
+  32:{ classification:'BJP STRONGHOLD', pollRate:54.5, hindu:86.8, muslim:0.7,  christian:12.5, bloMapped:56.55, progeny:75.79, totalMapped:62.57, totalElectors:6433,  bjpProj:86.8, congProj:13.2, margin:73.6,  priority:'HIGH'    },
+  33:{ classification:'BJP FAVOURABLE', pollRate:57.2, hindu:63.9, muslim:5.3,  christian:30.8, bloMapped:51.09, progeny:75.37, totalMapped:57.69, totalElectors:5843,  bjpProj:63.9, congProj:36.1, margin:27.8,  priority:'NORMAL'  },
+  34:{ classification:'CONTESTED (BJP Lean)', pollRate:50.2, hindu:52.2, muslim:11.7, christian:36.1, bloMapped:53.38, progeny:98.08, totalMapped:67.94, totalElectors:6294, bjpProj:52.2, congProj:47.8, margin:4.4,  priority:'MEDIUM'  },
+  35:{ classification:'BJP STRONG',     pollRate:64.9, hindu:68.3, muslim:4.6,  christian:27.1, bloMapped:56.32, progeny:78.03, totalMapped:63.6,  totalElectors:8462,  bjpProj:68.3, congProj:31.7, margin:36.6,  priority:'NORMAL'  },
+  36:{ classification:'BJP FAVOURABLE', pollRate:46.9, hindu:60.2, muslim:3.9,  christian:35.9, bloMapped:52.81, progeny:80.04, totalMapped:61.64, totalElectors:4471,  bjpProj:60.2, congProj:39.8, margin:20.4,  priority:'MEDIUM'  },
+  37:{ classification:'BJP STRONG',     pollRate:61.6, hindu:68.7, muslim:0.8,  christian:30.5, bloMapped:64.16, progeny:102.16,totalMapped:76.42, totalElectors:6718,  bjpProj:68.7, congProj:31.3, margin:37.4,  priority:'NORMAL'  },
+  38:{ classification:'CONGRESS STRONG',pollRate:52.1, hindu:32.2, muslim:25.2, christian:42.6, bloMapped:59.41, progeny:85.11, totalMapped:75.21, totalElectors:6296,  bjpProj:32.2, congProj:67.8, margin:-35.6, priority:'WATCH'   },
+  39:{ classification:'CONGRESS STRONG',pollRate:56.3, hindu:32.1, muslim:9.2,  christian:58.7, bloMapped:60.47, progeny:96.65, totalMapped:71.08, totalElectors:6526,  bjpProj:32.1, congProj:67.9, margin:-35.8, priority:'NORMAL'  },
+  40:{ classification:'CONTESTED (BJP Lean)', pollRate:39.5, hindu:51.0, muslim:27.7, christian:21.4, bloMapped:44.77, progeny:88.36, totalMapped:59.57, totalElectors:5980, bjpProj:51.0, congProj:49.0, margin:2.0,  priority:'MEDIUM'  },
+  41:{ classification:'BJP STRONGHOLD', pollRate:59.3, hindu:90.4, muslim:7.6,  christian:2.0,  bloMapped:63.43, progeny:74.61, totalMapped:66.61, totalElectors:4882,  bjpProj:90.4, congProj:9.6,  margin:80.8,  priority:'MEDIUM'  },
+  42:{ classification:'BJP STRONGHOLD', pollRate:58.4, hindu:86.2, muslim:12.0, christian:1.8,  bloMapped:57.45, progeny:74.47, totalMapped:62.63, totalElectors:7664,  bjpProj:86.2, congProj:13.8, margin:72.4,  priority:'HIGH'    },
+  43:{ classification:'CONGRESS STRONG',pollRate:62.1, hindu:28.8, muslim:68.2, christian:3.0,  bloMapped:53.24, progeny:74.07, totalMapped:61.14, totalElectors:5765,  bjpProj:28.8, congProj:71.2, margin:-42.4, priority:'NORMAL'  },
+  44:{ classification:'CONGRESS STRONG',pollRate:58.0, hindu:34.6, muslim:65.1, christian:0.3,  bloMapped:54.6,  progeny:81.31, totalMapped:64.37, totalElectors:5871,  bjpProj:34.6, congProj:65.4, margin:-30.8, priority:'NORMAL'  },
+  45:{ classification:'CONTESTED (Cong Lean)', pollRate:63.8, hindu:47.6, muslim:40.9, christian:11.4, bloMapped:62.19, progeny:93.55, totalMapped:74.23, totalElectors:7153, bjpProj:47.6, congProj:52.4, margin:-4.8, priority:'NORMAL'  },
+  46:{ classification:'BJP STRONG',     pollRate:51.2, hindu:73.8, muslim:20.7, christian:5.5,  bloMapped:56.25, progeny:72.79, totalMapped:61.81, totalElectors:4095,  bjpProj:73.8, congProj:26.2, margin:47.6,  priority:'HIGH'    },
+  47:{ classification:'CONGRESS FAVOURABLE', pollRate:55.0, hindu:43.5, muslim:34.8, christian:21.8, bloMapped:54.15, progeny:71.6, totalMapped:60.39, totalElectors:7210, bjpProj:43.5, congProj:56.5, margin:-13.0, priority:'NORMAL'  },
+  48:{ classification:'CONTESTED (BJP Lean)', pollRate:49.2, hindu:53.6, muslim:11.5, christian:34.9, bloMapped:57.89, progeny:92.99, totalMapped:54.79, totalElectors:5090, bjpProj:53.6, congProj:46.4, margin:7.2,  priority:'MEDIUM'  },
+  49:{ classification:'BJP STRONG',     pollRate:61.4, hindu:76.1, muslim:10.8, christian:13.1, bloMapped:57.73, progeny:96.22, totalMapped:75.65, totalElectors:7527,  bjpProj:76.1, congProj:23.9, margin:52.2,  priority:'NORMAL'  },
+  50:{ classification:'BJP STRONG',     pollRate:67.3, hindu:76.1, muslim:8.9,  christian:15.0, bloMapped:56.48, progeny:109.84,totalMapped:77.72, totalElectors:6284,  bjpProj:76.1, congProj:23.9, margin:52.2,  priority:'NORMAL'  },
+  51:{ classification:'BJP STRONG',     pollRate:63.0, hindu:68.5, muslim:1.4,  christian:30.0, bloMapped:57.28, progeny:106.1, totalMapped:71.61, totalElectors:7200,  bjpProj:68.5, congProj:31.5, margin:37.0,  priority:'NORMAL'  },
+  52:{ classification:'CONGRESS FAVOURABLE', pollRate:61.2, hindu:40.1, muslim:56.9, christian:3.0, bloMapped:58.83, progeny:91.81, totalMapped:74.52, totalElectors:7045, bjpProj:40.1, congProj:59.9, margin:-19.8, priority:'NORMAL'  },
+  53:{ classification:'CONTESTED (Cong Lean)', pollRate:55.1, hindu:47.8, muslim:45.2, christian:7.1, bloMapped:59.3, progeny:91.89, totalMapped:71.92, totalElectors:7805, bjpProj:47.8, congProj:52.2, margin:-4.4, priority:'NORMAL'  },
+  54:{ classification:'BJP STRONG',     pollRate:61.1, hindu:71.6, muslim:7.4,  christian:20.9, bloMapped:64.09, progeny:94.69, totalMapped:73.73, totalElectors:7266,  bjpProj:71.6, congProj:28.4, margin:43.2,  priority:'NORMAL'  },
+  55:{ classification:'BJP FAVOURABLE', pollRate:62.5, hindu:62.9, muslim:24.0, christian:13.1, bloMapped:60.02, progeny:99.92, totalMapped:73.51, totalElectors:7856,  bjpProj:62.9, congProj:37.1, margin:25.8,  priority:'NORMAL'  },
+  56:{ classification:'BJP FAVOURABLE', pollRate:61.8, hindu:62.8, muslim:26.8, christian:10.5, bloMapped:57.1,  progeny:83.28, totalMapped:65.88, totalElectors:5358,  bjpProj:62.8, congProj:37.2, margin:25.6,  priority:'NORMAL'  },
+  57:{ classification:'BJP STRONG',     pollRate:59.1, hindu:65.1, muslim:30.1, christian:4.8,  bloMapped:65.88, progeny:101.37,totalMapped:76.64, totalElectors:4320,  bjpProj:65.1, congProj:34.9, margin:30.2,  priority:'NORMAL'  },
+  58:{ classification:'BJP STRONG',     pollRate:60.9, hindu:71.8, muslim:19.6, christian:8.6,  bloMapped:53.2,  progeny:79.37, totalMapped:61.97, totalElectors:7107,  bjpProj:71.8, congProj:28.2, margin:43.6,  priority:'NORMAL'  },
+  59:{ classification:'CONTESTED (BJP Lean)', pollRate:57.3, hindu:52.4, muslim:18.7, christian:29.0, bloMapped:57.05, progeny:97.0, totalMapped:68.69, totalElectors:7711, bjpProj:52.4, congProj:47.6, margin:4.8,  priority:'MEDIUM'  },
+  60:{ classification:'CONGRESS STRONG',pollRate:41.6, hindu:30.9, muslim:68.3, christian:0.8,  bloMapped:60.39, progeny:127.86,totalMapped:90.09, totalElectors:10897, bjpProj:30.9, congProj:69.1, margin:-38.2, priority:'WATCH'   },
+};
+
+// ─── Risk Wards Card Grid ─────────────────────────────────────────────────────
+function RiskWardsOverview({ onWardClick }) {
+  const riskWards = Object.entries(SIR_WARD_DATA)
+    .filter(([, d]) => d.priority !== 'NORMAL')
+    .sort(([, a], [, b]) => (PRIORITY_CONFIG[a.priority]?.order ?? 9) - (PRIORITY_CONFIG[b.priority]?.order ?? 9));
+
+  const critCount = riskWards.filter(([,d]) => d.priority === 'CRITICAL').length;
+  const highCount = riskWards.filter(([,d]) => d.priority === 'HIGH').length;
+
+  return (
+    <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(239,68,68,0.2)', borderRadius:16, overflow:'hidden', marginBottom:18 }}>
+      {/* Header */}
+      <div style={{ background:'linear-gradient(135deg,rgba(239,68,68,0.1),rgba(239,68,68,0.03))', borderBottom:'1px solid rgba(239,68,68,0.15)', padding:'14px 16px', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flex:1 }}>
+          <div style={{ width:36, height:36, borderRadius:9, background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:18 }}>⚠️</div>
+          <div>
+            <div style={{ fontSize:14, fontWeight:800, color:'#f87171' }}>SIR Risk Wards — Immediate Action Required</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:1 }}>{riskWards.length} wards identified · Low voter turnout + incomplete SIR surveys</div>
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+          <div style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:20, padding:'4px 12px', fontSize:12, fontWeight:700, color:'#f87171' }}>🔴 {critCount} Critical</div>
+          <div style={{ background:'rgba(249,115,22,0.12)', border:'1px solid rgba(249,115,22,0.3)', borderRadius:20, padding:'4px 12px', fontSize:12, fontWeight:700, color:'#fb923c' }}>🟠 {highCount} High</div>
+        </div>
+      </div>
+
+      {/* Ward grid */}
+      <div style={{ padding:'14px 16px', display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:10 }}>
+        {riskWards.map(([wardNum, d]) => {
+          const pCfg  = PRIORITY_CONFIG[d.priority] || PRIORITY_CONFIG.NORMAL;
+          const wName = WARD_NAMES[wardNum] || `Ward ${wardNum}`;
+          const bjpWin = d.margin > 0;
+          return (
+            <button key={wardNum} onClick={() => onWardClick && onWardClick(wardNum)} style={{ display:'flex', flexDirection:'column', gap:8, background:'rgba(255,255,255,0.03)', border:`1px solid ${pCfg.border}`, borderRadius:12, padding:14, cursor:'pointer', textAlign:'left', transition:'all 0.15s', minHeight:100 }}
+              onMouseEnter={e => { e.currentTarget.style.background = pCfg.bg; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:11, fontWeight:700, background:'rgba(255,255,255,0.07)', borderRadius:4, padding:'2px 5px', color:'rgba(255,255,255,0.4)' }}>{wardNum}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:'#e2e8f0' }}>{wName}</span>
+                </div>
+                <span style={{ fontSize:10, fontWeight:700, color:pCfg.color }}>{pCfg.label.split(' ')[0]}</span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <span style={{ fontSize:10, color:'rgba(255,255,255,0.35)' }}>Poll:</span>
+                <span style={{ fontSize:11, fontWeight:700, color:d.pollRate < 60.7 ? '#f87171' : '#10b981' }}>{d.pollRate}%</span>
+                {d.pollRate < 60.7 && <span style={{ fontSize:11, color:'#f87171' }}>▼ below avg</span>}
+              </div>
+              <div style={{ display:'flex', borderRadius:3, overflow:'hidden', height:5 }}>
+                <div style={{ width:`${d.bjpProj}%`, background:'#f97316' }} />
+                <div style={{ width:`${d.congProj}%`, background:'#10b981' }} />
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                <span style={{ fontSize:11, color:'#f97316', fontWeight:700 }}>BJP {d.bjpProj}%</span>
+                <span style={{ fontSize:11, color:bjpWin ? '#f97316' : '#10b981', fontWeight:700, background:'rgba(255,255,255,0.05)', borderRadius:3, padding:'1px 4px' }}>{bjpWin?'+':''}{d.margin}%</span>
+                <span style={{ fontSize:11, color:'#10b981', fontWeight:700 }}>INC {d.congProj}%</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── All Wards SIR Heatmap ────────────────────────────────────────────────────
+function AllWardsHeatmap({ onWardClick }) {
+  const [showAll, setShowAll] = useState(false);
+  const wards = Object.entries(SIR_WARD_DATA)
+    .sort(([, a], [, b]) => (PRIORITY_CONFIG[a.priority]?.order ?? 9) - (PRIORITY_CONFIG[b.priority]?.order ?? 9));
+  const displayed = showAll ? wards : wards.slice(0, 20);
+
+  return (
+    <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))', border:'1px solid rgba(255,255,255,0.08)', borderRadius:18, overflow:'hidden', marginBottom:20, boxShadow:'0 4px 24px rgba(0,0,0,0.3)' }}>
+      {/* Header */}
+      <div style={{ padding:'18px 18px 14px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
+        <div>
+          <div style={{ fontSize:16, fontWeight:800, color:'#e2e8f0', marginBottom:4 }}>All Wards — SIR Heatmap</div>
+          <div style={{ fontSize:12, color:'rgba(255,255,255,0.35)' }}>38 wards · Tap any ward to drill down</div>
+        </div>
+        <div style={{ display:'flex', gap:8, flexShrink:0, paddingTop:2 }}>
+          {[{label:'BJP',color:'#f97316'},{label:'Cont.',color:'#a3a3a3'},{label:'INC',color:'#10b981'}].map(({label,color}) => (
+            <span key={label} style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'rgba(255,255,255,0.5)', fontWeight:600 }}>
+              <span style={{ width:9, height:9, borderRadius:3, background:color, display:'inline-block' }} />{label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Column headers */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:0, padding:'8px 18px', borderBottom:'1px solid rgba(255,255,255,0.05)', background:'rgba(255,255,255,0.02)' }}>
+        <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'0.6px' }}>Ward &amp; Classification</div>
+        <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'0.6px', textAlign:'right' }}>Poll / BJP / INC / SIR%</div>
+      </div>
+
+      {/* Ward rows */}
+      <div style={{ maxHeight:showAll ? 'none' : 500, overflow:showAll ? 'visible' : 'hidden' }}>
+        {displayed.map(([wardNum, d]) => {
+          const pCfg   = PRIORITY_CONFIG[d.priority] || PRIORITY_CONFIG.NORMAL;
+          const clsCfg = CLASSIFICATION_CONFIG[d.classification] || { color:'#8899bb', bg:'rgba(255,255,255,0.05)' };
+          const wName  = WARD_NAMES[wardNum] || wardNum;
+          const bjpWin = d.margin > 0;
+          const isRisk = d.priority !== 'NORMAL';
+          return (
+            <button key={wardNum} onClick={() => onWardClick && onWardClick(wardNum)}
+              style={{ width:'100%', border:'none', textAlign:'left', background:isRisk ? pCfg.bg : 'transparent', padding:'14px 18px', cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.04)', display:'block' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = isRisk ? pCfg.bg : 'transparent'; }}>
+              {/* Row 1 */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                <span style={{ fontSize:11, fontWeight:700, background:'rgba(255,255,255,0.08)', borderRadius:5, padding:'3px 7px', color:'rgba(255,255,255,0.45)', flexShrink:0, minWidth:28, textAlign:'center' }}>{wardNum}</span>
+                <span style={{ fontSize:14, fontWeight:700, color:'#e2e8f0', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wName}</span>
+                <span style={{ fontSize:10, fontWeight:700, color:clsCfg.color, background:clsCfg.bg, borderRadius:5, padding:'3px 8px', flexShrink:0, whiteSpace:'nowrap' }}>
+                  {d.classification.replace('STRONGHOLD','STRGHLD').replace('FAVOURABLE','FAV').replace('CONGRESS','INC').replace('CONTESTED','CONT')}
+                </span>
+                <span style={{ fontSize:11, fontWeight:700, color:pCfg.color, flexShrink:0 }}>{pCfg.label.split(' ')[0]}</span>
+              </div>
+              {/* Row 2: bar + stats */}
+              <div style={{ display:'flex', alignItems:'center', gap:0 }}>
+                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
+                  <div style={{ display:'flex', borderRadius:3, overflow:'hidden', height:4 }}>
+                    <div style={{ width:`${d.bjpProj}%`, background:'#f97316' }} />
+                    <div style={{ width:`${d.congProj}%`, background:'#10b981' }} />
+                  </div>
+                  <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.4)' }}>Poll: <span style={{ color:d.pollRate < 60.7 ? '#f87171' : '#10b981', fontWeight:700 }}>{d.pollRate}%</span></span>
+                    <span style={{ fontSize:11, color:'#f97316', fontWeight:700 }}>BJP {d.bjpProj}%</span>
+                    <span style={{ fontSize:11, color:bjpWin?'#f97316':'#10b981', fontWeight:800, background:'rgba(255,255,255,0.06)', borderRadius:4, padding:'0 5px' }}>{bjpWin?'+':''}{d.margin}%</span>
+                    <span style={{ fontSize:11, color:'#10b981', fontWeight:700 }}>INC {d.congProj}%</span>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.4)' }}>SIR: <span style={{ color:d.totalMapped >= 65 ? '#10b981' : '#f59e0b', fontWeight:700 }}>{d.totalMapped.toFixed(1)}%</span></span>
+                  </div>
+                </div>
+                <span style={{ color:'rgba(255,255,255,0.25)', paddingLeft:8, fontSize:16 }}>→</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Show more */}
+      {wards.length > 20 && (
+        <button onClick={() => setShowAll(s => !s)} style={{ width:'100%', padding:16, border:'none', background:'rgba(255,255,255,0.03)', borderTop:'1px solid rgba(255,255,255,0.06)', color:'#22d3ee', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+          {showAll ? '▲ Show less' : `▼ Show all ${wards.length} wards`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+
+
 // ─── SVG Icon library — no emoji, no AI-generated icons ──────────────────────
 const Icon = {
   User: () => (
@@ -1849,6 +2074,12 @@ export default function SIR() {
           <h1>Special Intensive Revision</h1>
           <p>Voter roll comparison · 2002 vs 2025 · Anomaly detection · Classification</p>
         </div>
+
+        {/* SIR Risk Wards — Political Intelligence */}
+        <RiskWardsOverview />
+
+        {/* All Wards Heatmap */}
+        <AllWardsHeatmap />
 
         {/* Live check panel */}
         <LiveCheckPanel />
