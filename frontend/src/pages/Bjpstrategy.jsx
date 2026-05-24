@@ -232,6 +232,114 @@ function StatusBadge({ status, small }) {
   );
 }
 
+// ── CUSTOM CHART TOOLTIPS ──────────────────────────────────────────────────────
+
+const tooltipBox = {
+  background: 'linear-gradient(135deg,#0d1b38 0%,#0a1220 100%)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 10,
+  padding: '10px 13px',
+  boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+  fontSize: 11,
+  color: '#f1f5f9',
+  minWidth: 160,
+  pointerEvents: 'none',
+};
+
+const TTRow = ({ label, value, color='#f1f5f9', bold=false }) => (
+  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:16, marginTop:4 }}>
+    <span style={{ color:'rgba(255,255,255,0.45)', fontSize:10 }}>{label}</span>
+    <span style={{ color, fontWeight: bold ? 800 : 600, fontSize:11 }}>{value}</span>
+  </div>
+);
+
+// Community Pie tooltip
+function PieTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  const bjpShare = d.name === 'Hindu OBC' ? '70–75%' : d.name === 'Hindu OC' ? '82–88%' : d.name === 'Hindu GSB' ? '88–93%' : d.name === 'Christian' ? '35–42%' : d.name === 'Muslim' ? '3–6%' : '45–55%';
+  const risk = d.name === 'Christian' ? 'Swing' : d.name === 'Muslim' ? 'Opposition' : 'Base';
+  return (
+    <div style={tooltipBox}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6, borderBottom:'1px solid rgba(255,255,255,0.08)', paddingBottom:6 }}>
+        <span style={{ width:10, height:10, borderRadius:'50%', background:d.color, flexShrink:0 }}/>
+        <span style={{ fontWeight:800, fontSize:12, color:'#f1f5f9' }}>{d.name}</span>
+      </div>
+      <TTRow label="Composition" value={`${d.value}%`} color={d.color} bold/>
+      <TTRow label="BJP vote share" value={bjpShare} color="#f59e0b"/>
+      <TTRow label="Community role" value={risk} color={risk==='Base'?'#4ade80':risk==='Swing'?'#fbbf24':'#f87171'}/>
+      <TTRow label="Electors (~)" value={`${Math.round(d.value/100*246960).toLocaleString()}`} color="#94a3b8"/>
+    </div>
+  );
+}
+
+// Age Poll Bar tooltip
+function AgePollTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const rate = payload[0]?.value;
+  const polled = payload[0]?.payload?.polled;
+  const avg = 58.3;
+  const diff = (rate - avg).toFixed(1);
+  const status = rate >= 62 ? 'Above avg' : rate >= 56 ? 'Near avg' : 'Below avg';
+  const statusColor = rate >= 62 ? '#4ade80' : rate >= 56 ? '#fbbf24' : '#f87171';
+  return (
+    <div style={tooltipBox}>
+      <div style={{ fontWeight:800, fontSize:12, color:'#fbbf24', marginBottom:6, borderBottom:'1px solid rgba(255,255,255,0.08)', paddingBottom:6 }}>
+        Age Group: {label}
+      </div>
+      <TTRow label="Poll rate" value={`${rate}%`} color="#fbbf24" bold/>
+      <TTRow label="Voters polled" value={(polled||0).toLocaleString()} color="#f1f5f9"/>
+      <TTRow label="vs. avg (58.3%)" value={`${diff >= 0 ? '+' : ''}${diff}%`} color={diff >= 0 ? '#4ade80' : '#f87171'}/>
+      <TTRow label="Status" value={status} color={statusColor}/>
+    </div>
+  );
+}
+
+// Historical Trend Line tooltip
+function TrendTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const rate = payload[0]?.value;
+  const notes = { '2013':'BJP wave — high mobilisation', '2018':'Slight dip, still strong', '2019LS':'Lok Sabha surge +4%', '2023':'Sharp drop — warning signal' };
+  const colors = { '2013':'#4ade80', '2018':'#fbbf24', '2019LS':'#4ade80', '2023':'#f87171' };
+  return (
+    <div style={tooltipBox}>
+      <div style={{ fontWeight:800, fontSize:12, color:'#60a5fa', marginBottom:6, borderBottom:'1px solid rgba(255,255,255,0.08)', paddingBottom:6 }}>
+        Election: {label}
+      </div>
+      <TTRow label="Turnout" value={`${rate}%`} color={colors[label] || '#60a5fa'} bold/>
+      <TTRow label="Non-voters" value={`${Math.round((100-rate)/100*246960).toLocaleString()}`} color="#f87171"/>
+      <div style={{ marginTop:6, paddingTop:6, borderTop:'1px solid rgba(255,255,255,0.07)', fontSize:9.5, color:'rgba(255,255,255,0.45)', lineHeight:1.4 }}>
+        {notes[label] || ''}
+      </div>
+    </div>
+  );
+}
+
+// Scenario Stacked Bar tooltip
+function ScenarioTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const strong = payload.find(p => p.dataKey === 'strong')?.value || 0;
+  const medium = payload.find(p => p.dataKey === 'medium')?.value || 0;
+  const weak   = payload.find(p => p.dataKey === 'weak')?.value   || 0;
+  const total  = strong + medium + weak;
+  const winProb = label === 'No Campaign' ? '32%' : label === 'Basic' ? '51%' : label === 'Full SIR' ? '74%' : '89%';
+  const winColor = label === 'No Campaign' ? '#f87171' : label === 'Basic' ? '#fbbf24' : label === 'Full SIR' ? '#4ade80' : '#22d3ee';
+  return (
+    <div style={tooltipBox}>
+      <div style={{ fontWeight:800, fontSize:12, color:'#f1f5f9', marginBottom:6, borderBottom:'1px solid rgba(255,255,255,0.08)', paddingBottom:6 }}>
+        {label}
+      </div>
+      <TTRow label="Strong wards" value={`${strong} / ${total}`} color="#4ade80" bold/>
+      <TTRow label="Medium wards" value={`${medium} / ${total}`} color="#fbbf24"/>
+      <TTRow label="Weak wards"   value={`${weak} / ${total}`}   color="#f87171"/>
+      <div style={{ marginTop:7, paddingTop:6, borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span style={{ fontSize:9.5, color:'rgba(255,255,255,0.4)' }}>Win probability</span>
+        <span style={{ fontSize:14, fontWeight:900, color:winColor }}>{winProb}</span>
+      </div>
+    </div>
+  );
+}
+
 // ── DASHBOARD TAB ─────────────────────────────────────────────────────────────
 function DashboardTab() {
   const weak   = WARD_DATA.filter(w => w.status === 'WEAK').length;
@@ -287,8 +395,7 @@ function DashboardTab() {
                    dataKey="value" labelLine={false} label={CustomPieLabel}>
                 {COMMUNITY_PIE.map((e,i) => <Cell key={i} fill={e.color}/>)}
               </Pie>
-              <Tooltip formatter={(v) => `${v}%`}
-                contentStyle={{ background:'#0f172a', border:'1px solid #334155', borderRadius:8, fontSize:11 }}/>
+              <Tooltip content={<PieTooltip/>}/>
             </PieChart>
           </ResponsiveContainer>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: 4 }}>
@@ -331,7 +438,7 @@ function DashboardTab() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/>
               <XAxis dataKey="age" tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false}/>
               <YAxis domain={[45, 70]} tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false}/>
-              <Tooltip contentStyle={{ background:'#0f172a', border:'1px solid #334155', borderRadius:8, fontSize:11 }} formatter={v=>`${v}%`}/>
+              <Tooltip content={<AgePollTooltip/>} cursor={{ fill:'rgba(245,158,11,0.06)' }}/>
               <Bar dataKey="rate" fill="#f59e0b" radius={[4,4,0,0]}
                 label={{ position:'top', fontSize:8, fill:'#94a3b8', formatter: v=>`${v}%` }}/>
             </BarChart>
@@ -359,8 +466,8 @@ function DashboardTab() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/>
               <XAxis dataKey="year" tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false}/>
               <YAxis domain={[55, 76]} tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false}/>
-              <Tooltip contentStyle={{ background:'#0f172a', border:'1px solid #334155', borderRadius:8, fontSize:11 }} formatter={v=>`${v}%`}/>
-              <Line type="monotone" dataKey="rate" stroke="#60a5fa" strokeWidth={2.5} dot={{ fill:'#60a5fa', r:4 }}/>
+              <Tooltip content={<TrendTooltip/>} cursor={{ stroke:'rgba(96,165,250,0.3)', strokeWidth:1, strokeDasharray:'4 4' }}/>
+              <Line type="monotone" dataKey="rate" stroke="#60a5fa" strokeWidth={2.5} dot={{ fill:'#60a5fa', r:4 }} activeDot={{ r:6, fill:'#60a5fa', stroke:'rgba(96,165,250,0.3)', strokeWidth:4 }}/>
             </LineChart>
           </ResponsiveContainer>
           <div style={{ fontSize:9, color:'#f87171', marginTop:4 }}><span> </span> Female votes BJP by +2.5% — key swing lever</div>
@@ -637,7 +744,7 @@ function PredictionTab() {
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/>
             <XAxis dataKey="name" tick={{ fontSize:10, fill:'#64748b' }} axisLine={false} tickLine={false}/>
             <YAxis tick={{ fontSize:9, fill:'#64748b' }} axisLine={false} tickLine={false}/>
-            <Tooltip contentStyle={{ background:'#0f172a', border:'1px solid #334155', borderRadius:8, fontSize:11 }}/>
+            <Tooltip content={<ScenarioTooltip/>} cursor={{ fill:'rgba(255,255,255,0.04)' }}/>
             <Legend wrapperStyle={{ fontSize:10, color:'#94a3b8' }}/>
             <Bar dataKey="strong" name="Strong" stackId="a" fill="#16a34a" radius={[0,0,0,0]}/>
             <Bar dataKey="medium" name="Medium" stackId="a" fill="#ca8a04"/>
