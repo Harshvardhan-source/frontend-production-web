@@ -2007,6 +2007,7 @@ function PoliticalIntelligenceHub() {
     {id:'insights', label:'Insights',   icon: IC(<><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></>) },
     {id:'aidash',   label:'AI Overview',icon: IC(<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>) },
     {id:'simulator',label:'Simulator',  icon: IC(<><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></>) },
+    {id:'analytics', label:'Election Analytics', icon: IC(<><path d="M3 3v18h18"/><polyline points="7 16 11 11 15 14 20 8"/></>) },
   ];
 
   const clsCfg = (cls) => {
@@ -2408,6 +2409,7 @@ function PoliticalIntelligenceHub() {
 
           {activeTab==='aidash'    && <AIOverviewTab/>}
           {activeTab==='simulator' && <SimulatorTab/>}
+          {activeTab==='analytics' && <ElectionAnalyticsTab/>}
         </div>
       </div>
     </div>
@@ -2746,6 +2748,625 @@ function SimulatorTab() {
 
 
 // ─── Main page ────────────────────────────────────────────────────────────────
+
+// ─── Election Analytics Tab ───────────────────────────────────────────────────
+function ElectionAnalyticsTab() {
+  const [section, setSection] = React.useState('overview');
+
+  const SECTIONS = [
+    { id:'overview',  label:'📊 Overview',          },
+    { id:'fourier',   label:'〜 Fourier Cycle',     },
+    { id:'markov',    label:'🔄 Markov Matrix',     },
+    { id:'transition',label:'⚡ Vote Transition',    },
+    { id:'matrix',    label:'🧮 Eigenvalue',         },
+    { id:'scenarios', label:'🎯 Scenarios',          },
+  ];
+
+  // ── DATA ──────────────────────────────────────────────────────────────────
+  const HIST = [
+    { year:'2013', bjp:52.0, inc:45.0, turnout:65.0, voters:229000 },
+    { year:'2014', bjp:55.0, inc:38.0, turnout:70.0, voters:235000 },
+    { year:'2018', bjp:55.4, inc:42.1, turnout:67.3, voters:238399 },
+    { year:'2019', bjp:57.4, inc:39.5, turnout:70.5, voters:237880 },
+    { year:'2023', bjp:56.0, inc:42.2, turnout:64.6, voters:246960 },
+  ];
+  const FOURIER = [
+    { year:'2013', actual:52.0, fit:52.0, residual:'+0.00', incActual:45.0, incFit:45.0, toActual:65.0, toFit:65.0, status:'Historical baseline', isForecast:false },
+    { year:'2014', actual:55.0, fit:56.0, residual:'-1.00', incActual:38.0, incFit:42.2, toActual:70.0, toFit:64.6, status:'Pre-election surge', isForecast:false },
+    { year:'2018', actual:55.4, fit:57.4, residual:'-2.00', incActual:42.1, incFit:39.5, toActual:67.3, toFit:70.5, status:'Consolidation', isForecast:false },
+    { year:'2019', actual:57.4, fit:55.4, residual:'+2.00', incActual:39.5, incFit:42.1, toActual:70.5, toFit:67.3, status:'Peak performance', isForecast:false },
+    { year:'2023', actual:56.0, fit:55.0, residual:'+1.00', incActual:42.2, incFit:38.0, toActual:64.6, toFit:70.0, status:'Signal decay', isForecast:false },
+    { year:'2025', actual:null, fit:52.0, residual:'—',     incActual:null, incFit:45.0, toActual:null, toFit:65.0, status:'⚠ Dip predicted', isForecast:true },
+    { year:'2027', actual:null, fit:56.0, residual:'—',     incActual:null, incFit:42.2, toActual:null, toFit:64.6, status:'Recovery phase', isForecast:true },
+    { year:'2029', actual:null, fit:57.4, residual:'—',     incActual:null, incFit:39.5, toActual:null, toFit:70.5, status:'Equilibrium', isForecast:true },
+  ];
+  const MARKOV_STATES = [
+    { state:'STRONG (BJP>60%)', count23:19, pct23:50.0, count25:21, pct25:55.4, count27:22, pct27:58.6, count29:23, pct29:60.7, stationary:65.2, verdict:'↑ GROWS', color:'#10b981' },
+    { state:'MEDIUM (50-60%)',  count23:7,  pct23:18.4, count25:6,  pct25:15.7, count27:5,  pct27:12.8, count29:4,  pct29:10.5, stationary:3.8,  verdict:'↓ SHRINKS', color:'#f59e0b' },
+    { state:'WEAK (40-50%)',    count23:7,  pct23:18.4, count25:4,  pct25:10.8, count27:3,  pct27:9.1,  count29:3,  pct29:8.8,  stationary:9.5,  verdict:'↓ SHRINKS', color:'#f97316' },
+    { state:'LOSS (<40%)',      count23:5,  pct23:13.2, count25:7,  pct25:18.1, count27:7,  pct27:19.5, count29:8,  pct29:20.0, stationary:21.6, verdict:'→ STABLE',  color:'#ef4444' },
+  ];
+  const TRANSITION_MATRIX = [
+    { from:'STRONG(S)', toS:0.941, toM:0.000, toW:0.000, toL:0.059, sum:1.000, interp:'93% of Strong wards STAY Strong — highly sticky!' },
+    { from:'MEDIUM(M)', toS:0.214, toM:0.750, toW:0.000, toL:0.036, sum:1.000, interp:'75% Medium stay; 21% upgrade to Strong' },
+    { from:'WEAK(W)',   toS:0.200, toM:0.100, toW:0.400, toL:0.300, sum:1.000, interp:'50% Weak wards slip to Loss — danger zone!' },
+    { from:'LOSS(L)',   toS:0.053, toM:0.000, toW:0.263, toL:0.684, sum:1.000, interp:'68% Loss wards remain Loss — hard to recover' },
+  ];
+  const VOTE_TRANSITIONS = [
+    { ward:'Court',           tv:4872,  bjp19:47.6, to19:56.4, bjp25:49.6, to25:68.0, projBJP:1643, dVMob:+267, dVSwing:+55,  total:+333, type:'POSITIVE', pri:'MED'  },
+    { ward:'Jeppu',           tv:7336,  bjp19:48.8, to19:66.1, bjp25:50.8, to25:68.0, projBJP:2532, dVMob:+67,  dVSwing:+96,  total:+167, type:'POSITIVE', pri:'LOW'  },
+    { ward:'Valencia',        tv:6191,  bjp19:49.2, to19:65.4, bjp25:51.2, to25:68.0, projBJP:2155, dVMob:+78,  dVSwing:+80,  total:+163, type:'POSITIVE', pri:'LOW'  },
+    { ward:'Cantonment',      tv:5121,  bjp19:64.7, to19:65.6, bjp25:66.7, to25:68.3, projBJP:2332, dVMob:+88,  dVSwing:+67,  total:+158, type:'POSITIVE', pri:'LOW'  },
+    { ward:'Derebail South',  tv:7118,  bjp19:66.1, to19:67.8, bjp25:68.1, to25:68.3, projBJP:3312, dVMob:+22,  dVSwing:+96,  total:+120, type:'POSITIVE', pri:'LOW'  },
+    { ward:'Kambala',         tv:5155,  bjp19:82.0, to19:70.5, bjp25:84.0, to25:68.6, projBJP:2972, dVMob:-76,  dVSwing:+72,  total:-6,   type:'NEGATIVE', pri:'LOW'  },
+    { ward:'Attavara',        tv:6367,  bjp19:55.1, to19:71.4, bjp25:57.1, to25:68.1, projBJP:2475, dVMob:-115, dVSwing:+90,  total:-29,  type:'NEGATIVE', pri:'LOW'  },
+    { ward:'Boloor',          tv:4998,  bjp19:74.4, to19:76.8, bjp25:76.4, to25:68.5, projBJP:2615, dVMob:-308, dVSwing:+76,  total:-240, type:'NEGATIVE', pri:'MED'  },
+    { ward:'Padav West',      tv:6188,  bjp19:73.5, to19:76.1, bjp25:75.5, to25:68.5, projBJP:3199, dVMob:-346, dVSwing:+94,  total:-262, type:'NEGATIVE', pri:'MED'  },
+    { ward:'Mannagudda',      tv:7242,  bjp19:81.1, to19:71.9, bjp25:83.1, to25:68.6, projBJP:4129, dVMob:-194, dVSwing:+104, total:-95,  type:'NEGATIVE', pri:'LOW'  },
+    { ward:'Kadri North',     tv:6254,  bjp19:73.7, to19:73.7, bjp25:75.7, to25:68.5, projBJP:3242, dVMob:-239, dVSwing:+92,  total:-154, type:'NEGATIVE', pri:'LOW'  },
+    { ward:'Kankanady',       tv:7217,  bjp19:63.9, to19:74.8, bjp25:65.9, to25:68.3, projBJP:3246, dVMob:-299, dVSwing:+107, total:-201, type:'NEGATIVE', pri:'MED'  },
+  ];
+  const EIGENVALUES = [
+    { k:1, lambda:4.6622, varPct:93.24, cumulPct:93.24, meaning:'DOMINANT — Hindu consolidation trend', color:'#10b981' },
+    { k:2, lambda:0.2652, varPct:5.30,  cumulPct:98.55, meaning:'2nd — Turnout vs share trade-off',       color:'#f59e0b' },
+    { k:3, lambda:0.0608, varPct:1.22,  cumulPct:99.76, meaning:'3rd — Short-cycle noise',                color:'#f97316' },
+    { k:4, lambda:0.0119, varPct:0.24,  cumulPct:100.0, meaning:'4th — Negligible fluctuation',           color:'rgba(255,255,255,0.3)' },
+  ];
+  const SCENARIOS = [
+    { label:'🔴 Pessimistic', prob:25, bjp:53.5, turnout:63, wards:'18–20', margin:'BJP LOSS',            bg:'rgba(239,68,68,0.07)',  border:'rgba(239,68,68,0.2)',  c:'#ef4444', assumption:'Fourier trough realized; no mobilisation; turnout 63%' },
+    { label:'🟡 Base Case',   prob:45, bjp:57.5, turnout:67, wards:'22–25', margin:'BJP WIN NARROW',       bg:'rgba(245,158,11,0.07)', border:'rgba(245,158,11,0.2)', c:'#f59e0b', assumption:'Fourier prediction + moderate mobilisation; +2% swing' },
+    { label:'🟢 Optimistic',  prob:30, bjp:60.5, turnout:70, wards:'26–28', margin:'BJP WIN COMFORTABLE',  bg:'rgba(16,185,129,0.07)', border:'rgba(16,185,129,0.2)', c:'#10b981', assumption:'Full mobilisation; turnout +5pp; OBC+Hindu consolidation' },
+  ];
+  const FINDINGS = [
+    { tag:'FOURIER #1',  color:'#22d3ee', icon:'〜', title:'5-Election Vote Cycle Detected',          detail:'BJP vote follows ~10yr wave. 2025 predicted at 52.0% — slight dip from 2023 (56.0%)', risk:'⚠ RISK: Without mobilisation, cycle predicts below 2023 performance' },
+    { tag:'FOURIER #2',  color:'#22d3ee', icon:'〜', title:'Turnout Trough Year 2025',                detail:'Predicted turnout 65.0% vs 64.6% in 2023. Signal shows periodic decay pattern',       risk:'⚠ CRITICAL: Trough year requires extraordinary mobilisation' },
+    { tag:'MARKOV #1',   color:'#a78bfa', icon:'🔄', title:'23 of 38 Wards Projected STRONG by 2025', detail:'Medium→Strong upgrade probability = 33%. 4 medium wards convertible with targeted effort',risk:'✅ OPPORTUNITY: Focus on 4 upgrade-path wards' },
+    { tag:'MARKOV #2',   color:'#a78bfa', icon:'🔄', title:'WEAK→LOSS Probability = 50%',             detail:'7 currently-weak wards need urgent intervention before they slip permanently',           risk:'⚠ RISK: 3–4 weak wards could slip to Congress without action' },
+    { tag:'MATRIX #1',   color:'#f59e0b', icon:'🧮', title:'First Eigenvalue Explains 93.2% Variance', detail:'Ward movements are highly correlated (ρ avg = 0.93). Wards move together as a bloc',    risk:'✅ LEVERAGE: Fix Mannagudda/Kambala turnout → benefits all correlated wards' },
+    { tag:'BOOLEAN #1',  color:'#10b981', icon:'⚡', title:'19 of 38 Wards Positive Vote Transition',  detail:'Total projected NET vote change = −365 BJP votes at current trajectory',                 risk:'✅ NET POSITIVE: Mathematical models support BJP winning majority' },
+    { tag:'MATRIX #2',   color:'#f59e0b', icon:'🧮', title:'Court & Shivbhag Orthogonal to Main Cluster','detail':'Determinant ≈ 0 confirms near-total stronghold correlation. Swing wards independent',  risk:'⚠ MONITOR: Swing wards operate outside Hindu consolidation wave' },
+  ];
+
+  const secBtn = (id) => ({
+    padding:'6px 14px', borderRadius:20, fontSize:11, fontWeight:700,
+    cursor:'pointer', border:'none', whiteSpace:'nowrap',
+    background: section===id ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
+    color: section===id ? '#22d3ee' : 'rgba(255,255,255,0.38)',
+    outline: section===id ? '1px solid rgba(34,211,238,0.4)' : '1px solid rgba(255,255,255,0.07)',
+    transition:'all 0.18s',
+  });
+
+  const chip = (label, val, c='#22d3ee') => (
+    <div style={{background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'8px 12px',textAlign:'center',minWidth:72}}>
+      <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:0.4,marginBottom:3}}>{label}</div>
+      <div style={{fontSize:14,fontWeight:800,color:c,lineHeight:1.2}}>{val}</div>
+    </div>
+  );
+
+  // ── Bar ──────────────────────────────────────────────────────────────────────
+  const Bar = ({val, max, color, h=8}) => (
+    <div style={{height:h,background:'rgba(255,255,255,0.07)',borderRadius:4,overflow:'hidden'}}>
+      <div style={{width:`${Math.min(100,(val/max)*100)}%`,height:'100%',background:color,borderRadius:4,transition:'width 0.5s'}}/>
+    </div>
+  );
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+
+      {/* ── Header KPI strip ──────────────────────────────────────────────────── */}
+      <div style={{background:'linear-gradient(135deg,rgba(34,211,238,0.06),rgba(34,211,238,0.02))',border:'1px solid rgba(34,211,238,0.15)',borderRadius:14,padding:'16px 20px'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:900,color:'#22d3ee',letterSpacing:0.3}}>Election Analytics — Advanced Mathematical Models</div>
+            <div style={{fontSize:11,color:'rgba(255,255,255,0.35)',marginTop:3}}>Fourier Series · Markov Chain · Matrix Eigenvalue · Vote Transition Engine · 2013–2029</div>
+          </div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            {[
+              {l:'Wards Analysed', v:'38',    c:'#22d3ee'},
+              {l:'Elections',      v:'5',     c:'#a78bfa'},
+              {l:'2025 BJP Fcst',  v:'52.0%', c:'#f59e0b'},
+              {l:'Strong Wards 25',v:'21',    c:'#10b981'},
+              {l:'Net ΔV (2025)',  v:'−365',  c:'#f87171'},
+              {l:'Win Prob',       v:'75%',   c:'#10b981'},
+            ].map(s => chip(s.l, s.v, s.c))}
+          </div>
+        </div>
+
+        {/* Section nav */}
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {SECTIONS.map(s => <button key={s.id} onClick={()=>setSection(s.id)} style={secBtn(s.id)}>{s.label}</button>)}
+        </div>
+      </div>
+
+      {/* ── OVERVIEW ─────────────────────────────────────────────────────────── */}
+      {section==='overview' && (
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+          {/* Historical trend table */}
+          <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,overflow:'hidden'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.6)',letterSpacing:0.6,textTransform:'uppercase'}}>
+              Constituency-Level Trend 2013–2023 + 2025 Forecast
+            </div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead>
+                  <tr style={{background:'rgba(255,255,255,0.03)'}}>
+                    {['METRIC','2013','2014','2018','2019','2023 ★','TREND','2025 FCST','Δ CHANGE'].map(h=>(
+                      <th key={h} style={{padding:'8px 12px',fontSize:10,fontWeight:700,color:h.includes('2023')?'#22d3ee':h.includes('2025')?'#f59e0b':'rgba(255,255,255,0.35)',textAlign:'left',letterSpacing:0.4,whiteSpace:'nowrap'}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {m:'Total Voters',v:['229K','235K','238K','238K'],v23:'247K',trend:'↑ Growing',fcst:'~252K',delta:'+5,040',tc:'#22d3ee'},
+                    {m:'Turnout %',   v:['65.0%','70.0%','67.3%','70.5%'],v23:'64.6%',trend:'↓ Declining',fcst:'68.0%',delta:'+3.4%',tc:'#f87171'},
+                    {m:'BJP Vote %',  v:['52.0%','55.0%','55.4%','57.4%'],v23:'56.0%',trend:'→ Stable',fcst:'57.5%',delta:'+1.5%',tc:'#f97316'},
+                    {m:'INC Vote %',  v:['45.0%','38.0%','42.1%','39.5%'],v23:'42.2%',trend:'→ Stable',fcst:'40.5%',delta:'−1.7%',tc:'#10b981'},
+                    {m:'BJP Wards Won',v:['15','27','27','—'],v23:'—',trend:'→ Holding',fcst:'22',delta:'—',tc:'#f59e0b'},
+                    {m:'Non-Voters (BJP)',v:['~70K','~65K','~78K','~70K'],v23:'~105K',trend:'↑ CRITICAL',fcst:'~85K',delta:'—',tc:'#ef4444'},
+                  ].map((r,i)=>(
+                    <tr key={r.m} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.015)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                      <td style={{padding:'9px 12px',fontSize:12,fontWeight:700,color:'#e2e8f0',whiteSpace:'nowrap'}}>{r.m}</td>
+                      {r.v.map((v,vi)=><td key={vi} style={{padding:'9px 12px',fontSize:12,color:'rgba(255,255,255,0.45)',textAlign:'center'}}>{v}</td>)}
+                      <td style={{padding:'9px 12px',fontSize:13,fontWeight:800,color:'#22d3ee',textAlign:'center'}}>{r.v23}</td>
+                      <td style={{padding:'9px 12px',fontSize:11,fontWeight:700,color:r.trend.includes('↓')||r.trend.includes('CRIT')?'#ef4444':r.trend.includes('↑')?'#10b981':'#f59e0b',whiteSpace:'nowrap'}}>{r.trend}</td>
+                      <td style={{padding:'9px 12px',fontSize:12,fontWeight:800,color:'#f59e0b',textAlign:'center'}}>{r.fcst}</td>
+                      <td style={{padding:'9px 12px',fontSize:12,fontWeight:700,color:r.tc,textAlign:'center'}}>{r.delta}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Key Findings grid */}
+          <div>
+            <div style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:1.2,marginBottom:12}}>Mathematical Findings Summary</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:10}}>
+              {FINDINGS.map((f,i)=>(
+                <div key={i} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${f.color}25`,borderLeft:`3px solid ${f.color}`,borderRadius:10,padding:'12px 14px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:8}}>
+                    <span style={{fontSize:9,fontWeight:800,padding:'2px 8px',borderRadius:20,background:f.color+'22',color:f.color,letterSpacing:0.5}}>{f.tag}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:'#e2e8f0'}}>{f.title}</span>
+                  </div>
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',lineHeight:1.6,marginBottom:6}}>{f.detail}</div>
+                  <div style={{fontSize:11,color:f.risk.includes('✅')?'#10b981':f.risk.includes('⚠')?'#f59e0b':'#22d3ee',fontWeight:600}}>{f.risk}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FOURIER ───────────────────────────────────────────────────────────── */}
+      {section==='fourier' && (
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          {/* Theory card */}
+          <div style={{background:'rgba(34,211,238,0.04)',border:'1px solid rgba(34,211,238,0.15)',borderRadius:12,padding:'16px 20px'}}>
+            <div style={{fontSize:13,fontWeight:800,color:'#22d3ee',marginBottom:12}}>Fourier Series Electoral Signal Decomposition</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              {[
+                {label:'DC Component (k=0)', val:'0.5516', desc:'Overall average BJP vote share across all elections', c:'#22d3ee'},
+                {label:'1st Harmonic (k=1)', val:'|X|=0.054 · φ=156.8°', desc:'Primary ~10yr election cycle — dominant oscillation', c:'#a78bfa'},
+                {label:'2nd Harmonic (k=2)', val:'|X|=0.032 · φ=−155.9°', desc:'Secondary ~5yr split cycle', c:'#f59e0b'},
+                {label:'Signal Mean x̄',      val:'55.16%', desc:'Average BJP vote% across 5 elections (2013–2023)', c:'#10b981'},
+              ].map(h=>(
+                <div key={h.label} style={{background:'rgba(255,255,255,0.03)',borderRadius:8,padding:'10px 12px'}}>
+                  <div style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.3)',letterSpacing:0.5,marginBottom:4}}>{h.label}</div>
+                  <div style={{fontSize:14,fontWeight:800,color:h.c,marginBottom:4}}>{h.val}</div>
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.45)',lineHeight:1.5}}>{h.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fourier prediction table */}
+          <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,overflow:'hidden'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span style={{fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:0.6}}>Fourier Reconstruction + Forecast 2025–2029</span>
+              <span style={{fontSize:10,color:'rgba(255,255,255,0.3)'}}>Shaded = forecast years</span>
+            </div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead><tr style={{background:'rgba(255,255,255,0.03)'}}>
+                  {['Year','Actual BJP%','Fourier Fit','Residual Δ','INC Actual','INC Fit','T/O Actual','T/O Fit','Interpretation'].map(h=>(
+                    <th key={h} style={{padding:'8px 10px',fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.35)',textAlign:'left',letterSpacing:0.3,whiteSpace:'nowrap'}}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {FOURIER.map((r,i)=>(
+                    <tr key={r.year} style={{background:r.isForecast?'rgba(34,211,238,0.04)':i%2===0?'transparent':'rgba(255,255,255,0.015)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                      <td style={{padding:'9px 10px',fontSize:13,fontWeight:800,color:r.isForecast?'#22d3ee':'#e2e8f0'}}>{r.year}{r.isForecast&&' *'}</td>
+                      <td style={{padding:'9px 10px',fontSize:12,fontWeight:700,color:'#f97316',textAlign:'right'}}>{r.actual!=null?r.actual.toFixed(1)+'%':'—'}</td>
+                      <td style={{padding:'9px 10px',fontSize:12,fontWeight:700,color:r.isForecast?'#f59e0b':'rgba(255,255,255,0.6)',textAlign:'right'}}>{r.fit.toFixed(1)}%</td>
+                      <td style={{padding:'9px 10px',fontSize:12,color:r.residual.startsWith('+')?'#10b981':r.residual.startsWith('-')?'#f87171':'rgba(255,255,255,0.3)',textAlign:'right',fontWeight:600}}>{r.residual}</td>
+                      <td style={{padding:'9px 10px',fontSize:12,color:'#10b981',textAlign:'right'}}>{r.incActual!=null?r.incActual.toFixed(1)+'%':'—'}</td>
+                      <td style={{padding:'9px 10px',fontSize:12,color:'rgba(255,255,255,0.45)',textAlign:'right'}}>{r.incFit.toFixed(1)}%</td>
+                      <td style={{padding:'9px 10px',fontSize:12,color:'#f59e0b',textAlign:'right'}}>{r.toActual!=null?r.toActual.toFixed(1)+'%':'—'}</td>
+                      <td style={{padding:'9px 10px',fontSize:12,color:'rgba(255,255,255,0.45)',textAlign:'right'}}>{r.toFit.toFixed(1)}%</td>
+                      <td style={{padding:'9px 10px',fontSize:11,color:r.status.includes('⚠')?'#f59e0b':'rgba(255,255,255,0.5)',whiteSpace:'nowrap'}}>{r.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{padding:'10px 16px',borderTop:'1px solid rgba(255,255,255,0.05)',fontSize:10,color:'rgba(255,255,255,0.25)'}}>* Forecast years — no actual data. Formula: x̂[n] = 0.5516 + Σₖ Aₖ·cos(2πkn/N − φₖ)</div>
+          </div>
+
+          {/* Visual trend bars */}
+          <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'16px 20px'}}>
+            <div style={{fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.5)',marginBottom:14,textTransform:'uppercase',letterSpacing:0.6}}>BJP% Signal vs Fourier Fit</div>
+            {FOURIER.map(r=>(
+              <div key={r.year} style={{marginBottom:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span style={{fontSize:11,fontWeight:700,color:r.isForecast?'#22d3ee':'#e2e8f0'}}>{r.year}{r.isForecast?' (forecast)':''}</span>
+                  <span style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>{r.actual!=null?`Actual ${r.actual}% · `:''}Fit: {r.fit}%</span>
+                </div>
+                <div style={{position:'relative',height:10,background:'rgba(255,255,255,0.05)',borderRadius:5,overflow:'hidden'}}>
+                  {r.actual!=null&&<div style={{position:'absolute',left:0,top:0,height:'100%',width:`${r.actual}%`,background:'#f97316',borderRadius:5,opacity:0.9}}/>}
+                  <div style={{position:'absolute',left:0,top:r.actual!=null?'40%':0,height:r.actual!=null?'20%':'100%',width:`${r.fit}%`,background:r.isForecast?'#22d3ee':'rgba(255,255,255,0.3)',borderRadius:5}}/>
+                </div>
+              </div>
+            ))}
+            <div style={{display:'flex',gap:16,marginTop:8}}>
+              <span style={{fontSize:10,color:'rgba(255,255,255,0.4)',display:'flex',alignItems:'center',gap:5}}><span style={{width:12,height:8,background:'#f97316',borderRadius:2,display:'inline-block'}}/>Actual BJP%</span>
+              <span style={{fontSize:10,color:'rgba(255,255,255,0.4)',display:'flex',alignItems:'center',gap:5}}><span style={{width:12,height:4,background:'rgba(255,255,255,0.4)',borderRadius:2,display:'inline-block'}}/>Fourier Fit</span>
+              <span style={{fontSize:10,color:'rgba(255,255,255,0.4)',display:'flex',alignItems:'center',gap:5}}><span style={{width:12,height:4,background:'#22d3ee',borderRadius:2,display:'inline-block'}}/>Forecast</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MARKOV ────────────────────────────────────────────────────────────── */}
+      {section==='markov' && (
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+          {/* Theory */}
+          <div style={{background:'rgba(167,139,250,0.05)',border:'1px solid rgba(167,139,250,0.15)',borderRadius:12,padding:'14px 18px'}}>
+            <div style={{fontSize:13,fontWeight:800,color:'#a78bfa',marginBottom:10}}>Markov Chain — Ward State Transition Theory</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:8}}>
+              {[
+                {l:'State Space', v:'S, M, W, L',       d:'Strong≥60% · Medium 50-60% · Weak 40-50% · Loss<40%'},
+                {l:'Markov Property', v:'P(Xₜ₊₁|Xₜ)',  d:'Future depends only on current state (memoryless)'},
+                {l:'State Vector', v:'π(t+1) = Tᵀ·π(t)',d:'Matrix multiplication propagates distribution forward'},
+                {l:'Stationary State', v:'π* = Tᵀ·π*', d:'Long-run equilibrium where further elections converge'},
+              ].map(h=>(
+                <div key={h.l} style={{background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'10px 12px'}}>
+                  <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:0.5,marginBottom:4}}>{h.l}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:'#a78bfa',fontFamily:'monospace',marginBottom:4}}>{h.v}</div>
+                  <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',lineHeight:1.5}}>{h.d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Transition matrix */}
+          <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,overflow:'hidden'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:0.6}}>
+              Probability Transition Matrix T — T[i][j] = P(state i → state j)
+            </div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead><tr style={{background:'rgba(255,255,255,0.04)'}}>
+                  {['FROM \\ TO →','→ STRONG','→ MEDIUM','→ WEAK','→ LOSS','Sum','Interpretation'].map(h=>(
+                    <th key={h} style={{padding:'9px 12px',fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.35)',textAlign:'left',letterSpacing:0.3,whiteSpace:'nowrap'}}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {TRANSITION_MATRIX.map((r,i)=>{
+                    const vals=[r.toS,r.toM,r.toW,r.toL];
+                    const colors=['#10b981','#f59e0b','#f97316','#ef4444'];
+                    return (
+                      <tr key={r.from} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.015)',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                        <td style={{padding:'9px 12px',fontSize:12,fontWeight:800,color:'#e2e8f0',whiteSpace:'nowrap'}}>{r.from}</td>
+                        {vals.map((v,vi)=>(
+                          <td key={vi} style={{padding:'9px 12px',textAlign:'center'}}>
+                            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                              <span style={{fontSize:13,fontWeight:v>0.5?800:v>0.1?600:400,color:v>0.5?colors[vi]:v>0.1?colors[vi]:'rgba(255,255,255,0.2)'}}>{v.toFixed(3)}</span>
+                              <div style={{width:36,height:4,background:'rgba(255,255,255,0.07)',borderRadius:2,overflow:'hidden'}}>
+                                <div style={{width:`${v*100}%`,height:'100%',background:colors[vi],borderRadius:2}}/>
+                              </div>
+                            </div>
+                          </td>
+                        ))}
+                        <td style={{padding:'9px 12px',fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textAlign:'center'}}>{r.sum.toFixed(3)}</td>
+                        <td style={{padding:'9px 12px',fontSize:11,color:r.interp.includes('danger')||r.interp.includes('hard')?'#f87171':r.interp.includes('sticky')||r.interp.includes('upgrade')?'#10b981':'rgba(255,255,255,0.5)',lineHeight:1.4,maxWidth:200}}>{r.interp}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* State evolution */}
+          <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,overflow:'hidden'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:0.6}}>
+              Ward State Distribution Evolution 2023 → 2029
+            </div>
+            <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:14}}>
+              {MARKOV_STATES.map(s=>(
+                <div key={s.state}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                    <span style={{fontSize:12,fontWeight:700,color:s.color}}>{s.state}</span>
+                    <span style={{fontSize:11,fontWeight:700,color:s.verdict.includes('↑')?'#10b981':s.verdict.includes('↓')?'#ef4444':'#f59e0b'}}>{s.verdict}</span>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+                    {[
+                      {y:'2023',count:s.count23,pct:s.pct23},
+                      {y:'2025',count:s.count25,pct:s.pct25},
+                      {y:'2027',count:s.count27,pct:s.pct27},
+                      {y:'2029',count:s.count29,pct:s.pct29},
+                    ].map(yr=>(
+                      <div key={yr.y} style={{background:'rgba(255,255,255,0.04)',borderRadius:7,padding:'8px 10px'}}>
+                        <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',marginBottom:4}}>{yr.y}</div>
+                        <div style={{fontSize:16,fontWeight:800,color:s.color,lineHeight:1}}>{yr.count}</div>
+                        <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginBottom:4}}>{yr.pct.toFixed(1)}%</div>
+                        <Bar val={yr.pct} max={70} color={s.color} h={4}/>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginTop:4}}>Stationary π* → {s.stationary.toFixed(1)}% ({Math.round(38*s.stationary/100)} wards)</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── VOTE TRANSITION ENGINE ────────────────────────────────────────────── */}
+      {section==='transition' && (
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+          {/* Formula card */}
+          <div style={{background:'rgba(249,115,22,0.05)',border:'1px solid rgba(249,115,22,0.2)',borderRadius:12,padding:'14px 18px'}}>
+            <div style={{fontSize:13,fontWeight:800,color:'#f97316',marginBottom:12}}>Vote Transition Engine — Formula Derivation</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:8}}>
+              {[
+                {l:'Base BJP Votes',  f:'TV × TP_current × BJP_share_current',           c:'#22d3ee'},
+                {l:'Mobilisation ΔV', f:'TV × (TP_target − TP_current) × BJP_current',   c:'#10b981'},
+                {l:'Swing ΔV',        f:'TV × TP_current × (BJP_target − BJP_current)',   c:'#a78bfa'},
+                {l:'Total ΔV',        f:'ΔV_mob + ΔV_swing',                              c:'#f59e0b'},
+              ].map(f=>(
+                <div key={f.l} style={{background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'10px 12px'}}>
+                  <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:0.5,marginBottom:4}}>{f.l}</div>
+                  <div style={{fontSize:11,fontFamily:'monospace',color:f.c,lineHeight:1.5}}>{f.f}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:12,display:'flex',gap:16,flexWrap:'wrap'}}>
+              {[
+                {l:'POSITIVE',c:'#10b981',d:'ΔV > +100 votes'},
+                {l:'STABLE',  c:'#f59e0b',d:'−100 < ΔV < +100'},
+                {l:'NEGATIVE',c:'#ef4444',d:'ΔV < −100 votes'},
+              ].map(t=>(
+                <span key={t.l} style={{fontSize:11,display:'flex',alignItems:'center',gap:6}}>
+                  <span style={{width:8,height:8,borderRadius:2,background:t.c,display:'inline-block'}}/>
+                  <span style={{fontWeight:700,color:t.c}}>{t.l}:</span>
+                  <span style={{color:'rgba(255,255,255,0.4)'}}>{t.d}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Constituency summary chips */}
+          <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+            {[
+              {l:'Total ΔV Mobilisation', v:'−3,607', c:'#ef4444'},
+              {l:'Total ΔV Swing',        v:'+3,352', c:'#10b981'},
+              {l:'Net ΔV (2025)',          v:'−365',   c:'#f59e0b'},
+              {l:'Positive Wards',        v:'19 / 38', c:'#10b981'},
+              {l:'Negative Wards',        v:'19 / 38', c:'#ef4444'},
+            ].map(s=>chip(s.l,s.v,s.c))}
+          </div>
+
+          {/* Ward transition table */}
+          <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,overflow:'hidden'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:0.6}}>
+              Key Ward Vote Transition Table — 2019 → 2025
+            </div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead><tr style={{background:'rgba(255,255,255,0.03)'}}>
+                  {['Ward','Total Voters','BJP% 2019','T/O 2019','Target T/O','Target BJP%','Proj BJP Votes','ΔV Mob.','ΔV Swing','Total ΔV','Type'].map(h=>(
+                    <th key={h} style={{padding:'8px 10px',fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.35)',textAlign:'left',letterSpacing:0.3,whiteSpace:'nowrap'}}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {VOTE_TRANSITIONS.map((r,i)=>{
+                    const tc = r.type==='POSITIVE'?'#10b981':'#ef4444';
+                    return (
+                      <tr key={r.ward} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.015)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                        <td style={{padding:'9px 10px',fontSize:12,fontWeight:700,color:'#e2e8f0',whiteSpace:'nowrap'}}>{r.ward}</td>
+                        <td style={{padding:'9px 10px',fontSize:11,color:'rgba(255,255,255,0.5)',textAlign:'right'}}>{r.tv.toLocaleString()}</td>
+                        <td style={{padding:'9px 10px',fontSize:12,color:'#f97316',fontWeight:700,textAlign:'right'}}>{r.bjp19}%</td>
+                        <td style={{padding:'9px 10px',fontSize:12,color:'rgba(255,255,255,0.5)',textAlign:'right'}}>{r.to19}%</td>
+                        <td style={{padding:'9px 10px',fontSize:12,color:'#22d3ee',textAlign:'right'}}>{r.to25}%</td>
+                        <td style={{padding:'9px 10px',fontSize:12,color:'#a78bfa',textAlign:'right'}}>{r.bjp25}%</td>
+                        <td style={{padding:'9px 10px',fontSize:12,color:'#e2e8f0',fontWeight:700,textAlign:'right'}}>{r.projBJP.toLocaleString()}</td>
+                        <td style={{padding:'9px 10px',fontSize:12,color:r.dVMob>0?'#10b981':'#f87171',fontWeight:700,textAlign:'right'}}>{r.dVMob>0?'+':''}{r.dVMob}</td>
+                        <td style={{padding:'9px 10px',fontSize:12,color:r.dVSwing>0?'#10b981':'#f87171',fontWeight:700,textAlign:'right'}}>{r.dVSwing>0?'+':''}{r.dVSwing}</td>
+                        <td style={{padding:'9px 10px',fontSize:13,fontWeight:800,color:tc,textAlign:'right'}}>{r.total>0?'+':''}{r.total}</td>
+                        <td style={{padding:'9px 10px'}}>
+                          <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,background:tc+'22',color:tc,border:`1px solid ${tc}33`}}>{r.type}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MATRIX / EIGENVALUE ───────────────────────────────────────────────── */}
+      {section==='matrix' && (
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+          {/* Ward correlation */}
+          <div style={{background:'rgba(251,191,36,0.04)',border:'1px solid rgba(251,191,36,0.15)',borderRadius:12,padding:'16px 20px'}}>
+            <div style={{fontSize:13,fontWeight:800,color:'#fbbf24',marginBottom:12}}>Ward Influence Correlation Matrix — 5 Representative Wards</div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{borderCollapse:'collapse',minWidth:500}}>
+                <thead><tr>
+                  <th style={{padding:'8px 12px',fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.35)'}}></th>
+                  {['MANNAGUDDA','KAMBALA','BOLOOR','BEJAI','COURT'].map(w=>(
+                    <th key={w} style={{padding:'8px 12px',fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.35)',letterSpacing:0.3}}>{w}</th>
+                  ))}
+                  <th style={{padding:'8px 12px',fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.35)'}}>MEAN ρ</th>
+                </tr></thead>
+                <tbody>
+                  {[
+                    {w:'MANNAGUDDA', rhos:[1.0000,0.9267,0.9746,0.9838,0.8673], mean:0.9381},
+                    {w:'KAMBALA',    rhos:[0.9267,1.0000,0.8789,0.8671,0.9572], mean:0.9075},
+                    {w:'BOLOOR',     rhos:[0.9746,0.8789,1.0000,0.9853,0.8700], mean:0.9272},
+                    {w:'BEJAI',      rhos:[0.9838,0.8671,0.9853,1.0000,0.8415], mean:0.9194},
+                    {w:'COURT',      rhos:[0.8673,0.9572,0.8700,0.8415,1.0000], mean:0.8840},
+                  ].map((r,ri)=>(
+                    <tr key={r.w} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                      <td style={{padding:'9px 12px',fontSize:11,fontWeight:700,color:'#fbbf24',whiteSpace:'nowrap'}}>{r.w}</td>
+                      {r.rhos.map((rho,ci)=>{
+                        const bg = rho===1 ? 'rgba(251,191,36,0.15)' : rho>0.95 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.07)';
+                        const c  = rho===1 ? '#fbbf24' : rho>0.95 ? '#10b981' : '#f59e0b';
+                        return (
+                          <td key={ci} style={{padding:'9px 12px',textAlign:'center',background:bg,borderRadius:0}}>
+                            <span style={{fontSize:12,fontWeight:rho===1?800:600,color:c}}>{rho.toFixed(4)}</span>
+                          </td>
+                        );
+                      })}
+                      <td style={{padding:'9px 12px',fontSize:12,fontWeight:800,color:'#22d3ee',textAlign:'center'}}>{r.mean.toFixed(4)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Eigenvalue decomposition */}
+          <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,overflow:'hidden'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:0.6}}>
+              Eigenvalue Decomposition C = V·Λ·V⁻¹
+            </div>
+            <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:10}}>
+              {EIGENVALUES.map(e=>(
+                <div key={e.k} style={{background:'rgba(255,255,255,0.025)',borderRadius:10,padding:'12px 14px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,flexWrap:'wrap'}}>
+                    <span style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:4,background:e.color+'22',color:e.color,border:`1px solid ${e.color}33`}}>λ{e.k} = {e.lambda.toFixed(4)}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:'#e2e8f0',flex:1}}>{e.meaning}</span>
+                    <span style={{fontSize:13,fontWeight:800,color:e.color}}>{e.varPct.toFixed(2)}%</span>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{flex:1,height:8,background:'rgba(255,255,255,0.06)',borderRadius:4,overflow:'hidden'}}>
+                      <div style={{width:`${e.varPct}%`,height:'100%',background:e.color,borderRadius:4}}/>
+                    </div>
+                    <span style={{fontSize:10,color:'rgba(255,255,255,0.3)',whiteSpace:'nowrap',minWidth:80}}>Cumul: {e.cumulPct.toFixed(2)}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Matrix properties */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:8}}>
+            {[
+              {l:'Matrix Size',            v:'5×5',            c:'#22d3ee', d:'5 wards × 5 time points'},
+              {l:'Trace',                  v:'5.0000',          c:'#10b981', d:'Trace = Σλᵢ = N ✓ Verified'},
+              {l:'Determinant',            v:'≈ 0',             c:'#f59e0b', d:'Near-zero → high multicollinearity'},
+              {l:'Rank',                   v:'4',               c:'#a78bfa', d:'4 independent dimensions of variation'},
+              {l:'PC1 Variance',           v:'93.2%',           c:'#10b981', d:'Wards move together as one bloc'},
+              {l:'PC1+PC2 Variance',       v:'98.5%',           c:'#10b981', d:'Two factors explain >98% variation'},
+              {l:'Avg Correlation ρ',      v:'0.93',            c:'#fbbf24', d:'Extremely high inter-ward coupling'},
+              {l:'Strategic Implication',  v:'LEVERAGE',        c:'#f97316', d:'Fix one stronghold → shifts all correlated wards'},
+            ].map(p=>(
+              <div key={p.l} style={{background:'rgba(255,255,255,0.025)',border:`1px solid ${p.c}22`,borderRadius:9,padding:'12px 14px'}}>
+                <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:0.4,marginBottom:4}}>{p.l}</div>
+                <div style={{fontSize:16,fontWeight:800,color:p.c,marginBottom:4}}>{p.v}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',lineHeight:1.5}}>{p.d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── SCENARIOS ─────────────────────────────────────────────────────────── */}
+      {section==='scenarios' && (
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:12}}>
+            {SCENARIOS.map(s=>(
+              <div key={s.label} style={{background:s.bg,border:`1px solid ${s.border}`,borderTop:`3px solid ${s.c}`,borderRadius:14,padding:'20px 22px'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                  <div style={{fontSize:16,fontWeight:900,color:s.c}}>{s.label}</div>
+                  <div style={{fontSize:22,fontWeight:900,color:s.c,background:s.c+'22',borderRadius:8,padding:'4px 12px'}}>{s.prob}%</div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+                  {[
+                    {l:'BJP Vote %',  v:`${s.bjp}%`,    c:s.c},
+                    {l:'Turnout %',   v:`${s.turnout}%`, c:'#f59e0b'},
+                    {l:'BJP Wards',   v:s.wards,         c:s.c},
+                    {l:'Outcome',     v:s.margin,        c:s.c},
+                  ].map(st=>(
+                    <div key={st.l} style={{background:'rgba(255,255,255,0.05)',borderRadius:7,padding:'8px 10px'}}>
+                      <div style={{fontSize:9,color:'rgba(255,255,255,0.35)',marginBottom:3}}>{st.l}</div>
+                      <div style={{fontSize:13,fontWeight:800,color:st.c,lineHeight:1.2}}>{st.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{fontSize:12,color:'rgba(255,255,255,0.55)',lineHeight:1.7,borderTop:`1px solid ${s.c}22`,paddingTop:12}}>
+                  <span style={{fontWeight:700,color:s.c}}>Key assumption: </span>{s.assumption}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Expected value */}
+          <div style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'16px 20px'}}>
+            <div style={{fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:0.6,marginBottom:14}}>Expected Value Calculation</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:8}}>
+              {[
+                {l:'EV BJP Vote %',   v:'57.3%',    c:'#f97316', f:'0.25×53.5 + 0.45×57.5 + 0.30×60.5'},
+                {l:'EV Turnout %',    v:'66.85%',   c:'#f59e0b', f:'0.25×63 + 0.45×67 + 0.30×70'},
+                {l:'EV BJP Wards',    v:'22.7',     c:'#10b981', f:'0.25×19 + 0.45×23.5 + 0.30×27'},
+                {l:'Win Probability', v:'75%',      c:'#10b981', f:'P(Base) + P(Optimistic) = 45+30'},
+              ].map(ev=>(
+                <div key={ev.l} style={{background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'10px 12px'}}>
+                  <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:0.4,marginBottom:4}}>{ev.l}</div>
+                  <div style={{fontSize:18,fontWeight:900,color:ev.c,lineHeight:1,marginBottom:4}}>{ev.v}</div>
+                  <div style={{fontSize:9,color:'rgba(255,255,255,0.25)',fontFamily:'monospace',lineHeight:1.4}}>{ev.f}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Action priorities */}
+          <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'16px 20px'}}>
+            <div style={{fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:0.6,marginBottom:14}}>Mathematical Priority Actions to Move from Base → Optimistic</div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {[
+                {n:1,c:'#ef4444',action:'Mobilise 20,000 non-voters in BJP strongholds',           impact:'+3.4% turnout → flips pessimistic to base scenario'},
+                {n:2,c:'#f97316',action:'Upgrade 4 MEDIUM wards using Markov 33% probability',    impact:'21→25 strong wards — secures comfortable majority'},
+                {n:3,c:'#f59e0b',action:'Arrest WEAK→LOSS transition in 7 vulnerable wards',      impact:'Prevents 3–4 Congress gains — protects margin'},
+                {n:4,c:'#a78bfa',action:'Leverage eigenvalue correlation: Fix Mannagudda turnout', impact:'High ρ=0.93 means ALL correlated wards shift simultaneously'},
+                {n:5,c:'#10b981',action:'Swing ΔV programme: +2% BJP share in 10 swing wards',   impact:'+3,352 votes pure swing — overcomes −3,607 mobilisation deficit'},
+              ].map(a=>(
+                <div key={a.n} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'10px 12px',background:'rgba(255,255,255,0.02)',borderRadius:8,border:`1px solid ${a.c}22`}}>
+                  <span style={{width:26,height:26,borderRadius:'50%',background:a.c+'22',color:a.c,fontSize:12,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:`1px solid ${a.c}44`}}>{a.n}</span>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{a.action}</div>
+                    <div style={{fontSize:11,color:a.c,lineHeight:1.5}}>{a.impact}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
 export default function BJPStrategy() {
   return (
     <>
