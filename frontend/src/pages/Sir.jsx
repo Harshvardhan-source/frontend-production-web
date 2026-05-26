@@ -959,6 +959,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                         <ColHeader>Name</ColHeader>
                         <ColHeader>Relation</ColHeader>
                         <ColHeader>Matched</ColHeader>
+                        {year === '2025' && <ColHeader>Status</ColHeader>}
                         <ColHeader>Booth</ColHeader>
                         <ColHeader>EPIC</ColHeader>
                         <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:36 }} />
@@ -1038,6 +1039,17 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                               </div>
                             )}
                           </td>
+                          {/* Mapping Status (2025 only) */}
+                          {year === '2025' && (
+                            <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
+                              {r.mapping_status
+                                ? r.mapping_status.toLowerCase() === 'mapped'
+                                  ? <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(16,185,129,0.15)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)', display:'inline-flex', alignItems:'center', gap:3 }}>✓ Mapped</span>
+                                  : <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(249,115,22,0.12)', color:'#fb923c', border:'1px solid rgba(249,115,22,0.3)', display:'inline-flex', alignItems:'center', gap:3 }}>✗ Not Mapped</span>
+                                : <span style={{ color:'rgba(255,255,255,0.2)', fontSize:11 }}>—</span>
+                              }
+                            </td>
+                          )}
                           {/* Booth */}
                           <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
                             {r.booth ? (
@@ -1432,6 +1444,17 @@ function LiveCheckPanel() {
                           <span style={{ fontSize:12, color:'#e2e8f0', fontFamily: lbl === 'EPIC' ? 'ui-monospace,monospace' : 'inherit' }}>{val}</span>
                         </div>
                       ) : null)}
+                      {year === '2025' && (
+                        <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:2 }}>
+                          <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)', minWidth:52, fontWeight:600 }}>Status</span>
+                          {rec.mapping_status
+                            ? rec.mapping_status.toLowerCase() === 'mapped'
+                              ? <span style={{ fontSize:10, fontWeight:700, padding:'2px 9px', borderRadius:20, background:'rgba(16,185,129,0.15)', color:'#10b981', border:'1px solid rgba(16,185,129,0.35)' }}>✓ Mapped</span>
+                              : <span style={{ fontSize:10, fontWeight:700, padding:'2px 9px', borderRadius:20, background:'rgba(249,115,22,0.12)', color:'#fb923c', border:'1px solid rgba(249,115,22,0.3)' }}>✗ Not Mapped</span>
+                            : <span style={{ fontSize:11, color:'rgba(255,255,255,0.2)' }}>—</span>
+                          }
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div style={{ display:'flex', alignItems:'center', gap:6, color:'#f87171', fontSize:13, fontWeight:600 }}>
