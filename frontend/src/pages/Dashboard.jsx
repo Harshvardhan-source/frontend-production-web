@@ -2434,7 +2434,7 @@ function WardVsConstituency({ wardNum }) {
 }
 
 // ─── Constituency-level SIR Summary (shown on overall view) ───────────────────
-function ConstituencySIRSummary() {
+function ConstituencySIRSummary({ onViewMapped }) {
   const allWards = Object.entries(SIR_WARD_DATA);
   const total    = allWards.length;
 
@@ -2557,7 +2557,7 @@ function ConstituencySIRSummary() {
                 </div>
                 {viewKey && (
                   <button
-                    onClick={() => setMappedRecordsModal(viewKey)}
+                    onClick={() => onViewMapped && onViewMapped(viewKey)}
                     style={{ marginTop: 'auto', background: `${c}14`, border: `1px solid ${c}30`, borderRadius: 7, padding: '5px 0', cursor: 'pointer', color: c, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', letterSpacing: '0.3px' }}
                   >
                     <ArrowRight size={11} /> View
@@ -4825,7 +4825,7 @@ export default function Dashboard() {
 
           {/* ── NEW: Constituency SIR Intelligence Summary (only on overall view) ─── */}
           {!selectedWard && (
-            <ConstituencySIRSummary />
+            <ConstituencySIRSummary onViewMapped={setMappedRecordsModal} />
           )}
 
           {/* ── HMC Religion Breakdown + Polled/NotPolled (constituency / ward / booth) ── */}
