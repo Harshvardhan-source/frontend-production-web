@@ -2730,19 +2730,19 @@ function WardVsConstituency({ wardNum }) {
 }
 
 // ─── House Consolidated Report Panel ─────────────────────────────────────────
-// All data derived from House_Consolidated_Report_v2.xlsx
+// All data derived from House_Master_Consolidated_Report.xlsx
 // Ward No & Booth No now stored as numbers for accurate filtering
 const HOUSE_DATA = {
   summary: {
     totalHouses:    118135,
-    totalVoters:    250979,
+    totalVoters:    250978,
     mapped:         184679,
     notMapped:      66300,
     mappedPct:      73.6,
     polled2023:     136018,
-    turnoutPct:     58.2,
+    turnoutPct:     54.2,
     male:           124465,
-    female:         126253,
+    female:         126314,
     newSince2002:   158995,
   },
   houseSizes: [
@@ -2753,23 +2753,23 @@ const HOUSE_DATA = {
     { label: 'Single (1)',       count: 66318,  color: '#6b7280' },
   ],
   topCommunities: [
-    { name: 'Unclassified',          voters: 92402, houses: 42985, mappedPct: 71.8, polledPct: 59.7, color: '#6b7280' },
-    { name: 'Muslim',                voters: 49247, houses: 20552, mappedPct: 76.9, polledPct: 51.2, color: '#10b981' },
-    { name: 'Mangalorean Catholic',  voters: 30515, houses: 14667, mappedPct: 75.3, polledPct: 54.3, color: '#60a5fa' },
-    { name: 'GSB',                   voters: 17549, houses: 8981,  mappedPct: 69.9, polledPct: 62.5, color: '#a78bfa' },
-    { name: 'Bunt',                  voters: 17174, houses: 8429,  mappedPct: 72.9, polledPct: 61.9, color: '#f97316' },
-    { name: 'Billava',               voters: 10958, houses: 5211,  mappedPct: 78.4, polledPct: 64.1, color: '#22d3ee' },
-    { name: 'GSB/Yadav/Bekal (Rao)', voters: 5642,  houses: 3105,  mappedPct: 68.7, polledPct: 59.7, color: '#fb923c' },
-    { name: 'Christian',             voters: 5065,  houses: 2775,  mappedPct: 73.1, polledPct: 54.4, color: '#34d399' },
-    { name: 'Billava/Mogaveera',     voters: 4147,  houses: 2090,  mappedPct: 79.2, polledPct: 64.0, color: '#f472b6' },
-    { name: 'GSB/Brahmin (Bhat)',    voters: 3698,  houses: 1960,  mappedPct: 68.0, polledPct: 63.6, color: '#818cf8' },
+    { name: 'Unclassified',          voters: 92402, houses: 42985, mappedPct: 71.8, polledPct: 55.9, color: '#6b7280' },
+    { name: 'Muslim',                voters: 49246, houses: 20552, mappedPct: 76.9, polledPct: 46.7, color: '#10b981' },
+    { name: 'Mangalorean Catholic',  voters: 30515, houses: 14667, mappedPct: 75.3, polledPct: 50.6, color: '#60a5fa' },
+    { name: 'GSB',                   voters: 17549, houses: 8981,  mappedPct: 69.9, polledPct: 58.6, color: '#a78bfa' },
+    { name: 'Bunt',                  voters: 17174, houses: 8429,  mappedPct: 72.9, polledPct: 57.9, color: '#f97316' },
+    { name: 'Billava',               voters: 10958, houses: 5211,  mappedPct: 78.4, polledPct: 60.0, color: '#22d3ee' },
+    { name: 'GSB/Yadav/Bekal (Rao)', voters: 5642,  houses: 3105,  mappedPct: 68.7, polledPct: 55.9, color: '#fb923c' },
+    { name: 'Christian',             voters: 5065,  houses: 2775,  mappedPct: 73.1, polledPct: 50.9, color: '#34d399' },
+    { name: 'Billava/Mogaveera',     voters: 4147,  houses: 2090,  mappedPct: 79.2, polledPct: 60.6, color: '#f472b6' },
+    { name: 'GSB/Brahmin (Bhat)',    voters: 3698,  houses: 1960,  mappedPct: 68.0, polledPct: 59.7, color: '#818cf8' },
   ],
-  // All 20 Very Large houses (20+ voters), sorted by voter count — from Large Houses sheet
+  // All Very Large houses (20+ voters), sorted by voter count — from Large Houses sheet
   veryLargeHouses: [
     { house: '15-18-1065',  ward: 1, booth: 134, voters: 190, community: 'Mangalorean Catholic', mappedPct: 71.6, polledPct: 11.1 },
     { house: '25-22-1353',  ward: 1, booth: 159, voters: 164, community: 'Mangalorean Catholic', mappedPct: 56.7, polledPct: 20.7 },
     { house: '5-79/20',     ward: 1, booth: 195, voters: 153, community: 'Unclassified',          mappedPct: 7.2,  polledPct: 26.1 },
-    { house: '13-10-1283',  ward: 2, booth: 127, voters: 127, community: 'GSB',                   mappedPct: 52.8, polledPct: 48.8 },
+    { house: '13-10-1283',  ward: 2, booth: 127, voters: 127, community: 'GSB (Goud Saraswat Brahmin)', mappedPct: 52.8, polledPct: 48.8 },
     { house: '1-9',         ward: 1, booth: 52,  voters: 116, community: 'Mangalorean Catholic', mappedPct: 91.4, polledPct: 64.7 },
     { house: '25-3-176/1',  ward: 1, booth: 137, voters: 106, community: 'Unclassified',          mappedPct: 1.9,  polledPct: 8.5  },
     { house: '20-13-819',   ward: 1, booth: 153, voters: 97,  community: 'Mangalorean Catholic', mappedPct: 57.7, polledPct: 47.4 },
@@ -2778,29 +2778,39 @@ const HOUSE_DATA = {
     { house: '301',         ward: 1, booth: 129, voters: 66,  community: 'Unclassified',          mappedPct: 40.9, polledPct: 27.3 },
     { house: '101',         ward: 1, booth: 136, voters: 63,  community: 'Unclassified',          mappedPct: 28.6, polledPct: 33.3 },
     { house: '17-6-3368',   ward: 2, booth: 163, voters: 63,  community: 'Unclassified',          mappedPct: 55.6, polledPct: 88.9 },
-    { house: '201',         ward: 1, booth: 244, voters: 61,  community: 'Unclassified',          mappedPct: 42.6, polledPct: 42.6 },
+    { house: '201',         ward: 1, booth: 77,  voters: 61,  community: 'Unclassified',          mappedPct: 42.6, polledPct: 42.6 },
     { house: '202',         ward: 1, booth: 138, voters: 60,  community: 'Unclassified',          mappedPct: 38.3, polledPct: 36.7 },
     { house: '203',         ward: 1, booth: 63,  voters: 56,  community: 'Unclassified',          mappedPct: 35.7, polledPct: 17.9 },
     { house: '17-5-235',    ward: 2, booth: 165, voters: 56,  community: 'Mangalorean Catholic', mappedPct: 33.9, polledPct: 55.4 },
-    { house: '102',         ward: 1, booth: 13,  voters: 52,  community: 'Muslim',                mappedPct: 38.5, polledPct: 36.5 },
-    { house: '2-126',       ward: 1, booth: 176, voters: 52,  community: 'Mangalorean Catholic', mappedPct: 78.8, polledPct: 38.5 },
     { house: '1',           ward: 1, booth: 187, voters: 52,  community: 'Unclassified',          mappedPct: 88.5, polledPct: 32.7 },
+    { house: '2-126',       ward: 1, booth: 176, voters: 52,  community: 'Mangalorean Catholic', mappedPct: 78.8, polledPct: 38.5 },
+    { house: '102',         ward: 1, booth: 13,  voters: 52,  community: 'Muslim',                mappedPct: 38.5, polledPct: 36.5 },
     { house: '17-6-336B',   ward: 1, booth: 163, voters: 51,  community: 'Mangalorean Catholic', mappedPct: 52.9, polledPct: 72.5 },
+    { house: '21-P.L',      ward: 4, booth: 240, voters: 51,  community: 'Unclassified',          mappedPct: 98.0, polledPct: 80.4 },
+    { house: '17-3-129',    ward: 1, booth: 164, voters: 50,  community: 'Unclassified',          mappedPct: 76.0, polledPct: 26.0 },
+    { house: '15-18-1014',  ward: 1, booth: 134, voters: 50,  community: 'Mangalorean Catholic', mappedPct: 74.0, polledPct: 38.0 },
+    { house: '204',         ward: 1, booth: 44,  voters: 49,  community: 'Unclassified',          mappedPct: 49.0, polledPct: 32.7 },
+    { house: '25-21-1320',  ward: 4, booth: 160, voters: 48,  community: 'Muslim',                mappedPct: 62.5, polledPct: 58.3 },
+    { house: '303',         ward: 1, booth: 20,  voters: 47,  community: 'Unclassified',          mappedPct: 36.2, polledPct: 36.2 },
+    { house: '302',         ward: 1, booth: 238, voters: 47,  community: 'Unclassified',          mappedPct: 42.6, polledPct: 29.8 },
+    { house: '25-24-1720',  ward: 1, booth: 245, voters: 45,  community: 'Unclassified',          mappedPct: 75.6, polledPct: 68.9 },
+    { house: '14-7-958',    ward: 1, booth: 130, voters: 45,  community: 'Mangalorean Catholic', mappedPct: 75.6, polledPct: 44.4 },
+    { house: '1-8',         ward: 1, booth: 52,  voters: 43,  community: 'Mangalorean Catholic', mappedPct: 97.7, polledPct: 65.1 },
   ],
-  // Ward stats computed from raw data (v2 — Ward No now numeric)
+  // Ward stats computed from All Houses sheet (Ward No = local HMC ward number)
   wardStats: [
-    { ward: '1',  houses: 75530, voters: 162810, mappedPct: 69.4, polledPct: 58.3 },
-    { ward: '2',  houses: 20980, voters: 44702,  mappedPct: 81.2, polledPct: 59.5 },
-    { ward: '3',  houses: 12118, voters: 24122,  mappedPct: 80.9, polledPct: 57.7 },
-    { ward: '4',  houses: 5161,  voters: 10448,  mappedPct: 80.9, polledPct: 55.2 },
-    { ward: '5',  houses: 2557,  voters: 5229,   mappedPct: 82.7, polledPct: 55.0 },
-    { ward: '6',  houses: 898,   voters: 1775,   mappedPct: 79.2, polledPct: 52.0 },
-    { ward: '7',  houses: 475,   voters: 972,    mappedPct: 85.1, polledPct: 58.9 },
-    { ward: '8',  houses: 170,   voters: 376,    mappedPct: 82.2, polledPct: 60.8 },
-    { ward: '9',  houses: 165,   voters: 374,    mappedPct: 92.5, polledPct: 62.1 },
-    { ward: '10', houses: 65,    voters: 155,    mappedPct: 81.9, polledPct: 46.4 },
+    { ward: '1',   houses: 75530, voters: 162809, mappedPct: 69.4, polledPct: 53.2 },
+    { ward: '2',   houses: 20980, voters: 44702,  mappedPct: 81.2, polledPct: 57.5 },
+    { ward: '3',   houses: 12118, voters: 24122,  mappedPct: 80.9, polledPct: 55.9 },
+    { ward: '4',   houses: 5161,  voters: 10448,  mappedPct: 80.9, polledPct: 53.4 },
+    { ward: '5',   houses: 2558,  voters: 5231,   mappedPct: 82.7, polledPct: 52.7 },
+    { ward: '6',   houses: 898,   voters: 1775,   mappedPct: 79.2, polledPct: 49.9 },
+    { ward: '7',   houses: 475,   voters: 972,    mappedPct: 85.1, polledPct: 55.7 },
+    { ward: '8',   houses: 171,   voters: 378,    mappedPct: 82.3, polledPct: 57.9 },
+    { ward: '9',   houses: 165,   voters: 374,    mappedPct: 92.5, polledPct: 58.3 },
+    { ward: '10',  houses: 63,    voters: 151,    mappedPct: 81.5, polledPct: 41.7 },
   ],
-  // Top 10 critical houses (10+ voters, <20% mapped) — from raw data
+  // Top critical houses (10+ voters, <20% mapped) — from All Houses sheet
   unmappedAlerts: [
     { house: '5-79/20',         ward: 1, voters: 153, mappedPct: 7.2  },
     { house: '25-3-176/1',      ward: 1, voters: 106, mappedPct: 1.9  },
@@ -2813,10 +2823,10 @@ const HOUSE_DATA = {
     { house: '17-4-160/1',      ward: 1, voters: 20,  mappedPct: 15.0 },
     { house: '22-11-1518',      ward: 2, voters: 20,  mappedPct: 15.0 },
   ],
-  // Community House Summary sheet (5+ voter houses only)
+  // Community House Summary — 5+ voter houses (from Community × Mapping × Polling sheet)
   communityHouseSummary: [
     { name: 'Unclassified',           houses5p: 3701,  voters: 29775, large10p: 752,  veryLarge: 128, avgVoters: 8.0,  maxVoters: 153 },
-    { name: 'Muslim',                 houses5p: 2483,  voters: 20333, large10p: 597,  veryLarge: 78,  avgVoters: 8.2,  maxVoters: 52  },
+    { name: 'Muslim',                 houses5p: 2483,  voters: 20332, large10p: 597,  veryLarge: 78,  avgVoters: 8.2,  maxVoters: 52  },
     { name: 'Mangalorean Catholic',   houses5p: 926,   voters: 7853,  large10p: 158,  veryLarge: 39,  avgVoters: 8.5,  maxVoters: 190 },
     { name: 'Bunt',                   houses5p: 563,   voters: 3988,  large10p: 76,   veryLarge: 6,   avgVoters: 7.1,  maxVoters: 25  },
     { name: 'GSB',                    houses5p: 489,   voters: 3287,  large10p: 43,   veryLarge: 6,   avgVoters: 6.7,  maxVoters: 127 },
@@ -2855,7 +2865,7 @@ function HouseConsolidatedPanel() {
         <div>
           <div style={{ fontSize: 14, fontWeight: 800, color: '#a78bfa' }}>House-Wise Consolidated Report <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(167,139,250,0.5)', marginLeft: 4 }}>v2</span></div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
-            {totalHouseCount.toLocaleString()} houses · {summary.totalVoters.toLocaleString()} voters · source: House_Consolidated_Report_v2
+            {totalHouseCount.toLocaleString()} houses · {summary.totalVoters.toLocaleString()} voters · source: House_Master_Consolidated_Report
           </div>
         </div>
       </div>
