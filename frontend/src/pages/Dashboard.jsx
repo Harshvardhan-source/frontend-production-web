@@ -4521,7 +4521,11 @@ export default function Dashboard() {
     setPolledBreakdown(null);
     if (!selectedWard) return;   // back to constituency view → use static data
     setPolledBreakdownLoading(true);
-    dashboardApi.polledBreakdown(selectedWard, selectedBooth, polledAgeGroup)
+    // Build params manually so age_group is always sent to the backend
+    const params = new URLSearchParams({ ward: selectedWard });
+    if (selectedBooth) params.set('booth', selectedBooth);
+    if (polledAgeGroup && polledAgeGroup !== 'All') params.set('age_group', polledAgeGroup);
+    api.get(`/api/polled-breakdown/?${params.toString()}`)
       .then(r => { if (r.data.success) setPolledBreakdown(r.data); })
       .catch(() => {/* silent — widgets fall back to static data */})
       .finally(() => setPolledBreakdownLoading(false));
