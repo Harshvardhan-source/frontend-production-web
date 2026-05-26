@@ -1257,14 +1257,27 @@ const HMC_RATE       = { H: HMC_POLLED_ALL.H/HMC_TOTALS.H, M: HMC_POLLED_ALL.M/H
 
 function _hmcForAge(ag, livePolledHMC) {
   const np = NP_HMC_BY_AGE[ag];
-  if (ag === 'All' && livePolledHMC) {
-    // Use live API data if available at the All level
+  if (ag === 'All' && livePolledHMC && (livePolledHMC.total?.total > 0)) {
+    // Ward / booth level — all counts come directly from the DB; no hardcoded fallbacks
     return {
-      H: { polled: livePolledHMC.H?.polled || HMC_POLLED_ALL.H, notPolled: np.H, total: HMC_TOTALS.H },
-      M: { polled: livePolledHMC.M?.polled || HMC_POLLED_ALL.M, notPolled: np.M, total: HMC_TOTALS.M },
-      C: { polled: livePolledHMC.C?.polled || HMC_POLLED_ALL.C, notPolled: np.C, total: HMC_TOTALS.C },
+      H: {
+        polled:    livePolledHMC.H?.polled    || 0,
+        notPolled: livePolledHMC.H?.notPolled || 0,
+        total:     livePolledHMC.H?.total     || 0,
+      },
+      M: {
+        polled:    livePolledHMC.M?.polled    || 0,
+        notPolled: livePolledHMC.M?.notPolled || 0,
+        total:     livePolledHMC.M?.total     || 0,
+      },
+      C: {
+        polled:    livePolledHMC.C?.polled    || 0,
+        notPolled: livePolledHMC.C?.notPolled || 0,
+        total:     livePolledHMC.C?.total     || 0,
+      },
     };
   }
+  // Constituency-level fallback — use pre-computed static totals
   if (ag === 'All') {
     return {
       H: { polled: HMC_POLLED_ALL.H, notPolled: np.H, total: HMC_TOTALS.H },
@@ -1272,6 +1285,7 @@ function _hmcForAge(ag, livePolledHMC) {
       C: { polled: HMC_POLLED_ALL.C, notPolled: np.C, total: HMC_TOTALS.C },
     };
   }
+  // Age sub-group — estimate from constituency-level rates (no age data in 2023 collection)
   const r = {};
   for (const k of ['H', 'M', 'C']) {
     const notP = np[k];
@@ -1495,15 +1509,27 @@ const BROAD_DEFS = [
   { key:'Christian (Unverified)',   label:'Christian (Unverified)',    abbr:'C?',  color:'#94a3b8' },
 ];
 
-function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewRecords }) {
+function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewRecords, liveData }) {
   const [showAll,  setShowAll]  = useState(false);
   const [ageGroup, setAgeGroup] = useState('All');
 
-  const rawData = _broadForAge(ageGroup);
-  const data = BROAD_DEFS.map(def => {
-    const found = rawData.find(r => r.key === def.key);
-    return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
-  });
+  // liveData.category is [{key, polled, notPolled}] from 2023_polled_notpolled_caste_comm_hmc.
+  // Use it only at the "All" age group (the 2023 collection has no pre-aggregated age bands).
+  const isLive = !!(liveData?.category?.length && ageGroup === 'All');
+
+  let data;
+  if (isLive) {
+    data = BROAD_DEFS.map(def => {
+      const found = liveData.category.find(r => r.key === def.key);
+      return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
+    });
+  } else {
+    const rawData = _broadForAge(ageGroup);
+    data = BROAD_DEFS.map(def => {
+      const found = rawData.find(r => r.key === def.key);
+      return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
+    });
+  }
 
   const displayed = showAll ? data : data.slice(0, 5);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
@@ -1627,15 +1653,33 @@ const COMM_DEFS = [
   { key:'Possibly Christian',              label:'Possibly Christian',           abbr:'PC',  color:'#94a3b8' },
 ];
 
-function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords }) {
+function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords, liveData }) {
   const [showAll,  setShowAll]  = useState(false);
   const [ageGroup, setAgeGroup] = useState('All');
 
-  const rawData = _commForAge(ageGroup);
-  const data = COMM_DEFS.map(def => {
-    const found = rawData.find(r => r.key === def.key);
-    return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
-  });
+  // liveData.community is [{key, polled, notPolled}] from 2023_polled_notpolled_caste_comm_hmc.
+  // Use live data only at "All" age group (no age breakdown in the 2023 collection).
+  const isLive = !!(liveData?.community?.length && ageGroup === 'All');
+
+  let data;
+  if (isLive) {
+    // Start from COMM_DEFS so known communities keep their label/color/abbr.
+    // Then append any extra communities from the DB that aren't in COMM_DEFS.
+    const knownKeys = new Set(COMM_DEFS.map(d => d.key));
+    const extras = liveData.community
+      .filter(r => !knownKeys.has(r.key) && r.key !== 'Unclassified')
+      .map(r => ({ key: r.key, label: r.key, abbr: r.key.slice(0, 2).toUpperCase(), color: '#94a3b8' }));
+    data = [...COMM_DEFS, ...extras].map(def => {
+      const found = liveData.community.find(r => r.key === def.key);
+      return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
+    }).filter(d => d.polled + d.notPolled > 0);  // hide zero-count entries at ward/booth level
+  } else {
+    const rawData = _commForAge(ageGroup);
+    data = COMM_DEFS.map(def => {
+      const found = rawData.find(r => r.key === def.key);
+      return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
+    });
+  }
 
   const displayed = showAll ? data : data.slice(0, 6);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
@@ -4467,6 +4511,22 @@ export default function Dashboard() {
       .finally(() => setBoothStatsLoading(false));
   }, [selectedWard, selectedBooth]);
 
+  // ── Polled breakdown: HMC + Category + Community from 2023_polled_notpolled_caste_comm_hmc ──
+  // Fetched fresh whenever the ward or booth selection changes.
+  // At constituency level (no selection) both states are null — widgets fall back to static data.
+  const [polledBreakdown,        setPolledBreakdown]        = useState(null);
+  const [polledBreakdownLoading, setPolledBreakdownLoading] = useState(false);
+
+  useEffect(() => {
+    setPolledBreakdown(null);
+    if (!selectedWard) return;   // back to constituency view → use static data
+    setPolledBreakdownLoading(true);
+    dashboardApi.polledBreakdown(selectedWard, selectedBooth)
+      .then(r => { if (r.data.success) setPolledBreakdown(r.data); })
+      .catch(() => {/* silent — widgets fall back to static data */})
+      .finally(() => setPolledBreakdownLoading(false));
+  }, [selectedWard, selectedBooth]);
+
   const doSearch = useCallback(async (q) => {
     if (q.trim().length < 2) { setSearchRes(null); setSearchErr(''); return; }
     setSearching(true); setSearchErr('');
@@ -5264,8 +5324,12 @@ export default function Dashboard() {
                 onViewRecords={(key, lbl, cnt, clr) => setHmcRecordsModal({ religion: key, label: lbl, totalCount: cnt, color: clr })}
               />
               <PolledHMCWidget
-                polledHMC={s.polledHMC}
-                loading={activeLoading}
+                polledHMC={
+                  // Prefer fresh breakdown (booth or ward level), fall back to wardStats/boothStats,
+                  // then null → static constituency data
+                  polledBreakdown?.hmc || s.polledHMC
+                }
+                loading={activeLoading || polledBreakdownLoading}
                 label={
                   selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
@@ -5280,22 +5344,24 @@ export default function Dashboard() {
           <div style={{ marginBottom: 20 }} className="anim-fade-up">
             <div className="db-two-col">
               <PolledBroadCategoryWidget
-                loading={activeLoading}
+                loading={activeLoading || polledBreakdownLoading}
                 label={
                   selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
                 onViewRecords={(ft, val, st, lbl, cnt, clr) => setPolledRecordsModal({ filterType: ft, value: val, status: st, displayLabel: lbl, totalCount: cnt, color: clr })}
+                liveData={polledBreakdown}
               />
               <PolledCommunityWidget
-                loading={activeLoading}
+                loading={activeLoading || polledBreakdownLoading}
                 label={
                   selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
                 onViewRecords={(ft, val, st, lbl, cnt, clr) => setPolledRecordsModal({ filterType: ft, value: val, status: st, displayLabel: lbl, totalCount: cnt, color: clr })}
+                liveData={polledBreakdown}
               />
             </div>
           </div>

@@ -193,6 +193,10 @@ export const dashboardApi = {
   houseSearch:  (q)           => api.get(`/api/house-search/?q=${encodeURIComponent(q)}`),
   wardStats:    (ward)        => api.get(`/api/ward-dashboard/?ward=${ward}`),
   boothStats:   (ward, booth) => api.get(`/api/booth-dashboard/?ward=${ward}&booth=${booth}`),
+  polledBreakdown: (ward, booth = '') =>
+    api.get('/api/polled-breakdown/', {
+      params: booth ? { ward, booth } : { ward },
+    }),
 };
 
 // ── Local Places — skipAuthRedirect so a 401 never kicks the user out ─────────
@@ -368,6 +372,25 @@ export const polledApi = {
     const params = { filter_type: filterType, value, status, page, limit };
     if (q) params.q = q;
     return api.get('/api/polled-records/', { params });
+  },
+
+  /**
+   * Aggregated polled/notpolled breakdown for a ward or booth.
+   * Returns { hmc, category, community } — each with per-key {polled, notPolled} counts.
+   *
+   * @param {string|number} ward   - Ward number (required)
+   * @param {string|number} [booth] - Booth number (optional; omit for ward-level)
+   *
+   * Response: {
+   *   success,
+   *   hmc:       { H:{polled,notPolled,total}, M:{…}, C:{…}, total:{…} },
+   *   category:  [ { key, polled, notPolled }, … ],   // sorted by total desc
+   *   community: [ { key, polled, notPolled }, … ],
+   * }
+   */
+  breakdown: (ward, booth = '') => {
+    const params = booth ? { ward, booth } : { ward };
+    return api.get('/api/polled-breakdown/', { params });
   },
 };
 
