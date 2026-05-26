@@ -1369,12 +1369,33 @@ function AgeNote() {
 }
 
 // ─── Polled / NotPolled HMC Widget (with Age Group filter) ───────────────────
-function PolledHMCWidget({ polledHMC, loading, label = 'Constituency', onViewRecords, ageGroup: ageGroupProp, onAgeChange }) {
-  const [ageGroupLocal, setAgeGroupLocal] = useState('All');
-  const ageGroup    = ageGroupProp !== undefined ? ageGroupProp : ageGroupLocal;
-  const setAgeGroup = onAgeChange  !== undefined ? onAgeChange  : setAgeGroupLocal;
+function PolledHMCWidget({ polledHMC: polledHMCProp, loading: loadingProp, label = 'Constituency', onViewRecords, ward, booth }) {
+  const [ageGroup,    setAgeGroup]    = useState('All');
+  const [liveHMC,     setLiveHMC]     = useState(null);
+  const [fetching,    setFetching]    = useState(false);
 
-  if (loading) {
+  // Re-fetch whenever ward / booth / ageGroup changes
+  useEffect(() => {
+    setLiveHMC(null);
+    if (!ward) return;   // constituency level — use prop / static data
+    setFetching(true);
+    const params = new URLSearchParams({ ward });
+    if (booth) params.set('booth', booth);
+    if (ageGroup !== 'All') params.set('age_group', ageGroup);
+    api.get(`/api/polled-breakdown/?${params.toString()}`)
+      .then(r => { if (r.data.success) setLiveHMC(r.data.hmc); })
+      .catch(() => {})
+      .finally(() => setFetching(false));
+  }, [ward, booth, ageGroup]);
+
+  // Reset age tab when ward/booth changes
+  useEffect(() => { setAgeGroup('All'); }, [ward, booth]);
+
+  const loading = loadingProp || fetching;
+  // Use freshly-fetched data (age-filtered) when available, otherwise fall back to prop/static
+  const polledHMC = liveHMC || polledHMCProp;
+
+  if (loadingProp && !liveHMC) {
     return (
       <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
         <Skeleton w="55%" h={12} style={{ marginBottom:12 }} />
@@ -1501,13 +1522,28 @@ const BROAD_DEFS = [
   { key:'Christian (Unverified)',   label:'Christian (Unverified)',    abbr:'C?',  color:'#94a3b8' },
 ];
 
-function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewRecords, liveData, ageGroup: ageGroupProp, onAgeChange }) {
-  const [showAll,       setShowAll]       = useState(false);
-  const [ageGroupLocal, setAgeGroupLocal] = useState('All');
-  const ageGroup    = ageGroupProp !== undefined ? ageGroupProp : ageGroupLocal;
-  const setAgeGroup = onAgeChange  !== undefined ? onAgeChange  : setAgeGroupLocal;
+function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency', onViewRecords, ward, booth }) {
+  const [showAll,  setShowAll]  = useState(false);
+  const [ageGroup, setAgeGroup] = useState('All');
+  const [liveData, setLiveData] = useState(null);
+  const [fetching, setFetching] = useState(false);
 
-  // liveData.category is [{key, polled, notPolled}] already filtered by age from the backend.
+  useEffect(() => {
+    setLiveData(null);
+    if (!ward) return;
+    setFetching(true);
+    const params = new URLSearchParams({ ward });
+    if (booth) params.set('booth', booth);
+    if (ageGroup !== 'All') params.set('age_group', ageGroup);
+    api.get(`/api/polled-breakdown/?${params.toString()}`)
+      .then(r => { if (r.data.success) setLiveData(r.data); })
+      .catch(() => {})
+      .finally(() => setFetching(false));
+  }, [ward, booth, ageGroup]);
+
+  useEffect(() => { setAgeGroup('All'); }, [ward, booth]);
+
+  const loading     = loadingProp || fetching;
   const isLive      = !!(liveData?.category?.length);
   const isEstimated = !isLive && ageGroup !== 'All';
 
@@ -1531,7 +1567,7 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewReco
   const grandTotal     = grandPolled + grandNotPolled || 1;
   const overallPct     = ((grandPolled / grandTotal) * 100).toFixed(1);
 
-  if (loading) {
+  if (loadingProp && !liveData) {
     return (
       <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
         <Skeleton w="60%" h={12} style={{ marginBottom:12 }} />
@@ -1647,13 +1683,28 @@ const COMM_DEFS = [
   { key:'Possibly Christian',              label:'Possibly Christian',           abbr:'PC',  color:'#94a3b8' },
 ];
 
-function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords, liveData, ageGroup: ageGroupProp, onAgeChange }) {
-  const [showAll,       setShowAll]       = useState(false);
-  const [ageGroupLocal, setAgeGroupLocal] = useState('All');
-  const ageGroup    = ageGroupProp !== undefined ? ageGroupProp : ageGroupLocal;
-  const setAgeGroup = onAgeChange  !== undefined ? onAgeChange  : setAgeGroupLocal;
+function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', onViewRecords, ward, booth }) {
+  const [showAll,  setShowAll]  = useState(false);
+  const [ageGroup, setAgeGroup] = useState('All');
+  const [liveData, setLiveData] = useState(null);
+  const [fetching, setFetching] = useState(false);
 
-  // liveData.community is [{key, polled, notPolled}] already filtered by age from the backend.
+  useEffect(() => {
+    setLiveData(null);
+    if (!ward) return;
+    setFetching(true);
+    const params = new URLSearchParams({ ward });
+    if (booth) params.set('booth', booth);
+    if (ageGroup !== 'All') params.set('age_group', ageGroup);
+    api.get(`/api/polled-breakdown/?${params.toString()}`)
+      .then(r => { if (r.data.success) setLiveData(r.data); })
+      .catch(() => {})
+      .finally(() => setFetching(false));
+  }, [ward, booth, ageGroup]);
+
+  useEffect(() => { setAgeGroup('All'); }, [ward, booth]);
+
+  const loading     = loadingProp || fetching;
   const isLive      = !!(liveData?.community?.length);
   const isEstimated = !isLive && ageGroup !== 'All';
 
@@ -1683,7 +1734,7 @@ function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords,
   const grandTotal     = grandPolled + grandNotPolled || 1;
   const overallPct     = ((grandPolled / grandTotal) * 100).toFixed(1);
 
-  if (loading) {
+  if (loadingProp && !liveData) {
     return (
       <div style={{ background:'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 14px' }}>
         <Skeleton w="60%" h={12} style={{ marginBottom:12 }} />
@@ -4488,14 +4539,10 @@ export default function Dashboard() {
     }
   }, []);
 
-  // ── Shared age-group filter — lifted so we can re-fetch when it changes at ward level ──
-  const [polledAgeGroup, setPolledAgeGroup] = useState('All');
-
   useEffect(() => {
     if (!selectedWard) { setWardStats(null); setWardError(''); setSelectedBooth(''); setBoothStats(null); return; }
     setWardStatsLoading(true); setWardError('');
     setSelectedBooth(''); setBoothStats(null);
-    setPolledAgeGroup('All'); // reset age filter when switching ward
     dashboardApi.wardStats(selectedWard)
       .then(r => { if (r.data.success) setWardStats(r.data); else setWardError(r.data.message || 'Failed to load ward data.'); })
       .catch(e => setWardError(e.userMessage || 'Network error loading ward data.'))
@@ -4511,25 +4558,7 @@ export default function Dashboard() {
       .finally(() => setBoothStatsLoading(false));
   }, [selectedWard, selectedBooth]);
 
-  // ── Polled breakdown: HMC + Category + Community from 2023_polled_notpolled_caste_comm_hmc ──
-  // Fetched fresh whenever the ward, booth, or age-group selection changes.
-  // At constituency level (no selection) widgets fall back to static data.
-  const [polledBreakdown,        setPolledBreakdown]        = useState(null);
-  const [polledBreakdownLoading, setPolledBreakdownLoading] = useState(false);
 
-  useEffect(() => {
-    setPolledBreakdown(null);
-    if (!selectedWard) return;   // back to constituency view → use static data
-    setPolledBreakdownLoading(true);
-    // Build params manually so age_group is always sent to the backend
-    const params = new URLSearchParams({ ward: selectedWard });
-    if (selectedBooth) params.set('booth', selectedBooth);
-    if (polledAgeGroup && polledAgeGroup !== 'All') params.set('age_group', polledAgeGroup);
-    api.get(`/api/polled-breakdown/?${params.toString()}`)
-      .then(r => { if (r.data.success) setPolledBreakdown(r.data); })
-      .catch(() => {/* silent — widgets fall back to static data */})
-      .finally(() => setPolledBreakdownLoading(false));
-  }, [selectedWard, selectedBooth, polledAgeGroup]);
 
   const doSearch = useCallback(async (q) => {
     if (q.trim().length < 2) { setSearchRes(null); setSearchErr(''); return; }
@@ -5328,19 +5357,15 @@ export default function Dashboard() {
                 onViewRecords={(key, lbl, cnt, clr) => setHmcRecordsModal({ religion: key, label: lbl, totalCount: cnt, color: clr })}
               />
               <PolledHMCWidget
-                polledHMC={
-                  // Prefer fresh breakdown (booth or ward level), fall back to wardStats/boothStats,
-                  // then null → static constituency data
-                  polledBreakdown?.hmc || s.polledHMC
-                }
-                loading={activeLoading || polledBreakdownLoading}
+                polledHMC={s.polledHMC}
+                loading={activeLoading}
                 label={
                   selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
-                ageGroup={polledAgeGroup}
-                onAgeChange={setPolledAgeGroup}
+                ward={selectedWard || ''}
+                booth={selectedBooth || ''}
                 onViewRecords={(ft, val, st, lbl, cnt, clr) => setPolledRecordsModal({ filterType: ft, value: val, status: st, displayLabel: lbl, totalCount: cnt, color: clr })}
               />
             </div>
@@ -5350,28 +5375,26 @@ export default function Dashboard() {
           <div style={{ marginBottom: 20 }} className="anim-fade-up">
             <div className="db-two-col">
               <PolledBroadCategoryWidget
-                loading={activeLoading || polledBreakdownLoading}
+                loading={activeLoading}
                 label={
                   selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
+                ward={selectedWard || ''}
+                booth={selectedBooth || ''}
                 onViewRecords={(ft, val, st, lbl, cnt, clr) => setPolledRecordsModal({ filterType: ft, value: val, status: st, displayLabel: lbl, totalCount: cnt, color: clr })}
-                liveData={polledBreakdown}
-                ageGroup={polledAgeGroup}
-                onAgeChange={setPolledAgeGroup}
               />
               <PolledCommunityWidget
-                loading={activeLoading || polledBreakdownLoading}
+                loading={activeLoading}
                 label={
                   selectedBooth ? `Ward ${selectedWard} · Booth ${selectedBooth}` :
                   selectedWard  ? `Ward ${selectedWard} — ${WARD_NAMES[selectedWard] || ''}` :
                   'All Wards (Constituency)'
                 }
+                ward={selectedWard || ''}
+                booth={selectedBooth || ''}
                 onViewRecords={(ft, val, st, lbl, cnt, clr) => setPolledRecordsModal({ filterType: ft, value: val, status: st, displayLabel: lbl, totalCount: cnt, color: clr })}
-                liveData={polledBreakdown}
-                ageGroup={polledAgeGroup}
-                onAgeChange={setPolledAgeGroup}
               />
             </div>
           </div>
