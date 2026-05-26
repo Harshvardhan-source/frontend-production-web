@@ -254,7 +254,7 @@ function CommunityRecordsModal({ community, communities, displayName, category, 
     ? communities.join(',')
     : (communities || community);
 
-  // When ward/booth scoped, use /api/mapped-records/ (supports ward+booth+community filter)
+  // When ward/booth scoped, use /api/mapped-records/ (supports booths+community filter)
   // Otherwise use /api/community-records/ (2025_caste_comm_hmc)
   const isScoped = !!ward;
 
@@ -265,11 +265,17 @@ function CommunityRecordsModal({ community, communities, displayName, category, 
       let res;
       if (isScoped) {
         const params = new URLSearchParams({ community: communityParam, page: pg, limit: LIMIT });
-        if (ward)  params.append('ward', ward);
-        if (booth) params.append('booth', booth);
-        if (q)     params.append('q', q);
+        if (booth) {
+          // Single booth — filter directly by Booth No
+          params.append('booth', booth);
+        } else {
+          // Ward selected — pass all booth numbers for this ward so the backend
+          // can filter by Booth No (Ward No in the collection ≠ constituency ward)
+          const boothList = WARD_NUM_TO_BOOTHS[ward] || [];
+          if (boothList.length) params.append('booths', boothList.join(','));
+        }
+        if (q) params.append('q', q);
         res = await api.get(`/api/mapped-records/?${params}`);
-        // mapped-records returns { records, total_count, total_pages }
         setRecords(res.data.records || []);
         setTotalPages(res.data.total_pages || 1);
       } else {
@@ -543,8 +549,18 @@ function CommunityClassificationPanel({ ward = '', booth = '' }) {
     setLiveLoading(true);
     setLiveError(null);
     setShowAll(false);
-    const params = new URLSearchParams({ ward });
-    if (booth) params.append('booth', booth);
+
+    // Ward No in 2025_new_mapped_notmapped_hmc is the local HMC ward number,
+    // NOT the constituency ward number (21-60).  Always filter by Booth No
+    // using the booth list from WARD_NUM_TO_BOOTHS.
+    const params = new URLSearchParams({ ward }); // kept for display only
+    if (booth) {
+      params.append('booth', booth);
+    } else {
+      const boothList = WARD_NUM_TO_BOOTHS[ward] || [];
+      if (boothList.length) params.append('booths', boothList.join(','));
+    }
+
     api.get(`/api/community-breakdown/?${params}`)
       .then(res => setLiveData(res.data))
       .catch(e  => setLiveError(e?.response?.data?.message || 'Failed to load community data'))
