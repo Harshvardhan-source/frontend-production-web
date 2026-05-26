@@ -2850,7 +2850,6 @@ function HouseConsolidatedPanel() {
 
   const TAB = [
     { key: 'overview',  label: 'Overview'       },
-    { key: 'community', label: 'By Community'   },
     { key: 'commsum',   label: 'Comm. Summary'  },
     { key: 'large',     label: 'Large Houses'   },
     { key: 'ward',      label: 'By Ward'        },
@@ -2954,60 +2953,6 @@ function HouseConsolidatedPanel() {
       )}
 
       {/* ── BY COMMUNITY (raw voter data — top 10) ── */}
-      {activeView === 'community' && (
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 10 }}>
-            Top 10 Communities — Voter Strength &amp; Outreach (all house sizes)
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                  {['Community', 'Houses', 'Voters', 'Mapped %', "Polled '23", 'Gap'].map(h => (
-                    <th key={h} style={{ padding: '6px 10px', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'Community' ? 'left' : 'right', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {topCommunities.map((c, i) => (
-                  <tr key={c.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
-                    <td style={{ padding: '9px 10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{c.name}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '9px 10px', fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>{c.houses.toLocaleString()}</td>
-                    <td style={{ padding: '9px 10px', fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 700, textAlign: 'right' }}>{c.voters.toLocaleString()}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                        <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                          <div style={{ width: `${c.mappedPct}%`, height: '100%', background: '#10b981', borderRadius: 2 }} />
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', minWidth: 38, textAlign: 'right' }}>{c.mappedPct}%</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                        <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                          <div style={{ width: `${c.polledPct}%`, height: '100%', background: '#22d3ee', borderRadius: 2 }} />
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#22d3ee', minWidth: 38, textAlign: 'right' }}>{c.polledPct}%</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: c.mappedPct < 70 ? '#f87171' : c.mappedPct < 80 ? '#f59e0b' : '#10b981' }}>
-                        {(100 - c.mappedPct).toFixed(1)}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       {/* ── COMMUNITY HOUSE SUMMARY (5+ voter houses from separate sheet) ── */}
       {activeView === 'commsum' && (
         <div>
