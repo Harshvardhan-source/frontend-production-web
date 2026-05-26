@@ -2318,11 +2318,23 @@ function ConstituencySIRSummary() {
   const priCounts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, WATCH: 0, NORMAL: 0 };
   allWards.forEach(([, d]) => { priCounts[d.priority] = (priCounts[d.priority] || 0) + 1; });
 
-  // Aggregates
+  // Aggregates (from SIR_WARD_DATA — political intelligence per ward)
   const avgPoll    = (allWards.reduce((s,[,d]) => s + d.pollRate,    0) / total).toFixed(1);
   const avgMapped  = (allWards.reduce((s,[,d]) => s + d.totalMapped, 0) / total).toFixed(1);
   const avgBLO     = (allWards.reduce((s,[,d]) => s + d.bloMapped,   0) / total).toFixed(1);
   const totalElect = allWards.reduce((s,[,d]) => s + d.totalElectors, 0);
+
+  // ── Real voter master figures (from Voter_Master_Report.csv — 256,538 records) ──
+  const CSV_TOTAL        = 256538;
+  const CSV_MAPPED       = 184679;   // 72.0 % mapped
+  const CSV_NOT_MAPPED   = 71859;    // 28.0 % not mapped
+  const CSV_MAPPED_PCT   = 72.0;
+  const CSV_POLLED_23    = 136639;   // polled in 2023
+  const CSV_TURNOUT_23   = 58.2;     // polled / (polled + not-polled) %
+  const CSV_NEW_2002     = 158995;   // new voters since 2002 (62 %)
+  const CSV_NEW_2002_PCT = 62.0;
+  const CSV_RETAINED     = 12714;    // confirmed voter in 2002 (5 %)
+  const CSV_HIGH_CONF    = 108609;   // high-confidence classified (42.3 %)
 
   const bjpWards   = allWards.filter(([,d]) => d.margin > 0).length;
   const congWards  = allWards.filter(([,d]) => d.margin < 0).length;
@@ -2341,19 +2353,19 @@ function ConstituencySIRSummary() {
       {/* Header */}
       <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'linear-gradient(135deg,rgba(139,92,246,0.1),transparent)' }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}><BarChart2 size={16} color="#a78bfa" /> Constituency SIR Overview</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Mangaluru City South · {total} wards · {totalElect.toLocaleString()} total electors</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Mangaluru City South · {total} wards · {CSV_TOTAL.toLocaleString()} total electors</div>
       </div>
 
       <div style={{ padding: '16px 18px' }}>
-        {/* Top KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 18 }}>
+        {/* Top KPIs — Row 1: Political */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 10 }}>
           {[
-            { label: 'BJP Wards',    val: bjpWards,           color: '#f97316', sub: 'BJP leading',       icon: <ShieldAlert size={18} color="#f97316" /> },
-            { label: 'INC Wards',    val: congWards,          color: '#10b981', sub: 'Congress leading',  icon: <Layers size={18} color="#10b981" /> },
-            { label: 'Tight Races',  val: tightWards,         color: '#f59e0b', sub: 'Margin < 10%',      icon: <AlertTriangle size={18} color="#f59e0b" /> },
-            { label: 'Avg Turnout',  val: avgPoll+'%',        color: '#22d3ee', sub: 'Across all wards',  icon: <Vote size={18} color="#22d3ee" /> },
-            { label: 'Avg BLO Map',  val: avgBLO+'%',         color: '#f59e0b', sub: 'SIR survey',        icon: <ClipboardCheck size={18} color="#f59e0b" /> },
-            { label: 'Avg Mapped',   val: avgMapped+'%',      color: '#10b981', sub: 'Total completion',  icon: <PieChartIcon size={18} color="#10b981" /> },
+            { label: 'BJP Wards',   val: bjpWards,       color: '#f97316', sub: 'BJP leading',      icon: <ShieldAlert size={18} color="#f97316" /> },
+            { label: 'INC Wards',   val: congWards,      color: '#10b981', sub: 'Congress leading', icon: <Layers size={18} color="#10b981" /> },
+            { label: 'Tight Races', val: tightWards,     color: '#f59e0b', sub: 'Margin < 10%',     icon: <AlertTriangle size={18} color="#f59e0b" /> },
+            { label: 'Turnout \'23', val: CSV_TURNOUT_23+'%', color: '#22d3ee', sub: CSV_POLLED_23.toLocaleString()+' polled', icon: <Vote size={18} color="#22d3ee" /> },
+            { label: 'Avg BLO Map', val: avgBLO+'%',     color: '#f59e0b', sub: 'SIR survey',       icon: <ClipboardCheck size={18} color="#f59e0b" /> },
+            { label: 'Avg Mapped',  val: avgMapped+'%',  color: '#10b981', sub: 'Ward avg.',        icon: <PieChartIcon size={18} color="#10b981" /> },
           ].map(({ label, val, color, sub, icon }) => (
             <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 12, padding: '14px 12px' }}>
               <div style={{ marginBottom: 6 }}>{icon}</div>
@@ -2362,6 +2374,62 @@ function ConstituencySIRSummary() {
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{sub}</div>
             </div>
           ))}
+        </div>
+
+        {/* Top KPIs — Row 2: Voter Master (from Voter_Master_Report.csv) */}
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Voter Master Data</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 18 }}>
+            {/* Mapped card with mini bar */}
+            {[
+              {
+                label: 'Mapped',      val: CSV_MAPPED_PCT+'%',
+                sub:   CSV_MAPPED.toLocaleString()+' voters',
+                color: '#10b981',     icon: <UserCheck size={18} color="#10b981" />,
+                barPct: CSV_MAPPED_PCT,
+              },
+              {
+                label: 'Not Mapped',  val: (100-CSV_MAPPED_PCT).toFixed(1)+'%',
+                sub:   CSV_NOT_MAPPED.toLocaleString()+' voters',
+                color: '#f87171',     icon: <MapIcon size={18} color="#f87171" />,
+                barPct: 100-CSV_MAPPED_PCT,
+              },
+              {
+                label: 'Polled \'23', val: CSV_TURNOUT_23+'%',
+                sub:   CSV_POLLED_23.toLocaleString()+' votes cast',
+                color: '#22d3ee',     icon: <Vote size={18} color="#22d3ee" />,
+                barPct: CSV_TURNOUT_23,
+              },
+              {
+                label: 'New Since \'02', val: CSV_NEW_2002_PCT+'%',
+                sub:   CSV_NEW_2002.toLocaleString()+' new voters',
+                color: '#a78bfa',     icon: <Sprout size={18} color="#a78bfa" />,
+                barPct: CSV_NEW_2002_PCT,
+              },
+              {
+                label: 'Retained \'02', val: ((CSV_RETAINED/CSV_TOTAL)*100).toFixed(1)+'%',
+                sub:   CSV_RETAINED.toLocaleString()+' from 2002',
+                color: '#f59e0b',     icon: <Baby size={18} color="#f59e0b" />,
+                barPct: (CSV_RETAINED/CSV_TOTAL)*100,
+              },
+              {
+                label: 'High Confidence', val: ((CSV_HIGH_CONF/CSV_TOTAL)*100).toFixed(1)+'%',
+                sub:   CSV_HIGH_CONF.toLocaleString()+' classified',
+                color: '#06b6d4',     icon: <Star size={18} color="#06b6d4" />,
+                barPct: (CSV_HIGH_CONF/CSV_TOTAL)*100,
+              },
+            ].map(({ label, val, color, sub, icon, barPct }) => (
+              <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 12, padding: '12px 12px 10px' }}>
+                <div style={{ marginBottom: 5 }}>{icon}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{val}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>{label}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', marginTop: 2, marginBottom: 8 }}>{sub}</div>
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(barPct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 2, transition: 'width 0.6s ease' }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Priority Distribution */}
