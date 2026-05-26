@@ -1022,6 +1022,137 @@ function PolledRecordsModal({ filterType, value, status, displayLabel, totalCoun
   );
 }
 
+// ─── Mapped / Not-Mapped / Polled Records Modal ───────────────────────────────
+// Reads from 2025_new_mapped_notmapped_hmc via GET /api/mapped-records/
+function MappedRecordsModal({ mappingStatus, pollStatus, title, totalCount, color, onClose }) {
+  const [records, setRecords]         = useState([]);
+  const [page, setPage]               = useState(1);
+  const [totalPages, setTotalPages]   = useState(1);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState(null);
+  const [search, setSearch]           = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const LIMIT = 25;
+
+  const fetchRecords = useCallback(async (pg, q) => {
+    setLoading(true); setError(null);
+    try {
+      const params = new URLSearchParams({
+        mapping_status: mappingStatus || 'All',
+        poll_status:    pollStatus    || 'All',
+        page: pg, limit: LIMIT,
+      });
+      if (q) params.append('q', q);
+      const res = await api.get(`/api/mapped-records/?${params}`);
+      setRecords(res.data.records || []);
+      setTotalPages(res.data.total_pages || 1);
+    } catch (e) {
+      setError(e?.response?.data?.message || 'Failed to load records.');
+    } finally { setLoading(false); }
+  }, [mappingStatus, pollStatus]);
+
+  useEffect(() => { fetchRecords(page, search); }, [page, search, fetchRecords]);
+  useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = ''; }; }, []);
+
+  const COLS = [
+    { key: 'Epic No',          label: 'Epic No',   w: 110 },
+    { key: 'Name',             label: 'Name',      w: 170 },
+    { key: 'House No',         label: 'House',     w: 80  },
+    { key: 'Relative Name',    label: 'Relation',  w: 140 },
+    { key: 'Age',              label: 'Age',       w: 45  },
+    { key: 'Gender',           label: 'Gender',    w: 65  },
+    { key: 'Booth No',         label: 'Booth',     w: 55  },
+    { key: 'Ward No',          label: 'Ward',      w: 50  },
+    { key: 'Community',        label: 'Community', w: 130 },
+    { key: 'Mapping Status',   label: 'Mapped',    w: 100 },
+    { key: 'Poll Status 2023', label: 'Poll \'23', w: 90  },
+  ];
+
+  return createPortal(
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:1100, maxHeight:'90vh', background:'linear-gradient(145deg,rgba(12,21,38,0.99),rgba(7,13,26,0.99))', border:'1px solid rgba(255,255,255,0.1)', borderRadius:20, display:'flex', flexDirection:'column', boxShadow:'0 40px 100px rgba(0,0,0,0.8)', overflow:'hidden' }}>
+        {/* Header */}
+        <div style={{ padding:'18px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between', background:`linear-gradient(135deg,${color}10,transparent)`, flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:10, height:10, borderRadius:'50%', background:color, boxShadow:`0 0 8px ${color}` }} />
+            <div>
+              <div style={{ fontSize:15, fontWeight:800, color:'var(--text-1)' }}>{title}</div>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:1 }}>
+                <span style={{ color, fontWeight:700 }}>{(totalCount||0).toLocaleString()} records</span>
+                &nbsp;·&nbsp;source: 2025_new_mapped_notmapped_hmc
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'6px 8px', cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex', alignItems:'center' }}><X size={16} /></button>
+        </div>
+        {/* Search */}
+        <form onSubmit={e => { e.preventDefault(); setPage(1); setSearch(searchInput); }} style={{ padding:'12px 20px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', gap:8, flexShrink:0 }}>
+          <div style={{ flex:1, position:'relative' }}>
+            <Search size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,0.3)', pointerEvents:'none' }} />
+            <input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search by name, Epic No…" style={{ width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.09)', borderRadius:9, padding:'8px 12px 8px 32px', color:'var(--text-1)', fontSize:13, outline:'none', boxSizing:'border-box' }} />
+          </div>
+          <button type="submit" style={{ background:`${color}22`, border:`1px solid ${color}40`, borderRadius:9, padding:'8px 16px', cursor:'pointer', color, fontSize:12, fontWeight:700 }}>Search</button>
+          {search && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:9, padding:'8px 10px', cursor:'pointer', color:'rgba(255,255,255,0.4)', fontSize:12 }}>Clear</button>}
+        </form>
+        {/* Table */}
+        <div style={{ flex:1, overflowY:'auto', overflowX:'auto' }}>
+          {loading ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200, gap:10, color:'rgba(255,255,255,0.4)' }}><Loader2 size={20} style={{ animation:'spin 1s linear infinite' }} /><span style={{ fontSize:13 }}>Loading…</span></div>
+          ) : error ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200, flexDirection:'column', gap:8 }}><AlertTriangle size={20} style={{ color:'#ef4444' }} /><span style={{ fontSize:13, color:'#ef4444' }}>{error}</span></div>
+          ) : records.length === 0 ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:160, color:'rgba(255,255,255,0.25)', fontSize:13 }}>No records found.</div>
+          ) : (
+            <table style={{ width:'100%', borderCollapse:'collapse', minWidth:900 }}>
+              <thead>
+                <tr style={{ background:'rgba(255,255,255,0.03)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+                  {COLS.map(c => <th key={c.key} style={{ padding:'8px 12px', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.6px', textAlign:'left', whiteSpace:'nowrap', minWidth:c.w, position:'sticky', top:0, background:'rgba(10,18,35,0.98)' }}>{c.label}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((rec, idx) => (
+                  <tr key={rec['Epic No'] || idx} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)', background: idx%2===0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                    {COLS.map(c => {
+                      const v = rec[c.key];
+                      const isMapped  = c.key === 'Mapping Status';
+                      const isPoll    = c.key === 'Poll Status 2023';
+                      const mapColor  = v === 'MAPPED' ? '#10b981' : '#f87171';
+                      const pollColor = v === 'POLLED' ? '#22d3ee' : '#f87171';
+                      return (
+                        <td key={c.key} style={{ padding:'9px 12px', fontSize:12,
+                          color: c.key==='Name' ? 'rgba(255,255,255,0.85)' : isMapped ? mapColor : isPoll ? pollColor : 'rgba(255,255,255,0.5)',
+                          fontWeight: (isMapped || isPoll) ? 700 : 400,
+                          whiteSpace: (c.key==='Name' || c.key==='Community') ? 'normal' : 'nowrap',
+                          lineHeight: 1.4,
+                        }}>
+                          {v ?? '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {/* Pagination */}
+        {totalPages > 1 && !loading && (
+          <div style={{ padding:'12px 20px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+            <span style={{ fontSize:12, color:'rgba(255,255,255,0.3)' }}>Page {page} of {totalPages}</span>
+            <div style={{ display:'flex', gap:6 }}>
+              {[{label:'«',onClick:()=>setPage(1),disabled:page===1},{label:'‹',onClick:()=>setPage(p=>Math.max(1,p-1)),disabled:page===1},{label:'›',onClick:()=>setPage(p=>Math.min(totalPages,p+1)),disabled:page===totalPages},{label:'»',onClick:()=>setPage(totalPages),disabled:page===totalPages}].map(btn => (
+                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{ width:32, height:32, borderRadius:7, cursor:btn.disabled?'default':'pointer', background:btn.disabled?'rgba(255,255,255,0.03)':`${color}18`, border:`1px solid ${btn.disabled?'rgba(255,255,255,0.06)':color+'40'}`, color:btn.disabled?'rgba(255,255,255,0.2)':color, fontSize:13, fontWeight:700 }}>{btn.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>,
+    document.body
+  );
+}
+
 // ─── HMC Religion Breakdown Widget ───────────────────────────────────────────
 function HMCWidget({ hmc, loading, label = 'Constituency', onViewRecords }) {
   if (loading) {
@@ -2363,7 +2494,6 @@ function ConstituencySIRSummary() {
             { label: 'BJP Wards',   val: bjpWards,       color: '#f97316', sub: 'BJP leading',      icon: <ShieldAlert size={18} color="#f97316" /> },
             { label: 'INC Wards',   val: congWards,      color: '#10b981', sub: 'Congress leading', icon: <Layers size={18} color="#10b981" /> },
             { label: 'Tight Races', val: tightWards,     color: '#f59e0b', sub: 'Margin < 10%',     icon: <AlertTriangle size={18} color="#f59e0b" /> },
-            { label: 'Turnout \'23', val: CSV_TURNOUT_23+'%', color: '#22d3ee', sub: CSV_POLLED_23.toLocaleString()+' polled', icon: <Vote size={18} color="#22d3ee" /> },
             { label: 'Avg BLO Map', val: avgBLO+'%',     color: '#f59e0b', sub: 'SIR survey',       icon: <ClipboardCheck size={18} color="#f59e0b" /> },
             { label: 'Avg Mapped',  val: avgMapped+'%',  color: '#10b981', sub: 'Ward avg.',        icon: <PieChartIcon size={18} color="#10b981" /> },
           ].map(({ label, val, color, sub, icon }) => (
@@ -2380,53 +2510,59 @@ function ConstituencySIRSummary() {
         <div style={{ marginBottom: 6 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Voter Master Data</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 18 }}>
-            {/* Mapped card with mini bar */}
             {[
               {
-                label: 'Mapped',      val: CSV_MAPPED_PCT+'%',
+                label: 'Mapped',        val: CSV_MAPPED_PCT+'%',
                 sub:   CSV_MAPPED.toLocaleString()+' voters',
-                color: '#10b981',     icon: <UserCheck size={18} color="#10b981" />,
+                color: '#10b981',       icon: <UserCheck size={18} color="#10b981" />,
                 barPct: CSV_MAPPED_PCT,
+                viewKey: { mappingStatus: 'Mapped', pollStatus: 'All', title: 'Mapped Voters', totalCount: CSV_MAPPED, color: '#10b981' },
               },
               {
-                label: 'Not Mapped',  val: (100-CSV_MAPPED_PCT).toFixed(1)+'%',
+                label: 'Not Mapped',    val: (100-CSV_MAPPED_PCT).toFixed(1)+'%',
                 sub:   CSV_NOT_MAPPED.toLocaleString()+' voters',
-                color: '#f87171',     icon: <MapIcon size={18} color="#f87171" />,
+                color: '#f87171',       icon: <MapIcon size={18} color="#f87171" />,
                 barPct: 100-CSV_MAPPED_PCT,
+                viewKey: { mappingStatus: 'NotMapped', pollStatus: 'All', title: 'Not Mapped Voters', totalCount: CSV_NOT_MAPPED, color: '#f87171' },
               },
               {
-                label: 'Polled \'23', val: CSV_TURNOUT_23+'%',
+                label: 'Polled \'23',   val: CSV_TURNOUT_23+'%',
                 sub:   CSV_POLLED_23.toLocaleString()+' votes cast',
-                color: '#22d3ee',     icon: <Vote size={18} color="#22d3ee" />,
+                color: '#22d3ee',       icon: <Vote size={18} color="#22d3ee" />,
                 barPct: CSV_TURNOUT_23,
+                viewKey: { mappingStatus: 'All', pollStatus: 'Polled', title: 'Polled 2023 Voters', totalCount: CSV_POLLED_23, color: '#22d3ee' },
               },
               {
                 label: 'New Since \'02', val: CSV_NEW_2002_PCT+'%',
                 sub:   CSV_NEW_2002.toLocaleString()+' new voters',
-                color: '#a78bfa',     icon: <Sprout size={18} color="#a78bfa" />,
+                color: '#a78bfa',       icon: <Sprout size={18} color="#a78bfa" />,
                 barPct: CSV_NEW_2002_PCT,
+                viewKey: null,
               },
               {
                 label: 'Retained \'02', val: ((CSV_RETAINED/CSV_TOTAL)*100).toFixed(1)+'%',
                 sub:   CSV_RETAINED.toLocaleString()+' from 2002',
-                color: '#f59e0b',     icon: <Baby size={18} color="#f59e0b" />,
+                color: '#f59e0b',       icon: <Baby size={18} color="#f59e0b" />,
                 barPct: (CSV_RETAINED/CSV_TOTAL)*100,
+                viewKey: null,
               },
-              {
-                label: 'High Confidence', val: ((CSV_HIGH_CONF/CSV_TOTAL)*100).toFixed(1)+'%',
-                sub:   CSV_HIGH_CONF.toLocaleString()+' classified',
-                color: '#06b6d4',     icon: <Star size={18} color="#06b6d4" />,
-                barPct: (CSV_HIGH_CONF/CSV_TOTAL)*100,
-              },
-            ].map(({ label, val, color, sub, icon, barPct }) => (
-              <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22`, borderRadius: 12, padding: '12px 12px 10px' }}>
+            ].map(({ label, val, color: c, sub, icon, barPct, viewKey }) => (
+              <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${c}22`, borderRadius: 12, padding: '12px 12px 10px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ marginBottom: 5 }}>{icon}</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{val}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: c, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>{val}</div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>{label}</div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', marginTop: 2, marginBottom: 8 }}>{sub}</div>
-                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min(barPct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${color}80,${color})`, borderRadius: 2, transition: 'width 0.6s ease' }} />
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden', marginBottom: viewKey ? 8 : 0 }}>
+                  <div style={{ width: `${Math.min(barPct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${c}80,${c})`, borderRadius: 2, transition: 'width 0.6s ease' }} />
                 </div>
+                {viewKey && (
+                  <button
+                    onClick={() => setMappedRecordsModal(viewKey)}
+                    style={{ marginTop: 'auto', background: `${c}14`, border: `1px solid ${c}30`, borderRadius: 7, padding: '5px 0', cursor: 'pointer', color: c, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', letterSpacing: '0.3px' }}
+                  >
+                    <ArrowRight size={11} /> View
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -3849,8 +3985,9 @@ export default function Dashboard() {
 
   const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
   const [localPlacesOpen,   setLocalPlacesOpen]   = useState(false);
-  const [hmcRecordsModal,   setHmcRecordsModal]   = useState(null); // { religion, label, totalCount, color }
-  const [polledRecordsModal,setPolledRecordsModal] = useState(null); // { filterType, value, status, displayLabel, totalCount, color }
+  const [hmcRecordsModal,    setHmcRecordsModal]    = useState(null); // { religion, label, totalCount, color }
+  const [polledRecordsModal, setPolledRecordsModal] = useState(null); // { filterType, value, status, displayLabel, totalCount, color }
+  const [mappedRecordsModal, setMappedRecordsModal] = useState(null); // { mappingStatus, pollStatus, title, totalCount, color }
   const [localPlacesTotal,  setLocalPlacesTotal]  = useState(null);
   const [localPlacesCounts, setLocalPlacesCounts] = useState({});
 
@@ -4905,6 +5042,16 @@ export default function Dashboard() {
         totalCount={polledRecordsModal.totalCount}
         color={polledRecordsModal.color}
         onClose={() => setPolledRecordsModal(null)}
+      />
+    )}
+    {mappedRecordsModal && (
+      <MappedRecordsModal
+        mappingStatus={mappedRecordsModal.mappingStatus}
+        pollStatus={mappedRecordsModal.pollStatus}
+        title={mappedRecordsModal.title}
+        totalCount={mappedRecordsModal.totalCount}
+        color={mappedRecordsModal.color}
+        onClose={() => setMappedRecordsModal(null)}
       />
     )}
     </>
