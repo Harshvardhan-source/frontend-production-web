@@ -322,20 +322,47 @@ export const beneficiaryApi = {
 export const communityApi = {
   /**
    * Fetch paginated voter records from the `2025_caste_comm_hmc` collection.
-   *
-   * @param {string} community  Exact Community field value (e.g. "Mangalorean Catholic")
-   * @param {number} page       1-based page number (default 1)
-   * @param {number} limit      Records per page, max 100 (default 25)
-   * @param {string} [q]        Optional free-text search — Name, Epic No, or Booth No
-   *
-   * Response shape:
-   *   { success, community, total_count, total_pages, page, limit, records[] }
-   * Each record: { Serial No, Epic No, Name, Relation Name, Age, Gender, Booth No, Category, Community }
    */
   records: (community, page = 1, limit = 25, q = '') => {
     const params = { community, page, limit };
     if (q) params.q = q;
     return api.get('/api/community-records/', { params });
+  },
+
+  /**
+   * Aggregate community counts from `2025_new_mapped_notmapped_hmc`.
+   * Used by the Community Classification Panel when a ward/booth is selected.
+   *
+   * @param {string|number} [ward]   Ward No (omit for constituency-wide)
+   * @param {string|number} [booth]  Booth No (requires ward)
+   *
+   * Response: { success, ward, booth, total, rows: [{community, category, count}] }
+   */
+  breakdown: (ward = '', booth = '') => {
+    const params = {};
+    if (ward)  params.ward  = ward;
+    if (booth) params.booth = booth;
+    return api.get('/api/community-breakdown/', { params });
+  },
+
+  /**
+   * Fetch paginated voter records from `2025_new_mapped_notmapped_hmc`
+   * filtered by community + optional ward/booth.  Used by the Community
+   * Records modal when the dashboard is scoped to a ward or booth.
+   *
+   * @param {string} community  Exact Community value (comma-joined for groups)
+   * @param {string} [ward]     Ward No filter
+   * @param {string} [booth]    Booth No filter
+   * @param {number} [page]     1-based page
+   * @param {number} [limit]    Max 100
+   * @param {string} [q]        Free-text search
+   */
+  mappedRecords: (community, ward = '', booth = '', page = 1, limit = 25, q = '') => {
+    const params = { community, page, limit };
+    if (ward)  params.ward  = ward;
+    if (booth) params.booth = booth;
+    if (q)     params.q     = q;
+    return api.get('/api/mapped-records/', { params });
   },
 };
 

@@ -232,16 +232,16 @@ const BROAD_COLORS = {
   'Muslim (Unverified)':    '#94a3b8',
 };
 
-// ─── Community Records Modal ──────────────────────────────────────────────────
 // community: string (single) OR communities: string[] (grouped)
 // displayName: label shown in modal header (for grouped rows)
-function CommunityRecordsModal({ community, communities, displayName, category, totalCount, onClose }) {
-  const [records, setRecords]   = useState([]);
-  const [page, setPage]         = useState(1);
+// ward / booth: when set, fetches from 2025_new_mapped_notmapped_hmc (has Ward No + Booth No)
+function CommunityRecordsModal({ community, communities, displayName, category, totalCount, ward = '', booth = '', onClose }) {
+  const [records, setRecords]       = useState([]);
+  const [page, setPage]             = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
-  const [search, setSearch]     = useState('');
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState(null);
+  const [search, setSearch]         = useState('');
   const [searchInput, setSearchInput] = useState('');
   const LIMIT = 25;
   const color = BROAD_COLORS[category] || '#888';
@@ -254,21 +254,37 @@ function CommunityRecordsModal({ community, communities, displayName, category, 
     ? communities.join(',')
     : (communities || community);
 
+  // When ward/booth scoped, use /api/mapped-records/ (supports ward+booth+community filter)
+  // Otherwise use /api/community-records/ (2025_caste_comm_hmc)
+  const isScoped = !!ward;
+
   const fetchRecords = useCallback(async (pg, q) => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ community: communityParam, page: pg, limit: LIMIT });
-      if (q) params.append('q', q);
-      const res = await api.get(`/api/community-records/?${params}`);
-      setRecords(res.data.records || []);
-      setTotalPages(res.data.total_pages || 1);
+      let res;
+      if (isScoped) {
+        const params = new URLSearchParams({ community: communityParam, page: pg, limit: LIMIT });
+        if (ward)  params.append('ward', ward);
+        if (booth) params.append('booth', booth);
+        if (q)     params.append('q', q);
+        res = await api.get(`/api/mapped-records/?${params}`);
+        // mapped-records returns { records, total_count, total_pages }
+        setRecords(res.data.records || []);
+        setTotalPages(res.data.total_pages || 1);
+      } else {
+        const params = new URLSearchParams({ community: communityParam, page: pg, limit: LIMIT });
+        if (q) params.append('q', q);
+        res = await api.get(`/api/community-records/?${params}`);
+        setRecords(res.data.records || []);
+        setTotalPages(res.data.total_pages || 1);
+      }
     } catch (e) {
       setError(e?.response?.data?.message || 'Failed to load records.');
     } finally {
       setLoading(false);
     }
-  }, [communityParam]);
+  }, [communityParam, isScoped, ward, booth]);
 
   useEffect(() => { fetchRecords(page, search); }, [page, search, fetchRecords]);
 
@@ -284,16 +300,36 @@ function CommunityRecordsModal({ community, communities, displayName, category, 
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const COLS = [
-    { key: 'Serial No',   label: '#',         w: 50  },
-    { key: 'Epic No',     label: 'Epic No',   w: 110 },
-    { key: 'Name',        label: 'Name',      w: 180 },
-    { key: 'Relation Name', label: 'Relation',w: 140 },
-    { key: 'Age',         label: 'Age',       w: 50  },
-    { key: 'Gender',      label: 'Gender',    w: 70  },
-    { key: 'Booth No',    label: 'Booth',     w: 60  },
-    { key: 'Category',    label: 'Category',  w: 140 },
+  // Column definitions differ by source
+  const COLS_STATIC = [
+    { key: 'Serial No',    label: '#',        w: 50  },
+    { key: 'Epic No',      label: 'Epic No',  w: 110 },
+    { key: 'Name',         label: 'Name',     w: 180 },
+    { key: 'Relation Name',label: 'Relation', w: 140 },
+    { key: 'Age',          label: 'Age',      w: 50  },
+    { key: 'Gender',       label: 'Gender',   w: 70  },
+    { key: 'Booth No',     label: 'Booth',    w: 60  },
+    { key: 'Category',     label: 'Category', w: 140 },
   ];
+  const COLS_MAPPED = [
+    { key: 'Epic No',        label: 'Epic No',   w: 110 },
+    { key: 'Name',           label: 'Name',      w: 180 },
+    { key: 'Relative Name',  label: 'Relative',  w: 140 },
+    { key: 'Age',            label: 'Age',       w: 50  },
+    { key: 'Gender',         label: 'Gender',    w: 70  },
+    { key: 'Ward No',        label: 'Ward',      w: 55  },
+    { key: 'Booth No',       label: 'Booth',     w: 55  },
+    { key: 'Mapping Status', label: 'Mapped',    w: 90  },
+    { key: 'Poll Status 2023',label: 'Polled',   w: 80  },
+    { key: 'Category',       label: 'Category',  w: 140 },
+  ];
+  const COLS = isScoped ? COLS_MAPPED : COLS_STATIC;
+
+  const scopeLabel = booth
+    ? `Ward ${ward} · Booth ${booth}`
+    : ward
+    ? `Ward ${ward}`
+    : null;
 
   return createPortal(
     <div onClick={onClose} style={{
@@ -303,7 +339,7 @@ function CommunityRecordsModal({ community, communities, displayName, category, 
       padding: '16px',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 900, maxHeight: '90vh',
+        width: '100%', maxWidth: 960, maxHeight: '90vh',
         background: 'linear-gradient(145deg,rgba(12,21,38,0.99),rgba(7,13,26,0.99))',
         border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20,
         display: 'flex', flexDirection: 'column',
@@ -323,7 +359,13 @@ function CommunityRecordsModal({ community, communities, displayName, category, 
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)' }}>{headerLabel}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
                 <span style={{ color, fontWeight: 700 }}>{category}</span>
-                &nbsp;·&nbsp;{totalCount.toLocaleString()} voters in 2025_caste_comm_hmc
+                &nbsp;·&nbsp;{totalCount.toLocaleString()} voters
+                &nbsp;·&nbsp;<span style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  {isScoped ? '2025_new_mapped_notmapped_hmc' : '2025_caste_comm_hmc'}
+                </span>
+                {scopeLabel && (
+                  <span style={{ marginLeft: 6, color: '#f59e0b', fontWeight: 700 }}>· {scopeLabel}</span>
+                )}
                 {Array.isArray(communities) && (
                   <span style={{ color: 'rgba(255,255,255,0.2)' }}> · grouped: {communities.join(', ')}</span>
                 )}
@@ -408,19 +450,33 @@ function CommunityRecordsModal({ community, communities, displayName, category, 
                     borderBottom: '1px solid rgba(255,255,255,0.04)',
                     background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
                   }}>
-                    {COLS.map(c => (
-                      <td key={c.key} style={{
-                        padding: '9px 14px', fontSize: 12,
-                        color: c.key === 'Name' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.5)',
-                        fontWeight: c.key === 'Name' ? 600 : 400,
-                        whiteSpace: c.key === 'Name' ? 'normal' : 'nowrap',
-                        lineHeight: 1.4,
-                      }}>
-                        {c.key === 'Category'
-                          ? <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 6px', background: `${BROAD_COLORS[rec[c.key]] || '#888'}18`, color: BROAD_COLORS[rec[c.key]] || '#888', border: `1px solid ${BROAD_COLORS[rec[c.key]] || '#888'}30` }}>{rec[c.key] ?? '—'}</span>
-                          : (rec[c.key] ?? '—')}
-                      </td>
-                    ))}
+                    {COLS.map(c => {
+                      const val = rec[c.key];
+                      if (c.key === 'Category') return (
+                        <td key={c.key} style={{ padding: '9px 14px', fontSize: 12, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 6px', background: `${BROAD_COLORS[val] || '#888'}18`, color: BROAD_COLORS[val] || '#888', border: `1px solid ${BROAD_COLORS[val] || '#888'}30` }}>{val ?? '—'}</span>
+                        </td>
+                      );
+                      if (c.key === 'Mapping Status') return (
+                        <td key={c.key} style={{ padding: '9px 14px', fontSize: 11, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 700, color: val === 'MAPPED' ? '#10b981' : '#f59e0b' }}>{val ?? '—'}</span>
+                        </td>
+                      );
+                      if (c.key === 'Poll Status 2023') return (
+                        <td key={c.key} style={{ padding: '9px 14px', fontSize: 11, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 700, color: val === 'POLLED' ? '#22d3ee' : '#ef4444' }}>{val ?? '—'}</span>
+                        </td>
+                      );
+                      return (
+                        <td key={c.key} style={{
+                          padding: '9px 14px', fontSize: 12,
+                          color: c.key === 'Name' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.5)',
+                          fontWeight: c.key === 'Name' ? 600 : 400,
+                          whiteSpace: c.key === 'Name' ? 'normal' : 'nowrap',
+                          lineHeight: 1.4,
+                        }}>{val ?? '—'}</td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -462,18 +518,67 @@ function CommunityRecordsModal({ community, communities, displayName, category, 
 }
 
 // ─── Community Classification Panel ──────────────────────────────────────────
-function CommunityClassificationPanel() {
+// When ward/booth selected: fetches live aggregated counts from
+//   GET /api/community-breakdown/?ward=N&booth=B  (2025_new_mapped_notmapped_hmc)
+// When no filter: shows static constituency-wide data from COMMUNITY_DETAILED_DATA[2025]
+function CommunityClassificationPanel({ ward = '', booth = '' }) {
   const [showAll, setShowAll]         = useState(false);
-  const [recordsModal, setRecordsModal] = useState(null); // { community, category, count }
+  const [recordsModal, setRecordsModal] = useState(null);
 
-  const total2025     = 251998; // rows in Voter_List_Community_Classified_FINAL.xlsx
-  const detailedRows  = COMMUNITY_DETAILED_DATA[2025];
-  const displayRows   = showAll ? detailedRows : detailedRows.slice(0, 12);
-  const maxDetail     = detailedRows[0]?.[1] || 1;
+  // Live data state (used when ward/booth selected)
+  const [liveData,    setLiveData]    = useState(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError,   setLiveError]   = useState(null);
+
+  const isFiltered = !!ward;
+
+  // Fetch live aggregation whenever ward/booth changes
+  useEffect(() => {
+    if (!ward) {
+      setLiveData(null);
+      setLiveError(null);
+      setShowAll(false);
+      return;
+    }
+    setLiveLoading(true);
+    setLiveError(null);
+    setShowAll(false);
+    const params = new URLSearchParams({ ward });
+    if (booth) params.append('booth', booth);
+    api.get(`/api/community-breakdown/?${params}`)
+      .then(res => setLiveData(res.data))
+      .catch(e  => setLiveError(e?.response?.data?.message || 'Failed to load community data'))
+      .finally(() => setLiveLoading(false));
+  }, [ward, booth]);
+
+  // ── Build display data ───────────────────────────────────────────────────────
+  const static2025   = COMMUNITY_DETAILED_DATA[2025];
+  const staticTotal  = 251998;
+
+  // Live rows: [{community, category, count}] — already sorted desc by backend
+  const liveRows     = liveData?.rows  || [];
+  const liveTotal    = liveData?.total || 1;
+
+  // For the static view we keep the existing structured rows (with grouped rows)
+  // For the live view each row is a flat {community, category, count} object
+  const visibleStaticRows = showAll ? static2025 : static2025.slice(0, 12);
+  const visibleLiveRows   = showAll ? liveRows    : liveRows.slice(0, 12);
+  const maxLiveCount      = liveRows[0]?.count || 1;
+  const maxStaticCount    = static2025[0]?.[1]  || 1;
+
+  const sourceLabel = isFiltered
+    ? '2025_new_mapped_notmapped_hmc'
+    : '2025_caste_comm_hmc';
+
+  const scopeLabel = isFiltered
+    ? (booth ? `Ward ${ward} · Booth ${booth}` : `Ward ${ward} — ${WARD_NAMES[ward] || ''}`)
+    : null;
+
+  const entryCount = isFiltered ? liveRows.length : static2025.length;
+  const total      = isFiltered ? liveTotal        : staticTotal;
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {/* ── Detailed community table ── */}
       <div style={{
         background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
         border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
@@ -484,14 +589,22 @@ function CommunityClassificationPanel() {
           <div>
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 2 }}>Classified Community Breakdown</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-              {detailedRows.length} entries · sorted by count · source: 2025_caste_comm_hmc
+              {liveLoading
+                ? 'Loading…'
+                : `${entryCount} entries · sorted by count · source: ${sourceLabel}`}
             </div>
+            {scopeLabel && (
+              <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginTop: 2 }}>
+                {scopeLabel} · {total.toLocaleString()} voters
+              </div>
+            )}
           </div>
           <div style={{
             padding: '7px 16px', borderRadius: 9, fontSize: 13, fontWeight: 700,
-            background: 'rgba(34,211,238,0.15)', border: '1px solid rgba(34,211,238,0.4)',
-            color: '#22d3ee',
-          }}>2025</div>
+            background: isFiltered ? 'rgba(245,158,11,0.15)' : 'rgba(34,211,238,0.15)',
+            border: `1px solid ${isFiltered ? 'rgba(245,158,11,0.4)' : 'rgba(34,211,238,0.4)'}`,
+            color: isFiltered ? '#f59e0b' : '#22d3ee',
+          }}>{isFiltered ? (booth ? `Booth ${booth}` : `Ward ${ward}`) : '2025'}</div>
         </div>
 
         {/* Table header */}
@@ -501,17 +614,90 @@ function CommunityClassificationPanel() {
           ))}
         </div>
 
-        {/* Rows */}
-        {displayRows.map((row, idx) => {
-          // Grouped row: [string[], count, cat, displayName]
-          // Single row:  [string,   count, cat]
+        {/* Loading state */}
+        {liveLoading && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0', color: 'rgba(255,255,255,0.35)' }}>
+            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            <span style={{ fontSize: 13 }}>Loading community data…</span>
+          </div>
+        )}
+
+        {/* Error state */}
+        {liveError && !liveLoading && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '32px 18px', color: '#ef4444', flexDirection: 'column' }}>
+            <AlertTriangle size={18} />
+            <span style={{ fontSize: 13 }}>{liveError}</span>
+          </div>
+        )}
+
+        {/* ── LIVE rows (ward/booth selected) ─────────────────────────────────── */}
+        {!liveLoading && !liveError && isFiltered && liveRows.length > 0 && visibleLiveRows.map((row, idx) => {
+          const name  = row.community || '(Unknown)';
+          const cat   = row.category  || 'Unknown';
+          const count = row.count;
+          const barW  = Math.round((count / maxLiveCount) * 100);
+          const pct   = ((count / liveTotal) * 100).toFixed(1);
+          const color = BROAD_COLORS[cat] || '#888';
+          return (
+            <div key={`${name}-${idx}`} style={{
+              display: 'grid', gridTemplateColumns: '1fr 130px 90px 64px 80px',
+              gap: 0, padding: '11px 18px',
+              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)',
+              alignItems: 'center',
+            }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 4 }}>{name}</div>
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden', maxWidth: 160 }}>
+                  <div style={{ width: `${barW}%`, height: '100%', background: `linear-gradient(90deg,${color}60,${color})`, borderRadius: 2 }} />
+                </div>
+              </div>
+              <div>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '3px 7px',
+                  background: `${color}18`, color, border: `1px solid ${color}30`,
+                  whiteSpace: 'nowrap', display: 'inline-block', maxWidth: 120,
+                  overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{cat}</span>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {count.toLocaleString()}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color, textAlign: 'right' }}>{pct}%</div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setRecordsModal({ community: name, category: cat, count })}
+                  style={{
+                    background: `${color}14`, border: `1px solid ${color}30`,
+                    borderRadius: 7, padding: '4px 10px', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 700, color,
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    transition: 'all 0.15s', whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Users size={11} />View
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Empty live state */}
+        {!liveLoading && !liveError && isFiltered && liveRows.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '32px 18px', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>
+            No community data found for this selection.
+          </div>
+        )}
+
+        {/* ── STATIC rows (constituency-wide) ────────────────────────────────── */}
+        {!isFiltered && visibleStaticRows.map((row, idx) => {
           const isGrouped   = Array.isArray(row[0]);
           const communities = isGrouped ? row[0] : null;
-          const name        = isGrouped ? row[3] : row[0];   // display label
+          const name        = isGrouped ? row[3] : row[0];
           const count       = row[1];
           const cat         = row[2];
-          const barW  = Math.round((count / maxDetail) * 100);
-          const pct   = ((count / total2025) * 100).toFixed(1);
+          const barW  = Math.round((count / maxStaticCount) * 100);
+          const pct   = ((count / staticTotal) * 100).toFixed(1);
           const color = BROAD_COLORS[cat] || '#888';
           return (
             <div key={name} style={{
@@ -521,7 +707,6 @@ function CommunityClassificationPanel() {
               background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)',
               alignItems: 'center',
             }}>
-              {/* Name + bar (+ sub-labels for grouped rows) */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: isGrouped ? 2 : 4 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.3 }}>{name}</span>
@@ -540,7 +725,6 @@ function CommunityClassificationPanel() {
                   <div style={{ width: `${barW}%`, height: '100%', background: `linear-gradient(90deg,${color}60,${color})`, borderRadius: 2 }} />
                 </div>
               </div>
-              {/* Category badge */}
               <div>
                 <span style={{
                   fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '3px 7px',
@@ -549,13 +733,10 @@ function CommunityClassificationPanel() {
                   overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{cat}</span>
               </div>
-              {/* Count */}
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {count.toLocaleString()}
               </div>
-              {/* Share */}
               <div style={{ fontSize: 12, fontWeight: 600, color, textAlign: 'right' }}>{pct}%</div>
-              {/* View Records btn */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setRecordsModal(
@@ -568,8 +749,7 @@ function CommunityClassificationPanel() {
                     borderRadius: 7, padding: '4px 10px', cursor: 'pointer',
                     fontSize: 11, fontWeight: 700, color,
                     display: 'flex', alignItems: 'center', gap: 4,
-                    transition: 'all 0.15s',
-                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s', whiteSpace: 'nowrap',
                   }}
                 >
                   <Users size={11} />View
@@ -580,18 +760,24 @@ function CommunityClassificationPanel() {
         })}
 
         {/* Show more / less */}
-        {detailedRows.length > 12 && (
-          <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
-            <button onClick={() => setShowAll(v => !v)} style={{
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 10, padding: '9px 24px', cursor: 'pointer', fontSize: 13,
-              fontWeight: 700, color: 'rgba(255,255,255,0.5)', transition: 'all 0.15s',
-            }}>
-              {showAll
-                ? <><ChevronUp size={13} style={{ display: 'inline', marginRight: 4 }} />Show less</>
-                : <><ChevronDown size={13} style={{ display: 'inline', marginRight: 4 }} />Show all {detailedRows.length} communities</>}
-            </button>
-          </div>
+        {!liveLoading && (
+          (() => {
+            const total_ = isFiltered ? liveRows.length : static2025.length;
+            if (total_ <= 12) return null;
+            return (
+              <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
+                <button onClick={() => setShowAll(v => !v)} style={{
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 10, padding: '9px 24px', cursor: 'pointer', fontSize: 13,
+                  fontWeight: 700, color: 'rgba(255,255,255,0.5)', transition: 'all 0.15s',
+                }}>
+                  {showAll
+                    ? <><ChevronUp   size={13} style={{ display: 'inline', marginRight: 4 }} />Show less</>
+                    : <><ChevronDown size={13} style={{ display: 'inline', marginRight: 4 }} />Show all {total_} communities</>}
+                </button>
+              </div>
+            );
+          })()
         )}
       </div>
 
@@ -603,9 +789,12 @@ function CommunityClassificationPanel() {
           displayName={recordsModal.displayName}
           category={recordsModal.category}
           totalCount={recordsModal.count}
+          ward={isFiltered ? ward : ''}
+          booth={isFiltered ? booth : ''}
           onClose={() => setRecordsModal(null)}
         />
       )}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
@@ -5400,7 +5589,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── Community Classification 2002 vs 2025 ─────────────────────── */}
-          <CommunityClassificationPanel />
+          <CommunityClassificationPanel ward={selectedWard || ''} booth={selectedBooth || ''} />
 
           {/* ── Gender + Quick Actions ────────────────────────────────────── */}
           <div className="db-two-col" style={{ marginBottom: 28 }}>
