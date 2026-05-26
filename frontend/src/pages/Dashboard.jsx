@@ -1257,24 +1257,14 @@ const HMC_RATE       = { H: HMC_POLLED_ALL.H/HMC_TOTALS.H, M: HMC_POLLED_ALL.M/H
 
 function _hmcForAge(ag, livePolledHMC) {
   const np = NP_HMC_BY_AGE[ag];
-  if (ag === 'All' && livePolledHMC && (livePolledHMC.total?.total > 0)) {
-    // Ward / booth level — all counts come directly from the DB; no hardcoded fallbacks
+  const hasLive = !!(livePolledHMC && (livePolledHMC.total?.total > 0 || livePolledHMC.H?.total > 0));
+
+  if (ag === 'All' && hasLive) {
+    // Ward / booth level — all counts come directly from the DB
     return {
-      H: {
-        polled:    livePolledHMC.H?.polled    || 0,
-        notPolled: livePolledHMC.H?.notPolled || 0,
-        total:     livePolledHMC.H?.total     || 0,
-      },
-      M: {
-        polled:    livePolledHMC.M?.polled    || 0,
-        notPolled: livePolledHMC.M?.notPolled || 0,
-        total:     livePolledHMC.M?.total     || 0,
-      },
-      C: {
-        polled:    livePolledHMC.C?.polled    || 0,
-        notPolled: livePolledHMC.C?.notPolled || 0,
-        total:     livePolledHMC.C?.total     || 0,
-      },
+      H: { polled: livePolledHMC.H?.polled || 0, notPolled: livePolledHMC.H?.notPolled || 0, total: livePolledHMC.H?.total || 0 },
+      M: { polled: livePolledHMC.M?.polled || 0, notPolled: livePolledHMC.M?.notPolled || 0, total: livePolledHMC.M?.total || 0 },
+      C: { polled: livePolledHMC.C?.polled || 0, notPolled: livePolledHMC.C?.notPolled || 0, total: livePolledHMC.C?.total || 0 },
     };
   }
   // Constituency-level fallback — use pre-computed static totals
@@ -1285,12 +1275,15 @@ function _hmcForAge(ag, livePolledHMC) {
       C: { polled: HMC_POLLED_ALL.C, notPolled: np.C, total: HMC_TOTALS.C },
     };
   }
-  // Age sub-group — estimate from constituency-level rates (no age data in 2023 collection)
+  // Age sub-group: scale constituency proportions by ward totals when live data is available
   const r = {};
   for (const k of ['H', 'M', 'C']) {
-    const notP = np[k];
-    const est  = Math.round(notP / (1 - HMC_RATE[k]));
-    r[k] = { polled: est - notP, notPolled: notP, total: est };
+    const constTotal  = HMC_TOTALS[k] || 1;
+    const wardTotal   = hasLive ? (livePolledHMC[k]?.total || 0) : constTotal;
+    const scaleFactor = wardTotal / constTotal;
+    const notP        = Math.round(np[k] * scaleFactor);
+    const est         = Math.round(notP / (1 - HMC_RATE[k]));
+    r[k] = { polled: Math.max(0, est - notP), notPolled: notP, total: est };
   }
   return r;
 }
@@ -1309,14 +1302,21 @@ const NP_BROAD_BY_AGE = {
 };
 const BROAD_POLLED_ALL = { 'Unknown':45695, 'Muslim':23828, 'Christian - OC':18475, 'Hindu - OBC':15890, 'Hindu - Brahmin':12887, 'Hindu - OC':10068, 'Hindu - Brahmin/GC':3431, 'Hindu - Shared':1275, 'Hindu - GC':902, 'Christian (Unverified)':646 };
 
-function _broadForAge(ag) {
+function _broadForAge(ag, scaleFactor = 1) {
   const np = NP_BROAD_BY_AGE[ag];
   return Object.entries(np).map(([key, notPolled]) => {
-    if (ag === 'All') return { key, notPolled, polled: BROAD_POLLED_ALL[key] || 0 };
+    if (ag === 'All') {
+      return {
+        key,
+        notPolled: Math.round((NP_BROAD_BY_AGE['All'][key] || 0) * scaleFactor),
+        polled:    Math.round((BROAD_POLLED_ALL[key] || 0) * scaleFactor),
+      };
+    }
     const totAll = (BROAD_POLLED_ALL[key] || 0) + (NP_BROAD_BY_AGE['All'][key] || 0);
     const rate   = totAll > 0 ? (BROAD_POLLED_ALL[key] || 0) / totAll : 0.55;
-    const est    = Math.round(notPolled / (1 - rate));
-    return { key, notPolled, polled: est - notPolled };
+    const notP   = Math.round(notPolled * scaleFactor);
+    const est    = Math.round(notP / (1 - rate));
+    return { key, notPolled: notP, polled: Math.max(0, est - notP) };
   });
 }
 
@@ -1334,14 +1334,21 @@ const NP_COMM_BY_AGE = {
 };
 const COMM_POLLED_ALL = { 'Muslim':23828, 'Mangalorean Catholic':15924, 'GSB (Goud Saraswat Brahmin)':10272, 'Bunt':10299, 'Billava':6771, 'GSB/Yadav/Bekal (Rao)':3431, 'Christian':2616, 'Billava/Mogaveera':2737, 'GSB/Brahmin (Bhat)':2167, 'Vishwakarma':1785, 'Devadiga':1060, 'Possibly Christian':649 };
 
-function _commForAge(ag) {
+function _commForAge(ag, scaleFactor = 1) {
   const np = NP_COMM_BY_AGE[ag];
   return Object.entries(np).map(([key, notPolled]) => {
-    if (ag === 'All') return { key, notPolled, polled: COMM_POLLED_ALL[key] || 0 };
+    if (ag === 'All') {
+      return {
+        key,
+        notPolled: Math.round((NP_COMM_BY_AGE['All'][key] || 0) * scaleFactor),
+        polled:    Math.round((COMM_POLLED_ALL[key] || 0) * scaleFactor),
+      };
+    }
     const totAll = (COMM_POLLED_ALL[key] || 0) + (NP_COMM_BY_AGE['All'][key] || 0);
     const rate   = totAll > 0 ? (COMM_POLLED_ALL[key] || 0) / totAll : 0.52;
-    const est    = Math.round(notPolled / (1 - rate));
-    return { key, notPolled, polled: est - notPolled };
+    const notP   = Math.round(notPolled * scaleFactor);
+    const est    = Math.round(notP / (1 - rate));
+    return { key, notPolled: notP, polled: Math.max(0, est - notP) };
   });
 }
 
@@ -1514,8 +1521,18 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewReco
   const [ageGroup, setAgeGroup] = useState('All');
 
   // liveData.category is [{key, polled, notPolled}] from 2023_polled_notpolled_caste_comm_hmc.
-  // Use it only at the "All" age group (the 2023 collection has no pre-aggregated age bands).
+  // Use it at 'All' age group; for age sub-groups, scale by ward's share of constituency total.
   const isLive = !!(liveData?.category?.length && ageGroup === 'All');
+
+  // Compute ward scale factor: ward total / constituency total (for age-band scaling)
+  const wardScaleFactor = (() => {
+    if (!liveData?.category?.length) return 1;
+    const wardTotal = liveData.category.reduce((s, r) => s + (r.polled || 0) + (r.notPolled || 0), 0);
+    const constPolled = Object.values(BROAD_POLLED_ALL).reduce((s, v) => s + v, 0);
+    const constNP     = Object.values(NP_BROAD_BY_AGE['All']).reduce((s, v) => s + v, 0);
+    const constTotal  = constPolled + constNP;
+    return constTotal > 0 ? wardTotal / constTotal : 1;
+  })();
 
   let data;
   if (isLive) {
@@ -1524,7 +1541,8 @@ function PolledBroadCategoryWidget({ loading, label = 'Constituency', onViewReco
       return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
     });
   } else {
-    const rawData = _broadForAge(ageGroup);
+    // Pass scaleFactor so age bands are proportional to this ward, not the whole constituency
+    const rawData = _broadForAge(ageGroup, wardScaleFactor);
     data = BROAD_DEFS.map(def => {
       const found = rawData.find(r => r.key === def.key);
       return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
@@ -1661,6 +1679,16 @@ function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords,
   // Use live data only at "All" age group (no age breakdown in the 2023 collection).
   const isLive = !!(liveData?.community?.length && ageGroup === 'All');
 
+  // Compute ward scale factor for age-band proportional scaling
+  const wardScaleFactor = (() => {
+    if (!liveData?.community?.length) return 1;
+    const wardTotal  = liveData.community.reduce((s, r) => s + (r.polled || 0) + (r.notPolled || 0), 0);
+    const constPolled = Object.values(COMM_POLLED_ALL).reduce((s, v) => s + v, 0);
+    const constNP     = Object.values(NP_COMM_BY_AGE['All']).reduce((s, v) => s + v, 0);
+    const constTotal  = constPolled + constNP;
+    return constTotal > 0 ? wardTotal / constTotal : 1;
+  })();
+
   let data;
   if (isLive) {
     // Start from COMM_DEFS so known communities keep their label/color/abbr.
@@ -1674,7 +1702,8 @@ function PolledCommunityWidget({ loading, label = 'Constituency', onViewRecords,
       return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
     }).filter(d => d.polled + d.notPolled > 0);  // hide zero-count entries at ward/booth level
   } else {
-    const rawData = _commForAge(ageGroup);
+    // Pass scaleFactor so age bands are proportional to this ward, not the whole constituency
+    const rawData = _commForAge(ageGroup, wardScaleFactor);
     data = COMM_DEFS.map(def => {
       const found = rawData.find(r => r.key === def.key);
       return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
