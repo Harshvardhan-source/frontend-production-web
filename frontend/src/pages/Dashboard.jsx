@@ -2434,7 +2434,8 @@ function WardVsConstituency({ wardNum }) {
 }
 
 // ─── House Consolidated Report Panel ─────────────────────────────────────────
-// All data derived from House_Consolidated_Report.xlsx
+// All data derived from House_Consolidated_Report_v2.xlsx
+// Ward No & Booth No now stored as numbers for accurate filtering
 const HOUSE_DATA = {
   summary: {
     totalHouses:    118135,
@@ -2456,97 +2457,141 @@ const HOUSE_DATA = {
     { label: 'Single (1)',       count: 66318,  color: '#6b7280' },
   ],
   topCommunities: [
-    { name: 'Unclassified',            voters: 92402,  houses: 42985, mappedPct: 71.8, polledPct: 55.9, color: '#6b7280' },
-    { name: 'Muslim',                  voters: 49247,  houses: 20552, mappedPct: 76.9, polledPct: 46.7, color: '#10b981' },
-    { name: 'Mangalorean Catholic',    voters: 30515,  houses: 14667, mappedPct: 75.3, polledPct: 50.6, color: '#60a5fa' },
-    { name: 'GSB',                     voters: 17549,  houses: 8981,  mappedPct: 69.9, polledPct: 58.6, color: '#a78bfa' },
-    { name: 'Bunt',                    voters: 17174,  houses: 8429,  mappedPct: 72.9, polledPct: 57.9, color: '#f97316' },
-    { name: 'Billava',                 voters: 10958,  houses: 5211,  mappedPct: 78.4, polledPct: 60.0, color: '#22d3ee' },
-    { name: 'GSB/Yadav/Bekal (Rao)',   voters: 5642,   houses: 3105,  mappedPct: 68.7, polledPct: 55.9, color: '#fb923c' },
-    { name: 'Christian',               voters: 5065,   houses: 2775,  mappedPct: 73.1, polledPct: 50.9, color: '#34d399' },
+    { name: 'Unclassified',          voters: 92402, houses: 42985, mappedPct: 71.8, polledPct: 59.7, color: '#6b7280' },
+    { name: 'Muslim',                voters: 49247, houses: 20552, mappedPct: 76.9, polledPct: 51.2, color: '#10b981' },
+    { name: 'Mangalorean Catholic',  voters: 30515, houses: 14667, mappedPct: 75.3, polledPct: 54.3, color: '#60a5fa' },
+    { name: 'GSB',                   voters: 17549, houses: 8981,  mappedPct: 69.9, polledPct: 62.5, color: '#a78bfa' },
+    { name: 'Bunt',                  voters: 17174, houses: 8429,  mappedPct: 72.9, polledPct: 61.9, color: '#f97316' },
+    { name: 'Billava',               voters: 10958, houses: 5211,  mappedPct: 78.4, polledPct: 64.1, color: '#22d3ee' },
+    { name: 'GSB/Yadav/Bekal (Rao)', voters: 5642,  houses: 3105,  mappedPct: 68.7, polledPct: 59.7, color: '#fb923c' },
+    { name: 'Christian',             voters: 5065,  houses: 2775,  mappedPct: 73.1, polledPct: 54.4, color: '#34d399' },
+    { name: 'Billava/Mogaveera',     voters: 4147,  houses: 2090,  mappedPct: 79.2, polledPct: 64.0, color: '#f472b6' },
+    { name: 'GSB/Brahmin (Bhat)',    voters: 3698,  houses: 1960,  mappedPct: 68.0, polledPct: 63.6, color: '#818cf8' },
   ],
+  // All 20 Very Large houses (20+ voters), sorted by voter count — from Large Houses sheet
   veryLargeHouses: [
-    { house: '15-18-1065', ward: 1, booth: 134, voters: 190, community: 'Mangalorean Catholic', mappedPct: 71.6, polledPct: 11.1 },
-    { house: '25-22-1353', ward: 1, booth: 159, voters: 164, community: 'Mangalorean Catholic', mappedPct: 56.7, polledPct: 20.7 },
-    { house: '5-79/20',    ward: 1, booth: 195, voters: 153, community: 'Unclassified',          mappedPct: 7.2,  polledPct: 26.1 },
-    { house: '13-10-1283', ward: 2, booth: 127, voters: 127, community: 'GSB',                   mappedPct: 52.8, polledPct: 48.8 },
-    { house: '1-9',        ward: 1, booth: 52,  voters: 116, community: 'Mangalorean Catholic', mappedPct: 91.4, polledPct: 64.7 },
-    { house: '25-3-176/1', ward: 1, booth: 137, voters: 106, community: 'Unclassified',          mappedPct: 1.9,  polledPct: 8.5  },
-    { house: '20-13-819',  ward: 1, booth: 153, voters: 97,  community: 'Mangalorean Catholic', mappedPct: 57.7, polledPct: 47.4 },
-    { house: '5-79/21',    ward: 1, booth: 195, voters: 75,  community: 'Mangalorean Catholic', mappedPct: 13.3, polledPct: 26.7 },
+    { house: '15-18-1065',  ward: 1, booth: 134, voters: 190, community: 'Mangalorean Catholic', mappedPct: 71.6, polledPct: 11.1 },
+    { house: '25-22-1353',  ward: 1, booth: 159, voters: 164, community: 'Mangalorean Catholic', mappedPct: 56.7, polledPct: 20.7 },
+    { house: '5-79/20',     ward: 1, booth: 195, voters: 153, community: 'Unclassified',          mappedPct: 7.2,  polledPct: 26.1 },
+    { house: '13-10-1283',  ward: 2, booth: 127, voters: 127, community: 'GSB',                   mappedPct: 52.8, polledPct: 48.8 },
+    { house: '1-9',         ward: 1, booth: 52,  voters: 116, community: 'Mangalorean Catholic', mappedPct: 91.4, polledPct: 64.7 },
+    { house: '25-3-176/1',  ward: 1, booth: 137, voters: 106, community: 'Unclassified',          mappedPct: 1.9,  polledPct: 8.5  },
+    { house: '20-13-819',   ward: 1, booth: 153, voters: 97,  community: 'Mangalorean Catholic', mappedPct: 57.7, polledPct: 47.4 },
+    { house: '5-79/21',     ward: 1, booth: 195, voters: 75,  community: 'Mangalorean Catholic', mappedPct: 13.3, polledPct: 26.7 },
+    { house: '13-66',       ward: 1, booth: 44,  voters: 71,  community: 'Unclassified',          mappedPct: 91.5, polledPct: 62.0 },
+    { house: '301',         ward: 1, booth: 129, voters: 66,  community: 'Unclassified',          mappedPct: 40.9, polledPct: 27.3 },
+    { house: '101',         ward: 1, booth: 136, voters: 63,  community: 'Unclassified',          mappedPct: 28.6, polledPct: 33.3 },
+    { house: '17-6-3368',   ward: 2, booth: 163, voters: 63,  community: 'Unclassified',          mappedPct: 55.6, polledPct: 88.9 },
+    { house: '201',         ward: 1, booth: 244, voters: 61,  community: 'Unclassified',          mappedPct: 42.6, polledPct: 42.6 },
+    { house: '202',         ward: 1, booth: 138, voters: 60,  community: 'Unclassified',          mappedPct: 38.3, polledPct: 36.7 },
+    { house: '203',         ward: 1, booth: 63,  voters: 56,  community: 'Unclassified',          mappedPct: 35.7, polledPct: 17.9 },
+    { house: '17-5-235',    ward: 2, booth: 165, voters: 56,  community: 'Mangalorean Catholic', mappedPct: 33.9, polledPct: 55.4 },
+    { house: '102',         ward: 1, booth: 13,  voters: 52,  community: 'Muslim',                mappedPct: 38.5, polledPct: 36.5 },
+    { house: '2-126',       ward: 1, booth: 176, voters: 52,  community: 'Mangalorean Catholic', mappedPct: 78.8, polledPct: 38.5 },
+    { house: '1',           ward: 1, booth: 187, voters: 52,  community: 'Unclassified',          mappedPct: 88.5, polledPct: 32.7 },
+    { house: '17-6-336B',   ward: 1, booth: 163, voters: 51,  community: 'Mangalorean Catholic', mappedPct: 52.9, polledPct: 72.5 },
   ],
+  // Ward stats computed from raw data (v2 — Ward No now numeric)
   wardStats: [
-    { ward: '1',  houses: 75530,  voters: 162810, mappedPct: 69.4, polledPct: 53.2 },
-    { ward: '2',  houses: 20980,  voters: 44702,  mappedPct: 81.2, polledPct: 57.5 },
-    { ward: '3',  houses: 12118,  voters: 24122,  mappedPct: 80.9, polledPct: 55.9 },
-    { ward: '4',  houses: 5161,   voters: 10448,  mappedPct: 80.9, polledPct: 53.4 },
-    { ward: '5',  houses: 2557,   voters: 5229,   mappedPct: 82.7, polledPct: 52.7 },
-    { ward: '6',  houses: 898,    voters: 1775,   mappedPct: 79.2, polledPct: 49.9 },
-    { ward: '7',  houses: 475,    voters: 972,    mappedPct: 85.1, polledPct: 55.7 },
-    { ward: '8',  houses: 170,    voters: 376,    mappedPct: 82.2, polledPct: 58.2 },
-    { ward: '9',  houses: 165,    voters: 374,    mappedPct: 92.5, polledPct: 58.3 },
-    { ward: '10', houses: 65,     voters: 155,    mappedPct: 81.9, polledPct: 41.3 },
+    { ward: '1',  houses: 75530, voters: 162810, mappedPct: 69.4, polledPct: 58.3 },
+    { ward: '2',  houses: 20980, voters: 44702,  mappedPct: 81.2, polledPct: 59.5 },
+    { ward: '3',  houses: 12118, voters: 24122,  mappedPct: 80.9, polledPct: 57.7 },
+    { ward: '4',  houses: 5161,  voters: 10448,  mappedPct: 80.9, polledPct: 55.2 },
+    { ward: '5',  houses: 2557,  voters: 5229,   mappedPct: 82.7, polledPct: 55.0 },
+    { ward: '6',  houses: 898,   voters: 1775,   mappedPct: 79.2, polledPct: 52.0 },
+    { ward: '7',  houses: 475,   voters: 972,    mappedPct: 85.1, polledPct: 58.9 },
+    { ward: '8',  houses: 170,   voters: 376,    mappedPct: 82.2, polledPct: 60.8 },
+    { ward: '9',  houses: 165,   voters: 374,    mappedPct: 92.5, polledPct: 62.1 },
+    { ward: '10', houses: 65,    voters: 155,    mappedPct: 81.9, polledPct: 46.4 },
   ],
+  // Top 10 critical houses (10+ voters, <20% mapped) — from raw data
   unmappedAlerts: [
-    { house: '5-79/20',    ward: 1, voters: 153, mappedPct: 7.2  },
-    { house: '25-3-176/1', ward: 1, voters: 106, mappedPct: 1.9  },
-    { house: '5-79/21',    ward: 1, voters: 75,  mappedPct: 13.3 },
-    { house: '17-17-1343', ward: 1, voters: 41,  mappedPct: 2.4  },
-    { house: '25-3-176/4', ward: 1, voters: 40,  mappedPct: 7.5  },
+    { house: '5-79/20',         ward: 1, voters: 153, mappedPct: 7.2  },
+    { house: '25-3-176/1',      ward: 1, voters: 106, mappedPct: 1.9  },
+    { house: '5-79/21',         ward: 1, voters: 75,  mappedPct: 13.3 },
+    { house: '17-17-1343',      ward: 1, voters: 41,  mappedPct: 2.4  },
+    { house: '25-3-176/4',      ward: 1, voters: 40,  mappedPct: 7.5  },
+    { house: '14-5-564/22',     ward: 1, voters: 34,  mappedPct: 2.9  },
+    { house: '24-6-609/8',      ward: 1, voters: 29,  mappedPct: 13.8 },
+    { house: '17-18-1365/2',    ward: 1, voters: 22,  mappedPct: 0.0  },
+    { house: '17-4-160/1',      ward: 1, voters: 20,  mappedPct: 15.0 },
+    { house: '22-11-1518',      ward: 2, voters: 20,  mappedPct: 15.0 },
+  ],
+  // Community House Summary sheet (5+ voter houses only)
+  communityHouseSummary: [
+    { name: 'Unclassified',           houses5p: 3701,  voters: 29775, large10p: 752,  veryLarge: 128, avgVoters: 8.0,  maxVoters: 153 },
+    { name: 'Muslim',                 houses5p: 2483,  voters: 20333, large10p: 597,  veryLarge: 78,  avgVoters: 8.2,  maxVoters: 52  },
+    { name: 'Mangalorean Catholic',   houses5p: 926,   voters: 7853,  large10p: 158,  veryLarge: 39,  avgVoters: 8.5,  maxVoters: 190 },
+    { name: 'Bunt',                   houses5p: 563,   voters: 3988,  large10p: 76,   veryLarge: 6,   avgVoters: 7.1,  maxVoters: 25  },
+    { name: 'GSB',                    houses5p: 489,   voters: 3287,  large10p: 43,   veryLarge: 6,   avgVoters: 6.7,  maxVoters: 127 },
+    { name: 'Billava',                houses5p: 384,   voters: 2611,  large10p: 39,   veryLarge: 4,   avgVoters: 6.8,  maxVoters: 22  },
+    { name: 'Billava/Mogaveera',      houses5p: 144,   voters: 921,   large10p: 8,    veryLarge: 0,   avgVoters: 6.4,  maxVoters: 17  },
+    { name: 'GSB/Yadav/Bekal (Rao)', houses5p: 127,   voters: 774,   large10p: 6,    veryLarge: 0,   avgVoters: 6.1,  maxVoters: 14  },
+    { name: 'Vishwakarma',            houses5p: 111,   voters: 774,   large10p: 14,   veryLarge: 2,   avgVoters: 7.0,  maxVoters: 24  },
+    { name: 'Christian',              houses5p: 105,   voters: 620,   large10p: 4,    veryLarge: 0,   avgVoters: 5.9,  maxVoters: 12  },
+    { name: 'GSB/Brahmin (Bhat)',     houses5p: 76,    voters: 507,   large10p: 5,    veryLarge: 1,   avgVoters: 6.7,  maxVoters: 37  },
+    { name: 'Devadiga',               houses5p: 72,    voters: 486,   large10p: 8,    veryLarge: 0,   avgVoters: 6.8,  maxVoters: 18  },
+    { name: 'OBC (Shet)',             houses5p: 52,    voters: 336,   large10p: 3,    veryLarge: 0,   avgVoters: 6.5,  maxVoters: 16  },
+    { name: 'Mogaveera',              houses5p: 44,    voters: 296,   large10p: 6,    veryLarge: 0,   avgVoters: 6.7,  maxVoters: 13  },
+    { name: 'Multiple comm. (Naik)',  houses5p: 40,    voters: 248,   large10p: 3,    veryLarge: 0,   avgVoters: 6.2,  maxVoters: 12  },
   ],
 };
 
 function HouseConsolidatedPanel() {
-  const [activeView, setActiveView] = React.useState('overview'); // 'overview' | 'community' | 'large' | 'ward'
-  const { summary, houseSizes, topCommunities, veryLargeHouses, wardStats, unmappedAlerts } = HOUSE_DATA;
+  const [activeView, setActiveView] = React.useState('overview');
+  const { summary, houseSizes, topCommunities, veryLargeHouses, wardStats, unmappedAlerts, communityHouseSummary } = HOUSE_DATA;
   const totalHouseCount = houseSizes.reduce((s, h) => s + h.count, 0);
 
   const TAB = [
-    { key: 'overview',   label: 'Overview'   },
-    { key: 'community',  label: 'By Community' },
-    { key: 'large',      label: 'Large Houses' },
-    { key: 'ward',       label: 'By Ward'    },
+    { key: 'overview',  label: 'Overview'       },
+    { key: 'community', label: 'By Community'   },
+    { key: 'commsum',   label: 'Comm. Summary'  },
+    { key: 'large',     label: 'Large Houses'   },
+    { key: 'ward',      label: 'By Ward'        },
   ];
 
   return (
     <div style={{ background: 'linear-gradient(145deg,rgba(17,28,52,0.9),rgba(10,18,35,0.95))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '18px 18px 16px', marginBottom: 20 }} className="anim-fade-up">
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Home size={16} color="#a78bfa" />
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#a78bfa' }}>House-Wise Consolidated Report</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
-              {totalHouseCount.toLocaleString()} houses · {summary.totalVoters.toLocaleString()} voters · source: House_Consolidated_Report
-            </div>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+        <Home size={16} color="#a78bfa" style={{ flexShrink: 0, marginRight: 10 }} />
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#a78bfa' }}>House-Wise Consolidated Report <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(167,139,250,0.5)', marginLeft: 4 }}>v2</span></div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
+            {totalHouseCount.toLocaleString()} houses · {summary.totalVoters.toLocaleString()} voters · source: House_Consolidated_Report_v2
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 5, marginBottom: 16, flexWrap: 'wrap' }}>
         {TAB.map(t => (
-          <button key={t.key} onClick={() => setActiveView(t.key)} style={{ padding: '5px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid', transition: 'all 0.15s', background: activeView === t.key ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.04)', borderColor: activeView === t.key ? 'rgba(167,139,250,0.5)' : 'rgba(255,255,255,0.08)', color: activeView === t.key ? '#a78bfa' : 'rgba(255,255,255,0.4)' }}>
+          <button key={t.key} onClick={() => setActiveView(t.key)}
+            style={{ padding: '5px 13px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid', transition: 'all 0.15s',
+              background:   activeView === t.key ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.04)',
+              borderColor:  activeView === t.key ? 'rgba(167,139,250,0.5)'  : 'rgba(255,255,255,0.08)',
+              color:        activeView === t.key ? '#a78bfa'                 : 'rgba(255,255,255,0.4)',
+            }}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* ── OVERVIEW TAB ── */}
+      {/* ── OVERVIEW ── */}
       {activeView === 'overview' && (
         <div>
-          {/* KPI Row */}
+          {/* KPI cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(105px,1fr))', gap: 8, marginBottom: 16 }}>
             {[
-              { label: 'Total Houses',   val: totalHouseCount.toLocaleString(),   color: '#a78bfa', icon: <Home size={15} color="#a78bfa" /> },
-              { label: 'Total Voters',   val: summary.totalVoters.toLocaleString(), color: '#60a5fa', icon: <Users size={15} color="#60a5fa" /> },
-              { label: 'Mapped',         val: summary.mappedPct + '%',            color: '#10b981', icon: <UserCheck size={15} color="#10b981" />, sub: summary.mapped.toLocaleString() },
-              { label: 'Not Mapped',     val: (100 - summary.mappedPct).toFixed(1) + '%', color: '#f87171', icon: <MapPin size={15} color="#f87171" />, sub: summary.notMapped.toLocaleString() },
-              { label: 'Polled \'23',    val: summary.turnoutPct + '%',           color: '#22d3ee', icon: <Vote size={15} color="#22d3ee" />, sub: summary.polled2023.toLocaleString() },
-              { label: 'Male',           val: summary.male.toLocaleString(),      color: '#818cf8', icon: <Users size={15} color="#818cf8" /> },
-              { label: 'Female',         val: summary.female.toLocaleString(),    color: '#f472b6', icon: <Users size={15} color="#f472b6" /> },
-              { label: 'New Since \'02', val: summary.newSince2002.toLocaleString(), color: '#fb923c', icon: <Sprout size={15} color="#fb923c" /> },
+              { label: 'Total Houses',    val: totalHouseCount.toLocaleString(),             color: '#a78bfa', icon: <Home size={15} color="#a78bfa" /> },
+              { label: 'Total Voters',    val: summary.totalVoters.toLocaleString(),          color: '#60a5fa', icon: <Users size={15} color="#60a5fa" /> },
+              { label: 'Mapped',          val: summary.mappedPct + '%',                       color: '#10b981', icon: <UserCheck size={15} color="#10b981" />, sub: summary.mapped.toLocaleString() },
+              { label: 'Not Mapped',      val: (100 - summary.mappedPct).toFixed(1) + '%',   color: '#f87171', icon: <MapPin size={15} color="#f87171" />, sub: summary.notMapped.toLocaleString() },
+              { label: "Polled '23",      val: summary.turnoutPct + '%',                     color: '#22d3ee', icon: <Vote size={15} color="#22d3ee" />, sub: summary.polled2023.toLocaleString() },
+              { label: 'Male',            val: summary.male.toLocaleString(),                color: '#818cf8', icon: <Users size={15} color="#818cf8" /> },
+              { label: 'Female',          val: summary.female.toLocaleString(),              color: '#f472b6', icon: <Users size={15} color="#f472b6" /> },
+              { label: "New Since '02",   val: summary.newSince2002.toLocaleString(),        color: '#fb923c', icon: <Sprout size={15} color="#fb923c" /> },
             ].map(({ label, val, color: c, icon, sub }) => (
               <div key={label} style={{ background: `${c}0d`, border: `1px solid ${c}22`, borderRadius: 10, padding: '10px 10px 8px' }}>
                 <div style={{ marginBottom: 4 }}>{icon}</div>
@@ -2557,13 +2602,13 @@ function HouseConsolidatedPanel() {
             ))}
           </div>
 
-          {/* House Size Distribution */}
+          {/* House Size stacked bar */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 8 }}>House Size Distribution</div>
-            {/* Stacked bar */}
             <div style={{ display: 'flex', height: 22, borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
               {houseSizes.map(h => (
-                <div key={h.label} title={`${h.label}: ${h.count.toLocaleString()}`} style={{ flex: h.count, background: h.color, opacity: 0.85, transition: 'flex 0.4s' }} />
+                <div key={h.label} title={`${h.label}: ${h.count.toLocaleString()}`}
+                  style={{ flex: h.count, background: h.color, opacity: 0.85 }} />
               ))}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
@@ -2572,28 +2617,28 @@ function HouseConsolidatedPanel() {
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: h.color }} />
                   <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{h.label}: </span>
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{h.count.toLocaleString()}</span>
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>({(h.count/totalHouseCount*100).toFixed(1)}%)</span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>({(h.count / totalHouseCount * 100).toFixed(1)}%)</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Unmapped Alerts */}
+          {/* Critical unmapped alerts */}
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <AlertTriangle size={11} color="#f87171" /> Large Houses with Critical Mapping Gap (&lt;20% mapped)
+              <AlertTriangle size={11} color="#f87171" /> Large Houses — Critical Mapping Gap (&lt;20% mapped)
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {unmappedAlerts.map(h => (
                 <div key={h.house} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)', borderRadius: 8, padding: '7px 12px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#f0f4ff', minWidth: 90, fontFamily: 'ui-monospace,monospace' }}>{h.house}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Ward {h.ward}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#f0f4ff', minWidth: 110, fontFamily: 'ui-monospace,monospace' }}>{h.house}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>Ward {h.ward}</span>
                   <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>·</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{h.voters} voters</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>{h.voters} voters</span>
                   <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ width: `${h.mappedPct}%`, height: '100%', background: '#f87171', borderRadius: 2 }} />
+                    <div style={{ width: h.mappedPct === 0 ? '2px' : `${h.mappedPct}%`, height: '100%', background: '#f87171', borderRadius: 2 }} />
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: '#f87171', minWidth: 40, textAlign: 'right' }}>{h.mappedPct}%</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: h.mappedPct === 0 ? '#ff4444' : '#f87171', minWidth: 38, textAlign: 'right' }}>{h.mappedPct}%</span>
                   <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>mapped</span>
                 </div>
               ))}
@@ -2602,15 +2647,17 @@ function HouseConsolidatedPanel() {
         </div>
       )}
 
-      {/* ── COMMUNITY TAB ── */}
+      {/* ── BY COMMUNITY (raw voter data — top 10) ── */}
       {activeView === 'community' && (
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 10 }}>Top Communities — Voter Strength &amp; Outreach</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 10 }}>
+            Top 10 Communities — Voter Strength &amp; Outreach (all house sizes)
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                  {['Community', 'Houses', 'Voters', 'Mapped %', 'Polled \'23', 'Gap'].map(h => (
+                  {['Community', 'Houses', 'Voters', 'Mapped %', "Polled '23", 'Gap'].map(h => (
                     <th key={h} style={{ padding: '6px 10px', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'Community' ? 'left' : 'right', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -2618,15 +2665,17 @@ function HouseConsolidatedPanel() {
               <tbody>
                 {topCommunities.map((c, i) => (
                   <tr key={c.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
-                    <td style={{ padding: '9px 10px', display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{c.name}</span>
+                    <td style={{ padding: '9px 10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{c.name}</span>
+                      </div>
                     </td>
                     <td style={{ padding: '9px 10px', fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>{c.houses.toLocaleString()}</td>
                     <td style={{ padding: '9px 10px', fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 700, textAlign: 'right' }}>{c.voters.toLocaleString()}</td>
                     <td style={{ padding: '9px 10px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                        <div style={{ width: 50, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                           <div style={{ width: `${c.mappedPct}%`, height: '100%', background: '#10b981', borderRadius: 2 }} />
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', minWidth: 38, textAlign: 'right' }}>{c.mappedPct}%</span>
@@ -2634,7 +2683,7 @@ function HouseConsolidatedPanel() {
                     </td>
                     <td style={{ padding: '9px 10px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                        <div style={{ width: 50, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                           <div style={{ width: `${c.polledPct}%`, height: '100%', background: '#22d3ee', borderRadius: 2 }} />
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#22d3ee', minWidth: 38, textAlign: 'right' }}>{c.polledPct}%</span>
@@ -2653,21 +2702,72 @@ function HouseConsolidatedPanel() {
         </div>
       )}
 
-      {/* ── LARGE HOUSES TAB ── */}
+      {/* ── COMMUNITY HOUSE SUMMARY (5+ voter houses from separate sheet) ── */}
+      {activeView === 'commsum' && (
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 10 }}>
+            Community House Summary — Houses with 5+ Voters
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  {['Community', 'Houses (5+)', 'Voters', 'Large (10+)', 'Very Large (20+)', 'Avg / House', 'Max'].map(h => (
+                    <th key={h} style={{ padding: '6px 10px', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'Community' ? 'left' : 'right', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {communityHouseSummary.map((c, i) => (
+                  <tr key={c.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                    <td style={{ padding: '8px 10px', fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{c.name}</td>
+                    <td style={{ padding: '8px 10px', fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'right' }}>{c.houses5p.toLocaleString()}</td>
+                    <td style={{ padding: '8px 10px', fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 700, textAlign: 'right' }}>{c.voters.toLocaleString()}</td>
+                    <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'right' }}>
+                      <span style={{ color: c.large10p > 100 ? '#f97316' : 'rgba(255,255,255,0.5)', fontWeight: c.large10p > 100 ? 700 : 400 }}>{c.large10p}</span>
+                    </td>
+                    <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'right' }}>
+                      {c.veryLarge > 0
+                        ? <span style={{ color: '#ef4444', fontWeight: 700 }}>{c.veryLarge}</span>
+                        : <span style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
+                      }
+                    </td>
+                    <td style={{ padding: '8px 10px', fontSize: 12, color: '#a78bfa', textAlign: 'right', fontWeight: 600 }}>{c.avgVoters}</td>
+                    <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'right' }}>
+                      <span style={{ color: c.maxVoters >= 50 ? '#f87171' : c.maxVoters >= 20 ? '#f59e0b' : 'rgba(255,255,255,0.4)', fontWeight: c.maxVoters >= 20 ? 700 : 400 }}>
+                        {c.maxVoters}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(167,139,250,0.06)', borderRadius: 8, border: '1px solid rgba(167,139,250,0.12)' }}>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+              Shows only houses with 5+ registered voters. Unclassified = community not yet identified in SIR survey.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── LARGE HOUSES (top 20 very large, 20+ voters) ── */}
       {activeView === 'large' && (
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 10 }}>Very Large Houses (20+ voters) — Top 8 by Voter Count</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 10 }}>
+            Very Large Houses (20+ voters) — Top 20 by Voter Count
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {veryLargeHouses.map((h, i) => {
+            {veryLargeHouses.map((h) => {
               const mapColor  = h.mappedPct < 30 ? '#f87171' : h.mappedPct < 70 ? '#f59e0b' : '#10b981';
               const pollColor = h.polledPct < 30 ? '#f87171' : h.polledPct < 60 ? '#f59e0b' : '#22d3ee';
               return (
                 <div key={h.house} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#e2e8f0', fontFamily: 'ui-monospace,monospace', minWidth: 80 }}>{h.house}</span>
-                    <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.07)', borderRadius: 5, padding: '2px 7px', color: 'rgba(255,255,255,0.4)' }}>Ward {h.ward} · Booth {h.booth}</span>
-                    <span style={{ fontSize: 10, background: 'rgba(167,139,250,0.1)', borderRadius: 5, padding: '2px 7px', color: '#a78bfa', fontWeight: 700 }}>{h.voters} voters</span>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginLeft: 'auto' }}>{h.community}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#e2e8f0', fontFamily: 'ui-monospace,monospace', minWidth: 90 }}>{h.house}</span>
+                    <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.07)', borderRadius: 5, padding: '2px 7px', color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>Ward {h.ward} · Booth {h.booth}</span>
+                    <span style={{ fontSize: 10, background: 'rgba(167,139,250,0.1)', borderRadius: 5, padding: '2px 7px', color: '#a78bfa', fontWeight: 700, whiteSpace: 'nowrap' }}>{h.voters} voters</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto', maxWidth: 160, textAlign: 'right' }}>{h.community}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 16 }}>
                     <div style={{ flex: 1 }}>
@@ -2676,16 +2776,16 @@ function HouseConsolidatedPanel() {
                         <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ width: `${h.mappedPct}%`, height: '100%', background: mapColor, borderRadius: 3 }} />
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: mapColor, minWidth: 38, textAlign: 'right' }}>{h.mappedPct}%</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: mapColor, minWidth: 40, textAlign: 'right' }}>{h.mappedPct}%</span>
                       </div>
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginBottom: 3 }}>POLLED &#39;23</div>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginBottom: 3 }}>POLLED '23</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ width: `${h.polledPct}%`, height: '100%', background: pollColor, borderRadius: 3 }} />
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: pollColor, minWidth: 38, textAlign: 'right' }}>{h.polledPct}%</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: pollColor, minWidth: 40, textAlign: 'right' }}>{h.polledPct}%</span>
                       </div>
                     </div>
                   </div>
@@ -2696,10 +2796,12 @@ function HouseConsolidatedPanel() {
         </div>
       )}
 
-      {/* ── WARD TAB ── */}
+      {/* ── BY WARD ── */}
       {activeView === 'ward' && (
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 10 }}>Ward-wise House &amp; Voter Breakdown</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 10 }}>
+            Ward-wise House &amp; Voter Breakdown
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {wardStats.map(w => {
               const mapColor  = w.mappedPct < 70 ? '#f87171' : w.mappedPct < 80 ? '#f59e0b' : '#10b981';
@@ -2707,8 +2809,8 @@ function HouseConsolidatedPanel() {
               return (
                 <div key={w.ward} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '9px 14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#a78bfa', minWidth: 52 }}>Ward {w.ward}</span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{w.voters.toLocaleString()} voters</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#a78bfa', minWidth: 55 }}>Ward {w.ward}</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{w.voters.toLocaleString()} voters</span>
                     <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>·</span>
                     <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{w.houses.toLocaleString()} houses</span>
                   </div>
@@ -2724,7 +2826,7 @@ function HouseConsolidatedPanel() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>POLLED &#39;23</span>
+                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>POLLED '23</span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: pollColor }}>{w.polledPct}%</span>
                       </div>
                       <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
