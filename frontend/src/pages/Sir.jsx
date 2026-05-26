@@ -955,11 +955,11 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                     <thead>
                       <tr>
                         <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:34, textAlign:'center', fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'0.5px' }}>Pick</th>
-                        {year === '2025' && <ColHeader>Status</ColHeader>}
                         <ColHeader>House No</ColHeader>
                         <ColHeader>Name</ColHeader>
                         <ColHeader>Relation</ColHeader>
                         <ColHeader>Matched</ColHeader>
+                        {year === '2025' && <ColHeader>Status</ColHeader>}
                         <ColHeader>Booth</ColHeader>
                         <ColHeader>EPIC</ColHeader>
                         <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:36 }} />
@@ -1000,17 +1000,6 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                               : <Icon.Radio checked={isSelected(r)} color={accentColor} />
                             }
                           </td>
-                          {/* Mapping Status (2025 only) — leftmost data cell */}
-                          {year === '2025' && (
-                            <td style={{ padding:'7px 8px', whiteSpace:'nowrap', verticalAlign:'middle' }}>
-                              {r.mapping_status
-                                ? r.mapping_status.toLowerCase() === 'mapped'
-                                  ? <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(16,185,129,0.15)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)', display:'inline-flex', alignItems:'center', gap:3 }}>✓ Mapped</span>
-                                  : <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(249,115,22,0.12)', color:'#fb923c', border:'1px solid rgba(249,115,22,0.3)', display:'inline-flex', alignItems:'center', gap:3 }}>✗ Not Mapped</span>
-                                : <span style={{ color:'rgba(255,255,255,0.2)', fontSize:11 }}>—</span>
-                              }
-                            </td>
-                          )}
                           {/* House */}
                           <td style={{ padding:'7px 10px', fontSize:12, color: saved ? '#10b981' : r._matched ? accentColor : r._notExact ? '#f87171' : group.isAlmost ? '#fcd34d' : '#94a3b8', fontWeight: saved || r._matched || r._notExact || group.isAlmost ? 700 : 400, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
                             {saved && <span style={{ display:'inline-flex', marginRight:5, color:'#10b981' }}><Icon.Check /></span>}
@@ -1050,6 +1039,17 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                               </div>
                             )}
                           </td>
+                          {/* Mapping Status (2025 only) */}
+                          {year === '2025' && (
+                            <td style={{ padding:'7px 10px', whiteSpace:'nowrap' }}>
+                              {r.mapping_status
+                                ? r.mapping_status.toLowerCase() === 'mapped'
+                                  ? <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(16,185,129,0.15)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)', display:'inline-flex', alignItems:'center', gap:3 }}>✓ Mapped</span>
+                                  : <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(249,115,22,0.12)', color:'#fb923c', border:'1px solid rgba(249,115,22,0.3)', display:'inline-flex', alignItems:'center', gap:3 }}>✗ Not Mapped</span>
+                                : <span style={{ color:'rgba(255,255,255,0.2)', fontSize:11 }}>—</span>
+                              }
+                            </td>
+                          )}
                           {/* Booth */}
                           <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap' }}>
                             {r.booth ? (
