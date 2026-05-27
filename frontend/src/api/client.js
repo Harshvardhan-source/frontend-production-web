@@ -294,6 +294,8 @@ export const aiChatApi = {
 export const sirApi = {
   /**
    * Persist the user's confirmation decision from the SimilarRecordsPanel.
+   * Returns { success, status, doc_id } — doc_id is the MongoDB _id of the
+   * inserted document; pass it to attachForm() to link the scanned form.
    */
   confirmMatch: (record2025, record2002, notFound2025, notFound2002, searchInputs) =>
     api.post('/api/sir/confirm/', {
@@ -310,6 +312,20 @@ export const sirApi = {
    */
   confirmedList: (category = 'ALL', page = 1, limit = 20) =>
     api.get('/api/sir/confirmed/', { params: { category, page, limit } }),
+
+  /**
+   * Attach AI-extracted Annexure-III form data to an existing confirmed record.
+   *
+   * @param {string} docId          - MongoDB _id returned by confirmMatch
+   * @param {object} formExtraction - structured JSON from Claude Vision extraction
+   *
+   * Response: { success, doc_id, modified }
+   */
+  attachForm: (docId, formExtraction) =>
+    api.post('/api/sir/attach-form/', {
+      doc_id:          docId,
+      form_extraction: formExtraction,
+    }),
 };
 
 // ── SWOT Beneficiary List ─────────────────────────────────────────────────────

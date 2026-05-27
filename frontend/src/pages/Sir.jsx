@@ -626,6 +626,265 @@ function VoterInfoModal({ record, roll, onClose }) {
   );
 }
 
+
+// ─── SIR FORM UPLOADER ────────────────────────────────────────────────────────
+const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+
+const SIR_FORM_SYSTEM_PROMPT = `You are an expert OCR system for Indian electoral Annexure-III Enumeration Forms.
+Extract ALL visible information and return ONLY a valid JSON object with this exact structure:
+{
+  "personal": { "dateOfBirth": "", "aadhaarNo": "", "mobileNo": "", "fathersGuardianName": "", "fathersGuardianEpicNo": "", "mothersName": "", "mothersEpicNo": "", "spouseName": "", "spouseEpicNo": "" },
+  "electorDetails": { "electorName": "", "epicNo": "", "relativeName": "", "relationship": "", "district": "", "state": "", "acName": "", "acNumber": "", "partNo": "", "srNo": "" },
+  "relativeDetails": { "name": "", "epicNo": "", "relativeName": "", "relationship": "", "district": "", "state": "", "acName": "", "acNumber": "", "partNo": "", "srNo": "" },
+  "preprinted": { "serialNo": "", "partNo": "", "acPcName": "", "state": "", "electorName": "", "epicNo": "", "address": "" },
+  "meta": { "confidence": "high", "missingFields": [], "notes": "" }
+}
+Return ONLY the JSON. Use "" for blank/unreadable fields. List blank field names in missingFields.`;
+
+const SIR_FORM_SECTIONS = {
+  personal:      { label: 'Personal Information',        color: '#60a5fa', fields: { dateOfBirth:'Date of Birth', aadhaarNo:'Aadhaar No.', mobileNo:'Mobile No.', fathersGuardianName:"Father's / Guardian's Name", fathersGuardianEpicNo:"Father's EPIC No.", mothersName:"Mother's Name", mothersEpicNo:"Mother's EPIC No.", spouseName:"Spouse's Name", spouseEpicNo:"Spouse's EPIC No." } },
+  electorDetails:{ label: 'Elector Details (Last SIR)', color: '#34d399', fields: { electorName:'Elector Name', epicNo:'EPIC No.', relativeName:"Relative's Name", relationship:'Relationship', district:'District', state:'State', acName:'AC Name', acNumber:'AC Number', partNo:'Part No.', srNo:'Sr No.' } },
+  relativeDetails:{ label: 'Relative Details (Last SIR)',color: '#f59e0b', fields: { name:'Name', epicNo:'EPIC No.', relativeName:"Relative's Name", relationship:'Relationship', district:'District', state:'State', acName:'AC Name', acNumber:'AC Number', partNo:'Part No.', srNo:'Sr No.' } },
+  preprinted:    { label: 'Pre-printed Details',         color: '#a78bfa', fields: { serialNo:'Serial No.', partNo:'Part No.', acPcName:'AC/PC Name', state:'State', electorName:'Elector Name', epicNo:'EPIC No.', address:'Address' } },
+};
+
+function SIRFormUploader({ docId, name, voterid }) {
+  const [phase,       setPhase]       = React.useState('done');
+  const [imageData,   setImageData]   = React.useState(null);
+  const [extracted,   setExtracted]   = React.useState(null);
+  const [attachErr,   setAttachErr]   = React.useState('');
+  const [showPreview, setShowPreview] = React.useState(false);
+  const fileRef = useRef();
+
+  const processFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result.split(',')[1];
+      setImageData({ base64, mimeType: file.type, previewUrl: e.target.result });
+      setPhase('preview');
+      setExtracted(null);
+      setAttachErr('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleExtract = async () => {
+    if (!imageData) return;
+    setPhase('extracting');
+    try {
+      const res = await fetch(CLAUDE_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: SIR_FORM_SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: imageData.mimeType, data: imageData.base64 } },
+            { type: 'text',  text: 'Extract all fields from this Annexure-III SIR form. Return only JSON.' },
+          ]}],
+        }),
+      });
+      const data = await res.json();
+      const text  = data.content?.find(b => b.type === 'text')?.text || '';
+      const clean = text.replace(/```json|```/gi, '').trim();
+      const parsed = JSON.parse(clean);
+      setExtracted(parsed);
+      setPhase('review');
+    } catch (err) {
+      setAttachErr('Extraction failed: ' + (err.message || 'unknown'));
+      setPhase('error');
+    }
+  };
+
+  const handleAttach = async () => {
+    if (!extracted || !docId) { setAttachErr('No document ID — save the record first.'); setPhase('error'); return; }
+    setPhase('attaching');
+    try {
+      const token = sessionStorage.getItem('cc_token');
+      const hdrs  = { 'Content-Type': 'application/json' };
+      if (token) hdrs['Authorization'] = `Bearer ${token}`;
+      const res  = await fetch(`${API}/sir/attach-form/`, {
+        method: 'POST', credentials: 'include', headers: hdrs,
+        body: JSON.stringify({ doc_id: docId, form_extraction: extracted }),
+      });
+      const data = await res.json();
+      if (data.success) { setPhase('attached'); }
+      else { setAttachErr(data.message || 'Attach failed'); setPhase('error'); }
+    } catch (err) { setAttachErr(err.message || 'Network error'); setPhase('error'); }
+  };
+
+  const conf    = extracted?.meta?.confidence || 'low';
+  const confCfg = { high:{ c:'#22c55e', bg:'rgba(34,197,94,0.12)' }, medium:{ c:'#f59e0b', bg:'rgba(245,158,11,0.12)' }, low:{ c:'#ef4444', bg:'rgba(239,68,68,0.12)' } }[conf] || { c:'#94a3b8', bg:'rgba(148,163,184,0.1)' };
+
+  const FRow = ({ label, value }) => {
+    const empty = !value || !value.trim();
+    return (
+      <div style={{ display:'grid', gridTemplateColumns:'44% 56%', borderBottom:'1px solid rgba(255,255,255,0.04)', minHeight:26 }}>
+        <div style={{ padding:'4px 10px', fontSize:10, color:'#475569', fontWeight:500, borderRight:'1px solid rgba(255,255,255,0.04)', display:'flex', alignItems:'center' }}>{label}</div>
+        <div style={{ padding:'4px 10px', fontSize:11, fontWeight: empty ? 400 : 600, color: empty ? 'rgba(100,116,139,0.3)' : '#e2e8f0', fontStyle: empty ? 'italic' : 'normal', display:'flex', alignItems:'center' }}>{empty ? '—' : value}</div>
+      </div>
+    );
+  };
+
+  const SCard = ({ skey, data }) => {
+    const cfg = SIR_FORM_SECTIONS[skey];
+    if (!cfg || !data) return null;
+    const filled = Object.values(data).filter(v => v && v.trim()).length;
+    return (
+      <div style={{ background:'rgba(8,12,25,0.9)', border:`1px solid ${cfg.color}22`, borderTop:`2px solid ${cfg.color}`, borderRadius:8, overflow:'hidden', marginBottom:8 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 12px', background:`${cfg.color}08` }}>
+          <span style={{ fontSize:11, fontWeight:700, color:cfg.color }}>{cfg.label}</span>
+          <span style={{ fontSize:10, color:'#475569', background:'rgba(255,255,255,0.04)', padding:'1px 7px', borderRadius:8 }}>{filled}/{Object.keys(cfg.fields).length} fields</span>
+        </div>
+        {Object.entries(cfg.fields).map(([k, lbl]) => <FRow key={k} label={lbl} value={data[k]} />)}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ width:'100%', marginTop:8 }}>
+
+      {/* Saved badge + Upload trigger */}
+      {(phase === 'done' || phase === 'preview') && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, color:'#10b981', fontWeight:700, fontSize:13 }}>
+            <Icon.Check /> Saved to database
+          </div>
+          <span style={{ color:'rgba(255,255,255,0.15)', fontSize:12 }}>·</span>
+          <button
+            onClick={() => fileRef.current?.click()}
+            style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.3)', borderRadius:8, padding:'7px 14px', cursor:'pointer', color:'#818cf8', fontSize:12, fontWeight:700 }}
+          >📎 Attach SIR Form</button>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+        </div>
+      )}
+
+      {/* Preview thumbnail + Extract button */}
+      {phase === 'preview' && imageData && (
+        <div style={{ marginTop:10, background:'rgba(10,15,30,0.7)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:10, overflow:'hidden' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px' }}>
+            <img src={imageData.previewUrl} alt="SIR form" onClick={() => setShowPreview(true)}
+              style={{ width:54, height:54, objectFit:'cover', borderRadius:6, cursor:'pointer', border:'1px solid rgba(255,255,255,0.1)', flexShrink:0 }} />
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:'#e2e8f0' }}>Form image ready</div>
+              <div style={{ fontSize:10, color:'#475569', marginTop:2 }}>Click image to preview full · Claude will read all fields</div>
+            </div>
+            <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+              <button onClick={handleExtract} style={{ display:'flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#3b82f6,#6366f1)', border:'none', borderRadius:8, padding:'8px 16px', cursor:'pointer', color:'#fff', fontSize:12, fontWeight:700 }}>⚡ Extract</button>
+              <button onClick={() => { setPhase('done'); setImageData(null); }} style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'8px 10px', cursor:'pointer', color:'#f87171', fontSize:12 }}>✕</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Extracting spinner */}
+      {phase === 'extracting' && (
+        <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'rgba(99,102,241,0.06)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:10 }}>
+          <span style={{ display:'inline-block', animation:'spin 0.9s linear infinite', fontSize:18 }}>⟳</span>
+          <div>
+            <div style={{ fontSize:12, fontWeight:700, color:'#818cf8' }}>Extracting form fields…</div>
+            <div style={{ fontSize:10, color:'#475569', marginTop:1 }}>Claude Vision is reading the Annexure-III form</div>
+          </div>
+        </div>
+      )}
+
+      {/* Review — structured output */}
+      {phase === 'review' && extracted && (
+        <div style={{ marginTop:10 }}>
+          {/* Header */}
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap', padding:'10px 14px', background:'rgba(10,15,30,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10 }}>
+            <span style={{ fontSize:13, fontWeight:700, color:'#e2e8f0' }}>Extracted Form Data</span>
+            <span style={{ fontSize:10, fontWeight:700, padding:'2px 9px', borderRadius:20, background:confCfg.bg, color:confCfg.c, display:'inline-flex', alignItems:'center', gap:4 }}>
+              <span style={{ width:5, height:5, borderRadius:'50%', background:confCfg.c, display:'inline-block' }} />
+              {conf.toUpperCase()} CONFIDENCE
+            </span>
+            {extracted.meta?.missingFields?.length > 0 && (
+              <span style={{ fontSize:10, color:'#64748b' }}>{extracted.meta.missingFields.length} blank field(s)</span>
+            )}
+            {name && (
+              <span style={{ fontSize:10, color:'#475569', marginLeft:'auto' }}>
+                Linking to: <span style={{ color:'#94a3b8', fontWeight:600 }}>{name}</span>
+                {voterid && <span style={{ color:'#64748b' }}> · {voterid}</span>}
+              </span>
+            )}
+          </div>
+
+          {/* Sections — 2-col grid */}
+          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:0 }}>
+            {Object.keys(SIR_FORM_SECTIONS).map(sec => (
+              <SCard key={sec} skey={sec} data={extracted[sec]} />
+            ))}
+          </div>
+
+          {/* AI notes */}
+          {extracted.meta?.notes && (
+            <div style={{ fontSize:11, color:'#64748b', padding:'7px 12px', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:7, marginTop:6 }}>
+              📝 {extracted.meta.notes}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', marginTop:10 }}>
+            <button onClick={handleAttach} style={{ display:'flex', alignItems:'center', gap:7, background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.35)', borderRadius:9, padding:'9px 18px', cursor:'pointer', color:'#10b981', fontSize:13, fontWeight:700 }}>
+              <Icon.Save /> Save to Record
+            </button>
+            <button onClick={() => { setPhase('preview'); setExtracted(null); }} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'9px 14px', cursor:'pointer', color:'#64748b', fontSize:12 }}>Re-extract</button>
+            <button onClick={() => fileRef.current?.click()} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'9px 14px', cursor:'pointer', color:'#64748b', fontSize:12 }}>Different Image</button>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+          </div>
+        </div>
+      )}
+
+      {/* Attaching */}
+      {phase === 'attaching' && (
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8, color:'#6366f1', fontSize:12, fontWeight:600 }}>
+          <span style={{ display:'inline-block', animation:'spin 0.9s linear infinite' }}>⟳</span> Saving form data to record…
+        </div>
+      )}
+
+      {/* Attached success */}
+      {phase === 'attached' && (
+        <div style={{ marginTop:8, padding:'12px 14px', background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:10 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'#10b981', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}><Icon.Check /> Form data saved to database</div>
+          {extracted && (
+            <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+              {[
+                extracted.electorDetails?.electorName && { l:'Elector', v:extracted.electorDetails.electorName },
+                extracted.electorDetails?.epicNo      && { l:'EPIC',    v:extracted.electorDetails.epicNo },
+                extracted.personal?.dateOfBirth       && { l:'DOB',     v:extracted.personal.dateOfBirth },
+                extracted.personal?.mobileNo          && { l:'Mobile',  v:extracted.personal.mobileNo },
+                extracted.personal?.aadhaarNo         && { l:'Aadhaar', v:extracted.personal.aadhaarNo },
+                extracted.personal?.fathersGuardianName && { l:"Father/Guardian", v:extracted.personal.fathersGuardianName },
+              ].filter(Boolean).map(({ l, v }) => (
+                <span key={l} style={{ fontSize:10, background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:6, padding:'2px 8px', color:'#6ee7b7' }}>
+                  <span style={{ color:'#10b981', fontWeight:700 }}>{l}: </span>{v}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Error */}
+      {phase === 'error' && (
+        <div style={{ marginTop:8, padding:'10px 14px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:9, fontSize:12, color:'#fca5a5', display:'flex', alignItems:'center', gap:8 }}>
+          <span>⚠ {attachErr || 'Something went wrong.'}</span>
+          <button onClick={() => { setPhase(extracted ? 'review' : 'preview'); setAttachErr(''); }} style={{ background:'none', border:'none', color:'#60a5fa', cursor:'pointer', fontSize:12, fontWeight:600, padding:0, marginLeft:4 }}>Retry</button>
+        </div>
+      )}
+
+      {/* Full image modal */}
+      {showPreview && imageData && (
+        <div onClick={() => setShowPreview(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.9)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16, cursor:'zoom-out' }}>
+          <img src={imageData.previewUrl} alt="form" style={{ maxWidth:'92vw', maxHeight:'92vh', objectFit:'contain', borderRadius:8 }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── SIMILAR RECORDS PANEL ────────────────────────────────────────────────────
 function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002, in2025, in2002, inputFieldCount = 0, searchName = '', searchRelation = '', searchEpic = '', searchInputs = {}, confirmedVoterIds = new Set() }) {
   const [infoRecord,     setInfoRecord]     = useState(null);
@@ -637,6 +896,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   const [notFound25,    setNotFound25]    = useState(false);
   const [notFound02,    setNotFound02]    = useState(false);
   const [confirmStatus, setConfirmStatus] = useState('idle'); // idle | saving | saved | error
+  const [savedDocId,    setSavedDocId]    = useState(null);   // MongoDB _id returned after save
   // Local set of voter IDs saved this session (merges with prop)
   const [localSavedIds, setLocalSavedIds] = useState(new Set());
   const allSavedIds = new Set([...confirmedVoterIds, ...localSavedIds]);
@@ -679,6 +939,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
       const data = await res.json();
       if (data.success) {
         setConfirmStatus('saved');
+        setSavedDocId(data.doc_id || null);
         setLocalSavedIds(prev => {
           const next = new Set(prev);
           if (selected25?.voterid) next.add(selected25.voterid);
@@ -1183,9 +1444,11 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
 
           {/* Confirm button */}
           {confirmStatus === 'saved' ? (
-            <div style={{ display:'flex', alignItems:'center', gap:6, color:'#10b981', fontWeight:700, fontSize:13 }}>
-              <Icon.Check /> Saved to database
-            </div>
+            <SIRFormUploader
+              docId={savedDocId}
+              name={(selected25 || selected02)?.name || ''}
+              voterid={(selected25 || selected02)?.voterid || ''}
+            />
           ) : confirmStatus === 'error' ? (
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
               <span style={{ color:'#f87171', fontWeight:700, fontSize:12 }}>Save failed — retry?</span>
