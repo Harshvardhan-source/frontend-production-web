@@ -1131,12 +1131,21 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
           if (token) hdrs['Authorization'] = `Bearer ${token}`;
           await fetch(`${API}/sir/attach-form/`, {
             method: 'POST', credentials: 'include', headers: hdrs,
-            body: JSON.stringify({ doc_id: savedDocId, form_extraction: pendingExtract }),
+            body: JSON.stringify({
+              doc_id:          savedDocId,
+              form_extraction: pendingExtract,
+              // ── include the captured/uploaded photo so the backend
+              //    uploads it to GCS and stores the public URL in MongoDB ──
+              ...(pendingImage ? {
+                form_image_b64:  pendingImage.base64,
+                image_mime_type: pendingImage.mimeType,
+              } : {}),
+            }),
           });
         } catch { /**/ }
       })();
     }
-  }, [confirmStatus, savedDocId, pendingExtract]);
+  }, [confirmStatus, savedDocId, pendingExtract, pendingImage]);
 
   const hasPendingForm = !!(pendingImage || pendingExtract);
 
