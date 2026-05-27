@@ -1134,8 +1134,9 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
             body: JSON.stringify({
               doc_id:          savedDocId,
               form_extraction: pendingExtract,
-              // ── include the captured/uploaded photo so the backend
-              //    uploads it to GCS and stores the public URL in MongoDB ──
+              // ── FIX: include image so backend can upload to GCS ──────────────
+              // Without this, form_image_b64 is never sent → GCS upload is skipped
+              // → form_image_url never stored in SIR_ConfirmedMatches / SIR_ConfirmedNotFound
               ...(pendingImage ? {
                 form_image_b64:  pendingImage.base64,
                 image_mime_type: pendingImage.mimeType,
@@ -1145,7 +1146,7 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
         } catch { /**/ }
       })();
     }
-  }, [confirmStatus, savedDocId, pendingExtract, pendingImage]);
+  }, [confirmStatus, savedDocId, pendingExtract]);
 
   const hasPendingForm = !!(pendingImage || pendingExtract);
 
