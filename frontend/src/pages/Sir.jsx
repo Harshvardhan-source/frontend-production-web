@@ -835,6 +835,17 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
   const fileRef    = useRef();
   const cameraRef  = useRef();
 
+  // When post-save uploader is mounted with a carry-over image (pendingImage passed
+  // from ConfirmAndSaveBar), jump straight to 'preview' so the user sees the image
+  // and the extract button rather than the "Saved to database" idle buttons.
+  // The ConfirmAndSaveBar.useEffect handles the actual auto-extract+attach,
+  // but if that raced / failed, the user can still manually trigger it here.
+  React.useEffect(() => {
+    if (docId && pendingImage && !extracted) {
+      setPhase('preview');
+    }
+  }, []); // mount-only — pendingImage is stable
+
   // Keep parent in sync when imageData changes (pre-save flow)
   React.useEffect(() => {
     if (onPendingImageChange) onPendingImageChange(imageData);
@@ -1117,46 +1128,89 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
   const [pendingImage,   setPendingImage]   = useState(null);
   const [pendingExtract, setPendingExtract] = useState(null);
   const [showFormPanel,  setShowFormPanel]  = useState(false);
+  const [autoAttachErr,  setAutoAttachErr]  = useState('');   // surface silent failures
   const uploaderRef = useRef();
 
-  // When saved: auto-attach extracted data if we have it.
-  // Dependency array includes pendingExtract so this re-fires if the
-  // extraction result arrives just after the save completes.
+  // ── Auto-attach after save ────────────────────────────────────────────────
+  // Fires whenever save completes (confirmStatus/savedDocId) OR when
+  // pendingExtract arrives late (extraction was still in-flight at save time).
+  //
+  // Handles two cases:
+  //   A) extraction done BEFORE save → pendingExtract set → attach directly
+  //   B) image captured but NOT extracted before save → extract first, then attach
+  //      (UI says "will extract on save" — this is what actually does it)
   React.useEffect(() => {
-    if (confirmStatus === 'saved' && savedDocId && pendingExtract) {
-      (async () => {
-        try {
-          const token = sessionStorage.getItem('cc_token');
-          const hdrs  = { 'Content-Type': 'application/json' };
-          if (token) hdrs['Authorization'] = `Bearer ${token}`;
-          await fetch(`${API}/sir/attach-form/`, {
+    if (confirmStatus !== 'saved' || !savedDocId) return;
+    if (!pendingExtract && !pendingImage) return;   // nothing to process
+
+    setAutoAttachErr('');
+
+    (async () => {
+      try {
+        const token = sessionStorage.getItem('cc_token');
+        const hdrs  = { 'Content-Type': 'application/json' };
+        if (token) hdrs['Authorization'] = `Bearer ${token}`;
+
+        let extractData = pendingExtract;
+
+        // ── Case B: image present but extraction not done yet ────────────────
+        if (!extractData && pendingImage) {
+          const r = await fetch(`${API}/sir/form-extract/`, {
             method: 'POST', credentials: 'include', headers: hdrs,
-            body: JSON.stringify({
-              doc_id:          savedDocId,
-              form_extraction: pendingExtract,
-              // ── FIX: include image so backend can upload to GCS ──────────────
-              // Without this, form_image_b64 is never sent → GCS upload is skipped
-              // → form_image_url never stored in SIR_ConfirmedMatches / SIR_ConfirmedNotFound
-              ...(pendingImage ? {
-                form_image_b64:  pendingImage.base64,
-                image_mime_type: pendingImage.mimeType,
-              } : {}),
-            }),
+            body: JSON.stringify({ image: pendingImage.base64, mimeType: pendingImage.mimeType }),
           });
-        } catch { /**/ }
-      })();
-    }
+          const j = await r.json();
+          if (!j.success || !j.data) {
+            setAutoAttachErr(`Form extraction failed: ${j.message || 'Unknown error'}`);
+            return;
+          }
+          extractData = j.data;
+          setPendingExtract(extractData);   // store so UI reflects it
+        }
+
+        if (!extractData) return;
+
+        // ── Attach extraction + GCS image URL to the saved document ─────────
+        const res  = await fetch(`${API}/sir/attach-form/`, {
+          method: 'POST', credentials: 'include', headers: hdrs,
+          body: JSON.stringify({
+            doc_id:          savedDocId,
+            form_extraction: extractData,
+            // Always include image so backend uploads to GCS and stores form_image_url
+            ...(pendingImage ? {
+              form_image_b64:  pendingImage.base64,
+              image_mime_type: pendingImage.mimeType,
+            } : {}),
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          setAutoAttachErr(`Attach failed: ${data.message || 'Unknown error'}`);
+        }
+      } catch (err) {
+        setAutoAttachErr(`Auto-attach error: ${err.message || 'Network error'}`);
+      }
+    })();
   }, [confirmStatus, savedDocId, pendingExtract]);
+  // ↑ pendingImage NOT in deps — read from closure (stable once set, won't change after save)
 
   const hasPendingForm = !!(pendingImage || pendingExtract);
 
   if (confirmStatus === 'saved') {
     return (
       <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(16,185,129,0.2)', background:'rgba(16,185,129,0.04)', padding:'14px 16px' }}>
+        {/* Surface any auto-attach / extraction errors that were previously silent */}
+        {autoAttachErr && (
+          <div style={{ marginBottom:10, padding:'8px 12px', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:8, fontSize:12, color:'#fca5a5', display:'flex', alignItems:'center', gap:8 }}>
+            <span>⚠ {autoAttachErr}</span>
+            <button onClick={() => setAutoAttachErr('')} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:11, padding:0, marginLeft:'auto' }}>✕</button>
+          </div>
+        )}
         <SIRFormUploader
           docId={savedDocId}
           name={voterName}
           voterid={voterId}
+          pendingImage={pendingImage}
         />
       </div>
     );
