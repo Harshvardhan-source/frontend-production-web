@@ -1743,6 +1743,7 @@ export default function DataView() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
+    <>
     <div className="page">
       <Navbar />
 
@@ -2218,5 +2219,6 @@ export default function DataView() {
         }}
       />
     )}
+    </>
   );
 }
