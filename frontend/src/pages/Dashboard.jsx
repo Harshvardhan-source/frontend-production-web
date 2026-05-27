@@ -4262,6 +4262,263 @@ function LargeFamiliesModal({ onClose }) {
 
 // ─── Ward Strength Intelligence Panel ────────────────────────────────────────
 
+// ─── House Master Consolidated Report Panel ───────────────────────────────────
+// Static data baked from House_Master_Consolidated_Report_v3.xlsx
+const HMC_SUMMARY = {
+  totalVoters:  250978,
+  totalHouses:  118135, // 264+1483+7752+42318+66318
+  mapped:       184679, mappedPct: 73.6,
+  notMapped:    66300,  notMappedPct: 26.4,
+  polled:       136018, polledPct: 54.2,
+  notPolled:    97720,  notPolledPct: 38.9,
+  wards: 38, booths: 249,
+};
+
+const HMC_HOUSE_SIZES = [
+  { label: 'Very Large (20+)', count: 264,   color: '#ef4444', emoji: '🔴' },
+  { label: 'Large (10–19)',    count: 1483,  color: '#f97316', emoji: '🟠' },
+  { label: 'Medium (5–9)',     count: 7752,  color: '#f59e0b', emoji: '🟡' },
+  { label: 'Small (2–4)',      count: 42318, color: '#3b82f6', emoji: '🔵' },
+  { label: 'Single (1)',       count: 66318, color: '#6b7280', emoji: '⚪' },
+];
+
+const HMC_COMMUNITIES = [
+  { name: 'Unclassified',          houses: 42985, voters: 92402,  mappedPct: 71.8, polledPct: 55.9, color: '#6b7280' },
+  { name: 'Muslim',                houses: 20552, voters: 49246,  mappedPct: 76.9, polledPct: 46.7, color: '#22d3ee' },
+  { name: 'Mangalorean Catholic',  houses: 14667, voters: 30515,  mappedPct: 75.3, polledPct: 50.6, color: '#a78bfa' },
+  { name: 'GSB',                   houses: 8981,  voters: 17549,  mappedPct: 69.9, polledPct: 58.6, color: '#f59e0b' },
+  { name: 'Bunt',                  houses: 8429,  voters: 17174,  mappedPct: 72.9, polledPct: 57.9, color: '#fb923c' },
+  { name: 'Billava',               houses: 5211,  voters: 10958,  mappedPct: 78.4, polledPct: 60.0, color: '#34d399' },
+  { name: 'GSB/Yadav/Bekal (Rao)', houses: 3105,  voters: 5642,   mappedPct: 68.7, polledPct: 55.9, color: '#fbbf24' },
+  { name: 'Christian',             houses: 2775,  voters: 5065,   mappedPct: 73.1, polledPct: 50.9, color: '#e879f9' },
+  { name: 'Billava/Mogaveera',     houses: 2090,  voters: 4147,   mappedPct: 79.2, polledPct: 60.6, color: '#10b981' },
+  { name: 'Vishwakarma',           houses: 1162,  voters: 2441,   mappedPct: 73.6, polledPct: 61.2, color: '#60a5fa' },
+];
+
+const HMC_TOP_HOUSES = [
+  { houseNo: '15-18-1065', ward: 34, wardName: 'Shivbhag',      booth: 134, voters: 190, community: 'Mangalorean Catholic' },
+  { houseNo: '25-22-1353', ward: 59, wardName: 'Jeppu',          booth: 159, voters: 164, community: 'Mangalorean Catholic' },
+  { houseNo: '5-79/20',    ward: 51, wardName: 'Alape Uttara',   booth: 195, voters: 153, community: 'Unclassified'         },
+  { houseNo: '13-10-1283', ward: 41, wardName: 'Central',        booth: 127, voters: 127, community: 'GSB'                  },
+  { houseNo: '1-9',        ward: 37, wardName: 'Maroli',         booth: 52,  voters: 116, community: 'Mangalorean Catholic' },
+  { houseNo: '25-3-176/1', ward: 48, wardName: 'Valencia',       booth: 137, voters: 106, community: 'Unclassified'         },
+  { houseNo: '20-13-819',  ward: 45, wardName: 'Port',           booth: 153, voters: 97,  community: 'Mangalorean Catholic' },
+  { houseNo: '5-79/21',    ward: 51, wardName: 'Alape Uttara',   booth: 195, voters: 75,  community: 'Mangalorean Catholic' },
+];
+
+const COMM_COLORS = {
+  'Mangalorean Catholic': '#a78bfa', 'Muslim': '#22d3ee',
+  'GSB': '#f59e0b', 'Unclassified': '#6b7280', 'GSB (Goud Saraswat Brahmin)': '#f59e0b',
+};
+
+function HouseMasterPanel() {
+  const [showAllComm,   setShowAllComm]   = useState(false);
+  const [showTopHouses, setShowTopHouses] = useState(false);
+
+  const totalHouses = HMC_HOUSE_SIZES.reduce((s, r) => s + r.count, 0);
+  const visibleComm = showAllComm ? HMC_COMMUNITIES : HMC_COMMUNITIES.slice(0, 6);
+
+  const cardStyle = {
+    background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
+    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+    padding: '20px 16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+  };
+
+  return (
+    <div style={{ marginBottom: 20 }} className="anim-fade-up">
+      {/* ── Header ── */}
+      <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Home size={15} style={{ color: '#10b981' }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)' }}>House Master Report</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+            {HMC_SUMMARY.wards} wards · {HMC_SUMMARY.booths} booths · {HMC_SUMMARY.totalHouses.toLocaleString()} houses · {HMC_SUMMARY.totalVoters.toLocaleString()} voters
+          </div>
+        </div>
+        <div style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 6, padding: '3px 8px' }}>
+          HMC v3 · Verified ✓
+        </div>
+      </div>
+
+      {/* ── 4 KPI Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+        {[
+          { label: 'Total Houses',  value: HMC_SUMMARY.totalHouses.toLocaleString(),  sub: `${HMC_SUMMARY.wards} wards`,           color: '#10b981', icon: '🏠' },
+          { label: 'Total Voters',  value: HMC_SUMMARY.totalVoters.toLocaleString(),  sub: 'voters in houses',                      color: '#22d3ee', icon: '👥' },
+          { label: 'Mapped',        value: `${HMC_SUMMARY.mappedPct}%`,               sub: `${HMC_SUMMARY.mapped.toLocaleString()} mapped`, color: '#f59e0b', icon: '📍' },
+          { label: 'Polled 2023',   value: `${HMC_SUMMARY.polledPct}%`,               sub: `${HMC_SUMMARY.polled.toLocaleString()} voted`,  color: '#8b5cf6', icon: '🗳️' },
+        ].map(k => (
+          <div key={k.label} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${k.color}22`, borderRadius: 14, padding: '14px 12px' }}>
+            <div style={{ fontSize: 18, marginBottom: 6 }}>{k.icon}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>{k.label}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Two-column: House Size + Community Table ── */}
+      <div className="db-two-col" style={{ marginBottom: 14 }}>
+
+        {/* House Size Distribution */}
+        <div style={cardStyle}>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>House Size Distribution</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{totalHouses.toLocaleString()} total households</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {HMC_HOUSE_SIZES.map(row => {
+              const pct = ((row.count / totalHouses) * 100).toFixed(1);
+              return (
+                <div key={row.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13 }}>{row.emoji}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>{row.label}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: row.color, fontWeight: 700 }}>{row.count.toLocaleString()}</span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${row.color}99, ${row.color})`, borderRadius: 3, transition: 'width 0.6s ease' }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Mapping coverage bar */}
+          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Mapping Coverage</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b' }}>{HMC_SUMMARY.mappedPct}%</span>
+            </div>
+            <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+              <div style={{ width: `${HMC_SUMMARY.mappedPct}%`, background: 'linear-gradient(90deg, #f59e0b99, #f59e0b)', borderRadius: '4px 0 0 4px' }} />
+              <div style={{ flex: 1, background: 'rgba(239,68,68,0.3)' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Mapped: {HMC_SUMMARY.mapped.toLocaleString()}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Not Mapped: {HMC_SUMMARY.notMapped.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Poll Rate 2023</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#8b5cf6' }}>{HMC_SUMMARY.polledPct}%</span>
+            </div>
+            <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', display: 'flex', marginTop: 6 }}>
+              <div style={{ width: `${HMC_SUMMARY.polledPct}%`, background: 'linear-gradient(90deg, #8b5cf699, #8b5cf6)', borderRadius: '4px 0 0 4px' }} />
+              <div style={{ flex: 1, background: 'rgba(239,68,68,0.2)' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Polled: {HMC_SUMMARY.polled.toLocaleString()}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Not Polled: {HMC_SUMMARY.notPolled.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Community × Mapping × Polling */}
+        <div style={cardStyle}>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>Community — Mapping &amp; Poll Rates</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>By primary community · all {HMC_SUMMARY.totalHouses.toLocaleString()} houses</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Header row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              {['Community', 'Houses', 'Mapped%', 'Polled%'].map(h => (
+                <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'Community' ? 'left' : 'center' }}>{h}</div>
+              ))}
+            </div>
+            {visibleComm.map(row => (
+              <div key={row.name} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: row.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</span>
+                </div>
+                <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>{row.houses.toLocaleString()}</div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: row.mappedPct >= 75 ? '#10b981' : row.mappedPct >= 65 ? '#f59e0b' : '#ef4444' }}>{row.mappedPct}%</span>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: row.polledPct >= 58 ? '#22d3ee' : row.polledPct >= 50 ? '#f59e0b' : '#ef4444' }}>{row.polledPct}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {HMC_COMMUNITIES.length > 6 && (
+            <button onClick={() => setShowAllComm(v => !v)} style={{
+              marginTop: 12, width: '100%', background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)', borderRadius: 9,
+              padding: '8px 0', cursor: 'pointer', color: 'rgba(255,255,255,0.4)',
+              fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              {showAllComm ? <><ChevronUp size={13} /> Show Less</> : <><ChevronDown size={13} /> Show All {HMC_COMMUNITIES.length} Communities</>}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Top Very Large Houses ── */}
+      <div style={cardStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>
+              Top Very Large Houses <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 600 }}>🔴 20+ voters</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{HMC_SUMMARY.totalHouses && 264} very large houses across the constituency</div>
+          </div>
+          <button onClick={() => setShowTopHouses(v => !v)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+            {showTopHouses ? <><ChevronUp size={12} /> Collapse</> : <><ChevronDown size={12} /> Expand Top 8</>}
+          </button>
+        </div>
+        {showTopHouses && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 60px 60px 140px', gap: 8, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              {['House No', 'Ward', 'Booth', 'Voters', 'Community'].map(h => (
+                <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
+              ))}
+            </div>
+            {HMC_TOP_HOUSES.map((h, i) => (
+              <div key={h.houseNo} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 60px 60px 140px', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: 6, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#ef4444', flexShrink: 0 }}>#{i + 1}</div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)', fontFamily: 'monospace' }}>{h.houseNo}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                  <span style={{ fontWeight: 700, color: '#f59e0b' }}>W{h.ward}</span> {h.wardName}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>{h.booth}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444', textAlign: 'center' }}>{h.voters}</div>
+                <div>
+                  <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 7px', background: `${COMM_COLORS[h.community] || '#888'}18`, color: COMM_COLORS[h.community] || '#888', border: `1px solid ${COMM_COLORS[h.community] || '#888'}30` }}>{h.community}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {!showTopHouses && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {HMC_TOP_HOUSES.slice(0, 5).map(h => (
+              <div key={h.houseNo} style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', fontFamily: 'monospace' }}>{h.houseNo}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>W{h.ward} · Booth {h.booth}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.7)' }}>{h.voters} <span style={{ fontSize: 9, fontWeight: 400 }}>voters</span></div>
+              </div>
+            ))}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>+{HMC_TOP_HOUSES.length - 5} more…</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user }              = useAuth();
@@ -5190,6 +5447,9 @@ export default function Dashboard() {
 
           {/* ── Community Classification 2002 vs 2025 ─────────────────────── */}
           <CommunityClassificationPanel ward={selectedWard || ''} booth={selectedBooth || ''} />
+
+          {/* ── House Master Consolidated Report ─────────────────────────── */}
+          {!selectedWard && !selectedBooth && <HouseMasterPanel />}
 
           {/* ── Gender + Quick Actions ────────────────────────────────────── */}
           <div className="db-two-col" style={{ marginBottom: 28 }}>
