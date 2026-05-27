@@ -709,7 +709,17 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
     if (!searchRelation) return true;
     const r = _normalize(rec?.relation || '');
     const q = _normalize(searchRelation);
-    return q.split(/\s+/).filter(Boolean).some(tok => r.includes(tok));
+    const tokens = q.split(/\s+/).filter(t => t.length >= 2);
+    if (!tokens.length) return true;
+    // Single-token query: just check presence.
+    if (tokens.length === 1) return r.includes(tokens[0]);
+    // Multi-token query: strictly more than half the tokens must appear in the
+    // candidate relation.  For a 2-token query ("MADHAVARAYA KAMATH") this
+    // means BOTH must match — preventing a shared surname ("KAMATH") from
+    // confirming a completely different person ("VAMANA KAMATH").
+    // For 3 tokens: 2 of 3 must match; for 4: 3 of 4; etc.
+    const matched = tokens.filter(tok => r.includes(tok)).length;
+    return matched / tokens.length > 0.5;
   };
   // When the user typed an EPIC, the confirmed record MUST have that exact EPIC.
   // A record that only shares the name/relation but has a different EPIC is NOT confirmed.
@@ -736,7 +746,12 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
         if (!searchRelation) return false;
         const r = _normalize(rec?.relation || '');
         const q = _normalize(searchRelation);
-        return q.split(/\s+/).filter(Boolean).some(tok => r.includes(tok));
+        const tokens = q.split(/\s+/).filter(t => t.length >= 2);
+        if (!tokens.length) return false;
+        if (tokens.length === 1) return r.includes(tokens[0]);
+        // Same coverage rule as _relMatch: >50% of tokens must be present.
+        const matched = tokens.filter(tok => r.includes(tok)).length;
+        return matched / tokens.length > 0.5;
       }
       if (field === 'voterid') {
         if (!searchEpic) return false;
@@ -795,8 +810,9 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
         key = 'confirmed'; label = 'Confirmed Match'; priority = 0; color = '#10b981';
       } else if (r._notExact) {
         // Backend returned a "confirmed" record but it doesn't satisfy the search
-        // inputs — show it as a near-match, not as a confirmed exact match.
-        key = 'not_exact'; label = 'No Exact Match Found'; priority = 0; color = '#f87171';
+        // inputs (e.g. relation given name clearly differs).  Show it below the
+        // proper matched groups so the right candidates surface first.
+        key = 'not_exact'; label = 'Near Match — relation differs'; priority = 4; color = '#f87171';
       } else if (mb.length >= 4) {
         key = 'all4'; label = 'All 4 fields matched'; priority = 1; color = '#10b981';
       } else if (mb.length === 3) {
