@@ -822,9 +822,11 @@ function ExtractedInfoDisplay({ extracted, name, voterid }) {
   );
 }
 
-function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageChange }) {
+function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageChange, onExtractedChange }) {
   // pendingImage / onPendingImageChange allow the parent (ConfirmBar) to
   // pre-attach a photo before saving — so both happen in one "Confirm & Save" click.
+  // onExtractedChange: called with the extracted JSON (or null on reset) so the
+  // parent can store it and attach it once the record doc_id is known.
   const [phase,       setPhase]       = React.useState('idle');
   const [imageData,   setImageData]   = React.useState(pendingImage || null);
   const [extracted,   setExtracted]   = React.useState(null);
@@ -837,6 +839,13 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
   React.useEffect(() => {
     if (onPendingImageChange) onPendingImageChange(imageData);
   }, [imageData]);
+
+  // Keep parent in sync when extracted data changes (pre-save flow).
+  // This is the key hook that lets ConfirmAndSaveBar store the extracted
+  // JSON and attach it to the document once savedDocId is available.
+  React.useEffect(() => {
+    if (onExtractedChange) onExtractedChange(extracted);
+  }, [extracted]);
 
   // If docId arrives (parent just saved), auto-attach any extracted data
   React.useEffect(() => {
@@ -852,7 +861,7 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
       const base64 = e.target.result.split(',')[1];
       setImageData({ base64, mimeType: file.type, previewUrl: e.target.result });
       setPhase('preview');
-      setExtracted(null);
+      setExtracted(null);  // clears local + triggers onExtractedChange(null) via useEffect
       setAttachErr('');
     };
     reader.readAsDataURL(file);
@@ -1084,7 +1093,9 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
   const [showFormPanel,  setShowFormPanel]  = useState(false);
   const uploaderRef = useRef();
 
-  // When saved: auto-attach extracted data if we have it
+  // When saved: auto-attach extracted data if we have it.
+  // Dependency array includes pendingExtract so this re-fires if the
+  // extraction result arrives just after the save completes.
   React.useEffect(() => {
     if (confirmStatus === 'saved' && savedDocId && pendingExtract) {
       (async () => {
@@ -1099,7 +1110,7 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
         } catch { /**/ }
       })();
     }
-  }, [confirmStatus, savedDocId]);
+  }, [confirmStatus, savedDocId, pendingExtract]);
 
   const hasPendingForm = !!(pendingImage || pendingExtract);
 
@@ -1216,6 +1227,7 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
             name={voterName}
             voterid={voterId}
             onPendingImageChange={(img) => setPendingImage(img)}
+            onExtractedChange={(ext) => setPendingExtract(ext)}
           />
         </div>
       )}
