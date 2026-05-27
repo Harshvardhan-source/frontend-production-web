@@ -898,12 +898,28 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
       const token = sessionStorage.getItem('cc_token');
       const hdrs  = { 'Content-Type': 'application/json' };
       if (token) hdrs['Authorization'] = `Bearer ${token}`;
+      const payload = {
+        doc_id:          docId,
+        form_extraction: extracted,
+        // Send the original image so the backend uploads it to GCS
+        // and stores a public URL — not raw base64 — in MongoDB.
+        ...(imageData ? {
+          form_image_b64:  imageData.base64,
+          image_mime_type: imageData.mimeType,
+        } : {}),
+      };
       const res  = await fetch(`${API}/sir/attach-form/`, {
         method: 'POST', credentials: 'include', headers: hdrs,
-        body: JSON.stringify({ doc_id: docId, form_extraction: extracted }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data.success) { setPhase('attached'); }
+      if (data.success) {
+        // Store returned GCS URL so it can be displayed in the success panel
+        if (data.form_image_url && imageData) {
+          setImageData(prev => ({ ...prev, gcpUrl: data.form_image_url }));
+        }
+        setPhase('attached');
+      }
       else { setAttachErr(data.message || 'Attach failed'); setPhase('error'); }
     } catch (err) { setAttachErr(err.message || 'Network error'); setPhase('error'); }
   };
@@ -1050,6 +1066,16 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
           <div style={{ fontSize:13, fontWeight:700, color:'#10b981', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
             <Icon.Check /> Form data saved to database
           </div>
+          {/* GCS image URL badge — shown when backend returned a public URL */}
+          {imageData?.gcpUrl && (
+            <div style={{ marginBottom:8, display:'flex', alignItems:'center', gap:6, padding:'6px 10px', background:'rgba(34,211,238,0.06)', border:'1px solid rgba(34,211,238,0.18)', borderRadius:7 }}>
+              <span style={{ fontSize:11, color:'#22d3ee', fontWeight:700, flexShrink:0 }}>📸 Stored:</span>
+              <a href={imageData.gcpUrl} target="_blank" rel="noreferrer"
+                style={{ color:'#7dd3fc', textDecoration:'none', fontSize:10, wordBreak:'break-all' }}>
+                {imageData.gcpUrl}
+              </a>
+            </div>
+          )}
           {extracted && (
             <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
               {KEY_FIELDS.map(({ sec, key, label }) => {
