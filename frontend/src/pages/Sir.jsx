@@ -627,24 +627,223 @@ function VoterInfoModal({ record, roll, onClose }) {
 }
 
 
-// ─── SIR FORM UPLOADER ────────────────────────────────────────────────────────
+// ─── SIR FORM UPLOADER ─────────────────────────────────────────────────────────
 // OCR extraction is routed through /api/sir/form-extract/ (server-side).
-// Calling api.anthropic.com directly from the browser is blocked by CORS.
 
 const SIR_FORM_SECTIONS = {
-  personal:      { label: 'Personal Information',        color: '#60a5fa', fields: { dateOfBirth:'Date of Birth', aadhaarNo:'Aadhaar No.', mobileNo:'Mobile No.', fathersGuardianName:"Father's / Guardian's Name", fathersGuardianEpicNo:"Father's EPIC No.", mothersName:"Mother's Name", mothersEpicNo:"Mother's EPIC No.", spouseName:"Spouse's Name", spouseEpicNo:"Spouse's EPIC No." } },
-  electorDetails:{ label: 'Elector Details (Last SIR)', color: '#34d399', fields: { electorName:'Elector Name', epicNo:'EPIC No.', relativeName:"Relative's Name", relationship:'Relationship', district:'District', state:'State', acName:'AC Name', acNumber:'AC Number', partNo:'Part No.', srNo:'Sr No.' } },
-  relativeDetails:{ label: 'Relative Details (Last SIR)',color: '#f59e0b', fields: { name:'Name', epicNo:'EPIC No.', relativeName:"Relative's Name", relationship:'Relationship', district:'District', state:'State', acName:'AC Name', acNumber:'AC Number', partNo:'Part No.', srNo:'Sr No.' } },
-  preprinted:    { label: 'Pre-printed Details',         color: '#a78bfa', fields: { serialNo:'Serial No.', partNo:'Part No.', acPcName:'AC/PC Name', state:'State', electorName:'Elector Name', epicNo:'EPIC No.', address:'Address' } },
+  personal:      { label: 'Personal',        icon: '👤', color: '#60a5fa', fields: { dateOfBirth:'Date of Birth', aadhaarNo:'Aadhaar No.', mobileNo:'Mobile No.', fathersGuardianName:"Father's / Guardian's Name", fathersGuardianEpicNo:"Father's EPIC No.", mothersName:"Mother's Name", mothersEpicNo:"Mother's EPIC No.", spouseName:"Spouse's Name", spouseEpicNo:"Spouse's EPIC No." } },
+  electorDetails:{ label: 'Elector (Last SIR)', icon: '🗳', color: '#34d399', fields: { electorName:'Elector Name', epicNo:'EPIC No.', relativeName:"Relative's Name", relationship:'Relationship', district:'District', state:'State', acName:'AC Name', acNumber:'AC Number', partNo:'Part No.', srNo:'Sr No.' } },
+  relativeDetails:{ label: 'Relative (Last SIR)', icon: '👪', color: '#f59e0b', fields: { name:'Name', epicNo:'EPIC No.', relativeName:"Relative's Name", relationship:'Relationship', district:'District', state:'State', acName:'AC Name', acNumber:'AC Number', partNo:'Part No.', srNo:'Sr No.' } },
+  preprinted:    { label: 'Pre-printed',      icon: '📋', color: '#a78bfa', fields: { serialNo:'Serial No.', partNo:'Part No.', acPcName:'AC/PC Name', state:'State', electorName:'Elector Name', epicNo:'EPIC No.', address:'Address' } },
 };
 
-function SIRFormUploader({ docId, name, voterid }) {
-  const [phase,       setPhase]       = React.useState('done');
-  const [imageData,   setImageData]   = React.useState(null);
+// ── Highlight key fields for the summary strip ────────────────────────────────
+const KEY_FIELDS = [
+  { sec:'electorDetails',  key:'electorName',           label:'Name'         },
+  { sec:'electorDetails',  key:'epicNo',                label:'EPIC'         },
+  { sec:'personal',        key:'dateOfBirth',           label:'DOB'          },
+  { sec:'personal',        key:'mobileNo',              label:'Mobile'       },
+  { sec:'personal',        key:'aadhaarNo',             label:'Aadhaar'      },
+  { sec:'personal',        key:'fathersGuardianName',   label:'Father/Guard' },
+  { sec:'electorDetails',  key:'partNo',                label:'Part No.'     },
+  { sec:'preprinted',      key:'address',               label:'Address'      },
+];
+
+function ExtractedInfoDisplay({ extracted, name, voterid }) {
+  const conf    = extracted?.meta?.confidence || 'low';
+  const confCfg = {
+    high:   { c:'#22c55e', bg:'rgba(34,197,94,0.10)',  border:'rgba(34,197,94,0.25)',  label:'High Confidence'   },
+    medium: { c:'#f59e0b', bg:'rgba(245,158,11,0.10)', border:'rgba(245,158,11,0.25)', label:'Medium Confidence' },
+    low:    { c:'#ef4444', bg:'rgba(239,68,68,0.10)',  border:'rgba(239,68,68,0.25)',  label:'Low Confidence'    },
+  }[conf] || { c:'#94a3b8', bg:'rgba(148,163,184,0.08)', border:'rgba(148,163,184,0.2)', label:'Unknown' };
+
+  // Count filled fields across all sections
+  const totalFields = Object.values(SIR_FORM_SECTIONS).reduce((s, sec) => s + Object.keys(sec.fields).length, 0);
+  const filledFields = Object.values(SIR_FORM_SECTIONS).reduce((s, sec) => {
+    const data = extracted?.[Object.keys(SIR_FORM_SECTIONS).find(k => SIR_FORM_SECTIONS[k] === sec)] || {};
+    return s + Object.keys(sec.fields).filter(k => data[k]?.trim()).length;
+  }, 0);
+
+  // Key highlights strip
+  const highlights = KEY_FIELDS
+    .map(({ sec, key, label }) => ({ label, value: extracted?.[sec]?.[key] }))
+    .filter(h => h.value?.trim());
+
+  return (
+    <div style={{ marginTop:12, animation:'fadeIn 0.25s ease' }}>
+
+      {/* ── Header bar ─────────────────────────────────────────────────────── */}
+      <div style={{
+        display:'flex', alignItems:'center', gap:10, flexWrap:'wrap',
+        padding:'10px 14px',
+        background:'linear-gradient(135deg, rgba(15,20,40,0.98), rgba(10,15,30,0.98))',
+        border:'1px solid rgba(255,255,255,0.09)',
+        borderBottom:'none',
+        borderRadius:'12px 12px 0 0',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
+          <span style={{ fontSize:15 }}>📄</span>
+          <div>
+            <div style={{ fontSize:13, fontWeight:700, color:'#e2e8f0', lineHeight:1.2 }}>Extracted Form Data</div>
+            {(name || voterid) && (
+              <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', marginTop:1 }}>
+                {name && <span style={{ color:'#94a3b8', fontWeight:600 }}>{name}</span>}
+                {voterid && <span style={{ color:'#64748b' }}> · {voterid}</span>}
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+          {/* Confidence badge */}
+          <span style={{ fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:20, background:confCfg.bg, border:`1px solid ${confCfg.border}`, color:confCfg.c, display:'inline-flex', alignItems:'center', gap:5 }}>
+            <span style={{ width:5, height:5, borderRadius:'50%', background:confCfg.c }} />
+            {confCfg.label}
+          </span>
+          {/* Fill rate */}
+          <span style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.05)', padding:'3px 9px', borderRadius:20, border:'1px solid rgba(255,255,255,0.08)' }}>
+            {filledFields}/{totalFields} fields
+          </span>
+        </div>
+      </div>
+
+      {/* ── Key highlights strip ────────────────────────────────────────────── */}
+      {highlights.length > 0 && (
+        <div style={{
+          display:'flex', flexWrap:'wrap', gap:6, padding:'10px 14px',
+          background:'rgba(255,255,255,0.025)',
+          border:'1px solid rgba(255,255,255,0.07)',
+          borderTop:'1px solid rgba(99,102,241,0.25)',
+          borderBottom:'none',
+        }}>
+          {highlights.map(({ label, value }) => (
+            <div key={label} style={{
+              display:'inline-flex', alignItems:'baseline', gap:5,
+              background:'rgba(0,0,0,0.3)', border:'1px solid rgba(255,255,255,0.08)',
+              borderRadius:8, padding:'4px 10px', fontSize:11,
+            }}>
+              <span style={{ color:'rgba(255,255,255,0.35)', fontWeight:600, fontSize:9, textTransform:'uppercase', letterSpacing:'0.5px', flexShrink:0 }}>{label}</span>
+              <span style={{ color:'#e2e8f0', fontWeight:700, fontFamily: label==='EPIC' || label==='Part No.' ? 'ui-monospace,monospace' : 'inherit' }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Section cards ───────────────────────────────────────────────────── */}
+      <div style={{
+        border:'1px solid rgba(255,255,255,0.07)',
+        borderRadius:'0 0 12px 12px',
+        overflow:'hidden',
+        background:'rgba(8,12,24,0.9)',
+      }}>
+        {Object.entries(SIR_FORM_SECTIONS).map(([skey, cfg], si) => {
+          const data   = extracted?.[skey] || {};
+          const filled = Object.keys(cfg.fields).filter(k => data[k]?.trim()).length;
+          const total  = Object.keys(cfg.fields).length;
+          const pct    = Math.round((filled / total) * 100);
+
+          return (
+            <div key={skey} style={{ borderTop: si > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+              {/* Section header */}
+              <div style={{
+                display:'flex', alignItems:'center', gap:8, padding:'8px 14px',
+                background:`linear-gradient(90deg, ${cfg.color}10, transparent)`,
+                borderLeft:`3px solid ${cfg.color}`,
+              }}>
+                <span style={{ fontSize:13 }}>{cfg.icon}</span>
+                <span style={{ fontSize:11, fontWeight:700, color:cfg.color, flex:1 }}>{cfg.label}</span>
+                {/* Fill progress */}
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:48, height:3, borderRadius:3, background:'rgba(255,255,255,0.08)', overflow:'hidden' }}>
+                    <div style={{ width:`${pct}%`, height:'100%', background:cfg.color, borderRadius:3, transition:'width 0.4s ease' }} />
+                  </div>
+                  <span style={{ fontSize:9, color:'rgba(255,255,255,0.3)', fontWeight:600, minWidth:28, textAlign:'right' }}>{filled}/{total}</span>
+                </div>
+              </div>
+
+              {/* Fields grid */}
+              <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
+                {Object.entries(cfg.fields).map(([k, lbl], fi) => {
+                  const val   = data[k];
+                  const empty = !val?.trim();
+                  return (
+                    <div
+                      key={k}
+                      style={{
+                        display:'flex', gap:8, alignItems:'flex-start',
+                        padding:'6px 14px',
+                        borderBottom:'1px solid rgba(255,255,255,0.03)',
+                        borderRight: !isMobile && fi % 2 === 0 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        background: empty ? 'transparent' : 'rgba(255,255,255,0.015)',
+                      }}
+                    >
+                      <span style={{
+                        fontSize:9, fontWeight:600, color:'rgba(255,255,255,0.25)',
+                        textTransform:'uppercase', letterSpacing:'0.4px',
+                        minWidth:90, flexShrink:0, paddingTop:1, lineHeight:1.4,
+                      }}>
+                        {lbl}
+                      </span>
+                      <span style={{
+                        fontSize:11, fontWeight: empty ? 400 : 600,
+                        color: empty ? 'rgba(255,255,255,0.12)' : '#cbd5e1',
+                        fontStyle: empty ? 'italic' : 'normal',
+                        wordBreak:'break-word', lineHeight:1.4,
+                      }}>
+                        {empty ? '—' : val}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* AI notes */}
+      {extracted?.meta?.notes && (
+        <div style={{ marginTop:8, display:'flex', gap:7, alignItems:'flex-start', padding:'8px 12px', background:'rgba(99,102,241,0.05)', border:'1px solid rgba(99,102,241,0.15)', borderRadius:8, fontSize:11, color:'#94a3b8', lineHeight:1.5 }}>
+          <span style={{ color:'#818cf8', flexShrink:0, marginTop:1 }}><Icon.Info /></span>
+          <span>{extracted.meta.notes}</span>
+        </div>
+      )}
+      {extracted?.meta?.missingFields?.length > 0 && (
+        <div style={{ marginTop:6, display:'flex', gap:6, alignItems:'center', flexWrap:'wrap', padding:'6px 10px', background:'rgba(239,68,68,0.04)', border:'1px solid rgba(239,68,68,0.12)', borderRadius:8 }}>
+          <span style={{ fontSize:9, fontWeight:700, color:'rgba(239,68,68,0.6)', textTransform:'uppercase', letterSpacing:'0.5px' }}>Blank fields:</span>
+          {extracted.meta.missingFields.slice(0,8).map(f => (
+            <span key={f} style={{ fontSize:9, color:'#f87171', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:5, padding:'1px 6px', fontWeight:600 }}>{f}</span>
+          ))}
+          {extracted.meta.missingFields.length > 8 && (
+            <span style={{ fontSize:9, color:'rgba(239,68,68,0.4)' }}>+{extracted.meta.missingFields.length - 8} more</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageChange }) {
+  // pendingImage / onPendingImageChange allow the parent (ConfirmBar) to
+  // pre-attach a photo before saving — so both happen in one "Confirm & Save" click.
+  const [phase,       setPhase]       = React.useState('idle');
+  const [imageData,   setImageData]   = React.useState(pendingImage || null);
   const [extracted,   setExtracted]   = React.useState(null);
   const [attachErr,   setAttachErr]   = React.useState('');
   const [showPreview, setShowPreview] = React.useState(false);
-  const fileRef = useRef();
+  const fileRef    = useRef();
+  const cameraRef  = useRef();
+
+  // Keep parent in sync when imageData changes (pre-save flow)
+  React.useEffect(() => {
+    if (onPendingImageChange) onPendingImageChange(imageData);
+  }, [imageData]);
+
+  // If docId arrives (parent just saved), auto-attach any extracted data
+  React.useEffect(() => {
+    if (docId && extracted && phase === 'review') {
+      handleAttach();
+    }
+  }, [docId]);
 
   const processFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -663,19 +862,12 @@ function SIRFormUploader({ docId, name, voterid }) {
     if (!imageData) return;
     setPhase('extracting');
     try {
-      // Route through the Django backend (/api/sir/form-extract/) instead of
-      // calling api.anthropic.com directly — browsers block that with CORS.
       const token = sessionStorage.getItem('cc_token');
       const hdrs  = { 'Content-Type': 'application/json' };
       if (token) hdrs['Authorization'] = `Bearer ${token}`;
       const res = await fetch(`${API}/sir/form-extract/`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: hdrs,
-        body: JSON.stringify({
-          image:    imageData.base64,
-          mimeType: imageData.mimeType,
-        }),
+        method: 'POST', credentials: 'include', headers: hdrs,
+        body: JSON.stringify({ image: imageData.base64, mimeType: imageData.mimeType }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.message || 'Server error');
@@ -688,7 +880,10 @@ function SIRFormUploader({ docId, name, voterid }) {
   };
 
   const handleAttach = async () => {
-    if (!extracted || !docId) { setAttachErr('No document ID — save the record first.'); setPhase('error'); return; }
+    if (!extracted || !docId) {
+      if (!docId) { setAttachErr('No document ID — will auto-attach when record is saved.'); return; }
+      setAttachErr('No extracted data.'); setPhase('error'); return;
+    }
     setPhase('attaching');
     try {
       const token = sessionStorage.getItem('cc_token');
@@ -704,73 +899,103 @@ function SIRFormUploader({ docId, name, voterid }) {
     } catch (err) { setAttachErr(err.message || 'Network error'); setPhase('error'); }
   };
 
-  const conf    = extracted?.meta?.confidence || 'low';
-  const confCfg = { high:{ c:'#22c55e', bg:'rgba(34,197,94,0.12)' }, medium:{ c:'#f59e0b', bg:'rgba(245,158,11,0.12)' }, low:{ c:'#ef4444', bg:'rgba(239,68,68,0.12)' } }[conf] || { c:'#94a3b8', bg:'rgba(148,163,184,0.1)' };
-
-  const FRow = ({ label, value }) => {
-    const empty = !value || !value.trim();
+  // ── Standalone mode (docId already exists — record already saved) ─────────
+  if (docId && phase === 'idle') {
     return (
-      <div style={{ display:'grid', gridTemplateColumns:'44% 56%', borderBottom:'1px solid rgba(255,255,255,0.04)', minHeight:26 }}>
-        <div style={{ padding:'4px 10px', fontSize:10, color:'#475569', fontWeight:500, borderRight:'1px solid rgba(255,255,255,0.04)', display:'flex', alignItems:'center' }}>{label}</div>
-        <div style={{ padding:'4px 10px', fontSize:11, fontWeight: empty ? 400 : 600, color: empty ? 'rgba(100,116,139,0.3)' : '#e2e8f0', fontStyle: empty ? 'italic' : 'normal', display:'flex', alignItems:'center' }}>{empty ? '—' : value}</div>
-      </div>
-    );
-  };
-
-  const SCard = ({ skey, data }) => {
-    const cfg = SIR_FORM_SECTIONS[skey];
-    if (!cfg || !data) return null;
-    const filled = Object.values(data).filter(v => v && v.trim()).length;
-    return (
-      <div style={{ background:'rgba(8,12,25,0.9)', border:`1px solid ${cfg.color}22`, borderTop:`2px solid ${cfg.color}`, borderRadius:8, overflow:'hidden', marginBottom:8 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 12px', background:`${cfg.color}08` }}>
-          <span style={{ fontSize:11, fontWeight:700, color:cfg.color }}>{cfg.label}</span>
-          <span style={{ fontSize:10, color:'#475569', background:'rgba(255,255,255,0.04)', padding:'1px 7px', borderRadius:8 }}>{filled}/{Object.keys(cfg.fields).length} fields</span>
-        </div>
-        {Object.entries(cfg.fields).map(([k, lbl]) => <FRow key={k} label={lbl} value={data[k]} />)}
-      </div>
-    );
-  };
-
-  return (
-    <div style={{ width:'100%', marginTop:8 }}>
-
-      {/* Saved badge + Upload trigger */}
-      {(phase === 'done' || phase === 'preview') && (
+      <div style={{ width:'100%', marginTop:8 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
           <div style={{ display:'flex', alignItems:'center', gap:6, color:'#10b981', fontWeight:700, fontSize:13 }}>
             <Icon.Check /> Saved to database
           </div>
           <span style={{ color:'rgba(255,255,255,0.15)', fontSize:12 }}>·</span>
-          <button
-            onClick={() => fileRef.current?.click()}
-            style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.3)', borderRadius:8, padding:'7px 14px', cursor:'pointer', color:'#818cf8', fontSize:12, fontWeight:700 }}
-          >📎 Attach SIR Form</button>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+          <div style={{ display:'flex', gap:6 }}>
+            <button onClick={() => fileRef.current?.click()}
+              style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.3)', borderRadius:8, padding:'7px 14px', cursor:'pointer', color:'#818cf8', fontSize:12, fontWeight:700 }}>
+              📎 Attach SIR Form
+            </button>
+            <button onClick={() => cameraRef.current?.click()}
+              style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:8, padding:'7px 14px', cursor:'pointer', color:'#22d3ee', fontSize:12, fontWeight:700 }}>
+              📷 Capture Photo
+            </button>
+          </div>
+          <input ref={fileRef}   type="file" accept="image/*"           style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Pre-save mode: image attached but not yet saved ───────────────────────
+  const isPreSave = !docId;
+
+  return (
+    <div style={{ width:'100%' }}>
+
+      {/* ── Image source buttons (idle / no image yet) ─────────────────────── */}
+      {phase === 'idle' && (
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+          <button onClick={() => fileRef.current?.click()}
+            style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.25)', borderRadius:9, padding:'9px 16px', cursor:'pointer', color:'#818cf8', fontSize:12, fontWeight:700 }}>
+            📁 Upload Form Image
+          </button>
+          <button onClick={() => cameraRef.current?.click()}
+            style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:9, padding:'9px 16px', cursor:'pointer', color:'#22d3ee', fontSize:12, fontWeight:700 }}>
+            📷 Take Photo
+          </button>
+          <input ref={fileRef}   type="file" accept="image/*"           style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
         </div>
       )}
 
-      {/* Preview thumbnail + Extract button */}
-      {phase === 'preview' && imageData && (
-        <div style={{ marginTop:10, background:'rgba(10,15,30,0.7)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:10, overflow:'hidden' }}>
+      {/* ── Preview: image selected, awaiting Extract ──────────────────────── */}
+      {(phase === 'preview') && imageData && (
+        <div style={{ background:'rgba(10,15,30,0.8)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:12, overflow:'hidden' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px' }}>
             <img src={imageData.previewUrl} alt="SIR form" onClick={() => setShowPreview(true)}
-              style={{ width:54, height:54, objectFit:'cover', borderRadius:6, cursor:'pointer', border:'1px solid rgba(255,255,255,0.1)', flexShrink:0 }} />
+              style={{ width:54, height:54, objectFit:'cover', borderRadius:8, cursor:'pointer', border:'1px solid rgba(255,255,255,0.1)', flexShrink:0 }} />
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:12, fontWeight:700, color:'#e2e8f0' }}>Form image ready</div>
-              <div style={{ fontSize:10, color:'#475569', marginTop:2 }}>Click image to preview full · Claude will read all fields</div>
+              <div style={{ fontSize:12, fontWeight:700, color:'#e2e8f0' }}>
+                {isPreSave ? '📎 Form image attached — will extract on save' : 'Form image ready'}
+              </div>
+              <div style={{ fontSize:10, color:'#475569', marginTop:2 }}>
+                {isPreSave ? 'Click "Confirm & Save" to save the record and extract form data in one step' : 'Click image to preview · Claude will read all fields'}
+              </div>
             </div>
             <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-              <button onClick={handleExtract} style={{ display:'flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#3b82f6,#6366f1)', border:'none', borderRadius:8, padding:'8px 16px', cursor:'pointer', color:'#fff', fontSize:12, fontWeight:700 }}>⚡ Extract</button>
-              <button onClick={() => { setPhase('done'); setImageData(null); }} style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'8px 10px', cursor:'pointer', color:'#f87171', fontSize:12 }}>✕</button>
+              {!isPreSave && (
+                <button onClick={handleExtract}
+                  style={{ display:'flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#3b82f6,#6366f1)', border:'none', borderRadius:8, padding:'8px 16px', cursor:'pointer', color:'#fff', fontSize:12, fontWeight:700 }}>
+                  ⚡ Extract Now
+                </button>
+              )}
+              <button onClick={() => { setPhase('idle'); setImageData(null); }}
+                style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'8px 10px', cursor:'pointer', color:'#f87171', fontSize:12 }}>✕</button>
             </div>
           </div>
+          {isPreSave && (
+            <div style={{ padding:'0 14px 10px', display:'flex', gap:6 }}>
+              <button onClick={handleExtract}
+                style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.25)', borderRadius:8, padding:'7px 14px', cursor:'pointer', color:'#818cf8', fontSize:11, fontWeight:700 }}>
+                ⚡ Preview Extraction
+              </button>
+              <button onClick={() => { if (fileRef.current) fileRef.current.click(); }}
+                style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'7px 12px', cursor:'pointer', color:'#64748b', fontSize:11 }}>
+                Change Image
+              </button>
+              <button onClick={() => { if (cameraRef.current) cameraRef.current.click(); }}
+                style={{ background:'rgba(34,211,238,0.06)', border:'1px solid rgba(34,211,238,0.15)', borderRadius:8, padding:'7px 12px', cursor:'pointer', color:'#22d3ee', fontSize:11 }}>
+                📷 Retake
+              </button>
+              <input ref={fileRef}   type="file" accept="image/*"           style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+            </div>
+          )}
         </div>
       )}
 
-      {/* Extracting spinner */}
+      {/* ── Extracting spinner ─────────────────────────────────────────────── */}
       {phase === 'extracting' && (
-        <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'rgba(99,102,241,0.06)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:10 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'rgba(99,102,241,0.06)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:10, marginTop:6 }}>
           <span style={{ display:'inline-block', animation:'spin 0.9s linear infinite', fontSize:18 }}>⟳</span>
           <div>
             <div style={{ fontSize:12, fontWeight:700, color:'#818cf8' }}>Extracting form fields…</div>
@@ -779,95 +1004,219 @@ function SIRFormUploader({ docId, name, voterid }) {
         </div>
       )}
 
-      {/* Review — structured output */}
+      {/* ── Review: show extracted info display ───────────────────────────── */}
       {phase === 'review' && extracted && (
-        <div style={{ marginTop:10 }}>
-          {/* Header */}
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap', padding:'10px 14px', background:'rgba(10,15,30,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10 }}>
-            <span style={{ fontSize:13, fontWeight:700, color:'#e2e8f0' }}>Extracted Form Data</span>
-            <span style={{ fontSize:10, fontWeight:700, padding:'2px 9px', borderRadius:20, background:confCfg.bg, color:confCfg.c, display:'inline-flex', alignItems:'center', gap:4 }}>
-              <span style={{ width:5, height:5, borderRadius:'50%', background:confCfg.c, display:'inline-block' }} />
-              {conf.toUpperCase()} CONFIDENCE
-            </span>
-            {extracted.meta?.missingFields?.length > 0 && (
-              <span style={{ fontSize:10, color:'#64748b' }}>{extracted.meta.missingFields.length} blank field(s)</span>
+        <div>
+          <ExtractedInfoDisplay extracted={extracted} name={name} voterid={voterid} />
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:10 }}>
+            {!isPreSave && (
+              <button onClick={handleAttach}
+                style={{ display:'flex', alignItems:'center', gap:7, background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.35)', borderRadius:9, padding:'9px 18px', cursor:'pointer', color:'#10b981', fontSize:13, fontWeight:700 }}>
+                <Icon.Save /> Save to Record
+              </button>
             )}
-            {name && (
-              <span style={{ fontSize:10, color:'#475569', marginLeft:'auto' }}>
-                Linking to: <span style={{ color:'#94a3b8', fontWeight:600 }}>{name}</span>
-                {voterid && <span style={{ color:'#64748b' }}> · {voterid}</span>}
-              </span>
+            {isPreSave && (
+              <div style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 14px', background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:9, fontSize:11, color:'#6ee7b7', fontWeight:600 }}>
+                <Icon.Check /> Extraction preview — will be saved with the record
+              </div>
             )}
-          </div>
-
-          {/* Sections — 2-col grid */}
-          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:0 }}>
-            {Object.keys(SIR_FORM_SECTIONS).map(sec => (
-              <SCard key={sec} skey={sec} data={extracted[sec]} />
-            ))}
-          </div>
-
-          {/* AI notes */}
-          {extracted.meta?.notes && (
-            <div style={{ fontSize:11, color:'#64748b', padding:'7px 12px', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:7, marginTop:6 }}>
-              📝 {extracted.meta.notes}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', marginTop:10 }}>
-            <button onClick={handleAttach} style={{ display:'flex', alignItems:'center', gap:7, background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.35)', borderRadius:9, padding:'9px 18px', cursor:'pointer', color:'#10b981', fontSize:13, fontWeight:700 }}>
-              <Icon.Save /> Save to Record
-            </button>
-            <button onClick={() => { setPhase('preview'); setExtracted(null); }} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'9px 14px', cursor:'pointer', color:'#64748b', fontSize:12 }}>Re-extract</button>
-            <button onClick={() => fileRef.current?.click()} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'9px 14px', cursor:'pointer', color:'#64748b', fontSize:12 }}>Different Image</button>
-            <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value=''; }} />
+            <button onClick={() => { setPhase('preview'); setExtracted(null); }}
+              style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:9, padding:'9px 14px', cursor:'pointer', color:'#64748b', fontSize:12 }}>Re-extract</button>
+            <button onClick={() => { setPhase('idle'); setImageData(null); setExtracted(null); }}
+              style={{ background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:9, padding:'9px 14px', cursor:'pointer', color:'#f87171', fontSize:12 }}>Remove</button>
           </div>
         </div>
       )}
 
-      {/* Attaching */}
+      {/* ── Attaching ─────────────────────────────────────────────────────── */}
       {phase === 'attaching' && (
         <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8, color:'#6366f1', fontSize:12, fontWeight:600 }}>
-          <span style={{ display:'inline-block', animation:'spin 0.9s linear infinite' }}>⟳</span> Saving form data to record…
+          <span style={{ display:'inline-block', animation:'spin 0.9s linear infinite' }}>⟳</span> Saving form data…
         </div>
       )}
 
-      {/* Attached success */}
+      {/* ── Attached success ──────────────────────────────────────────────── */}
       {phase === 'attached' && (
         <div style={{ marginTop:8, padding:'12px 14px', background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:10 }}>
-          <div style={{ fontSize:13, fontWeight:700, color:'#10b981', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}><Icon.Check /> Form data saved to database</div>
+          <div style={{ fontSize:13, fontWeight:700, color:'#10b981', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+            <Icon.Check /> Form data saved to database
+          </div>
           {extracted && (
             <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
-              {[
-                extracted.electorDetails?.electorName && { l:'Elector', v:extracted.electorDetails.electorName },
-                extracted.electorDetails?.epicNo      && { l:'EPIC',    v:extracted.electorDetails.epicNo },
-                extracted.personal?.dateOfBirth       && { l:'DOB',     v:extracted.personal.dateOfBirth },
-                extracted.personal?.mobileNo          && { l:'Mobile',  v:extracted.personal.mobileNo },
-                extracted.personal?.aadhaarNo         && { l:'Aadhaar', v:extracted.personal.aadhaarNo },
-                extracted.personal?.fathersGuardianName && { l:"Father/Guardian", v:extracted.personal.fathersGuardianName },
-              ].filter(Boolean).map(({ l, v }) => (
-                <span key={l} style={{ fontSize:10, background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:6, padding:'2px 8px', color:'#6ee7b7' }}>
-                  <span style={{ color:'#10b981', fontWeight:700 }}>{l}: </span>{v}
-                </span>
-              ))}
+              {KEY_FIELDS.map(({ sec, key, label }) => {
+                const val = extracted?.[sec]?.[key];
+                if (!val) return null;
+                return (
+                  <span key={label} style={{ fontSize:10, background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:6, padding:'2px 8px', color:'#6ee7b7' }}>
+                    <span style={{ color:'#10b981', fontWeight:700 }}>{label}: </span>{val}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* Error */}
+      {/* ── Error ─────────────────────────────────────────────────────────── */}
       {phase === 'error' && (
         <div style={{ marginTop:8, padding:'10px 14px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:9, fontSize:12, color:'#fca5a5', display:'flex', alignItems:'center', gap:8 }}>
           <span>⚠ {attachErr || 'Something went wrong.'}</span>
-          <button onClick={() => { setPhase(extracted ? 'review' : 'preview'); setAttachErr(''); }} style={{ background:'none', border:'none', color:'#60a5fa', cursor:'pointer', fontSize:12, fontWeight:600, padding:0, marginLeft:4 }}>Retry</button>
+          <button onClick={() => { setPhase(extracted ? 'review' : 'preview'); setAttachErr(''); }}
+            style={{ background:'none', border:'none', color:'#60a5fa', cursor:'pointer', fontSize:12, fontWeight:600, padding:0, marginLeft:4 }}>Retry</button>
         </div>
       )}
 
-      {/* Full image modal */}
+      {/* ── Full image preview modal ──────────────────────────────────────── */}
       {showPreview && imageData && (
         <div onClick={() => setShowPreview(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.9)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16, cursor:'zoom-out' }}>
           <img src={imageData.previewUrl} alt="form" style={{ maxWidth:'92vw', maxHeight:'92vh', objectFit:'contain', borderRadius:8 }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CONFIRM AND SAVE BAR ─────────────────────────────────────────────────────
+// Integrates the form uploader BEFORE the save so one click does everything.
+function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFound25, notFound02, canConfirm, confirmStatus, savedDocId, handleConfirm, voterName, voterId }) {
+  const [pendingImage,   setPendingImage]   = useState(null);
+  const [pendingExtract, setPendingExtract] = useState(null);
+  const [showFormPanel,  setShowFormPanel]  = useState(false);
+  const uploaderRef = useRef();
+
+  // When saved: auto-attach extracted data if we have it
+  React.useEffect(() => {
+    if (confirmStatus === 'saved' && savedDocId && pendingExtract) {
+      (async () => {
+        try {
+          const token = sessionStorage.getItem('cc_token');
+          const hdrs  = { 'Content-Type': 'application/json' };
+          if (token) hdrs['Authorization'] = `Bearer ${token}`;
+          await fetch(`${API}/sir/attach-form/`, {
+            method: 'POST', credentials: 'include', headers: hdrs,
+            body: JSON.stringify({ doc_id: savedDocId, form_extraction: pendingExtract }),
+          });
+        } catch { /**/ }
+      })();
+    }
+  }, [confirmStatus, savedDocId]);
+
+  const hasPendingForm = !!(pendingImage || pendingExtract);
+
+  if (confirmStatus === 'saved') {
+    return (
+      <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(16,185,129,0.2)', background:'rgba(16,185,129,0.04)', padding:'14px 16px' }}>
+        <SIRFormUploader
+          docId={savedDocId}
+          name={voterName}
+          voterid={voterId}
+        />
+      </div>
+    );
+  }
+
+  if (confirmStatus === 'error') {
+    return (
+      <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(239,68,68,0.2)', background:'rgba(239,68,68,0.04)', padding:'12px 16px', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+        <span style={{ color:'#f87171', fontWeight:700, fontSize:12, flex:1 }}>Save failed — please retry</span>
+        <button onClick={handleConfirm} style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:8, color:'#f87171', fontSize:12, padding:'7px 14px', cursor:'pointer', fontWeight:600 }}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(255,255,255,0.08)', background:'rgba(0,0,0,0.25)', overflow:'hidden' }}>
+
+      {/* ── Step status row ────────────────────────────────────────────────── */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', padding:'12px 16px', borderBottom: showFormPanel ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+        {/* Roll selections */}
+        <div style={{ display:'flex', gap:8, flex:1, flexWrap:'wrap' }}>
+          {[
+            { year:'2025', decided: decided25, sel: selected25, notF: notFound25, color:'#22d3ee' },
+            { year:'2002', decided: decided02, sel: selected02, notF: notFound02, color:'#f59e0b' },
+          ].map(({ year, decided, sel, notF, color }) => (
+            <div key={year} style={{
+              display:'flex', alignItems:'center', gap:6, fontSize:11, padding:'5px 10px',
+              borderRadius:8,
+              background: decided ? `${color}14` : 'rgba(255,255,255,0.04)',
+              border:`1px solid ${decided ? color + '40' : 'rgba(255,255,255,0.07)'}`,
+            }}>
+              {decided
+                ? <span style={{ color }}><Icon.Check /></span>
+                : <span style={{ width:10, height:10, borderRadius:'50%', border:'1.5px solid rgba(255,255,255,0.2)', display:'inline-block' }} />}
+              <span style={{ color: decided ? color : 'rgba(255,255,255,0.3)', fontWeight: decided ? 700 : 400 }}>
+                {year}: {notF ? 'Absent' : sel ? (sel.name || sel.voterid || 'Selected') : 'Pick a row'}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
+          {/* Attach form toggle */}
+          <button
+            onClick={() => setShowFormPanel(p => !p)}
+            style={{
+              display:'flex', alignItems:'center', gap:6,
+              background: hasPendingForm ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
+              border:`1px solid ${hasPendingForm ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.1)'}`,
+              borderRadius:9, padding:'8px 14px',
+              cursor:'pointer',
+              color: hasPendingForm ? '#818cf8' : 'rgba(255,255,255,0.4)',
+              fontSize:12, fontWeight:700,
+              transition:'all 0.2s',
+            }}
+          >
+            {hasPendingForm ? <><Icon.Check /> Form Ready</> : <>📎 + Add Form</>}
+          </button>
+
+          {/* Confirm & Save */}
+          <button
+            onClick={handleConfirm}
+            disabled={!canConfirm || confirmStatus === 'saving'}
+            style={{
+              display:'flex', alignItems:'center', gap:8,
+              background: canConfirm
+                ? hasPendingForm
+                  ? 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(99,102,241,0.15))'
+                  : 'rgba(16,185,129,0.12)'
+                : 'rgba(255,255,255,0.04)',
+              border:`1px solid ${canConfirm ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)'}`,
+              borderRadius:10, padding:'10px 20px',
+              cursor: canConfirm ? 'pointer' : 'default',
+              color: canConfirm ? '#10b981' : 'rgba(255,255,255,0.25)',
+              fontWeight:700, fontSize:13,
+              transition:'all 0.2s',
+              opacity: canConfirm ? 1 : 0.6,
+              minHeight:42,
+              boxShadow: canConfirm ? '0 0 0 0 rgba(16,185,129,0)' : 'none',
+            }}
+            onMouseEnter={e => { if (canConfirm) e.currentTarget.style.boxShadow = '0 0 16px rgba(16,185,129,0.2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
+          >
+            {confirmStatus === 'saving'
+              ? <><span style={{ display:'inline-block', animation:'spin 0.7s linear infinite', fontSize:14 }}>⟳</span> Saving…</>
+              : <><Icon.Save /> Confirm &amp; Save{hasPendingForm ? ' + Form' : ''}</>
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* ── Form attach panel (collapsible) ───────────────────────────────── */}
+      {showFormPanel && (
+        <div style={{ padding:'14px 16px', borderTop:'1px solid rgba(255,255,255,0.06)', background:'rgba(0,0,0,0.15)', animation:'fadeIn 0.2s ease' }}>
+          <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ color:'#818cf8' }}><Icon.SIR /></span>
+            Attach SIR Form — saved together when you click Confirm &amp; Save
+          </div>
+          <SIRFormUploader
+            docId={null}
+            name={voterName}
+            voterid={voterId}
+            onPendingImageChange={(img) => setPendingImage(img)}
+          />
         </div>
       )}
     </div>
@@ -1412,63 +1761,17 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
         </div>
 
         {/* ── Confirm & Save bar ────────────────────────────────────────── */}
-        <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(0,0,0,0.2)', padding:'12px 16px', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-          {/* Step indicators */}
-          <div style={{ display:'flex', gap:8, flex:1, flexWrap:'wrap' }}>
-            {[
-              { year:'2025', decided: decided25, sel: selected25, notF: notFound25, color:'#22d3ee' },
-              { year:'2002', decided: decided02, sel: selected02, notF: notFound02, color:'#f59e0b' },
-            ].map(({ year, decided, sel, notF, color }) => (
-              <div key={year} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, padding:'4px 10px', borderRadius:8, background: decided ? `${color}14` : 'rgba(255,255,255,0.04)', border:`1px solid ${decided ? color + '40' : 'rgba(255,255,255,0.07)'}` }}>
-                {decided
-                  ? <span style={{ color }}><Icon.Check /></span>
-                  : <span style={{ width:10, height:10, borderRadius:'50%', border:'1.5px solid rgba(255,255,255,0.2)', display:'inline-block' }} />
-                }
-                <span style={{ color: decided ? color : 'rgba(255,255,255,0.3)', fontWeight: decided ? 700 : 400 }}>
-                  {year}: {notF ? 'Absent' : sel ? sel.name || sel.voterid || 'Selected' : 'Pick a row'}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Confirm button */}
-          {confirmStatus === 'saved' ? (
-            <SIRFormUploader
-              docId={savedDocId}
-              name={(selected25 || selected02)?.name || ''}
-              voterid={(selected25 || selected02)?.voterid || ''}
-            />
-          ) : confirmStatus === 'error' ? (
-            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-              <span style={{ color:'#f87171', fontWeight:700, fontSize:12 }}>Save failed — retry?</span>
-              <button onClick={handleConfirm} style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:8, color:'#f87171', fontSize:12, padding:'5px 12px', cursor:'pointer', fontWeight:600 }}>
-                Retry
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleConfirm}
-              disabled={!canConfirm || confirmStatus === 'saving'}
-              style={{
-                display:'flex', alignItems:'center', gap:8,
-                background: canConfirm ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)',
-                border:`1px solid ${canConfirm ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                borderRadius:10, padding:'10px 18px',
-                cursor: canConfirm ? 'pointer' : 'default',
-                color: canConfirm ? '#10b981' : 'rgba(255,255,255,0.25)',
-                fontWeight:700, fontSize:13,
-                transition:'all 0.2s',
-                opacity: canConfirm ? 1 : 0.6,
-                minHeight:42,
-              }}
-            >
-              {confirmStatus === 'saving'
-                ? <><span className="spinner" /> Saving…</>
-                : <><Icon.Save /> Confirm &amp; Save</>
-              }
-            </button>
-          )}
-        </div>
+        <ConfirmAndSaveBar
+          decided25={decided25} decided02={decided02}
+          selected25={selected25} selected02={selected02}
+          notFound25={notFound25} notFound02={notFound02}
+          canConfirm={canConfirm}
+          confirmStatus={confirmStatus}
+          savedDocId={savedDocId}
+          handleConfirm={handleConfirm}
+          voterName={(selected25 || selected02)?.name || ''}
+          voterId={(selected25 || selected02)?.voterid || ''}
+        />
       </div>
       {infoRecord && <VoterInfoModal record={infoRecord.record} roll={infoRecord.roll} onClose={() => setInfoRecord(null)} />}
     </>
