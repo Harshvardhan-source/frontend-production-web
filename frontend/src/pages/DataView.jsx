@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import Navbar from '../components/Navbar';
 import { dataApi } from '../api/client';
+import api from '../api/client';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -22,6 +23,7 @@ const TABS = [
   { key: 'deceased',          label: 'Deceased',          icon: '✦',  color: '#a78bfa' },
   { key: 'outstation_voters', label: 'Outstation Voters', icon: '✈',  color: '#f97316' },
   { key: 'bjp_members',       label: 'BJP Members',       icon: '🪷', color: '#f43f5e' },
+  { key: 'sir_confirmed',     label: 'SIR Records',       icon: '✓',  color: '#10b981' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1184,6 +1186,400 @@ function PhotoLightbox({ url, label, onClose }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BOOTH → WARD LOOKUP  (mirrors WARD_FULL_DATA / BOOTH_TO_WARD in views.py)
+// ─────────────────────────────────────────────────────────────────────────────
+const _BTW = {};   // booth (string) → ward number (string)
+const _WN  = {};   // ward number (string) → ward name
+[
+  [21,'Padavu',         [31,32,33,55,56,57,58]],
+  [24,'Derebail South', [9,11,13,17]],
+  [25,'Derebail West',  [1,2,3,5,6,7,8]],
+  [26,'Derebail SW',    [4,10,89,90,91,92,94]],
+  [27,'Boloor',         [82,83,84,88,93,95,96,97]],
+  [28,'Mannagudda',     [12,75,78,79,80,81,85,86,87]],
+  [29,'Kambla',         [68,69,71,72,73]],
+  [30,'Kodialbail',     [14,22,24,25,26,66,67,70]],
+  [31,'Bejai',          [15,16,18,19,20,21,23]],
+  [32,'Kadri North',    [27,28,29,30,63]],
+  [33,'Kadri South',    [59,61,62,64,65]],
+  [34,'Shivbhag',       [45,60,134,135,136,139]],
+  [35,'Padavu Central', [34,35,39,40,43,44]],
+  [36,'Padavu Poorva',  [36,37,38,41,42]],
+  [37,'Maroli',         [48,49,50,51,52,53,54]],
+  [38,'Bendur',         [133,138,140,166,167,171]],
+  [39,'Falnir',         [162,163,164,165,172,173,174,175]],
+  [40,'Court',          [129,130,131,132,146,147]],
+  [41,'Central',        [124,125,126,127,128]],
+  [42,'Dongerkery',     [74,76,77,112,115,117,118]],
+  [43,'Kudroli',        [108,109,110,111,113,114]],
+  [44,'Navayath',       [116,119,120,121,122,123]],
+  [45,'Port',           [148,151,152,153,238,239]],
+  [46,'Cantonment',     [141,145,149,150]],
+  [47,'Milagris',       [142,143,144,168,169,170]],
+  [48,'Valencia',       [137,176,177,178,187]],
+  [49,'Kankanady',      [179,180,181,182,183,184,185,186]],
+  [50,'Alape Dakshina', [188,189,190,191,192,213,214,215]],
+  [51,'Alape Uttara',   [46,47,193,194,195,196,202]],
+  [52,'Kannur',         [197,198,199,200,201,203,204,205]],
+  [53,'Bajal',          [206,207,208,209,210,211,212]],
+  [54,'Jeppinamuger',   [216,217,218,219,220,221,222,223,249]],
+  [55,'Attavara',       [154,155,156,157,226,227,247,248]],
+  [56,'Mangaladevi',    [228,229,231,232,233]],
+  [57,'Hoige Bazar',    [235,237,240,244]],
+  [58,'Bolar',          [230,234,236,241,242,243]],
+  [59,'Jeppu',          [158,159,160,161,224,225,245,246]],
+  [60,'Bengre',         [98,99,100,101,102,103,104,105,106,107]],
+].forEach(([wNum, wName, booths]) => {
+  _WN[String(wNum)] = wName;
+  booths.forEach(b => { _BTW[String(b)] = String(wNum); });
+});
+function wardFromBooth(booth) {
+  const w = _BTW[String(booth)];
+  return w ? { num: w, name: _WN[w] || '' } : null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIR STATUS CONFIG
+//  Collections: SIR_ConfirmedMatches  (status=MATCHED)
+//               SIR_ConfirmedNotFound (status=NOT_FOUND_2025/2002/BOTH)
+// ─────────────────────────────────────────────────────────────────────────────
+const SIR_STATUS = {
+  MATCHED:        { color:'#10b981', label:'MATCHED',        bg:'rgba(16,185,129,0.12)' },
+  NOT_FOUND_2025: { color:'#f59e0b', label:'NOT FOUND 2025', bg:'rgba(245,158,11,0.12)' },
+  NOT_FOUND_2002: { color:'#fb923c', label:'NOT FOUND 2002', bg:'rgba(251,146,60,0.12)'  },
+  NOT_FOUND_BOTH: { color:'#ef4444', label:'NOT FOUND BOTH', bg:'rgba(239,68,68,0.12)'   },
+};
+const sirCfg = s => SIR_STATUS[s] || { color:'#6b7280', label: s || 'UNKNOWN', bg:'rgba(107,114,128,0.12)' };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIR CARD  — rectangular card for the grid
+// ─────────────────────────────────────────────────────────────────────────────
+const SIRCard = memo(function SIRCard({ record, onClick }) {
+  const cfg      = sirCfg(record.status);
+  const name     = record.name     || '—';
+  const voterid  = record.voterid  || '';
+  const house    = record.house    || record.record_2025?.house || '';
+  const relation = record.relation || '';
+  const booth    = String(record.record_2025?.booth || record.record_2002?.booth || '');
+  const ward     = wardFromBooth(booth);
+  const hasForm  = !!(record.form_extraction && Object.keys(record.form_extraction).length);
+  const initial  = name.trim()[0]?.toUpperCase() || '?';
+  const dateStr  = record.confirmed_at
+    ? new Date(record.confirmed_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+    : '';
+  const [hov, setHov] = useState(false);
+
+  return (
+    <div onClick={onClick}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        background:'var(--bg-surface)', borderRadius:'var(--r-md)',
+        border:`1px solid ${hov ? cfg.color : 'var(--border)'}`,
+        cursor:'pointer', overflow:'hidden',
+        transition:'border-color 0.15s,transform 0.15s,box-shadow 0.15s',
+        transform: hov ? 'translateY(-2px)' : 'none',
+        boxShadow: hov ? `0 6px 22px ${cfg.color}22` : 'none',
+      }}>
+      {/* top colour strip */}
+      <div style={{ height:3, background:`linear-gradient(90deg,${cfg.color},${cfg.color}77)` }}/>
+
+      <div style={{ padding:'12px 14px' }}>
+        {/* name row */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:9 }}>
+          <div style={{ width:36, height:36, borderRadius:9, flexShrink:0, background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.color}44`, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:14 }}>{initial}</div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:700, fontSize:13, color:'var(--text-1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{name}</div>
+            {voterid && <div style={{ fontSize:11, color:cfg.color, fontFamily:'monospace', marginTop:2, letterSpacing:'0.3px' }}>{voterid}</div>}
+          </div>
+          <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:9, background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.color}35`, whiteSpace:'nowrap', flexShrink:0 }}>{cfg.label}</span>
+        </div>
+
+        {/* chips */}
+        <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginBottom:9 }}>
+          {house    && <Chip icon="🏠" label={house}/>}
+          {relation && <Chip icon="👤" label={relation}/>}
+          {booth    && <Chip label={`Booth ${booth}`}/>}
+          {ward     && <Chip label={`W${ward.num} · ${ward.name}`}/>}
+        </div>
+
+        {/* 2025 vs 2002 mini panels */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:9 }}>
+          <div style={{ background:'rgba(34,211,238,0.06)', border:'1px solid rgba(34,211,238,0.14)', borderRadius:7, padding:'5px 8px' }}>
+            <div style={{ fontSize:9, fontWeight:800, color:'#22d3ee', letterSpacing:'0.5px', marginBottom:3 }}>2025</div>
+            {record.not_found_2025
+              ? <div style={{ fontSize:10, color:'#ef4444' }}>✗ Not in SIR_ConfirmedMatches</div>
+              : <div style={{ fontSize:11, color:'rgba(255,255,255,0.65)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {record.record_2025?.name || '—'}
+                  {record.record_2025?.age && <span style={{ color:'rgba(255,255,255,0.35)', marginLeft:4, fontSize:10 }}>· {record.record_2025.age}y</span>}
+                </div>
+            }
+          </div>
+          <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.14)', borderRadius:7, padding:'5px 8px' }}>
+            <div style={{ fontSize:9, fontWeight:800, color:'#f59e0b', letterSpacing:'0.5px', marginBottom:3 }}>2002</div>
+            {record.not_found_2002
+              ? <div style={{ fontSize:10, color:'#ef4444' }}>✗ Not in SIR_ConfirmedNotFound</div>
+              : <div style={{ fontSize:11, color:'rgba(255,255,255,0.65)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {record.record_2002?.name || '—'}
+                  {record.record_2002?.age && <span style={{ color:'rgba(255,255,255,0.35)', marginLeft:4, fontSize:10 }}>· {record.record_2002.age}y</span>}
+                </div>
+            }
+          </div>
+        </div>
+
+        {/* footer */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,0.25)' }}>
+            {dateStr}{record.confirmed_by && record.confirmed_by !== 'unknown' ? ` · ${record.confirmed_by}` : ''}
+          </span>
+          {hasForm
+            ? <span style={{ fontSize:10, fontWeight:600, color:'#10b981', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:5, padding:'1px 6px' }}>📄 Form data</span>
+            : <span style={{ fontSize:10, color:'rgba(255,255,255,0.18)', fontStyle:'italic' }}>No form data</span>
+          }
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIR DETAIL MODAL — Overview + Form extraction editor
+//  Save target: POST /api/sir/attach-form/  { doc_id, form_extraction }
+//  (Updates SIR_ConfirmedMatches or SIR_ConfirmedNotFound based on doc _id)
+// ─────────────────────────────────────────────────────────────────────────────
+const FORM_SECS = [
+  { key:'personal',        label:'Personal Details',   icon:'👤' },
+  { key:'electorDetails',  label:'Elector Details',    icon:'🗳️' },
+  { key:'relativeDetails', label:'Relative Details',   icon:'👨‍👩‍👧' },
+  { key:'preprinted',      label:'Pre-printed (Form)', icon:'📋' },
+  { key:'meta',            label:'Extraction Meta',    icon:'🤖', ro:true },
+];
+const FL = {                          // human labels for camelCase keys
+  dateOfBirth:'Date of Birth', aadhaarNo:'Aadhaar No', mobileNo:'Mobile No',
+  fathersGuardianName:"Father / Guardian", fathersGuardianEpicNo:"Father EPIC",
+  mothersName:"Mother's Name", mothersEpicNo:"Mother EPIC",
+  spouseName:'Spouse Name', spouseEpicNo:"Spouse EPIC",
+  electorName:'Elector Name', epicNo:'EPIC No', relativeName:'Relative Name',
+  relationship:'Relationship', district:'District', state:'State',
+  acName:'AC Name', acNumber:'AC No', partNo:'Part No', srNo:'Sr No',
+  serialNo:'Serial No', acPcName:'AC/PC Name', address:'Address',
+  confidence:'Confidence', missingFields:'Missing Fields', notes:'Notes',
+};
+const fLabel = k => FL[k] || k.replace(/([A-Z])/g, ' $1').trim();
+
+function SIRDetailModal({ record, onClose, onSaved }) {
+  const cfg      = sirCfg(record.status);
+  const name     = record.name    || '—';
+  const voterid  = record.voterid || '';
+  const house    = record.house   || record.record_2025?.house || '';
+  const booth    = String(record.record_2025?.booth || record.record_2002?.booth || '');
+  const ward     = wardFromBooth(booth);
+  const initial  = name.trim()[0]?.toUpperCase() || '?';
+
+  const [activeTab, setActiveTab] = useState('overview');
+  const [editMode,  setEditMode]  = useState(false);
+  const [showEmpty, setShowEmpty] = useState(false);
+  const [saving,    setSaving]    = useState(false);
+  const [saveMsg,   setSaveMsg]   = useState('');
+  const [formData,  setFormData]  = useState(() => {
+    try { return JSON.parse(JSON.stringify(record.form_extraction || {})); }
+    catch { return {}; }
+  });
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const isEmpty = v => v === '' || v === null || v === undefined || (Array.isArray(v) && !v.length);
+
+  const emptyCount = FORM_SECS.filter(s => !s.ro).reduce((n, sec) => {
+    return n + Object.values(formData[sec.key] || {}).filter(isEmpty).length;
+  }, 0);
+
+  const handleChange = (sec, field, val) =>
+    setFormData(p => ({ ...p, [sec]: { ...(p[sec] || {}), [field]: val } }));
+
+  const handleSave = async () => {
+    setSaving(true); setSaveMsg('');
+    try {
+      const r = await api.post('/api/sir/attach-form/', { doc_id: record._id, form_extraction: formData });
+      if (r.data.success) {
+        setSaveMsg('✓ Saved'); setEditMode(false);
+        if (onSaved) onSaved(record._id, formData);
+      } else { setSaveMsg('✗ ' + (r.data.message || 'Save failed')); }
+    } catch(e) { setSaveMsg('✗ ' + (e.response?.data?.message || e.message)); }
+    finally    { setSaving(false); }
+  };
+
+  const handleCancel = () => {
+    try { setFormData(JSON.parse(JSON.stringify(record.form_extraction || {}))); }
+    catch { setFormData({}); }
+    setEditMode(false); setSaveMsg('');
+  };
+
+  const card = { background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, padding:'14px 16px' };
+  const tag  = (txt, c) => <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:8, background:`${c}18`, color:c, border:`1px solid ${c}30` }}>{txt}</span>;
+
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1100, background:'rgba(0,0,0,0.78)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:800, maxHeight:'92vh', background:'linear-gradient(145deg,rgba(12,21,38,0.99),rgba(7,13,26,0.99))', border:`1px solid ${cfg.color}40`, borderRadius:20, display:'flex', flexDirection:'column', boxShadow:'0 40px 100px rgba(0,0,0,0.8)', overflow:'hidden' }}>
+
+        {/* ── header ── */}
+        <div style={{ padding:'16px 20px 12px', borderBottom:'1px solid rgba(255,255,255,0.08)', background:`linear-gradient(135deg,${cfg.color}08,transparent)`, flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
+            <div style={{ width:44, height:44, borderRadius:13, flexShrink:0, background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.color}44`, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:18 }}>{initial}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontWeight:800, fontSize:16, color:'var(--text-1)' }}>{name}</div>
+              <div style={{ display:'flex', gap:6, marginTop:5, flexWrap:'wrap', alignItems:'center' }}>
+                {voterid && <span style={{ fontSize:11, color:cfg.color, fontFamily:'monospace' }}>{voterid}</span>}
+                {house   && tag(`🏠 ${house}`, '#94a3b8')}
+                {booth   && tag(`Booth ${booth}`, '#64748b')}
+                {ward    && tag(`W${ward.num} · ${ward.name}`, cfg.color)}
+                {tag(cfg.label, cfg.color)}
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background:'rgba(255,255,255,0.07)', border:'none', borderRadius:8, width:32, height:32, cursor:'pointer', color:'var(--text-2)', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
+          </div>
+          {/* tab switcher */}
+          <div style={{ display:'flex', gap:6 }}>
+            {[
+              { k:'overview', t:'Overview' },
+              { k:'form',     t:`Form Data${emptyCount ? ` · ${emptyCount} empty` : ''}` },
+            ].map(({ k, t }) => (
+              <button key={k} onClick={() => setActiveTab(k)} style={{ fontSize:12, fontWeight:700, padding:'5px 14px', borderRadius:8, cursor:'pointer', border:'none', background: activeTab===k ? cfg.color : 'rgba(255,255,255,0.07)', color: activeTab===k ? '#0a0f1e' : 'rgba(255,255,255,0.5)', transition:'all 0.15s' }}>{t}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── scrollable body ── */}
+        <div style={{ flex:1, overflowY:'auto', padding:'18px 20px' }}>
+
+          {/* OVERVIEW */}
+          {activeTab === 'overview' && (
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                {/* 2025 panel — from SIR_ConfirmedMatches */}
+                <div style={{ ...card, borderColor:'rgba(34,211,238,0.2)' }}>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#22d3ee', marginBottom:10 }}>
+                    2025 Electoral Roll
+                    {record.not_found_2025 && <span style={{ color:'#ef4444', fontWeight:600, marginLeft:6, fontSize:10 }}>· NOT FOUND</span>}
+                  </div>
+                  {record.record_2025
+                    ? [['Name',record.record_2025.name],['Relation',record.record_2025.relation],['House',record.record_2025.house],['Voter ID',record.record_2025.voterid],['Age',record.record_2025.age],['Gender',record.record_2025.gender],['Booth',record.record_2025.booth],['Mapped',record.record_2025.mapping_status],['Score',record.record_2025.score!=null?String(record.record_2025.score):null]].filter(([,v])=>v).map(([k,v])=>(
+                        <div key={k} style={{ display:'flex', justifyContent:'space-between', gap:8, fontSize:12, borderBottom:'1px solid rgba(255,255,255,0.04)', paddingBottom:5, marginBottom:4 }}>
+                          <span style={{ color:'rgba(255,255,255,0.38)' }}>{k}</span>
+                          <span style={{ color:'rgba(255,255,255,0.82)', fontWeight:600, textAlign:'right', wordBreak:'break-word' }}>{v}</span>
+                        </div>
+                      ))
+                    : <div style={{ fontSize:12, color:'rgba(255,255,255,0.22)', fontStyle:'italic' }}>No 2025 record</div>
+                  }
+                </div>
+                {/* 2002 panel — from SIR_ConfirmedNotFound */}
+                <div style={{ ...card, borderColor:'rgba(245,158,11,0.2)' }}>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#f59e0b', marginBottom:10 }}>
+                    2002 Electoral Roll
+                    {record.not_found_2002 && <span style={{ color:'#ef4444', fontWeight:600, marginLeft:6, fontSize:10 }}>· NOT FOUND</span>}
+                  </div>
+                  {record.record_2002
+                    ? [['Name',record.record_2002.name],['Relation',record.record_2002.relation],['House',record.record_2002.house],['Voter ID',record.record_2002.voterid],['Age',record.record_2002.age],['Gender',record.record_2002.gender],['Serial',record.record_2002.serial],['Score',record.record_2002.score!=null?String(record.record_2002.score):null]].filter(([,v])=>v).map(([k,v])=>(
+                        <div key={k} style={{ display:'flex', justifyContent:'space-between', gap:8, fontSize:12, borderBottom:'1px solid rgba(255,255,255,0.04)', paddingBottom:5, marginBottom:4 }}>
+                          <span style={{ color:'rgba(255,255,255,0.38)' }}>{k}</span>
+                          <span style={{ color:'rgba(255,255,255,0.82)', fontWeight:600, textAlign:'right', wordBreak:'break-word' }}>{v}</span>
+                        </div>
+                      ))
+                    : <div style={{ fontSize:12, color:'rgba(255,255,255,0.22)', fontStyle:'italic' }}>No 2002 record</div>
+                  }
+                </div>
+              </div>
+              {/* confirmation meta */}
+              <div style={card}>
+                <div style={{ fontSize:12, fontWeight:800, color:'rgba(255,255,255,0.55)', marginBottom:10 }}>Confirmation Info</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                  {[
+                    ['Confirmed At', record.confirmed_at ? new Date(record.confirmed_at).toLocaleString('en-IN') : '—'],
+                    ['Confirmed By', record.confirmed_by || '—'],
+                    ['Search Name',  record.search_inputs?.name  || '—'],
+                    ['Search EPIC',  record.search_inputs?.epic  || '—'],
+                    ['Search House', record.search_inputs?.house || '—'],
+                  ].map(([k,v]) => (
+                    <div key={k} style={{ fontSize:12 }}>
+                      <div style={{ color:'rgba(255,255,255,0.32)', marginBottom:2 }}>{k}</div>
+                      <div style={{ color:'rgba(255,255,255,0.82)', fontWeight:600 }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FORM DATA */}
+          {activeTab === 'form' && (
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {/* toolbar */}
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                {!editMode
+                  ? <button onClick={() => setEditMode(true)} style={{ fontSize:12, fontWeight:700, padding:'6px 14px', borderRadius:8, cursor:'pointer', background:'rgba(245,158,11,0.15)', color:'#f59e0b', border:'1px solid rgba(245,158,11,0.3)' }}>✎ Edit Fields</button>
+                  : <>
+                      <button onClick={handleSave} disabled={saving} style={{ fontSize:12, fontWeight:700, padding:'6px 14px', borderRadius:8, cursor:saving?'default':'pointer', background:saving?'rgba(255,255,255,0.05)':'rgba(16,185,129,0.18)', color:'#10b981', border:'1px solid rgba(16,185,129,0.32)' }}>{saving?'⏳ Saving…':'✓ Save Changes'}</button>
+                      <button onClick={handleCancel} style={{ fontSize:12, fontWeight:600, padding:'6px 12px', borderRadius:8, cursor:'pointer', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.45)', border:'1px solid rgba(255,255,255,0.1)' }}>Cancel</button>
+                    </>
+                }
+                <button onClick={() => setShowEmpty(v => !v)} style={{ fontSize:12, fontWeight:600, padding:'6px 12px', borderRadius:8, cursor:'pointer', background:showEmpty?'rgba(239,68,68,0.12)':'rgba(255,255,255,0.04)', color:showEmpty?'#ef4444':'rgba(255,255,255,0.38)', border:`1px solid ${showEmpty?'rgba(239,68,68,0.28)':'rgba(255,255,255,0.1)'}` }}>
+                  {showEmpty ? '🔴 Showing empty' : '○ Highlight empty'}
+                </button>
+                {emptyCount > 0 && <span style={{ fontSize:11, color:'#f59e0b', fontWeight:600 }}>{emptyCount} field{emptyCount!==1?'s':''} unfilled</span>}
+                {saveMsg && <span style={{ marginLeft:'auto', fontSize:12, fontWeight:700, color:saveMsg.startsWith('✓')?'#10b981':'#ef4444' }}>{saveMsg}</span>}
+              </div>
+
+              {(!formData || !Object.keys(formData).length) && (
+                <div style={{ textAlign:'center', padding:'40px 0', color:'rgba(255,255,255,0.2)', fontSize:13 }}>
+                  <div style={{ fontSize:32, marginBottom:8 }}>📋</div>No form extraction data
+                </div>
+              )}
+
+              {FORM_SECS.map(sec => {
+                const obj = formData[sec.key] || {};
+                const fields = Object.entries(obj);
+                if (!fields.length) return null;
+                const ro = sec.ro || !editMode;
+                return (
+                  <div key={sec.key} style={card}>
+                    <div style={{ fontSize:13, fontWeight:800, color:'rgba(255,255,255,0.68)', marginBottom:12, display:'flex', alignItems:'center', gap:6 }}>
+                      {sec.icon} {sec.label}
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:9 }}>
+                      {fields.map(([field, val]) => {
+                        const empty  = isEmpty(val);
+                        const disp   = Array.isArray(val) ? val.join(', ') : String(val ?? '');
+                        const hl     = showEmpty && empty;
+                        return (
+                          <div key={field} style={{ background:hl?'rgba(239,68,68,0.06)':'rgba(255,255,255,0.02)', border:`1px solid ${hl?'rgba(239,68,68,0.22)':'rgba(255,255,255,0.06)'}`, borderRadius:8, padding:'8px 10px' }}>
+                            <div style={{ fontSize:10, fontWeight:700, color:hl?'#ef4444':'rgba(255,255,255,0.32)', marginBottom:4 }}>
+                              {hl && <span style={{ fontSize:8, marginRight:3 }}>●</span>}{fLabel(field)}
+                            </div>
+                            {ro || Array.isArray(val)
+                              ? <div style={{ fontSize:12, fontWeight:600, color:empty?'rgba(255,255,255,0.18)':'rgba(255,255,255,0.82)', fontStyle:empty?'italic':'normal', wordBreak:'break-word' }}>{empty?'(empty)':disp}</div>
+                              : <input value={disp} onChange={e => handleChange(sec.key, field, e.target.value)}
+                                  style={{ width:'100%', background:empty?'rgba(245,158,11,0.07)':'rgba(255,255,255,0.06)', border:`1px solid ${empty?'rgba(245,158,11,0.32)':'rgba(255,255,255,0.11)'}`, borderRadius:6, padding:'5px 8px', color:'var(--text-1)', fontSize:12, outline:'none', boxSizing:'border-box' }}
+                                  placeholder={`Enter ${fLabel(field)}…`}/>
+                            }
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN DataView
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DataView() {
@@ -1205,14 +1601,45 @@ export default function DataView() {
   const [selectedOutstation, setSelectedOutstation] = useState(null);
   const [selectedBjpMember, setSelectedBjpMember]   = useState(null);
   const [debugInfo,      setDebugInfo]      = useState({});
-  const [lightboxPhoto,  setLightboxPhoto]  = useState(null); // { url, label }
+  const [lightboxPhoto,  setLightboxPhoto]  = useState(null);
+
+  // ── SIR Records state (SIR_ConfirmedMatches + SIR_ConfirmedNotFound) ────────
+  const [sirRecords,  setSirRecords]  = useState([]);
+  const [sirCounts,   setSirCounts]   = useState({});
+  const [sirCategory, setSirCategory] = useState('ALL');
+  const [sirTotal,    setSirTotal]    = useState(0);
+  const [sirPage,     setSirPage]     = useState(1);
+  const [sirPages,    setSirPages]    = useState(1);
+  const [sirLoading,  setSirLoading]  = useState(false);
+  const [sirError,    setSirError]    = useState('');
+  const [selectedSir, setSelectedSir] = useState(null);
 
   const loadRef   = useRef(0);
   const debouncer = useRef(null);
   const gridRef   = useRef(null);
 
-  const isCardTab  = tab === 'voter' || tab === 'future_voters' || tab === 'deceased' || tab === 'outstation_voters' || tab === 'bjp_members';
+  const isCardTab  = tab === 'voter' || tab === 'future_voters' || tab === 'deceased' || tab === 'outstation_voters' || tab === 'bjp_members' || tab === 'sir_confirmed';
   const isTableTab = tab === 'survey';
+
+  // ── Load SIR (GET /api/sir/confirmed/ → SIR_ConfirmedMatches + SIR_ConfirmedNotFound) ─
+  const loadSIR = useCallback(async (cat, pg) => {
+    setSirLoading(true); setSirError('');
+    try {
+      const r = await api.get('/api/sir/confirmed/', { params: { category: cat, page: pg, limit: 20 } });
+      if (r.data.success) {
+        setSirRecords(r.data.records || []);
+        setSirCounts(r.data.counts   || {});
+        setSirTotal(r.data.total     || 0);
+        setSirPage(pg);
+        setSirPages(Math.max(1, Math.ceil((r.data.total || 0) / 20)));
+      } else { setSirError(r.data.message || 'Failed to load SIR records.'); }
+    } catch(e) { setSirError(e.response?.data?.message || 'Network error loading SIR records.'); }
+    finally    { setSirLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'sir_confirmed') { setSirPage(1); setSirCategory('ALL'); loadSIR('ALL', 1); }
+  }, [tab]); // eslint-disable-line
 
   const tabConfig = TABS.find(t => t.key === tab) || TABS[0];
 
@@ -1575,6 +2002,72 @@ export default function DataView() {
           </div>
         )}
 
+        {/* ════ SIR RECORDS — SIR_ConfirmedMatches + SIR_ConfirmedNotFound ════ */}
+        {tab === 'sir_confirmed' && (
+          <div className="anim-fade-up">
+
+            {/* category filter */}
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:14, alignItems:'center' }}>
+              {[
+                { key:'ALL',            label:`All (${sirCounts.TOTAL||0})`,              color:'#94a3b8' },
+                { key:'MATCHED',        label:`Matched (${sirCounts.MATCHED||0})`,         color:'#10b981' },
+                { key:'NOT_FOUND_2025', label:`Not Found 2025 (${sirCounts.NOT_FOUND_2025||0})`, color:'#f59e0b' },
+                { key:'NOT_FOUND_2002', label:`Not Found 2002 (${sirCounts.NOT_FOUND_2002||0})`, color:'#fb923c' },
+                { key:'NOT_FOUND_BOTH', label:`Not Found Both (${sirCounts.NOT_FOUND_BOTH||0})`, color:'#ef4444' },
+              ].map(cat => {
+                const active = sirCategory === cat.key;
+                return (
+                  <button key={cat.key}
+                    onClick={() => { setSirCategory(cat.key); setSirPage(1); loadSIR(cat.key, 1); }}
+                    style={{ fontSize:11, fontWeight:700, padding:'5px 12px', borderRadius:8, cursor:'pointer', border:`1px solid ${active?cat.color:'rgba(255,255,255,0.1)'}`, background:active?`${cat.color}20`:'rgba(255,255,255,0.04)', color:active?cat.color:'rgba(255,255,255,0.42)', transition:'all 0.15s' }}>
+                    {cat.label}
+                  </button>
+                );
+              })}
+              <button onClick={() => loadSIR(sirCategory, sirPage)} style={{ marginLeft:'auto', fontSize:11, padding:'5px 10px', borderRadius:8, cursor:'pointer', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.38)' }}>↻ Refresh</button>
+            </div>
+
+            {sirLoading && (
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:12 }}>
+                {Array.from({length:8}).map((_,i)=><SkeletonCard key={i}/>)}
+              </div>
+            )}
+
+            {!sirLoading && sirError && (
+              <div style={{ padding:20, textAlign:'center' }}>
+                <div className="alert alert-error">⚠ {sirError}</div>
+                <button className="btn btn-primary" style={{ marginTop:12 }} onClick={() => loadSIR(sirCategory, sirPage)}>↻ Retry</button>
+              </div>
+            )}
+
+            {!sirLoading && !sirError && sirRecords.length === 0 && (
+              <div className="empty-state">
+                <div className="empty-state-icon">✓</div>
+                <h3>No SIR confirmed records</h3>
+                <p>SIR_ConfirmedMatches and SIR_ConfirmedNotFound are empty</p>
+              </div>
+            )}
+
+            {!sirLoading && !sirError && sirRecords.length > 0 && (
+              <>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:12 }}>
+                  {sirRecords.map(rec => (
+                    <SIRCard key={rec._id} record={rec} onClick={() => setSelectedSir(rec)}/>
+                  ))}
+                </div>
+                {sirPages > 1 && (
+                  <div style={{ marginTop:14 }}>
+                    <Paginator page={sirPage} pages={sirPages} onPage={p => {
+                      setSirPage(p); loadSIR(sirCategory, p);
+                      gridRef.current?.scrollIntoView({ behavior:'smooth', block:'start' });
+                    }}/>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* ════════════════════════════════════════════════════════════════════
             TABLE TAB — Survey Data
         ════════════════════════════════════════════════════════════════════ */}
@@ -1713,5 +2206,17 @@ export default function DataView() {
 
       </div>
     </div>
+
+    {/* SIR detail modal — POST save → /api/sir/attach-form/ */}
+    {selectedSir && (
+      <SIRDetailModal
+        record={selectedSir}
+        onClose={() => setSelectedSir(null)}
+        onSaved={(id, newForm) => {
+          setSirRecords(prev => prev.map(r => r._id === id ? { ...r, form_extraction: newForm } : r));
+          setSelectedSir(prev => prev ? { ...prev, form_extraction: newForm } : prev);
+        }}
+      />
+    )}
   );
 }
