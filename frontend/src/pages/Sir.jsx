@@ -3,6 +3,40 @@ import Navbar from '../components/Navbar';
 
 const API = (process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com') + '/api';
 
+// ─── SIR form photo compression ───────────────────────────────────────────────
+// Same approach as SurveyForm.compressAadhaarPhoto — canvas resize + JPEG encode.
+// maxPx=1200 / quality=0.80 keeps forms readable while staying well under 500 KB.
+function compressSIRPhoto(file, maxPx = 1200, quality = 0.80) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale  = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })),
+          'image/jpeg', quality
+        );
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Convert a base64 string (no data-URL prefix) back to a File object.
+// Used in ConfirmAndSaveBar.useEffect where only base64 is stored in state.
+function base64ToFile(base64, mimeType, filename = 'sir_form.jpg') {
+  const bytes = atob(base64);
+  const arr   = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new File([arr.buffer], filename, { type: mimeType });
+}
+
 // ─── SIR Ward Data (Political Intelligence) ───────────────────────────────────
 const WARD_NAMES = {
   '21':'Padavu','24':'Derebail South','25':'Derebail West','26':'Derebail SW',
@@ -829,6 +863,7 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
   // parent can store it and attach it once the record doc_id is known.
   const [phase,       setPhase]       = React.useState('idle');
   const [imageData,   setImageData]   = React.useState(pendingImage || null);
+  const [imageFile,   setImageFile]   = React.useState(pendingImage?.file || null); // original File for multipart
   const [extracted,   setExtracted]   = React.useState(null);
   const [attachErr,   setAttachErr]   = React.useState('');
   const [showPreview, setShowPreview] = React.useState(false);
@@ -841,8 +876,6 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
   }, [imageData]);
 
   // Keep parent in sync when extracted data changes (pre-save flow).
-  // This is the key hook that lets ConfirmAndSaveBar store the extracted
-  // JSON and attach it to the document once savedDocId is available.
   React.useEffect(() => {
     if (onExtractedChange) onExtractedChange(extracted);
   }, [extracted]);
@@ -854,12 +887,24 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
     }
   }, [docId]);
 
+  // When post-save uploader is mounted with carry-over image (pendingImage passed
+  // from ConfirmAndSaveBar), jump to 'preview' so the image + Extract button shows
+  // instead of the idle standalone buttons. The ConfirmAndSaveBar.useEffect handles
+  // the actual auto-extract+attach; this is the visible fallback.
+  React.useEffect(() => {
+    if (docId && pendingImage && !extracted) {
+      setPhase('preview');
+    }
+  }, []); // mount-only
+
   const processFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
+    setImageFile(file);  // keep original File for multipart upload
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target.result.split(',')[1];
-      setImageData({ base64, mimeType: file.type, previewUrl: e.target.result });
+      const imgObj = { base64, mimeType: file.type, previewUrl: e.target.result, file };
+      setImageData(imgObj);
       setPhase('preview');
       setExtracted(null);  // clears local + triggers onExtractedChange(null) via useEffect
       setAttachErr('');
@@ -896,25 +941,30 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
     setPhase('attaching');
     try {
       const token = sessionStorage.getItem('cc_token');
-      const hdrs  = { 'Content-Type': 'application/json' };
+
+      // ── Send as multipart/form-data (same as SurveyForm Aadhaar upload) ────
+      // ⚠️ Do NOT set Content-Type — browser auto-sets multipart/form-data + boundary.
+      // axios cannot be used here (it forces Content-Type: application/json).
+      const fd = new FormData();
+      fd.append('doc_id',          docId);
+      fd.append('form_extraction', JSON.stringify(extracted));
+
+      if (imageFile) {
+        // Compress with same helper used by SurveyForm for Aadhaar photos
+        let uploadFile = imageFile;
+        try { uploadFile = await compressSIRPhoto(imageFile); } catch { /* use original */ }
+        fd.append('form_image', uploadFile, uploadFile.name);
+      }
+
+      const hdrs = {};
       if (token) hdrs['Authorization'] = `Bearer ${token}`;
-      const payload = {
-        doc_id:          docId,
-        form_extraction: extracted,
-        // Send the original image so the backend uploads it to GCS
-        // and stores a public URL — not raw base64 — in MongoDB.
-        ...(imageData ? {
-          form_image_b64:  imageData.base64,
-          image_mime_type: imageData.mimeType,
-        } : {}),
-      };
+      // ⚠️ NO Content-Type header — required for multipart boundary to work
+
       const res  = await fetch(`${API}/sir/attach-form/`, {
-        method: 'POST', credentials: 'include', headers: hdrs,
-        body: JSON.stringify(payload),
+        method: 'POST', credentials: 'include', headers: hdrs, body: fd,
       });
       const data = await res.json();
       if (data.success) {
-        // Store returned GCS URL so it can be displayed in the success panel
         if (data.form_image_url && imageData) {
           setImageData(prev => ({ ...prev, gcpUrl: data.form_image_url }));
         }
@@ -1117,36 +1167,91 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
   const [pendingImage,   setPendingImage]   = useState(null);
   const [pendingExtract, setPendingExtract] = useState(null);
   const [showFormPanel,  setShowFormPanel]  = useState(false);
+  const [autoAttachErr,  setAutoAttachErr]  = useState('');   // surface silent failures
   const uploaderRef = useRef();
 
-  // When saved: auto-attach extracted data if we have it.
-  // Dependency array includes pendingExtract so this re-fires if the
-  // extraction result arrives just after the save completes.
+  // ── Auto-attach after save ─────────────────────────────────────────────────
+  // Uses multipart/form-data (same as SurveyForm Aadhaar) so backend receives
+  // a real file in request.FILES → _upload_to_gcs → form_image_url in MongoDB.
+  //
+  // Case A: extraction done BEFORE save → pendingExtract set → attach directly
+  // Case B: image only, no extraction → extract first (form-extract/), then attach
   React.useEffect(() => {
-    if (confirmStatus === 'saved' && savedDocId && pendingExtract) {
-      (async () => {
-        try {
-          const token = sessionStorage.getItem('cc_token');
-          const hdrs  = { 'Content-Type': 'application/json' };
-          if (token) hdrs['Authorization'] = `Bearer ${token}`;
-          await fetch(`${API}/sir/attach-form/`, {
-            method: 'POST', credentials: 'include', headers: hdrs,
-            body: JSON.stringify({ doc_id: savedDocId, form_extraction: pendingExtract }),
+    if (confirmStatus !== 'saved' || !savedDocId) return;
+    if (!pendingExtract && !pendingImage) return;
+
+    setAutoAttachErr('');
+
+    (async () => {
+      try {
+        const token   = sessionStorage.getItem('cc_token');
+        const authHdr = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+        let extractData = pendingExtract;
+
+        // ── Case B: image captured but not yet extracted ──────────────────────
+        if (!extractData && pendingImage) {
+          const r = await fetch(`${API}/sir/form-extract/`, {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...authHdr },
+            body: JSON.stringify({ image: pendingImage.base64, mimeType: pendingImage.mimeType }),
           });
-        } catch { /**/ }
-      })();
-    }
+          const j = await r.json();
+          if (!j.success || !j.data) {
+            setAutoAttachErr(`Form extraction failed: ${j.message || 'Unknown error'}`);
+            return;
+          }
+          extractData = j.data;
+          setPendingExtract(extractData);
+        }
+
+        if (!extractData) return;
+
+        // ── Build multipart FormData (same as SurveyForm Aadhaar upload) ─────
+        // ⚠️ NO Content-Type header — browser sets multipart/form-data + boundary
+        const fd = new FormData();
+        fd.append('doc_id',          savedDocId);
+        fd.append('form_extraction', JSON.stringify(extractData));
+
+        if (pendingImage) {
+          // Use original File if available (processFile stores it); else reconstitute from base64
+          let imgFile = pendingImage.file || base64ToFile(pendingImage.base64, pendingImage.mimeType);
+          try { imgFile = await compressSIRPhoto(imgFile); } catch { /* use original */ }
+          fd.append('form_image', imgFile, imgFile.name);
+        }
+
+        const res  = await fetch(`${API}/sir/attach-form/`, {
+          method: 'POST', credentials: 'include', headers: authHdr, body: fd,
+        });
+        const data = await res.json();
+        if (!data.success) {
+          setAutoAttachErr(`Attach failed: ${data.message || 'Unknown error'}`);
+        }
+      } catch (err) {
+        setAutoAttachErr(`Auto-attach error: ${err.message || 'Network error'}`);
+      }
+    })();
   }, [confirmStatus, savedDocId, pendingExtract]);
+  // ↑ pendingImage NOT in deps — accessed from closure (stable after save)
 
   const hasPendingForm = !!(pendingImage || pendingExtract);
 
   if (confirmStatus === 'saved') {
     return (
       <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(16,185,129,0.2)', background:'rgba(16,185,129,0.04)', padding:'14px 16px' }}>
+        {/* Surface any errors that were previously swallowed silently */}
+        {autoAttachErr && (
+          <div style={{ marginBottom:10, padding:'8px 12px', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:8, fontSize:12, color:'#fca5a5', display:'flex', alignItems:'center', gap:8 }}>
+            <span>⚠ {autoAttachErr}</span>
+            <button onClick={() => setAutoAttachErr('')} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:11, padding:0, marginLeft:'auto' }}>✕</button>
+          </div>
+        )}
+        {/* Pass pendingImage so post-save uploader has the image if auto-attach raced/failed */}
         <SIRFormUploader
           docId={savedDocId}
           name={voterName}
           voterid={voterId}
+          pendingImage={pendingImage}
         />
       </div>
     );
