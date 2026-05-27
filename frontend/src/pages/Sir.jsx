@@ -628,18 +628,8 @@ function VoterInfoModal({ record, roll, onClose }) {
 
 
 // ─── SIR FORM UPLOADER ────────────────────────────────────────────────────────
-const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
-
-const SIR_FORM_SYSTEM_PROMPT = `You are an expert OCR system for Indian electoral Annexure-III Enumeration Forms.
-Extract ALL visible information and return ONLY a valid JSON object with this exact structure:
-{
-  "personal": { "dateOfBirth": "", "aadhaarNo": "", "mobileNo": "", "fathersGuardianName": "", "fathersGuardianEpicNo": "", "mothersName": "", "mothersEpicNo": "", "spouseName": "", "spouseEpicNo": "" },
-  "electorDetails": { "electorName": "", "epicNo": "", "relativeName": "", "relationship": "", "district": "", "state": "", "acName": "", "acNumber": "", "partNo": "", "srNo": "" },
-  "relativeDetails": { "name": "", "epicNo": "", "relativeName": "", "relationship": "", "district": "", "state": "", "acName": "", "acNumber": "", "partNo": "", "srNo": "" },
-  "preprinted": { "serialNo": "", "partNo": "", "acPcName": "", "state": "", "electorName": "", "epicNo": "", "address": "" },
-  "meta": { "confidence": "high", "missingFields": [], "notes": "" }
-}
-Return ONLY the JSON. Use "" for blank/unreadable fields. List blank field names in missingFields.`;
+// OCR extraction is routed through /api/sir/form-extract/ (server-side).
+// Calling api.anthropic.com directly from the browser is blocked by CORS.
 
 const SIR_FORM_SECTIONS = {
   personal:      { label: 'Personal Information',        color: '#60a5fa', fields: { dateOfBirth:'Date of Birth', aadhaarNo:'Aadhaar No.', mobileNo:'Mobile No.', fathersGuardianName:"Father's / Guardian's Name", fathersGuardianEpicNo:"Father's EPIC No.", mothersName:"Mother's Name", mothersEpicNo:"Mother's EPIC No.", spouseName:"Spouse's Name", spouseEpicNo:"Spouse's EPIC No." } },
@@ -673,24 +663,23 @@ function SIRFormUploader({ docId, name, voterid }) {
     if (!imageData) return;
     setPhase('extracting');
     try {
-      const res = await fetch(CLAUDE_API, {
+      // Route through the Django backend (/api/sir/form-extract/) instead of
+      // calling api.anthropic.com directly — browsers block that with CORS.
+      const token = sessionStorage.getItem('cc_token');
+      const hdrs  = { 'Content-Type': 'application/json' };
+      if (token) hdrs['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${API}/sir/form-extract/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: hdrs,
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: SIR_FORM_SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: imageData.mimeType, data: imageData.base64 } },
-            { type: 'text',  text: 'Extract all fields from this Annexure-III SIR form. Return only JSON.' },
-          ]}],
+          image:    imageData.base64,
+          mimeType: imageData.mimeType,
         }),
       });
-      const data = await res.json();
-      const text  = data.content?.find(b => b.type === 'text')?.text || '';
-      const clean = text.replace(/```json|```/gi, '').trim();
-      const parsed = JSON.parse(clean);
-      setExtracted(parsed);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message || 'Server error');
+      setExtracted(json.data);
       setPhase('review');
     } catch (err) {
       setAttachErr('Extraction failed: ' + (err.message || 'unknown'));

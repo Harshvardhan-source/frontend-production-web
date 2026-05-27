@@ -326,6 +326,22 @@ export const sirApi = {
       doc_id:          docId,
       form_extraction: formExtraction,
     }),
+
+  /**
+   * Server-side OCR proxy for Annexure-III SIR forms.
+   * Sends the base64 image to the backend, which calls the Anthropic API
+   * (direct browser→Anthropic calls are blocked by CORS).
+   *
+   * @param {string} imageBase64 - base64-encoded image bytes
+   * @param {string} mimeType    - e.g. 'image/jpeg', 'image/png', 'image/webp'
+   *
+   * Response: { success: true, data: { personal, electorDetails, relativeDetails, preprinted, meta } }
+   */
+  formExtract: (imageBase64, mimeType = 'image/jpeg') =>
+    api.post('/api/sir/form-extract/', {
+      image:    imageBase64,
+      mimeType: mimeType,
+    }),
 };
 
 // ── SWOT Beneficiary List ─────────────────────────────────────────────────────
