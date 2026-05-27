@@ -4326,39 +4326,6 @@ function HouseMasterPanel() {
 
   return (
     <div style={{ marginBottom: 20 }} className="anim-fade-up">
-      {/* ── Header ── */}
-      <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Home size={15} style={{ color: '#10b981' }} />
-        </div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)' }}>House Master Report</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-            {HMC_SUMMARY.wards} wards · {HMC_SUMMARY.booths} booths · {HMC_SUMMARY.totalHouses.toLocaleString()} houses · {HMC_SUMMARY.totalVoters.toLocaleString()} voters
-          </div>
-        </div>
-        <div style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 6, padding: '3px 8px' }}>
-          HMC v3 · Verified ✓
-        </div>
-      </div>
-
-      {/* ── 4 KPI Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
-        {[
-          { label: 'Total Houses',  value: HMC_SUMMARY.totalHouses.toLocaleString(),  sub: `${HMC_SUMMARY.wards} wards`,           color: '#10b981', icon: '🏠' },
-          { label: 'Total Voters',  value: HMC_SUMMARY.totalVoters.toLocaleString(),  sub: 'voters in houses',                      color: '#22d3ee', icon: '👥' },
-          { label: 'Mapped',        value: `${HMC_SUMMARY.mappedPct}%`,               sub: `${HMC_SUMMARY.mapped.toLocaleString()} mapped`, color: '#f59e0b', icon: '📍' },
-          { label: 'Polled 2023',   value: `${HMC_SUMMARY.polledPct}%`,               sub: `${HMC_SUMMARY.polled.toLocaleString()} voted`,  color: '#8b5cf6', icon: '🗳️' },
-        ].map(k => (
-          <div key={k.label} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${k.color}22`, borderRadius: 14, padding: '14px 12px' }}>
-            <div style={{ fontSize: 18, marginBottom: 6 }}>{k.icon}</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>{k.label}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{k.sub}</div>
-          </div>
-        ))}
-      </div>
-
       {/* ── Two-column: House Size + Community Table ── */}
       <div className="db-two-col" style={{ marginBottom: 14 }}>
 
@@ -5384,6 +5351,9 @@ export default function Dashboard() {
             <ConstituencySIRSummary onViewMapped={setMappedRecordsModal} />
           )}
 
+          {/* ── House Master: Size Distribution + Community Rates + Top Houses ── */}
+          {!selectedWard && !selectedBooth && <HouseMasterPanel />}
+
           {/* ── HMC Religion Breakdown + Polled/NotPolled (constituency / ward / booth) ── */}
           <div style={{ marginBottom: 20 }} className="anim-fade-up">
             {/* Two widgets side by side on wider screens, stacked on mobile */}
@@ -5447,9 +5417,6 @@ export default function Dashboard() {
 
           {/* ── Community Classification 2002 vs 2025 ─────────────────────── */}
           <CommunityClassificationPanel ward={selectedWard || ''} booth={selectedBooth || ''} />
-
-          {/* ── House Master Consolidated Report ─────────────────────────── */}
-          {!selectedWard && !selectedBooth && <HouseMasterPanel />}
 
           {/* ── Gender + Quick Actions ────────────────────────────────────── */}
           <div className="db-two-col" style={{ marginBottom: 28 }}>
