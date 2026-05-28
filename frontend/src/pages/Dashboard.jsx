@@ -5071,29 +5071,37 @@ export default function Dashboard() {
                       <MapPin size={11} color="rgba(255,255,255,0.2)" /> Mapping Coverage Status
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10 }}>
-                      {[
-                        {
-                          label: 'BLO Officer Mapped',
-                          desc: 'Voters mapped by Booth Level Officer',
-                          count: wardStats.ward2026?.bloMapped,
-                          total: wardStats.ward2026?.totalElectors || wardStats.totalVoters,
-                          pct: wardStats.ward2026?.pctBloMapped,
-                          threshold: 60, color: '#22d3ee', icon: <UserCheck size={18} color="#22d3ee" />,
-                        },
-                        {
-                          label: 'Total Electors Mapped',
-                          desc: 'All mapping methods combined',
-                          count: wardStats.ward2026?.electorsMapped ?? wardStats.ward2026?.totalMapped,
-                          total: wardStats.ward2026?.totalElectors || wardStats.totalVoters,
-                          pct: wardStats.ward2026?.pctTotal,
-                          threshold: 65, color: '#f59e0b', icon: <MapIcon size={18} color="#f59e0b" />,
-                        },
-                      ].filter(m => m.count != null).map(({ label, desc, count, total, pct, threshold, color, icon }) => {
+                      {(() => {
+                        // Prefer live counts from 2025_new_mapped_notmapped_hmc (wardMapping),
+                        // fall back to WardReference (ward2026) if wardMapping not yet available.
+                        const wm        = wardStats.wardMapping;
+                        const hasLive   = wm && wm.total > 0;
+                        const totalBase = wardStats.ward2026?.totalElectors || wardStats.totalVoters;
+                        return [
+                          {
+                            label: 'Mapped',
+                            desc:  hasLive ? 'Live count · 2025_new_mapped_notmapped_hmc' : 'Voters mapped by Booth Level Officer',
+                            count: hasLive ? wm.mapped     : wardStats.ward2026?.bloMapped,
+                            total: hasLive ? wm.total      : totalBase,
+                            pct:   hasLive ? wm.pctMapped  : wardStats.ward2026?.pctBloMapped,
+                            threshold: 60, color: '#22d3ee', icon: <UserCheck size={18} color="#22d3ee" />,
+                          },
+                          {
+                            label: 'Not Mapped',
+                            desc:  hasLive ? 'Live count · 2025_new_mapped_notmapped_hmc' : 'All mapping methods combined',
+                            count: hasLive ? wm.notMapped        : (wardStats.ward2026?.electorsMapped ?? wardStats.ward2026?.totalMapped),
+                            total: hasLive ? wm.total            : totalBase,
+                            pct:   hasLive ? wm.pctNotMapped     : wardStats.ward2026?.pctTotal,
+                            threshold: 65, color: '#f59e0b', icon: <MapIcon size={18} color="#f59e0b" />,
+                            invert: true,  // lower is better for "not mapped"
+                          },
+                        ];
+                      })().filter(m => m.count != null).map(({ label, desc, count, total, pct, threshold, color, icon, invert }) => {
                         const computedPct = pct ?? (total ? Math.round(count / total * 100) : 0);
-                        const isGood = computedPct >= threshold;
-                        const isGreat = computedPct >= threshold + 15;
+                        const isGood  = invert ? computedPct <= threshold : computedPct >= threshold;
+                        const isGreat = invert ? computedPct <= threshold - 15 : computedPct >= threshold + 15;
                         const statusColor = isGreat ? '#10b981' : isGood ? color : '#f87171';
-                        const statusLabel = isGreat ? '✓ EXCELLENT' : isGood ? '✓ ON TRACK' : '⚠ BELOW TARGET';
+                        const statusLabel = isGreat ? '✓ EXCELLENT' : isGood ? '✓ ON TRACK' : '⚠ ABOVE TARGET';
                         const statusBg    = isGreat ? 'rgba(16,185,129,0.12)' : isGood ? `${color}15` : 'rgba(239,68,68,0.1)';
                         const statusBorder= isGreat ? 'rgba(16,185,129,0.3)' : isGood ? `${color}30` : 'rgba(239,68,68,0.25)';
                         return (
