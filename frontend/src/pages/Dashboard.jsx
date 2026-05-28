@@ -1728,7 +1728,6 @@ const BROAD_DEFS = [
 ];
 
 function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency', onViewRecords, ward, booth }) {
-  const [showAll,  setShowAll]  = useState(false);
   const [ageGroup, setAgeGroup] = useState('All');
   const [liveData, setLiveData] = useState(null);
   const [fetching, setFetching] = useState(false);
@@ -1765,8 +1764,6 @@ function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency
       return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
     });
   }
-
-  const displayed = showAll ? data : data.slice(0, 5);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
   const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
   const grandTotal     = grandPolled + grandNotPolled || 1;
@@ -1812,14 +1809,15 @@ function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency
         </div>
       </div>
 
-      {/* Per-category rows */}
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {displayed.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
+      {/* Per-category rows — scrollable */}
+      <div style={{ maxHeight: 420, overflowY: 'auto', paddingRight: 4, display:'flex', flexDirection:'column', gap:8,
+        scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.15) transparent' }}>
+        {data.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
           const rowTotal  = polled + notPolled || 1;
           const polledPct = ((polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
           return (
-            <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px' }}>
+            <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px', flexShrink: 0 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:7 }}>
                   <div style={{ minWidth:26, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color, padding:'0 5px' }}>{abbr}</div>
@@ -1861,10 +1859,10 @@ function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency
         })}
       </div>
 
-      {data.length > 5 && (
-        <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
-          {showAll ? '▲ Show less' : `▼ Show all ${data.length} categories`}
-        </button>
+      {data.length > 4 && (
+        <div style={{ marginTop:6, textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.2)', fontWeight:600, letterSpacing:'0.5px' }}>
+          ↕ Scroll to view all {data.length} categories
+        </div>
       )}
       {isEstimated && <AgeNote />}
     </div>
@@ -1889,7 +1887,6 @@ const COMM_DEFS = [
 ];
 
 function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', onViewRecords, ward, booth }) {
-  const [showAll,  setShowAll]  = useState(false);
   const [ageGroup, setAgeGroup] = useState('All');
   const [liveData, setLiveData] = useState(null);
   const [fetching, setFetching] = useState(false);
@@ -1932,8 +1929,6 @@ function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', o
       return { ...def, polled: found?.polled || 0, notPolled: found?.notPolled || 0 };
     });
   }
-
-  const displayed = showAll ? data : data.slice(0, 6);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
   const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
   const grandTotal     = grandPolled + grandNotPolled || 1;
@@ -1979,15 +1974,16 @@ function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', o
         </div>
       </div>
 
-      {/* Per-community rows */}
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {displayed.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
+      {/* Per-community rows — scrollable */}
+      <div style={{ maxHeight: 420, overflowY: 'auto', paddingRight: 4, display:'flex', flexDirection:'column', gap:8,
+        scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.15) transparent' }}>
+        {data.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
           const rowTotal  = polled + notPolled || 1;
           const polledPct = ((polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
 
           return (
-            <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px' }}>
+            <div key={key} style={{ background:`${color}08`, border:`1px solid ${color}20`, borderRadius:10, padding:'10px 12px', flexShrink: 0 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:7 }}>
                   <div style={{ minWidth:26, height:20, borderRadius:5, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color, padding:'0 4px' }}>{abbr}</div>
@@ -2029,10 +2025,10 @@ function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', o
         })}
       </div>
 
-      {data.length > 6 && (
-        <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
-          {showAll ? '▲ Show less' : `▼ Show all ${data.length} communities`}
-        </button>
+      {data.length > 4 && (
+        <div style={{ marginTop:6, textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.2)', fontWeight:600, letterSpacing:'0.5px' }}>
+          ↕ Scroll to view all {data.length} communities
+        </div>
       )}
       {isEstimated && <AgeNote />}
     </div>
