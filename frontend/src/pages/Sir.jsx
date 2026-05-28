@@ -1191,21 +1191,24 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
 
 // ─── CONFIRM AND SAVE BAR ─────────────────────────────────────────────────────
 // Integrates the form uploader BEFORE the save so one click does everything.
-function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFound25, notFound02, canConfirm, confirmStatus, savedDocId, handleConfirm, voterName, voterId }) {
+function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFound25, notFound02, canConfirm, confirmStatus, savedDocId, handleConfirm, savedWithImage, savedFormImageUrl, voterName, voterId }) {
   const [pendingImage,   setPendingImage]   = useState(null);
   const [pendingExtract, setPendingExtract] = useState(null);
   const [showFormPanel,  setShowFormPanel]  = useState(false);
-  const [autoAttachErr,  setAutoAttachErr]  = useState('');   // surface silent failures
+  const [autoAttachErr,  setAutoAttachErr]  = useState('');
   const uploaderRef = useRef();
 
   // ── Auto-attach after save ─────────────────────────────────────────────────
-  // Uses multipart/form-data (same as SurveyForm Aadhaar) so backend receives
-  // a real file in request.FILES → _upload_to_gcs → form_image_url in MongoDB.
+  // Skipped when image+extraction were already sent with the confirm call
+  // (savedWithImage=true) — they're already in the document, no patch needed.
   //
-  // Case A: extraction done BEFORE save → pendingExtract set → attach directly
-  // Case B: image only, no extraction → extract first (form-extract/), then attach
+  // Only runs when:
+  //  • The user extracted AFTER clicking confirm (race condition), OR
+  //  • No image was captured before confirm but extraction exists
   React.useEffect(() => {
     if (confirmStatus !== 'saved' || !savedDocId) return;
+    // Image already embedded via confirm call — skip redundant patch
+    if (savedWithImage) return;
     if (!pendingExtract && !pendingImage) return;
 
     setAutoAttachErr('');
@@ -1217,8 +1220,6 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
 
         let extractData = pendingExtract;
 
-        // ── Case B: image captured but not yet extracted ──────────────────────
-        // Compress before sending to avoid the same Render 30s timeout issue
         if (!extractData && pendingImage) {
           let sendBase64 = pendingImage.base64;
           let sendMime   = pendingImage.mimeType;
@@ -1226,70 +1227,65 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
             const imgFile    = pendingImage.file || base64ToFile(pendingImage.base64, pendingImage.mimeType);
             const compressed = await compressSIRPhoto(imgFile);
             sendBase64 = await new Promise((res, rej) => {
-              const r = new FileReader();
-              r.onload  = (e) => res(e.target.result.split(',')[1]);
-              r.onerror = rej;
-              r.readAsDataURL(compressed);
+              const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(compressed);
             });
             sendMime = 'image/jpeg';
-          } catch { /* fall back to original */ }
-
+          } catch {}
           const r = await fetch(`${API}/sir/form-extract/`, {
             method: 'POST', credentials: 'include',
             headers: { 'Content-Type': 'application/json', ...authHdr },
             body: JSON.stringify({ image: sendBase64, mimeType: sendMime }),
           });
           const j = await r.json();
-          if (!j.success || !j.data) {
-            setAutoAttachErr(`Form extraction failed: ${j.message || 'Unknown error'}`);
-            return;
-          }
+          if (!j.success || !j.data) { setAutoAttachErr(`Extraction failed: ${j.message || 'Unknown'}`); return; }
           extractData = j.data;
           setPendingExtract(extractData);
         }
 
         if (!extractData) return;
 
-        // ── Build multipart FormData (same as SurveyForm Aadhaar upload) ─────
-        // ⚠️ NO Content-Type header — browser sets multipart/form-data + boundary
         const fd = new FormData();
         fd.append('doc_id',          savedDocId);
         fd.append('form_extraction', JSON.stringify(extractData));
-
         if (pendingImage) {
-          // Use original File if available (processFile stores it); else reconstitute from base64
           let imgFile = pendingImage.file || base64ToFile(pendingImage.base64, pendingImage.mimeType);
-          try { imgFile = await compressSIRPhoto(imgFile); } catch { /* use original */ }
+          try { imgFile = await compressSIRPhoto(imgFile); } catch {}
           fd.append('form_image', imgFile, imgFile.name);
         }
-
         const res  = await fetch(`${API}/sir/attach-form/`, {
           method: 'POST', credentials: 'include', headers: authHdr, body: fd,
         });
         const data = await res.json();
-        if (!data.success) {
-          setAutoAttachErr(`Attach failed: ${data.message || 'Unknown error'}`);
-        }
+        if (!data.success) setAutoAttachErr(`Attach failed: ${data.message || 'Unknown'}`);
       } catch (err) {
         setAutoAttachErr(`Auto-attach error: ${err.message || 'Network error'}`);
       }
     })();
-  }, [confirmStatus, savedDocId, pendingExtract]);
-  // ↑ pendingImage NOT in deps — accessed from closure (stable after save)
+  }, [confirmStatus, savedDocId, pendingExtract, savedWithImage]);
 
   const hasPendingForm = !!(pendingImage || pendingExtract);
 
   if (confirmStatus === 'saved') {
     return (
       <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(16,185,129,0.2)', background:'rgba(16,185,129,0.04)', padding:'14px 16px' }}>
-        {/* Surface any errors that were previously swallowed silently */}
         {autoAttachErr && (
           <div style={{ marginBottom:10, padding:'8px 12px', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:8, fontSize:12, color:'#fca5a5', display:'flex', alignItems:'center', gap:8 }}>
             <span>⚠ {autoAttachErr}</span>
             <button onClick={() => setAutoAttachErr('')} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:11, padding:0, marginLeft:'auto' }}>✕</button>
           </div>
         )}
-        {/* Pass pendingImage so post-save uploader has the image if auto-attach raced/failed */}
+        {/* Show URL from confirm call if already embedded */}
+        {savedFormImageUrl && (
+          <div style={{ marginBottom:10, display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'rgba(34,211,238,0.06)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:8 }}>
+            <span style={{ fontSize:11, fontWeight:700, color:'#22d3ee', flexShrink:0 }}>📸 form_image_url</span>
+            <a href={savedFormImageUrl} target="_blank" rel="noreferrer"
+              style={{ color:'#7dd3fc', textDecoration:'none', fontSize:10, wordBreak:'break-all', flex:1 }}>
+              {savedFormImageUrl}
+            </a>
+            <button onClick={() => navigator.clipboard?.writeText(savedFormImageUrl)}
+              style={{ background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, color:'#94a3b8', fontSize:10, padding:'2px 7px', cursor:'pointer', flexShrink:0 }}>Copy</button>
+          </div>
+        )}
         <SIRFormUploader
           docId={savedDocId}
           name={voterName}
@@ -1304,7 +1300,7 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
     return (
       <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(239,68,68,0.2)', background:'rgba(239,68,68,0.04)', padding:'12px 16px', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
         <span style={{ color:'#f87171', fontWeight:700, fontSize:12, flex:1 }}>Save failed — please retry</span>
-        <button onClick={handleConfirm} style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:8, color:'#f87171', fontSize:12, padding:'7px 14px', cursor:'pointer', fontWeight:600 }}>
+        <button onClick={() => handleConfirm(pendingImage, pendingExtract)} style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:8, color:'#f87171', fontSize:12, padding:'7px 14px', cursor:'pointer', fontWeight:600 }}>
           Retry
         </button>
       </div>
@@ -1359,7 +1355,7 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
 
           {/* Confirm & Save */}
           <button
-            onClick={handleConfirm}
+            onClick={() => handleConfirm(pendingImage, pendingExtract)}
             disabled={!canConfirm || confirmStatus === 'saving'}
             style={{
               display:'flex', alignItems:'center', gap:8,
@@ -1421,6 +1417,8 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   const [notFound02,    setNotFound02]    = useState(false);
   const [confirmStatus, setConfirmStatus] = useState('idle'); // idle | saving | saved | error
   const [savedDocId,    setSavedDocId]    = useState(null);   // MongoDB _id returned after save
+  const [savedWithImage,    setSavedWithImage]    = useState(false);  // image+extraction sent with confirm
+  const [savedFormImageUrl, setSavedFormImageUrl] = useState(null);   // GCS URL from confirm response
   // Local set of voter IDs saved this session (merges with prop)
   const [localSavedIds, setLocalSavedIds] = useState(new Set());
   const allSavedIds = new Set([...confirmedVoterIds, ...localSavedIds]);
@@ -1442,28 +1440,60 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   const handleNotFound25 = () => { setSelected25(null); setNotFound25(p => !p); setConfirmStatus('idle'); };
   const handleNotFound02 = () => { setSelected02(null); setNotFound02(p => !p); setConfirmStatus('idle'); };
 
-  const handleConfirm = async () => {
+  // pendingImg / pendingExt are passed from ConfirmAndSaveBar so the image + extraction
+  // travel in the SAME request as the record confirmation → one document, no patch needed.
+  const handleConfirm = async (pendingImg = null, pendingExt = null) => {
     setConfirmStatus('saving');
     try {
-      const token = sessionStorage.getItem('cc_token');
-      const hdrs = { 'Content-Type': 'application/json' };
-      if (token) hdrs['Authorization'] = `Bearer ${token}`;
-      const res = await fetch(`${API}/sir/confirm/`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: hdrs,
-        body: JSON.stringify({
-          record_2025:    notFound25 ? null : selected25,
-          record_2002:    notFound02 ? null : selected02,
-          not_found_2025: notFound25,
-          not_found_2002: notFound02,
-          search_inputs:  searchInputs,
-        }),
-      });
+      const token   = sessionStorage.getItem('cc_token');
+      const authHdr = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      const sirPayload = {
+        record_2025:    notFound25 ? null : selected25,
+        record_2002:    notFound02 ? null : selected02,
+        not_found_2025: notFound25,
+        not_found_2002: notFound02,
+        search_inputs:  searchInputs,
+      };
+
+      let res;
+
+      if (pendingImg || pendingExt) {
+        // ── Multipart: sir_data + optional form_image + optional form_extraction ─
+        // One call → one document with GCS URL embedded from the start.
+        // ⚠️ NO Content-Type — browser sets multipart/form-data + boundary.
+        const fd = new FormData();
+        fd.append('sir_data', JSON.stringify(sirPayload));
+
+        if (pendingExt) {
+          fd.append('form_extraction', JSON.stringify(pendingExt));
+        }
+        if (pendingImg) {
+          let imgFile = pendingImg.file || base64ToFile(pendingImg.base64, pendingImg.mimeType);
+          try { imgFile = await compressSIRPhoto(imgFile); } catch { /* use original */ }
+          fd.append('form_image', imgFile, imgFile.name);
+        }
+
+        res = await fetch(`${API}/sir/confirm/`, {
+          method: 'POST', credentials: 'include', headers: authHdr, body: fd,
+        });
+      } else {
+        // ── JSON: no image or extraction — plain confirm ───────────────────────
+        res = await fetch(`${API}/sir/confirm/`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...authHdr },
+          body: JSON.stringify(sirPayload),
+        });
+      }
+
       const data = await res.json();
       if (data.success) {
         setConfirmStatus('saved');
         setSavedDocId(data.doc_id || null);
+        // Signal whether image+extraction were already embedded so ConfirmAndSaveBar
+        // can skip the redundant /sir/attach-form/ patch call
+        setSavedWithImage(!!(data.form_image_url || (pendingImg && pendingExt)));
+        setSavedFormImageUrl(data.form_image_url || null);
         setLocalSavedIds(prev => {
           const next = new Set(prev);
           if (selected25?.voterid) next.add(selected25.voterid);
@@ -1955,6 +1985,8 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           confirmStatus={confirmStatus}
           savedDocId={savedDocId}
           handleConfirm={handleConfirm}
+          savedWithImage={savedWithImage}
+          savedFormImageUrl={savedFormImageUrl}
           voterName={(selected25 || selected02)?.name || ''}
           voterId={(selected25 || selected02)?.voterid || ''}
         />
