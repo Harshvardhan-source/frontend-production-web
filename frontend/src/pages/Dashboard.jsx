@@ -4323,7 +4323,6 @@ const COMM_COLORS = {
 };
 
 function HouseMasterPanel() {
-  const [showAllComm,   setShowAllComm]   = useState(false);
   const [showTopHouses, setShowTopHouses] = useState(false);
 
   // ── Live data from 2025_new_mapped_notmapped_hmc ──────────────────────────
@@ -4357,7 +4356,6 @@ function HouseMasterPanel() {
   const liveComm    = commData?.communities || [];
 
   const totalHouses = HMC_HOUSE_SIZES.reduce((s, r) => s + r.count, 0);
-  const visibleComm = showAllComm ? liveComm : liveComm.slice(0, 6);
 
   const cardStyle = {
     background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
@@ -4456,14 +4454,25 @@ function HouseMasterPanel() {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {/* Header row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              {['Community', 'Houses', 'Mapped%', 'Polled%'].map(h => (
-                <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'Community' ? 'left' : 'center' }}>{h}</div>
-              ))}
-            </div>
+          {/* Sticky header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            {['Community', 'Houses', 'Mapped%', 'Polled%'].map(h => (
+              <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'Community' ? 'left' : 'center' }}>{h}</div>
+            ))}
+          </div>
 
+          {/* Scrollable rows — shows all communities */}
+          <div style={{
+            maxHeight: 340,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            marginTop: 8,
+            paddingRight: 4,
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255,255,255,0.12) transparent',
+          }}>
             {/* Skeleton rows while loading */}
             {commLoading && [1,2,3,4,5,6].map(i => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, alignItems: 'center' }}>
@@ -4477,8 +4486,8 @@ function HouseMasterPanel() {
               </div>
             ))}
 
-            {/* Data rows */}
-            {!commLoading && visibleComm.map(row => (
+            {/* Data rows — all of them, no slice */}
+            {!commLoading && liveComm.map(row => (
               <div key={row.name} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: row.color, flexShrink: 0 }} />
@@ -4501,18 +4510,13 @@ function HouseMasterPanel() {
             ))}
           </div>
 
-          {!commLoading && liveComm.length > 6 && (
-            <button onClick={() => setShowAllComm(v => !v)} style={{
-              marginTop: 12, width: '100%', background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.07)', borderRadius: 9,
-              padding: '8px 0', cursor: 'pointer', color: 'rgba(255,255,255,0.4)',
-              fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>
-              {showAllComm
-                ? <><ChevronUp size={13} /> Show Less</>
-                : <><ChevronDown size={13} /> Show All {liveComm.length} Communities</>
-              }
-            </button>
+          {/* Row count footer */}
+          {!commLoading && liveComm.length > 0 && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontWeight: 600 }}>
+                {liveComm.length} communities · scroll to view all
+              </span>
+            </div>
           )}
         </div>
       </div>
