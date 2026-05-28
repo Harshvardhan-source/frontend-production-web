@@ -1191,7 +1191,7 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
 
 // ─── CONFIRM AND SAVE BAR ─────────────────────────────────────────────────────
 // Integrates the form uploader BEFORE the save so one click does everything.
-function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFound25, notFound02, canConfirm, confirmStatus, savedDocId, handleConfirm, savedWithImage, savedFormImageUrl, voterName, voterId }) {
+function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFound25, notFound02, canConfirm, confirmStatus, savedDocId, handleConfirm, savedWithImage, savedFormImageUrl, savedFormImageErr, voterName, voterId }) {
   const [pendingImage,   setPendingImage]   = useState(null);
   const [pendingExtract, setPendingExtract] = useState(null);
   const [showFormPanel,  setShowFormPanel]  = useState(false);
@@ -1257,6 +1257,7 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
         });
         const data = await res.json();
         if (!data.success) setAutoAttachErr(`Attach failed: ${data.message || 'Unknown'}`);
+        else if (data.form_image_error) setAutoAttachErr(`⚠ Form saved — photo upload failed: ${data.form_image_error}`);
       } catch (err) {
         setAutoAttachErr(`Auto-attach error: ${err.message || 'Network error'}`);
       }
@@ -1268,6 +1269,19 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
   if (confirmStatus === 'saved') {
     return (
       <div style={{ marginTop:12, borderRadius:12, border:'1px solid rgba(16,185,129,0.2)', background:'rgba(16,185,129,0.04)', padding:'14px 16px' }}>
+        {/* GCS error from the confirm call — shown when form_image_url was not stored */}
+        {savedFormImageErr && !savedFormImageUrl && (
+          <div style={{ marginBottom:10, padding:'9px 12px', background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:8, fontSize:12, color:'#fca5a5' }}>
+            <div style={{ fontWeight:700, marginBottom:3 }}>⚠ Photo not uploaded to GCS</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginBottom:4, wordBreak:'break-word' }}>{savedFormImageErr}</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)' }}>
+              Check Render env vars:{' '}
+              <code style={{ background:'rgba(255,255,255,0.07)', padding:'1px 5px', borderRadius:3 }}>GCS_BUCKET_NAME</code>{' '}
+              and{' '}
+              <code style={{ background:'rgba(255,255,255,0.07)', padding:'1px 5px', borderRadius:3 }}>GOOGLE_APPLICATION_CREDENTIALS_JSON</code>
+            </div>
+          </div>
+        )}
         {autoAttachErr && (
           <div style={{ marginBottom:10, padding:'8px 12px', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:8, fontSize:12, color:'#fca5a5', display:'flex', alignItems:'center', gap:8 }}>
             <span>⚠ {autoAttachErr}</span>
@@ -1416,9 +1430,10 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
   const [notFound25,    setNotFound25]    = useState(false);
   const [notFound02,    setNotFound02]    = useState(false);
   const [confirmStatus, setConfirmStatus] = useState('idle'); // idle | saving | saved | error
-  const [savedDocId,    setSavedDocId]    = useState(null);   // MongoDB _id returned after save
-  const [savedWithImage,    setSavedWithImage]    = useState(false);  // image+extraction sent with confirm
-  const [savedFormImageUrl, setSavedFormImageUrl] = useState(null);   // GCS URL from confirm response
+  const [savedDocId,    setSavedDocId]    = useState(null);
+  const [savedWithImage,    setSavedWithImage]    = useState(false);
+  const [savedFormImageUrl, setSavedFormImageUrl] = useState(null);
+  const [savedFormImageErr, setSavedFormImageErr] = useState(null); // GCS error from confirm call
   // Local set of voter IDs saved this session (merges with prop)
   const [localSavedIds, setLocalSavedIds] = useState(new Set());
   const allSavedIds = new Set([...confirmedVoterIds, ...localSavedIds]);
@@ -1494,6 +1509,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
         // can skip the redundant /sir/attach-form/ patch call
         setSavedWithImage(!!(data.form_image_url || (pendingImg && pendingExt)));
         setSavedFormImageUrl(data.form_image_url || null);
+        setSavedFormImageErr(data.form_image_error || null);
         setLocalSavedIds(prev => {
           const next = new Set(prev);
           if (selected25?.voterid) next.add(selected25.voterid);
@@ -1987,6 +2003,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           handleConfirm={handleConfirm}
           savedWithImage={savedWithImage}
           savedFormImageUrl={savedFormImageUrl}
+          savedFormImageErr={savedFormImageErr}
           voterName={(selected25 || selected02)?.name || ''}
           voterId={(selected25 || selected02)?.voterid || ''}
         />
