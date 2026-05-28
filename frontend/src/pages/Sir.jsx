@@ -1247,7 +1247,10 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
         const fd = new FormData();
         fd.append('doc_id',          savedDocId);
         fd.append('form_extraction', JSON.stringify(extractData));
-        if (pendingImage) {
+        // Only upload the image if it wasn't already stored by the confirm call.
+        // savedFormImageUrl is set when confirm's GCS upload succeeded — re-uploading
+        // would create a duplicate object in GCS and overwrite the URL for no gain.
+        if (pendingImage && !savedFormImageUrl) {
           let imgFile = pendingImage.file || base64ToFile(pendingImage.base64, pendingImage.mimeType);
           try { imgFile = await compressSIRPhoto(imgFile); } catch {}
           fd.append('form_image', imgFile, imgFile.name);
@@ -1507,7 +1510,12 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
         setSavedDocId(data.doc_id || null);
         // Signal whether image+extraction were already embedded so ConfirmAndSaveBar
         // can skip the redundant /sir/attach-form/ patch call
-        setSavedWithImage(!!(data.form_image_url || (pendingImg && pendingExt)));
+        // savedWithImage = true ONLY when both were embedded in the confirm call:
+        //   • data.form_image_url → GCS upload succeeded in confirm call
+        //   • pendingExt          → extraction was also sent with confirm
+        // If only the image was sent (extraction not done yet), leave false so the
+        // useEffect can fire later when extraction arrives.
+        setSavedWithImage(!!(data.form_image_url && pendingExt));
         setSavedFormImageUrl(data.form_image_url || null);
         setSavedFormImageErr(data.form_image_error || null);
         setLocalSavedIds(prev => {
