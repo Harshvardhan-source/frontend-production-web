@@ -4282,18 +4282,29 @@ const HMC_HOUSE_SIZES = [
   { label: 'Single (1)',       count: 66318, color: '#6b7280', emoji: '⚪' },
 ];
 
-const HMC_COMMUNITIES = [
-  { name: 'Unclassified',          houses: 42985, voters: 92402,  mappedPct: 71.8, polledPct: 55.9, color: '#6b7280' },
-  { name: 'Muslim',                houses: 20552, voters: 49246,  mappedPct: 76.9, polledPct: 46.7, color: '#22d3ee' },
-  { name: 'Mangalorean Catholic',  houses: 14667, voters: 30515,  mappedPct: 75.3, polledPct: 50.6, color: '#a78bfa' },
-  { name: 'GSB',                   houses: 8981,  voters: 17549,  mappedPct: 69.9, polledPct: 58.6, color: '#f59e0b' },
-  { name: 'Bunt',                  houses: 8429,  voters: 17174,  mappedPct: 72.9, polledPct: 57.9, color: '#fb923c' },
-  { name: 'Billava',               houses: 5211,  voters: 10958,  mappedPct: 78.4, polledPct: 60.0, color: '#34d399' },
-  { name: 'GSB/Yadav/Bekal (Rao)', houses: 3105,  voters: 5642,   mappedPct: 68.7, polledPct: 55.9, color: '#fbbf24' },
-  { name: 'Christian',             houses: 2775,  voters: 5065,   mappedPct: 73.1, polledPct: 50.9, color: '#e879f9' },
-  { name: 'Billava/Mogaveera',     houses: 2090,  voters: 4147,   mappedPct: 79.2, polledPct: 60.6, color: '#10b981' },
-  { name: 'Vishwakarma',           houses: 1162,  voters: 2441,   mappedPct: 73.6, polledPct: 61.2, color: '#60a5fa' },
+// HMC_COMMUNITIES — now fetched live from /api/community-map-poll-rates/
+// Color palette assigned client-side by community name
+const COMM_PALETTE = {
+  'Unclassified':         '#6b7280',
+  'Muslim':               '#22d3ee',
+  'Mangalorean Catholic': '#a78bfa',
+  'GSB':                  '#f59e0b',
+  'Bunt':                 '#fb923c',
+  'Billava':              '#34d399',
+  'GSB/Yadav/Bekal (Rao)':'#fbbf24',
+  'Christian':            '#e879f9',
+  'Billava/Mogaveera':    '#10b981',
+  'Vishwakarma':          '#60a5fa',
+  'Devadiga':             '#f43f5e',
+  'Mogaveera':            '#38bdf8',
+};
+const FALLBACK_COLORS = [
+  '#f59e0b','#22d3ee','#10b981','#8b5cf6','#ec4899','#f97316',
+  '#84cc16','#06b6d4','#a78bfa','#fb923c','#34d399','#60a5fa',
 ];
+function commColor(name, idx) {
+  return COMM_PALETTE[name] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+}
 
 const HMC_TOP_HOUSES = [
   { houseNo: '15-18-1065', ward: 34, wardName: 'Shivbhag',      booth: 134, voters: 190, community: 'Mangalorean Catholic' },
@@ -4315,8 +4326,38 @@ function HouseMasterPanel() {
   const [showAllComm,   setShowAllComm]   = useState(false);
   const [showTopHouses, setShowTopHouses] = useState(false);
 
+  // ── Live data from 2025_new_mapped_notmapped_hmc ──────────────────────────
+  const [commData,    setCommData]    = useState(null);   // { summary, communities }
+  const [commLoading, setCommLoading] = useState(true);
+  const [commError,   setCommError]   = useState('');
+
+  useEffect(() => {
+    setCommLoading(true);
+    setCommError('');
+    api.get('/api/community-map-poll-rates/')
+      .then(res => {
+        if (res.data?.success) {
+          // Attach colour to each community row
+          const rows = (res.data.communities || []).map((r, i) => ({
+            ...r,
+            name:  r.community || 'Unclassified',
+            color: commColor(r.community || 'Unclassified', i),
+          }));
+          setCommData({ summary: res.data.summary, communities: rows });
+        } else {
+          setCommError(res.data?.message || 'Failed to load community data');
+        }
+      })
+      .catch(err => setCommError(err.message || 'Network error'))
+      .finally(() => setCommLoading(false));
+  }, []);
+
+  // Fall back to static HMC_SUMMARY when API hasn't loaded yet
+  const liveSummary = commData?.summary || HMC_SUMMARY;
+  const liveComm    = commData?.communities || [];
+
   const totalHouses = HMC_HOUSE_SIZES.reduce((s, r) => s + r.count, 0);
-  const visibleComm = showAllComm ? HMC_COMMUNITIES : HMC_COMMUNITIES.slice(0, 6);
+  const visibleComm = showAllComm ? liveComm : liveComm.slice(0, 6);
 
   const cardStyle = {
     background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))',
@@ -4333,7 +4374,12 @@ function HouseMasterPanel() {
         <div style={cardStyle}>
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>House Size Distribution</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{totalHouses.toLocaleString()} total households</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+              {commLoading
+                ? <span style={{ display:'inline-block', width:80, height:10, borderRadius:3, background:'rgba(255,255,255,0.08)' }} />
+                : `${(liveSummary.totalHouses || totalHouses).toLocaleString()} total households`
+              }
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {HMC_HOUSE_SIZES.map(row => {
@@ -4358,41 +4404,58 @@ function HouseMasterPanel() {
             })}
           </div>
 
-          {/* Mapping coverage bar */}
+          {/* Mapping coverage bar — uses live summary once loaded */}
           <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Mapping Coverage</span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b' }}>{HMC_SUMMARY.mappedPct}%</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b' }}>{liveSummary.mappedPct}%</span>
             </div>
             <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
-              <div style={{ width: `${HMC_SUMMARY.mappedPct}%`, background: 'linear-gradient(90deg, #f59e0b99, #f59e0b)', borderRadius: '4px 0 0 4px' }} />
+              <div style={{ width: `${liveSummary.mappedPct}%`, background: 'linear-gradient(90deg, #f59e0b99, #f59e0b)', borderRadius: '4px 0 0 4px', transition: 'width 0.6s ease' }} />
               <div style={{ flex: 1, background: 'rgba(239,68,68,0.3)' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Mapped: {HMC_SUMMARY.mapped.toLocaleString()}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Not Mapped: {HMC_SUMMARY.notMapped.toLocaleString()}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Mapped: {(liveSummary.mapped || 0).toLocaleString()}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Not Mapped: {(liveSummary.notMapped || 0).toLocaleString()}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Poll Rate 2023</span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#8b5cf6' }}>{HMC_SUMMARY.polledPct}%</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#8b5cf6' }}>{liveSummary.polledPct}%</span>
             </div>
             <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', display: 'flex', marginTop: 6 }}>
-              <div style={{ width: `${HMC_SUMMARY.polledPct}%`, background: 'linear-gradient(90deg, #8b5cf699, #8b5cf6)', borderRadius: '4px 0 0 4px' }} />
+              <div style={{ width: `${liveSummary.polledPct}%`, background: 'linear-gradient(90deg, #8b5cf699, #8b5cf6)', borderRadius: '4px 0 0 4px', transition: 'width 0.6s ease' }} />
               <div style={{ flex: 1, background: 'rgba(239,68,68,0.2)' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Polled: {HMC_SUMMARY.polled.toLocaleString()}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Not Polled: {HMC_SUMMARY.notPolled.toLocaleString()}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Polled: {(liveSummary.polled || 0).toLocaleString()}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Not Polled: {(liveSummary.notPolled || 0).toLocaleString()}</span>
             </div>
           </div>
         </div>
 
-        {/* Community × Mapping × Polling */}
+        {/* Community × Mapping × Polling — live from 2025_new_mapped_notmapped_hmc */}
         <div style={cardStyle}>
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>Community — Mapping &amp; Poll Rates</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>By primary community · all {HMC_SUMMARY.totalHouses.toLocaleString()} houses</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)', marginBottom: 3 }}>
+              Community — Mapping &amp; Poll Rates
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              By primary community · all{' '}
+              {commLoading
+                ? <span style={{ display:'inline-block', width:52, height:10, borderRadius:3, background:'rgba(255,255,255,0.08)', animation:'pulse 1.2s ease-in-out infinite' }} />
+                : (liveSummary.totalHouses || 0).toLocaleString()
+              } unique houses
+              {commLoading && <Loader2 size={11} style={{ animation:'spin 1s linear infinite', color:'rgba(255,255,255,0.3)' }} />}
+            </div>
           </div>
+
+          {/* Error state */}
+          {commError && (
+            <div style={{ padding:'10px 12px', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', marginBottom:10 }}>
+              <span style={{ fontSize:11, color:'#ef4444' }}>⚠ {commError}</span>
+            </div>
+          )}
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {/* Header row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
@@ -4400,30 +4463,55 @@ function HouseMasterPanel() {
                 <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'Community' ? 'left' : 'center' }}>{h}</div>
               ))}
             </div>
-            {visibleComm.map(row => (
+
+            {/* Skeleton rows while loading */}
+            {commLoading && [1,2,3,4,5,6].map(i => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, alignItems: 'center' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:8, height:8, borderRadius:2, background:'rgba(255,255,255,0.08)' }} />
+                  <div style={{ height:10, width: `${50 + (i * 17) % 40}px`, borderRadius:3, background:'rgba(255,255,255,0.06)' }} />
+                </div>
+                {[56,56,56].map((w,j) => (
+                  <div key={j} style={{ height:10, borderRadius:3, background:'rgba(255,255,255,0.06)', margin:'0 auto', width:36 }} />
+                ))}
+              </div>
+            ))}
+
+            {/* Data rows */}
+            {!commLoading && visibleComm.map(row => (
               <div key={row.name} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px 56px', gap: 4, alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: row.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</span>
                 </div>
-                <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>{row.houses.toLocaleString()}</div>
-                <div style={{ textAlign: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: row.mappedPct >= 75 ? '#10b981' : row.mappedPct >= 65 ? '#f59e0b' : '#ef4444' }}>{row.mappedPct}%</span>
+                <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+                  {(row.houses || 0).toLocaleString()}
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: row.polledPct >= 58 ? '#22d3ee' : row.polledPct >= 50 ? '#f59e0b' : '#ef4444' }}>{row.polledPct}%</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: row.mappedPct >= 75 ? '#10b981' : row.mappedPct >= 65 ? '#f59e0b' : '#ef4444' }}>
+                    {row.mappedPct}%
+                  </span>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: row.polledPct >= 58 ? '#22d3ee' : row.polledPct >= 50 ? '#f59e0b' : '#ef4444' }}>
+                    {row.polledPct}%
+                  </span>
                 </div>
               </div>
             ))}
           </div>
-          {HMC_COMMUNITIES.length > 6 && (
+
+          {!commLoading && liveComm.length > 6 && (
             <button onClick={() => setShowAllComm(v => !v)} style={{
               marginTop: 12, width: '100%', background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.07)', borderRadius: 9,
               padding: '8px 0', cursor: 'pointer', color: 'rgba(255,255,255,0.4)',
               fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
-              {showAllComm ? <><ChevronUp size={13} /> Show Less</> : <><ChevronDown size={13} /> Show All {HMC_COMMUNITIES.length} Communities</>}
+              {showAllComm
+                ? <><ChevronUp size={13} /> Show Less</>
+                : <><ChevronDown size={13} /> Show All {liveComm.length} Communities</>
+              }
             </button>
           )}
         </div>
