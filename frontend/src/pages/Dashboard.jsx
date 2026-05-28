@@ -2397,16 +2397,6 @@ function BoothDetailCard({ wardNum, boothNum, wardStats, boothStats, boothStatsL
               </div>
             </div>
 
-            {/* ── 2023 Polled vs Not Polled HMC ── */}
-            {boothStats.polledHMC && (
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 20, marginTop: 4 }}>
-                <PolledHMCWidget
-                  polledHMC={boothStats.polledHMC}
-                  loading={false}
-                  label={`Ward ${wardNum} · Booth ${boothNum}`}
-                />
-              </div>
-            )}
           </div>
 
         </div>
