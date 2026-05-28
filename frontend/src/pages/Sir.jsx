@@ -3,9 +3,12 @@ import Navbar from '../components/Navbar';
 
 const API = (process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com') + '/api';
 
-// ─── SIR form photo compression ───────────────────────────────────────────────
-// Same approach as SurveyForm.compressAadhaarPhoto — canvas resize + JPEG encode.
-// maxPx=1200 / quality=0.80 keeps forms readable while staying well under 500 KB.
+// ─── SIR form photo helpers ────────────────────────────────────────────────────
+// compressSIRPhoto: canvas-resize to ≤1200 px / 0.80 JPEG quality.
+//   A raw phone photo (5–8 MB, base64 ~7–11 MB) becomes ~250–400 KB.
+//   Without this, the JSON body to /api/sir/form-extract/ exceeds Render's
+//   request-size limit → nginx returns 502 *before* Django adds CORS headers
+//   → browser reports "No Access-Control-Allow-Origin" (CORS error).
 function compressSIRPhoto(file, maxPx = 1200, quality = 0.80) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -28,8 +31,8 @@ function compressSIRPhoto(file, maxPx = 1200, quality = 0.80) {
   });
 }
 
-// Convert a base64 string (no data-URL prefix) back to a File object.
-// Used in ConfirmAndSaveBar.useEffect where only base64 is stored in state.
+// Convert a base64 string (no data-URL prefix) back to a File.
+// Used in ConfirmAndSaveBar when only base64 is stored in state.
 function base64ToFile(base64, mimeType, filename = 'sir_form.jpg') {
   const bytes = atob(base64);
   const arr   = new Uint8Array(bytes.length);
@@ -919,10 +922,35 @@ function SIRFormUploader({ docId, name, voterid, pendingImage, onPendingImageCha
       const token = sessionStorage.getItem('cc_token');
       const hdrs  = { 'Content-Type': 'application/json' };
       if (token) hdrs['Authorization'] = `Bearer ${token}`;
+
+      // ── Compress before sending ──────────────────────────────────────────────
+      // Raw phone photos (5–8 MB) as base64 JSON exceed Render's request limit.
+      // Render's nginx returns 502/504 *before* Django sets CORS headers
+      // → browser sees "No Access-Control-Allow-Origin" (CORS error).
+      // Compressing to ≤1200 px keeps the payload ~300–400 KB.
+      let sendBase64  = imageData.base64;
+      let sendMime    = imageData.mimeType;
+      if (imageFile) {
+        try {
+          const compressed = await compressSIRPhoto(imageFile);
+          sendBase64 = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload  = (e) => res(e.target.result.split(',')[1]);
+            r.onerror = rej;
+            r.readAsDataURL(compressed);
+          });
+          sendMime = 'image/jpeg';
+        } catch { /* compression failed — fall back to original */ }
+      }
+
       const res = await fetch(`${API}/sir/form-extract/`, {
         method: 'POST', credentials: 'include', headers: hdrs,
-        body: JSON.stringify({ image: imageData.base64, mimeType: imageData.mimeType }),
+        body: JSON.stringify({ image: sendBase64, mimeType: sendMime }),
       });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => `HTTP ${res.status}`);
+        throw new Error(`Server ${res.status}: ${txt.slice(0, 120)}`);
+      }
       const json = await res.json();
       if (!json.success) throw new Error(json.message || 'Server error');
       setExtracted(json.data);
@@ -1190,11 +1218,26 @@ function ConfirmAndSaveBar({ decided25, decided02, selected25, selected02, notFo
         let extractData = pendingExtract;
 
         // ── Case B: image captured but not yet extracted ──────────────────────
+        // Compress before sending to avoid the same Render 30s timeout issue
         if (!extractData && pendingImage) {
+          let sendBase64 = pendingImage.base64;
+          let sendMime   = pendingImage.mimeType;
+          try {
+            const imgFile    = pendingImage.file || base64ToFile(pendingImage.base64, pendingImage.mimeType);
+            const compressed = await compressSIRPhoto(imgFile);
+            sendBase64 = await new Promise((res, rej) => {
+              const r = new FileReader();
+              r.onload  = (e) => res(e.target.result.split(',')[1]);
+              r.onerror = rej;
+              r.readAsDataURL(compressed);
+            });
+            sendMime = 'image/jpeg';
+          } catch { /* fall back to original */ }
+
           const r = await fetch(`${API}/sir/form-extract/`, {
             method: 'POST', credentials: 'include',
             headers: { 'Content-Type': 'application/json', ...authHdr },
-            body: JSON.stringify({ image: pendingImage.base64, mimeType: pendingImage.mimeType }),
+            body: JSON.stringify({ image: sendBase64, mimeType: sendMime }),
           });
           const j = await r.json();
           if (!j.success || !j.data) {
