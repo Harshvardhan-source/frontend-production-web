@@ -1380,6 +1380,7 @@ function SIRDetailModal({ record, onClose, onSaved }) {
   const [showEmpty, setShowEmpty] = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [saveMsg,   setSaveMsg]   = useState('');
+  const [imgZoom,   setImgZoom]   = useState(false);  // form photo lightbox
   const [formData,  setFormData]  = useState(() => {
     try { return JSON.parse(JSON.stringify(record.form_extraction || {})); }
     catch { return {}; }
@@ -1532,53 +1533,51 @@ function SIRDetailModal({ record, onClose, onSaved }) {
                 {saveMsg && <span style={{ marginLeft:'auto', fontSize:12, fontWeight:700, color:saveMsg.startsWith('✓')?'#10b981':'#ef4444' }}>{saveMsg}</span>}
               </div>
 
-              {/* ── Original form photo (GCS) ────────────────────────────────── */}
-              {record.form_image_url && (() => {
-                const [imgZoom, setImgZoom] = React.useState(false);
-                return (
-                  <>
-                    <div style={{ background:'rgba(10,15,30,0.8)', border:'1px solid rgba(34,211,238,0.18)', borderRadius:12, overflow:'hidden' }}>
-                      <div style={{ padding:'8px 14px', borderBottom:'1px solid rgba(34,211,238,0.1)', display:'flex', alignItems:'center', gap:6 }}>
-                        <span style={{ fontSize:11, fontWeight:700, color:'#22d3ee' }}>📸 Original Form Photo</span>
-                        <span style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginLeft:'auto' }}>Click to enlarge</span>
-                      </div>
-                      <div
-                        onClick={() => setImgZoom(true)}
-                        style={{ cursor:'zoom-in', background:'#000', display:'flex', justifyContent:'center', maxHeight:340, overflow:'hidden' }}
-                      >
-                        <img
-                          src={record.form_image_url}
-                          alt="SIR form"
-                          style={{ maxWidth:'100%', maxHeight:340, objectFit:'contain', display:'block' }}
-                          onError={e => {
-                            e.target.parentNode.innerHTML =
-                              '<div style="padding:24px;color:rgba(255,255,255,0.25);font-size:12px;text-align:center">⚠ Could not load image</div>';
-                          }}
-                        />
-                      </div>
-                    </div>
+              {/* ── Original form photo (GCS) ─────────────────────────────── */}
+              {record.form_image_url && (
+                <div style={{ background:'rgba(10,15,30,0.8)', border:'1px solid rgba(34,211,238,0.18)', borderRadius:12, overflow:'hidden' }}>
+                  {/* header */}
+                  <div style={{ padding:'8px 14px', borderBottom:'1px solid rgba(34,211,238,0.1)', display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:13 }}>📸</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#22d3ee' }}>Original Form Photo</span>
+                    <span style={{ fontSize:10, color:'rgba(255,255,255,0.22)', marginLeft:'auto' }}>Tap to enlarge</span>
+                  </div>
+                  {/* inline preview */}
+                  <div
+                    onClick={() => setImgZoom(true)}
+                    style={{ cursor:'zoom-in', background:'#000', display:'flex', justifyContent:'center', alignItems:'center', minHeight:120, maxHeight:380, overflow:'hidden' }}
+                  >
+                    <img
+                      src={record.form_image_url}
+                      alt="SIR form"
+                      style={{ maxWidth:'100%', maxHeight:380, objectFit:'contain', display:'block' }}
+                      onError={e => {
+                        e.target.style.display = 'none';
+                        e.target.parentNode.innerHTML = '<div style="padding:32px;color:rgba(255,255,255,0.2);font-size:12px;text-align:center">⚠ Could not load image</div>';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
 
-                    {/* Lightbox */}
-                    {imgZoom && (
-                      <div
-                        onClick={() => setImgZoom(false)}
-                        style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.93)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'zoom-out', padding:16 }}
-                      >
-                        <img
-                          src={record.form_image_url}
-                          alt="SIR form full"
-                          style={{ maxWidth:'94vw', maxHeight:'94vh', objectFit:'contain', borderRadius:8, boxShadow:'0 0 80px rgba(0,0,0,0.8)' }}
-                          onClick={e => e.stopPropagation()}
-                        />
-                        <button
-                          onClick={() => setImgZoom(false)}
-                          style={{ position:'absolute', top:16, right:16, background:'rgba(255,255,255,0.1)', border:'none', borderRadius:8, width:36, height:36, cursor:'pointer', color:'#fff', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center' }}
-                        >×</button>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+              {/* ── Lightbox — rendered at modal level so no hook-in-callback ── */}
+              {imgZoom && record.form_image_url && (
+                <div
+                  onClick={() => setImgZoom(false)}
+                  style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.94)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'zoom-out', padding:16 }}
+                >
+                  <img
+                    src={record.form_image_url}
+                    alt="SIR form full"
+                    onClick={e => e.stopPropagation()}
+                    style={{ maxWidth:'95vw', maxHeight:'95vh', objectFit:'contain', borderRadius:10, boxShadow:'0 0 80px rgba(0,0,0,0.8)' }}
+                  />
+                  <button
+                    onClick={() => setImgZoom(false)}
+                    style={{ position:'absolute', top:16, right:16, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:8, width:38, height:38, cursor:'pointer', color:'#fff', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}
+                  >×</button>
+                </div>
+              )}
 
               {(!formData || !Object.keys(formData).length) && (
                 <div style={{ textAlign:'center', padding:'40px 0', color:'rgba(255,255,255,0.2)', fontSize:13 }}>
