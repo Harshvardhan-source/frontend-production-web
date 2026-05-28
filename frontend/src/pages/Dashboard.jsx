@@ -1728,6 +1728,7 @@ const BROAD_DEFS = [
 ];
 
 function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency', onViewRecords, ward, booth }) {
+  const [showAll,  setShowAll]  = useState(false);
   const [ageGroup, setAgeGroup] = useState('All');
   const [liveData, setLiveData] = useState(null);
   const [fetching, setFetching] = useState(false);
@@ -1765,6 +1766,7 @@ function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency
     });
   }
 
+  const displayed = showAll ? data : data.slice(0, 5);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
   const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
   const grandTotal     = grandPolled + grandNotPolled || 1;
@@ -1810,9 +1812,9 @@ function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency
         </div>
       </div>
 
-      {/* Per-category rows — scrollable, shows all */}
-      <div style={{ maxHeight:420, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, paddingRight:4, scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,0.12) transparent' }}>
-        {data.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
+      {/* Per-category rows */}
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {displayed.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
           const rowTotal  = polled + notPolled || 1;
           const polledPct = ((polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
@@ -1858,10 +1860,11 @@ function PolledBroadCategoryWidget({ loading: loadingProp, label = 'Constituency
           );
         })}
       </div>
-      {data.length > 4 && (
-        <div style={{ marginTop:8, textAlign:'center' }}>
-          <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', fontWeight:600 }}>{data.length} categories · scroll to view all</span>
-        </div>
+
+      {data.length > 5 && (
+        <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
+          {showAll ? '▲ Show less' : `▼ Show all ${data.length} categories`}
+        </button>
       )}
       {isEstimated && <AgeNote />}
     </div>
@@ -1886,6 +1889,7 @@ const COMM_DEFS = [
 ];
 
 function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', onViewRecords, ward, booth }) {
+  const [showAll,  setShowAll]  = useState(false);
   const [ageGroup, setAgeGroup] = useState('All');
   const [liveData, setLiveData] = useState(null);
   const [fetching, setFetching] = useState(false);
@@ -1929,6 +1933,7 @@ function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', o
     });
   }
 
+  const displayed = showAll ? data : data.slice(0, 6);
   const grandPolled    = data.reduce((s, d) => s + d.polled, 0);
   const grandNotPolled = data.reduce((s, d) => s + d.notPolled, 0);
   const grandTotal     = grandPolled + grandNotPolled || 1;
@@ -1974,9 +1979,9 @@ function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', o
         </div>
       </div>
 
-      {/* Per-community rows — scrollable, shows all */}
-      <div style={{ maxHeight:420, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, paddingRight:4, scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,0.12) transparent' }}>
-        {data.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
+      {/* Per-community rows */}
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {displayed.map(({ key, label:lbl, abbr, color, polled, notPolled }) => {
           const rowTotal  = polled + notPolled || 1;
           const polledPct = ((polled / rowTotal) * 100).toFixed(1);
           const notPct    = ((notPolled / rowTotal) * 100).toFixed(1);
@@ -2023,10 +2028,11 @@ function PolledCommunityWidget({ loading: loadingProp, label = 'Constituency', o
           );
         })}
       </div>
-      {data.length > 5 && (
-        <div style={{ marginTop:8, textAlign:'center' }}>
-          <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', fontWeight:600 }}>{data.length} communities · scroll to view all</span>
-        </div>
+
+      {data.length > 6 && (
+        <button onClick={() => setShowAll(v => !v)} style={{ marginTop:10, width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', fontSize:11, color:'rgba(255,255,255,0.4)', fontWeight:600 }}>
+          {showAll ? '▲ Show less' : `▼ Show all ${data.length} communities`}
+        </button>
       )}
       {isEstimated && <AgeNote />}
     </div>
