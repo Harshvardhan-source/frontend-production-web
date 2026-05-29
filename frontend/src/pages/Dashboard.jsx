@@ -3628,8 +3628,23 @@ function HouseCard({ house, serialCounter, query, user }) {
 
 // ─── Large Families · Member Detail Panel ────────────────────────────────────
 // ─── Voter Detail Card (tap to expand) ───────────────────────────────────────
-function VoterCard({ m, i, genderColor, genderLabel, religionCfg, mappingColor }) {
+function VoterCardRow({ m, i, familyColor }) {
   const [expanded, setExpanded] = useState(false);
+
+  const genderColor = m.gender === 'Male' || m.gender === 'M' ? '#22d3ee'
+                    : m.gender === 'Female' || m.gender === 'F' ? '#ec4899'
+                    : '#a78bfa';
+  const genderLabel = m.gender === 'Male' || m.gender === 'M' ? '♂ Male'
+                    : m.gender === 'Female' || m.gender === 'F' ? '♀ Female'
+                    : m.gender || '—';
+  const religionCfg =
+      m.religion === 'Hindu'    || m.religion === 'H' ? { color: '#f97316', bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.3)',  label: 'Hindu'    }
+    : m.religion === 'Muslim'   || m.religion === 'M' ? { color: '#10b981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  label: 'Muslim'   }
+    : m.religion === 'Christian'|| m.religion === 'C' ? { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)',  label: 'Christian' }
+    : null;
+  const mappingColor = (m.mapping_status || '').toUpperCase().includes('NOT')
+    ? '#f87171' : (m.mapping_status || '').toUpperCase() === 'MAPPED'
+    ? '#10b981' : null;
 
   const DetailRow = ({ label, value, color }) => {
     if (!value && value !== 0) return null;
@@ -3653,6 +3668,7 @@ function VoterCard({ m, i, genderColor, genderLabel, religionCfg, mappingColor }
       borderRadius: 11,
       transition: 'all 0.18s',
       overflow: 'hidden',
+      borderLeft: familyColor ? `3px solid ${familyColor}60` : undefined,
     }}>
       {/* ── Collapsed row (always visible) ───────────────────────────────── */}
       <div onClick={() => setExpanded(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 14px', cursor: 'pointer' }}>
@@ -3749,7 +3765,8 @@ function VoterCard({ m, i, genderColor, genderLabel, religionCfg, mappingColor }
 }
 
 function HouseMembersPanel({ house, onBack }) {
-  const [members, setMembers]   = useState([]);
+  const [families, setFamilies] = useState([]);
+  const [members,  setMembers]  = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error,   setError]     = useState('');
 
@@ -3760,29 +3777,21 @@ function HouseMembersPanel({ house, onBack }) {
         if (r.data.success) {
           const match = r.data.houses.find(h => String(h.house_no) === String(house.houseNo))
                      || r.data.houses[0];
-          setMembers(match?.members || []);
+          setMembers(match?.members  || []);
+          setFamilies(match?.families || []);
         } else { setError('Failed to load members.'); }
       })
       .catch(() => setError('Network error.'))
       .finally(() => setLoading(false));
   }, [house.houseNo]);
 
-  // Use actual loaded member count — house.memberCount is per-booth; members
-  // loaded from house-search are all voters for the house across all booths.
   const totalCount = loading ? house.memberCount : members.length || house.memberCount;
+  const FAMILY_COLORS = ['#22d3ee','#a78bfa','#10b981','#f59e0b','#f472b6','#fb923c','#38bdf8','#c084fc'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <div style={{
-        padding: '18px 22px 14px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        <button onClick={onBack} style={{
-          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 8, padding: '5px 10px', cursor: 'pointer',
-          fontSize: 13, color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 5,
-        }}>← Back</button>
+      <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 5 }}>← Back</button>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0' }}>
             House No: <span style={{ color: '#22d3ee' }}>{house.houseNo}</span>
@@ -3792,14 +3801,16 @@ function HouseMembersPanel({ house, onBack }) {
               ? `Booths ${house.booths.join(', ')} · `
               : house.booth ? `Booth ${house.booth} · ` : ''
             }{totalCount} registered voters
+            {!loading && families.length > 1 &&
+              <span style={{ marginLeft: 8, color: '#a78bfa' }}>· {families.length} family units</span>
+            }
           </div>
         </div>
-        <div style={{
-          background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)',
-          borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#22d3ee',
-          display: 'flex', alignItems: 'center', gap: 5,
-        }}><Users2 size={12} /> {totalCount}</div>
+        <div style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#22d3ee', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Users2 size={12} /> {totalCount}
+        </div>
       </div>
+
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 22px 22px' }}>
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -3815,31 +3826,34 @@ function HouseMembersPanel({ house, onBack }) {
             <div>No member records found</div>
           </div>
         )}
-        {!loading && members.map((m, i) => {
-          const genderColor = m.gender === 'Male' || m.gender === 'M' ? '#22d3ee'
-                            : m.gender === 'Female' || m.gender === 'F' ? '#ec4899'
-                            : '#a78bfa';
-          const genderLabel = m.gender === 'Male' || m.gender === 'M' ? '♂ Male'
-                            : m.gender === 'Female' || m.gender === 'F' ? '♀ Female'
-                            : m.gender || '—';
-          const religionCfg =
-              m.religion === 'Hindu'    || m.religion === 'H' ? { color: '#f97316', bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.3)',  label: 'Hindu'    }
-            : m.religion === 'Muslim'   || m.religion === 'M' ? { color: '#10b981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  label: 'Muslim'   }
-            : m.religion === 'Christian'|| m.religion === 'C' ? { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)',  label: 'Christian' }
-            : null;
 
-          const mappingColor = (m.mapping_status || '').toLowerCase().includes('not')
-            ? '#f87171' : (m.mapping_status || '').toLowerCase() === 'mapped' || (m.mapping_status || '').toUpperCase() === 'MAPPED'
-            ? '#10b981' : null;
-
-          return (
-            <VoterCard key={`${m.voterid || 'noid'}-${i}`}
-              m={m} i={i}
-              genderColor={genderColor} genderLabel={genderLabel}
-              religionCfg={religionCfg} mappingColor={mappingColor}
-            />
-          );
-        })}
+        {!loading && !error && members.length > 0 && (
+          families.length > 1
+            /* ── Multi-family: render each cluster with a header ── */
+            ? families.map((fam, fi) => {
+                const fc = FAMILY_COLORS[fi % FAMILY_COLORS.length];
+                const surveyedInFam = fam.members.filter(m => m.surveyed).length;
+                return (
+                  <div key={fam.family_id} style={{ marginBottom: 18 }}>
+                    {/* Family cluster header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
+                      <div style={{ width: 3, height: 20, borderRadius: 3, background: fc, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: fc, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Family {fi + 1}
+                      </span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                        {fam.size} member{fam.size !== 1 ? 's' : ''}
+                        {surveyedInFam > 0 && <span style={{ marginLeft: 6, color: '#10b981' }}>· {surveyedInFam} surveyed</span>}
+                      </span>
+                      <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, ${fc}40, transparent)` }} />
+                    </div>
+                    {fam.members.map((m, mi) => <VoterCardRow key={`${m.voterid||'noid'}-${mi}`} m={m} i={mi} familyColor={fc} />)}
+                  </div>
+                );
+              })
+            /* ── Single family (or small house): flat list ── */
+            : members.map((m, i) => <VoterCardRow key={`${m.voterid||'noid'}-${i}`} m={m} i={i} />)
+        )}
       </div>
     </div>
   );
