@@ -2755,11 +2755,13 @@ function ConstituencySIRSummary({ onViewMapped }) {
 
   // Fallback to previous known values while loading or on error
   const vm = vmData || {
-    totalVoters:  256538,
-    mapped:       184679, mappedPct:    72.0,
-    notMapped:    71859,  notMappedPct: 28.0,
-    polled:       136639, polledPct:    58.2,
-    notPolled:    119899, notPolledPct: 41.8,
+    totalVoters:    256538,
+    mapped:         184679, mappedPct:       72.0,
+    notMapped:      71859,  notMappedPct:    28.0,
+    polled:         136639, polledPct:       58.2,
+    notPolled:      119899, notPolledPct:    41.8,
+    newSince2002:   158995, newSince2002Pct: 62.0,
+    retained2002:   12714,  retained2002Pct: 5.0,
   };
 
   const bjpWards   = allWards.filter(([,d]) => d.margin > 0).length;
@@ -2829,6 +2831,20 @@ function ConstituencySIRSummary({ onViewMapped }) {
                 color: '#22d3ee',       icon: <Vote size={18} color="#22d3ee" />,
                 barPct: vm.polledPct,
                 viewKey: { mappingStatus: 'All', pollStatus: 'Polled', title: 'Polled 2023 Voters', totalCount: vm.polled, color: '#22d3ee' },
+              },
+              {
+                label: 'New Since \'02', val: (vm.newSince2002Pct || 0).toFixed(1) + '%',
+                sub:   (vm.newSince2002 || 0).toLocaleString() + ' new voters',
+                color: '#a78bfa',        icon: <Sprout size={18} color="#a78bfa" />,
+                barPct: vm.newSince2002Pct || 0,
+                viewKey: null,
+              },
+              {
+                label: 'Retained \'02',  val: (vm.retained2002Pct || 0).toFixed(1) + '%',
+                sub:   (vm.retained2002 || 0).toLocaleString() + ' from 2002',
+                color: '#f59e0b',        icon: <Baby size={18} color="#f59e0b" />,
+                barPct: vm.retained2002Pct || 0,
+                viewKey: null,
               },
             ].map(({ label, val, color: c, sub, icon, barPct, viewKey }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${c}22`, borderRadius: 12, padding: '12px 12px 10px', display: 'flex', flexDirection: 'column' }}>
