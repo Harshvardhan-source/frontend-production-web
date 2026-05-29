@@ -3646,6 +3646,10 @@ function HouseMembersPanel({ house, onBack }) {
       .finally(() => setLoading(false));
   }, [house.houseNo]);
 
+  // Use actual loaded member count — house.memberCount is per-booth; members
+  // loaded from house-search are all voters for the house across all booths.
+  const totalCount = loading ? house.memberCount : members.length || house.memberCount;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div style={{
@@ -3663,14 +3667,14 @@ function HouseMembersPanel({ house, onBack }) {
             House No: <span style={{ color: '#22d3ee' }}>{house.houseNo}</span>
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-            {house.booth && `Booth ${house.booth} · `}{house.memberCount} registered voters
+            {house.booth && `Booth ${house.booth} · `}{totalCount} registered voters
           </div>
         </div>
         <div style={{
           background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)',
           borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#22d3ee',
           display: 'flex', alignItems: 'center', gap: 5,
-        }}><Users2 size={12} /> {house.memberCount}</div>
+        }}><Users2 size={12} /> {totalCount}</div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 22px 22px' }}>
         {loading && (
