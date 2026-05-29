@@ -2738,17 +2738,29 @@ function ConstituencySIRSummary({ onViewMapped }) {
   const avgBLO     = (allWards.reduce((s,[,d]) => s + d.bloMapped,   0) / total).toFixed(1);
   const totalElect = allWards.reduce((s,[,d]) => s + d.totalElectors, 0);
 
-  // ── Real voter master figures (from Voter_Master_Report.csv — 256,538 records) ──
-  const CSV_TOTAL        = 256538;
-  const CSV_MAPPED       = 184679;   // 72.0 % mapped
-  const CSV_NOT_MAPPED   = 71859;    // 28.0 % not mapped
-  const CSV_MAPPED_PCT   = 72.0;
-  const CSV_POLLED_23    = 136639;   // polled in 2023
-  const CSV_TURNOUT_23   = 58.2;     // polled / (polled + not-polled) %
-  const CSV_NEW_2002     = 158995;   // new voters since 2002 (62 %)
-  const CSV_NEW_2002_PCT = 62.0;
-  const CSV_RETAINED     = 12714;    // confirmed voter in 2002 (5 %)
-  const CSV_HIGH_CONF    = 108609;   // high-confidence classified (42.3 %)
+  // ── Live Voter Master figures from /api/community-map-poll-rates/ ──────────
+  const [vmData,    setVmData]    = useState(null);   // voter_master object
+  const [vmLoading, setVmLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/api/community-map-poll-rates/')
+      .then(res => {
+        if (res.data?.success && res.data?.voter_master?.totalVoters > 0) {
+          setVmData(res.data.voter_master);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setVmLoading(false));
+  }, []);
+
+  // Fallback to previous known values while loading or on error
+  const vm = vmData || {
+    totalVoters:  256538,
+    mapped:       184679, mappedPct:    72.0,
+    notMapped:    71859,  notMappedPct: 28.0,
+    polled:       136639, polledPct:    58.2,
+    notPolled:    119899, notPolledPct: 41.8,
+  };
 
   const bjpWards   = allWards.filter(([,d]) => d.margin > 0).length;
   const congWards  = allWards.filter(([,d]) => d.margin < 0).length;
@@ -2767,7 +2779,7 @@ function ConstituencySIRSummary({ onViewMapped }) {
       {/* Header */}
       <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'linear-gradient(135deg,rgba(139,92,246,0.1),transparent)' }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}><BarChart2 size={16} color="#a78bfa" /> Constituency SIR Overview</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Mangaluru City South · {total} wards · {CSV_TOTAL.toLocaleString()} total electors</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Mangaluru City South · {total} wards · {vmLoading ? '…' : vm.totalVoters.toLocaleString()} total electors</div>
       </div>
 
       <div style={{ padding: '16px 18px' }}>
@@ -2789,45 +2801,34 @@ function ConstituencySIRSummary({ onViewMapped }) {
           ))}
         </div>
 
-        {/* Top KPIs — Row 2: Voter Master (from Voter_Master_Report.csv) */}
+        {/* Top KPIs — Row 2: Voter Master (live from 2025 collection) */}
         <div style={{ marginBottom: 6 }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Voter Master Data</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            Voter Master Data
+            {vmLoading && <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', borderTopColor: '#22d3ee', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 18 }}>
             {[
               {
-                label: 'Mapped',        val: CSV_MAPPED_PCT+'%',
-                sub:   CSV_MAPPED.toLocaleString()+' voters',
+                label: 'Mapped',        val: vm.mappedPct.toFixed(1) + '%',
+                sub:   vm.mapped.toLocaleString() + ' voters',
                 color: '#10b981',       icon: <UserCheck size={18} color="#10b981" />,
-                barPct: CSV_MAPPED_PCT,
-                viewKey: { mappingStatus: 'Mapped', pollStatus: 'All', title: 'Mapped Voters', totalCount: CSV_MAPPED, color: '#10b981' },
+                barPct: vm.mappedPct,
+                viewKey: { mappingStatus: 'Mapped', pollStatus: 'All', title: 'Mapped Voters', totalCount: vm.mapped, color: '#10b981' },
               },
               {
-                label: 'Not Mapped',    val: (100-CSV_MAPPED_PCT).toFixed(1)+'%',
-                sub:   CSV_NOT_MAPPED.toLocaleString()+' voters',
+                label: 'Not Mapped',    val: vm.notMappedPct.toFixed(1) + '%',
+                sub:   vm.notMapped.toLocaleString() + ' voters',
                 color: '#f87171',       icon: <MapIcon size={18} color="#f87171" />,
-                barPct: 100-CSV_MAPPED_PCT,
-                viewKey: { mappingStatus: 'NotMapped', pollStatus: 'All', title: 'Not Mapped Voters', totalCount: CSV_NOT_MAPPED, color: '#f87171' },
+                barPct: vm.notMappedPct,
+                viewKey: { mappingStatus: 'NotMapped', pollStatus: 'All', title: 'Not Mapped Voters', totalCount: vm.notMapped, color: '#f87171' },
               },
               {
-                label: 'Polled \'23',   val: CSV_TURNOUT_23+'%',
-                sub:   CSV_POLLED_23.toLocaleString()+' votes cast',
+                label: 'Polled \'23',   val: vm.polledPct.toFixed(1) + '%',
+                sub:   vm.polled.toLocaleString() + ' votes cast',
                 color: '#22d3ee',       icon: <Vote size={18} color="#22d3ee" />,
-                barPct: CSV_TURNOUT_23,
-                viewKey: { mappingStatus: 'All', pollStatus: 'Polled', title: 'Polled 2023 Voters', totalCount: CSV_POLLED_23, color: '#22d3ee' },
-              },
-              {
-                label: 'New Since \'02', val: CSV_NEW_2002_PCT+'%',
-                sub:   CSV_NEW_2002.toLocaleString()+' new voters',
-                color: '#a78bfa',       icon: <Sprout size={18} color="#a78bfa" />,
-                barPct: CSV_NEW_2002_PCT,
-                viewKey: null,
-              },
-              {
-                label: 'Retained \'02', val: ((CSV_RETAINED/CSV_TOTAL)*100).toFixed(1)+'%',
-                sub:   CSV_RETAINED.toLocaleString()+' from 2002',
-                color: '#f59e0b',       icon: <Baby size={18} color="#f59e0b" />,
-                barPct: (CSV_RETAINED/CSV_TOTAL)*100,
-                viewKey: null,
+                barPct: vm.polledPct,
+                viewKey: { mappingStatus: 'All', pollStatus: 'Polled', title: 'Polled 2023 Voters', totalCount: vm.polled, color: '#22d3ee' },
               },
             ].map(({ label, val, color: c, sub, icon, barPct, viewKey }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${c}22`, borderRadius: 12, padding: '12px 12px 10px', display: 'flex', flexDirection: 'column' }}>
@@ -4249,14 +4250,14 @@ function LargeFamiliesModal({ onClose }) {
 // ─── Ward Strength Intelligence Panel ────────────────────────────────────────
 
 // ─── House Master Consolidated Report Panel ───────────────────────────────────
-// Static data baked from House_Master_Consolidated_Report_v3.xlsx
+// Fallback static values — overridden by live API data from /api/community-map-poll-rates/
 const HMC_SUMMARY = {
-  totalVoters:  250978,
-  totalHouses:  118135, // 264+1483+7752+42318+66318
-  mapped:       184679, mappedPct: 73.6,
-  notMapped:    66300,  notMappedPct: 26.4,
-  polled:       136018, polledPct: 54.2,
-  notPolled:    97720,  notPolledPct: 38.9,
+  totalVoters:  0,
+  totalHouses:  0,
+  mapped:       0, mappedPct: 0,
+  notMapped:    0, notMappedPct: 0,
+  polled:       0, polledPct: 0,
+  notPolled:    0, notPolledPct: 0,
   wards: 38, booths: 249,
 };
 
