@@ -3804,6 +3804,9 @@ function HouseMembersPanel({ house, onBack }) {
             {!loading && families.length > 1 &&
               <span style={{ marginLeft: 8, color: '#a78bfa' }}>· {families.length} family units</span>
             }
+            {!loading && families.length === 1 && members.length > 0 &&
+              <span style={{ marginLeft: 8, color: '#10b981' }}>· 1 household</span>
+            }
           </div>
         </div>
         <div style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#22d3ee', display: 'flex', alignItems: 'center', gap: 5 }}>
