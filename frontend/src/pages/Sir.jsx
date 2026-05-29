@@ -1820,7 +1820,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                           {year === '2025' && (
                             <td style={{ padding:'7px 8px', whiteSpace:'nowrap', verticalAlign:'middle' }}>
                               {r.mapping_status
-                                ? r.mapping_status.toLowerCase() === 'mapped'
+                                ? (r.mapping_status.toUpperCase() === 'MAPPED' || r.mapping_status.toLowerCase() === 'mapped')
                                   ? <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(16,185,129,0.15)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)', display:'inline-flex', alignItems:'center', gap:3 }}>✓ Mapped</span>
                                   : <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:6, background:'rgba(249,115,22,0.12)', color:'#fb923c', border:'1px solid rgba(249,115,22,0.3)', display:'inline-flex', alignItems:'center', gap:3 }}>✗ Not Mapped</span>
                                 : <span style={{ color:'rgba(255,255,255,0.2)', fontSize:11 }}>—</span>
@@ -2223,7 +2223,7 @@ function LiveCheckPanel() {
                         <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:2 }}>
                           <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)', minWidth:52, fontWeight:600 }}>Status</span>
                           {rec.mapping_status
-                            ? rec.mapping_status.toLowerCase() === 'mapped'
+                            ? (rec.mapping_status.toUpperCase() === 'MAPPED' || rec.mapping_status.toLowerCase() === 'mapped')
                               ? <span style={{ fontSize:10, fontWeight:700, padding:'2px 9px', borderRadius:20, background:'rgba(16,185,129,0.15)', color:'#10b981', border:'1px solid rgba(16,185,129,0.35)' }}>✓ Mapped</span>
                               : <span style={{ fontSize:10, fontWeight:700, padding:'2px 9px', borderRadius:20, background:'rgba(249,115,22,0.12)', color:'#fb923c', border:'1px solid rgba(249,115,22,0.3)' }}>✗ Not Mapped</span>
                             : <span style={{ fontSize:11, color:'rgba(255,255,255,0.2)' }}>—</span>
