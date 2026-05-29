@@ -3627,6 +3627,127 @@ function HouseCard({ house, serialCounter, query, user }) {
 }
 
 // ─── Large Families · Member Detail Panel ────────────────────────────────────
+// ─── Voter Detail Card (tap to expand) ───────────────────────────────────────
+function VoterCard({ m, i, genderColor, genderLabel, religionCfg, mappingColor }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const DetailRow = ({ label, value, color }) => {
+    if (!value && value !== 0) return null;
+    return (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 5 }}>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', minWidth: 110, flexShrink: 0, paddingTop: 1 }}>{label}</span>
+        <span style={{ fontSize: 11, color: color || 'rgba(255,255,255,0.75)', fontWeight: 500, wordBreak: 'break-word' }}>{String(value)}</span>
+      </div>
+    );
+  };
+
+  const Tag = ({ label, color, bg, border }) => (
+    <span style={{ fontSize: 10, fontWeight: 700, color, background: bg, border: `1px solid ${border}`, borderRadius: 5, padding: '2px 7px', letterSpacing: '0.04em', display: 'inline-block' }}>{label}</span>
+  );
+
+  return (
+    <div style={{
+      marginBottom: 7,
+      background: expanded ? 'rgba(34,211,238,0.04)' : m.surveyed ? 'rgba(16,185,129,0.04)' : 'rgba(255,255,255,0.02)',
+      border: `1px solid ${expanded ? 'rgba(34,211,238,0.2)' : m.surveyed ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.06)'}`,
+      borderRadius: 11,
+      transition: 'all 0.18s',
+      overflow: 'hidden',
+    }}>
+      {/* ── Collapsed row (always visible) ───────────────────────────────── */}
+      <div onClick={() => setExpanded(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 14px', cursor: 'pointer' }}>
+        {/* Serial number */}
+        <div style={{ width: 24, height: 24, borderRadius: 5, flexShrink: 0, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{i + 1}</div>
+        {/* Avatar */}
+        <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: m.surveyed ? 'rgba(16,185,129,0.15)' : `${genderColor}18`, border: `1px solid ${m.surveyed ? 'rgba(16,185,129,0.3)' : `${genderColor}30`}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: m.surveyed ? '#10b981' : genderColor }}>
+          {(m.name || '?')[0].toUpperCase()}
+        </div>
+        {/* Name + sub-info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {m.name || '—'}
+            {m.relation && <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.28)', fontWeight: 400 }}>{m.relation}</span>}
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
+            {m.voterid && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><CreditCard size={10} /> {m.voterid}</span>}
+            <span style={{ color: genderColor }}>{genderLabel}</span>
+            {m.age && <span>Age {m.age}</span>}
+            {religionCfg && <Tag label={religionCfg.label} color={religionCfg.color} bg={religionCfg.bg} border={religionCfg.border} />}
+          </div>
+        </div>
+        {/* Status badge + chevron */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+          {m.surveyed
+            ? <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#10b981' }}>✓ Done</div>
+            : <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 600, color: '#f87171' }}>Pending</div>
+          }
+          <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</div>
+        </div>
+      </div>
+
+      {/* ── Expanded detail drawer ─────────────────────────────────────────── */}
+      {expanded && (
+        <div style={{ padding: '0 14px 14px 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ paddingTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 18px' }}>
+            {/* Column 1 — Identity */}
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.18)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Identity</div>
+              <DetailRow label="Full Name"      value={m.name} />
+              <DetailRow label="EPIC / Voter ID" value={m.voterid} color="#22d3ee" />
+              <DetailRow label="Serial No"      value={m.serial_no} />
+              <DetailRow label="Age"            value={m.age} />
+              <DetailRow label="Gender"         value={m.gender} color={genderColor} />
+              <DetailRow label="Relation"       value={m.relation} />
+              <DetailRow label="Relation Name"  value={m.relationName} />
+              <DetailRow label="Religion"       value={m.religion} color={religionCfg?.color} />
+            </div>
+            {/* Column 2 — Location & Roll */}
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.18)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Location & Roll</div>
+              <DetailRow label="House No"       value={m.house_no} />
+              <DetailRow label="Ward No"        value={m.ward} />
+              <DetailRow label="Booth No"       value={m.booth} />
+              <DetailRow label="Voter Address"  value={m.address} />
+              <DetailRow label="Section"        value={m.sectionName} />
+              <DetailRow label="Polling Station" value={m.pollingStation} />
+              <DetailRow label="Polling Addr"   value={m.pollingStationAddr} />
+            </div>
+          </div>
+
+          {/* Full-width — Classification row */}
+          <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10, display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
+            {m.mapping_status && (
+              <Tag
+                label={(m.mapping_status || '').toUpperCase().includes('NOT') ? '✗ Not Mapped' : '✓ Mapped'}
+                color={mappingColor || 'rgba(255,255,255,0.5)'}
+                bg={mappingColor ? `${mappingColor}18` : 'rgba(255,255,255,0.05)'}
+                border={mappingColor ? `${mappingColor}40` : 'rgba(255,255,255,0.1)'}
+              />
+            )}
+            {m.predictedReligion && (
+              <Tag label={`Religion: ${m.predictedReligion}`} color="#a78bfa" bg="rgba(167,139,250,0.1)" border="rgba(167,139,250,0.25)" />
+            )}
+            {/* Extra fields from new schema — pass through from raw doc if available */}
+            {m.community    && <Tag label={m.community}    color="#f59e0b" bg="rgba(245,158,11,0.1)"  border="rgba(245,158,11,0.25)"  />}
+            {m.category     && <Tag label={m.category}     color="#38bdf8" bg="rgba(56,189,248,0.08)" border="rgba(56,189,248,0.2)"   />}
+            {m.ward_class   && <Tag label={m.ward_class}   color="#e879f9" bg="rgba(232,121,249,0.08)" border="rgba(232,121,249,0.2)" />}
+            {m.risk_status  && m.risk_status !== 'NORMAL'  && <Tag label={`Risk: ${m.risk_status}`}  color="#f87171" bg="rgba(248,113,113,0.08)" border="rgba(248,113,113,0.2)" />}
+            {m.action_priority && m.action_priority !== 'NORMAL' && <Tag label={`Priority: ${m.action_priority}`} color="#fb923c" bg="rgba(251,146,60,0.08)" border="rgba(251,146,60,0.2)" />}
+            {m.poll_status_2023 && (
+              <Tag
+                label={`Poll '23: ${m.poll_status_2023}`}
+                color={m.poll_status_2023.toUpperCase() === 'POLLED' ? '#10b981' : '#6b7280'}
+                bg={m.poll_status_2023.toUpperCase() === 'POLLED' ? 'rgba(16,185,129,0.1)' : 'rgba(107,114,128,0.08)'}
+                border={m.poll_status_2023.toUpperCase() === 'POLLED' ? 'rgba(16,185,129,0.25)' : 'rgba(107,114,128,0.2)'}
+              />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HouseMembersPanel({ house, onBack }) {
   const [members, setMembers]   = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -3695,44 +3816,28 @@ function HouseMembersPanel({ house, onBack }) {
           </div>
         )}
         {!loading && members.map((m, i) => {
-          const genderColor = m.gender === 'M' ? '#22d3ee' : m.gender === 'F' ? '#ec4899' : '#a78bfa';
-          const genderIcon  = m.gender === 'M' ? '♂' : m.gender === 'F' ? '♀' : '⚧';
-          const relCfg = m.religion === 'H' ? { color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)',  label: 'H' }
-                       : m.religion === 'M' ? { color: '#10b981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  label: 'M' }
-                       : m.religion === 'C' ? { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)',  border: 'rgba(139,92,246,0.3)',  label: 'C' }
-                       : null;
+          const genderColor = m.gender === 'Male' || m.gender === 'M' ? '#22d3ee'
+                            : m.gender === 'Female' || m.gender === 'F' ? '#ec4899'
+                            : '#a78bfa';
+          const genderLabel = m.gender === 'Male' || m.gender === 'M' ? '♂ Male'
+                            : m.gender === 'Female' || m.gender === 'F' ? '♀ Female'
+                            : m.gender || '—';
+          const religionCfg =
+              m.religion === 'Hindu'    || m.religion === 'H' ? { color: '#f97316', bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.3)',  label: 'Hindu'    }
+            : m.religion === 'Muslim'   || m.religion === 'M' ? { color: '#10b981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  label: 'Muslim'   }
+            : m.religion === 'Christian'|| m.religion === 'C' ? { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)',  label: 'Christian' }
+            : null;
+
+          const mappingColor = (m.mapping_status || '').toLowerCase().includes('not')
+            ? '#f87171' : (m.mapping_status || '').toLowerCase() === 'mapped' || (m.mapping_status || '').toUpperCase() === 'MAPPED'
+            ? '#10b981' : null;
+
           return (
-            <div key={`${m.voterid || 'noid'}-${i}`} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '10px 14px', marginBottom: 7,
-              background: m.surveyed ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.02)',
-              border: `1px solid ${m.surveyed ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'}`,
-              borderRadius: 10,
-            }}>
-              <div style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{i + 1}</div>
-              <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: m.surveyed ? 'rgba(16,185,129,0.15)' : `${genderColor}18`, border: `1px solid ${m.surveyed ? 'rgba(16,185,129,0.3)' : `${genderColor}30`}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: m.surveyed ? '#10b981' : genderColor }}>{(m.name || '?')[0].toUpperCase()}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {m.name || '—'}
-                  {m.relation && <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{m.relation}</span>}
-                </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {m.voterid && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><CreditCard size={10} /> {m.voterid}</span>}
-                  <span style={{ color: genderColor }}>{genderIcon} {m.gender}</span>
-                  {m.age && <span>Age {m.age}</span>}
-                  {relCfg && (
-                    <span style={{ fontWeight: 800, fontSize: 10, color: relCfg.color, background: relCfg.bg, border: `1px solid ${relCfg.border}`, borderRadius: 5, padding: '1px 6px', letterSpacing: '0.04em' }}>
-                      {relCfg.label}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {m.surveyed ? (
-                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>✓ Done</div>
-              ) : (
-                <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '3px 9px', fontSize: 11, fontWeight: 600, color: '#f87171', flexShrink: 0 }}>Pending</div>
-              )}
-            </div>
+            <VoterCard key={`${m.voterid || 'noid'}-${i}`}
+              m={m} i={i}
+              genderColor={genderColor} genderLabel={genderLabel}
+              religionCfg={religionCfg} mappingColor={mappingColor}
+            />
           );
         })}
       </div>
