@@ -3772,7 +3772,17 @@ function HouseMembersPanel({ house, onBack }) {
 
   useEffect(() => {
     setLoading(true); setError('');
-    api.get('/api/house-search/', { params: { q: String(house.houseNo) } })
+    const params = { q: String(house.houseNo) };
+    // Scope member fetch to this ward/booths so same house number in other
+    // wards doesn't bleed in (e.g. house "10-31" exists in multiple wards)
+    if (house.booths && house.booths.length > 0) {
+      params.booths = house.booths.join(',');
+    } else if (house.wardNumber) {
+      params.ward = String(house.wardNumber);
+    } else if (house.booth) {
+      params.booths = String(house.booth);
+    }
+    api.get('/api/house-search/', { params })
       .then(r => {
         if (r.data.success) {
           const match = r.data.houses.find(h => String(h.house_no) === String(house.houseNo))
