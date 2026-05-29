@@ -4137,7 +4137,7 @@ function RiskWardsModal({ onClose, onSelectWard }) {
   return createPortal(modal, document.body);
 }
 
-function LargeFamiliesModal({ onClose }) {
+function LargeFamiliesModal({ onClose, wardNumber, boothNo }) {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState('');
   const [data, setData]               = useState([]);
@@ -4146,8 +4146,19 @@ function LargeFamiliesModal({ onClose }) {
   const [search, setSearch]           = useState('');
   const [selectedHouse, setSelectedHouse] = useState(null);
 
+  // Build a context label for the header
+  const contextLabel = boothNo
+    ? `Booth ${boothNo}`
+    : wardNumber
+    ? `Ward ${wardNumber}`
+    : null;
+
   useEffect(() => {
-    api.get('/api/large-families/')
+    const params = {};
+    if (boothNo)    params.booth = boothNo;
+    else if (wardNumber) params.ward = wardNumber;
+
+    api.get('/api/large-families/', { params })
       .then(r => {
         if (r.data.success) {
           setData(r.data.byWard || []);
@@ -4157,7 +4168,7 @@ function LargeFamiliesModal({ onClose }) {
       })
       .catch(e => setError(e.userMessage || 'Network error.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [wardNumber, boothNo]);
 
   const lowerSearch = search.toLowerCase();
   const filtered = data
@@ -4180,7 +4191,11 @@ function LargeFamiliesModal({ onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Users2 size={20} color="#22d3ee" /></div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>Large Families{!loading && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>{total} houses · 15+ members</span>}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>
+                Large Families
+                {contextLabel && <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 600, color: '#22d3ee', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)', borderRadius: 6, padding: '1px 7px' }}>{contextLabel}</span>}
+                {!loading && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>{total} houses · 15+ members</span>}
+              </div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>{selectedHouse ? 'Member records' : 'Ward-wise breakdown · click any house to view members'}</div>
             </div>
           </div>
@@ -4716,7 +4731,16 @@ export default function Dashboard() {
       sub: selectedBooth ? `Booth ${selectedBooth} Electors` : selectedWard ? '2026 Total Electors' : 'Voter list records',
     },
     { label: 'Houses Covered', value: s.houseCount?.toLocaleString() || null, icon: <Home size={20} />, color: '#10b981', sub: 'Unique households' },
-    { label: 'Large Families', value: s.largeFamilyCount?.toLocaleString() ?? null, icon: <Users2 size={20} />, color: '#f97316', sub: 'Houses with 15+ members' },
+    {
+      label: 'Large Families',
+      value: selectedBooth
+        ? (boothStats?.largeFamilyCount ?? null)?.toLocaleString() ?? null
+        : selectedWard
+        ? (wardStats?.largeFamilyCount ?? null)?.toLocaleString() ?? null
+        : s.largeFamilyCount?.toLocaleString() ?? null,
+      icon: <Users2 size={20} />, color: '#f97316',
+      sub: 'Houses with 15+ members',
+    },
     {
       label: 'Coverage',
       value: (selectedBooth ? boothStats : selectedWard ? wardStats : stats) ? `${coverage}%` : null,
@@ -5649,7 +5673,11 @@ export default function Dashboard() {
         </>
       </div>
     </div>
-    {largeFamiliesOpen && <LargeFamiliesModal onClose={() => setLargeFamiliesOpen(false)} />}
+    {largeFamiliesOpen && <LargeFamiliesModal
+        onClose={() => setLargeFamiliesOpen(false)}
+        wardNumber={selectedBooth ? undefined : (selectedWard || undefined)}
+        boothNo={selectedBooth || undefined}
+      />}
     {localPlacesOpen   && <LocalPlacesModal   onClose={() => setLocalPlacesOpen(false)} />}
     {hmcRecordsModal && (
       <HMCRecordsModal
