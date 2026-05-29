@@ -3667,7 +3667,10 @@ function HouseMembersPanel({ house, onBack }) {
             House No: <span style={{ color: '#22d3ee' }}>{house.houseNo}</span>
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-            {house.booth && `Booth ${house.booth} · `}{totalCount} registered voters
+            {house.booths && house.booths.length > 1
+              ? `Booths ${house.booths.join(', ')} · `
+              : house.booth ? `Booth ${house.booth} · ` : ''
+            }{totalCount} registered voters
           </div>
         </div>
         <div style={{
@@ -4258,7 +4261,16 @@ function LargeFamiliesModal({ onClose, wardNumber, boothNo }) {
                               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
                               <Home size={16} style={{ flexShrink: 0, color: '#f59e0b' }} />
                               <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>House No: {house.houseNo}</span>
-                              {house.booth && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', borderRadius: 5, padding: '2px 7px', flexShrink: 0 }}>Booth {house.booth}</span>}
+                              {/* Show all booths this house spans */}
+                              {house.booths && house.booths.length > 1 ? (
+                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', borderRadius: 5, padding: '2px 7px', flexShrink: 0 }}>
+                                  Booths {house.booths.join(', ')}
+                                </span>
+                              ) : house.booth ? (
+                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', borderRadius: 5, padding: '2px 7px', flexShrink: 0 }}>
+                                  Booth {house.booth}
+                                </span>
+                              ) : null}
                               <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: big ? 'rgba(239,68,68,0.1)' : 'rgba(34,211,238,0.1)', border: `1px solid ${big ? 'rgba(239,68,68,0.25)' : 'rgba(34,211,238,0.25)'}`, borderRadius: 16, padding: '3px 10px', flexShrink: 0 }}>
                                 <Users2 size={10} style={{ color: big ? '#f87171' : ACCENT }} />
                                 <span style={{ fontSize: 12, fontWeight: 700, color: big ? '#f87171' : ACCENT }}>{house.memberCount}</span>
