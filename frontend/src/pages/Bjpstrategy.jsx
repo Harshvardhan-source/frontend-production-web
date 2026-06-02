@@ -36,6 +36,42 @@ const Icons = {
   Stable:    <Ico><line x1="2" y1="12" x2="22" y2="12"/></Ico>,
   Dollar:    <Ico><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></Ico>,
   Priority:  <Ico><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Ico>,
+
+  // ── New professional icons ──────────────────────────────────────────────
+  // Playbook / Field ops
+  MessageCircle:<Ico><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></Ico>,
+  Users:        <Ico><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Ico>,
+  Car:          <Ico><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></Ico>,
+  Activity:     <Ico><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></Ico>,
+  Database:     <Ico><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></Ico>,
+  Globe:        <Ico><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></Ico>,
+  Smartphone:   <Ico><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></Ico>,
+  UserCheck:    <Ico><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></Ico>,
+  // Strategy pillars
+  TrendingUp:   <Ico><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></Ico>,
+  Shield:       <Ico><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></Ico>,
+  Crosshair:    <Ico><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></Ico>,
+  Lock:         <Ico><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Ico>,
+  Unlock:       <Ico><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></Ico>,
+  // Policy
+  Wrench:       <Ico><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></Ico>,
+  Heart:        <Ico><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></Ico>,
+  Landmark:     <Ico><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></Ico>,
+  Mic:          <Ico><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></Ico>,
+  // Calendar / Tracker
+  Calendar:     <Ico><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Ico>,
+  CheckSquare:  <Ico><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></Ico>,
+  Clock:        <Ico><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Ico>,
+  Flag:         <Ico><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></Ico>,
+  // Insights
+  Lightbulb:    <Ico><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></Ico>,
+  AlertTriangle:<Ico><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></Ico>,
+  // Navigation / misc
+  ChevronRight: <Ico><polyline points="9 18 15 12 9 6"/></Ico>,
+  ArrowUpRight: <Ico><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></Ico>,
+  Star:         <Ico><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></Ico>,
+  XCircle:      <Ico><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></Ico>,
+  MinusCircle:  <Ico><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></Ico>,
 };
 
 // ─── Ward & SIR data (moved from Dashboard.jsx) ──────────────────────────────
@@ -1903,32 +1939,32 @@ function PoliticalIntelligenceHub() {
     { s:'C — Perfect Exec.', prob:0.86, desc:'Full OBC + Christian 45% + turnout 67%.',                      color:'#22d3ee' },
   ];
   const STRATEGY = [
-    { pillar:'P1 — Mobilise',    color:'#f59e0b', items:[
+    { pillar:'P1 — Mobilise', icon:<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>, color:'#f59e0b', items:[
       {code:'P1-01',action:'Booth Activation Blitz',    desc:'3 booth agents per booth. Raise turnout in strongholds 55%→66%. Personal contact with 50 BJP households each.',target:'All 10 Strongholds',priority:'HIGH'},
       {code:'P1-02',action:'Transport & Last-Mile',     desc:'Book vehicles per booth. Priority: elderly, women, migrant workers. Historical data: 3–4% turnout gap from transport.',target:'Boloor, Padav West, Kadri North',priority:'CRITICAL'},
       {code:'P1-03',action:'Youth Voter Registration',  desc:'18–22 age group severely underregistered. Camps at colleges. Target: 5,000 new BJP-leaning youth voters.',target:'All BJP wards',priority:'HIGH'},
       {code:'P1-04',action:'NRI Voter Contact',         desc:'WhatsApp groups per ward. Video messages from NRI community leaders urging family members to vote.',target:'Derebail, Kodialbail, Boloor',priority:'MEDIUM'},
       {code:'P1-05',action:"Women's Mobilisation",      desc:"'Har Ghar BJP'. Target women turnout 64%+. Christian women (53.6% turnout) are key swing.",target:'All wards',priority:'HIGH'},
     ]},
-    { pillar:'P2 — Consolidate', color:'#8b5cf6', items:[
+    { pillar:'P2 — Consolidate', icon:<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, color:'#8b5cf6', items:[
       {code:'P2-01',action:'Billava-Devadiga Alliance', desc:'61,564 combined voters. Organise Billava Sangha rally; announce Billava welfare scheme.',target:'Derebail wards, Kodialbail',priority:'CRITICAL'},
       {code:'P2-02',action:'Bunt-Mogaveera Convention', desc:'31,935 combined voters. Organise united convention with BJP MLA+candidate.',target:'Mannagudda, Kambala, Boloor',priority:'HIGH'},
       {code:'P2-03',action:'GSB Brahmin Engagement',    desc:'40,000+ GC voters. Cultural events, GSB Sabha, temple programmes.',target:'Central, Kadri North, Derebail NW',priority:'MEDIUM'},
       {code:'P2-04',action:'Kharvi Community Outreach', desc:'Highest turnout (77.9%) OBC. Fisheries welfare + Kharvi Sangha linkage.',target:'Bolar, Hoige Bazar',priority:'MEDIUM'},
     ]},
-    { pillar:'P3 — Penetrate',   color:'#22d3ee', items:[
+    { pillar:'P3 — Penetrate', icon:<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>, color:'#22d3ee', items:[
       {code:'P3-01',action:'Christian Liaison Program', desc:'1 BJP worker per Christian-majority pocket. Focus on DEVELOPMENT — not Hindutva.',target:'Shivabagh, Valencia, Bejai, Falnir',priority:'CRITICAL'},
       {code:'P3-02',action:'Christian Welfare Scheme',  desc:"'Coastal Christian Fishermen Welfare Fund' and 'St. Aloysius Education Support'.",target:'Padav East, Bendur, Valencia',priority:'HIGH'},
       {code:'P3-03',action:'Catholic Youth Engagement', desc:'Sports tournaments, skill dev. Build non-political relationships first.',target:'Shivabagh, Bejai, Court',priority:'HIGH'},
       {code:'P3-05',action:'Candidate Selection Rule',  desc:'In wards >25% Christian, candidate must have cross-community appeal.',target:'Padav East, Valencia, Shivabagh',priority:'CRITICAL'},
     ]},
-    { pillar:'P4 — Insulate',    color:'#ef4444', items:[
+    { pillar:'P4 — Insulate', icon:<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, color:'#ef4444', items:[
       {code:'P4-01',action:'Anti-Defection Vigil',       desc:'Assign senior mentor per booth. Daily check-in 30 days before election.',target:'All wards',priority:'HIGH'},
       {code:'P4-02',action:'Counter-Narrative Response', desc:'Ward-specific development catalogue to counter Congress failure narrative.',target:'All 38 wards',priority:'HIGH'},
       {code:'P4-03',action:'Muslim Moderate Outreach',   desc:'Target 8–10% Muslim vote in Bajal, Port, Hoige Bazar. Development narrative.',target:'Bajal, Port, Hoige Bazar',priority:'MEDIUM'},
       {code:'P4-05',action:'Eve-of-Election Intel',      desc:'48-hour rapid reporting network. Real-time on Congress voter mobilisation.',target:'All wards',priority:'CRITICAL'},
     ]},
-    { pillar:'P5 — Dominate',    color:'#10b981', items:[
+    { pillar:'P5 — Dominate', icon:<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, color:'#10b981', items:[
       {code:'P5-01',action:"'Mangaluru Model' Narrative", desc:"Position Mangaluru as Karnataka's development capital under BJP. Port, IT Hub, Safety.",target:'Constituency-wide',priority:'CRITICAL'},
       {code:'P5-02',action:'Ward Micro-Manifesto',        desc:"1-page 'Ward Promise Letter' with 5 specific deliverables. Door-to-door.",target:'All 38 wards',priority:'HIGH'},
       {code:'P5-04',action:'Social Media Saturation',     desc:'WhatsApp per booth. YouTube ward videos. Target 50,000+ digital touchpoints.',target:'All demographics',priority:'MEDIUM'},
@@ -2232,7 +2268,12 @@ function PoliticalIntelligenceHub() {
                         </div>
                         <div style={{fontSize:12,fontWeight:700,color:'#f1f5f9',marginBottom:5,lineHeight:1.4}}>{item.action}</div>
                         <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',marginBottom:6,lineHeight:1.55}}>{item.desc}</div>
-                        <div style={{fontSize:10,color:pillar.color,fontWeight:600}}>↗ {item.target}</div>
+                        <div style={{fontSize:10,color:pillar.color,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>
+                        </svg>
+                        {item.target}
+                      </div>
                       </div>
                     ))}
                   </div>
@@ -2252,22 +2293,22 @@ function PoliticalIntelligenceHub() {
                       <div style={{width:22,height:22,borderRadius:'50%',background:'rgba(16,185,129,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#4ade80',fontWeight:800,flexShrink:0}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
                       <span style={{fontSize:11,fontWeight:800,color:'#4ade80',letterSpacing:0.3}}>DO — High-Impact Actions</span>
                     </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2px 10px'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1px 10px'}}>
                       {[
-                        "WhatsApp booth location to non-pollers 48 hrs before poll",
-                        "Prioritise 46–65 age group — highest polling rate segment",
-                        "Assign female workers to female voters — 2.5% turnout edge",
-                        "Complete SIR in risk wards — every unregistered Hindu = lost BJP vote",
-                        "Deploy vehicles for elderly + outstation voters on poll day",
-                        "Run Tulu/Konkani community meetings to cut voter apathy",
-                        "Track real-time booth data; send agents to low-turnout booths",
-                        "Announce local development works visible before polls",
-                        "Use Confidence-HIGH voter list for targeted outreach",
-                        "Maintain NRI contact list — Valencia, Bejai, Padav diaspora votes",
-                      ].map((d,i)=>(
-                        <div key={i} style={{display:'flex',gap:6,alignItems:'flex-start',padding:'5px 0',borderBottom:'1px solid rgba(16,185,129,0.06)'}}>
-                          <span style={{color:'#4ade80',flexShrink:0,fontSize:9,marginTop:2,fontWeight:900}}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                          <span style={{fontSize:10,color:'rgba(255,255,255,0.6)',lineHeight:1.45}}>{d}</span>
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, text:"WhatsApp booth location to non-pollers 48 hrs before poll" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, text:"Prioritise 46–65 age group — highest polling rate segment" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>, text:"Assign female workers to female voters — 2.5% turnout edge" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>, text:"Complete SIR in risk wards — every unregistered Hindu = lost BJP vote" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>, text:"Deploy vehicles for elderly + outstation voters on poll day" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, text:"Run Tulu/Konkani community meetings to cut voter apathy" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>, text:"Track real-time booth data; send agents to low-turnout booths" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, text:"Announce local development works visible before polls" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>, text:"Use Confidence-HIGH voter list for targeted outreach" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>, text:"Maintain NRI contact list — Valencia, Bejai, Padav diaspora votes" },
+                      ].map((item,i)=>(
+                        <div key={i} style={{display:'flex',gap:7,alignItems:'flex-start',padding:'6px 0',borderBottom:'1px solid rgba(16,185,129,0.06)'}}>
+                          <span style={{color:'#4ade80',flexShrink:0,marginTop:1,display:'flex',opacity:0.85}}>{item.icon}</span>
+                          <span style={{fontSize:10,color:'rgba(255,255,255,0.6)',lineHeight:1.5}}>{item.text}</span>
                         </div>
                       ))}
                     </div>
@@ -2276,25 +2317,29 @@ function PoliticalIntelligenceHub() {
                   {/* Don'ts */}
                   <div style={{background:'rgba(239,68,68,0.05)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:14,padding:'14px 16px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
-                      <div style={{width:22,height:22,borderRadius:'50%',background:'rgba(239,68,68,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#f87171',fontWeight:800,flexShrink:0}}>✕</div>
+                      <div style={{width:22,height:22,borderRadius:'50%',background:'rgba(239,68,68,0.2)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#f87171'}}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </div>
                       <span style={{fontSize:11,fontWeight:800,color:'#f87171',letterSpacing:0.3}}>DON'T — Avoid These Mistakes</span>
                     </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2px 10px'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1px 10px'}}>
                       {[
-                        "No divisive messaging in mixed wards (Court, Shivabagh, Jeppu)",
-                        "Don't over-promise in Cong-strong wards — hurts swing ward credibility",
-                        "Don't neglect 26–35 age group — 50,000+ non-voters, reachable digitally",
-                        "SIR completion ≠ mobilisation — BLO mapping is just step one",
-                        "Don't spend on posters/hoardings — lowest ROI per vote",
-                        "Zero tolerance for poll-day worker absenteeism — costs 3–5% turnout",
-                        "Don't ignore Unclassified voters (37.86%) — likely BJP-leaning OBCs",
-                        "Don't confront Muslim workers in sensitive wards — causes backlash",
-                        "Don't rely only on historical winning booths — low-poll strongholds = highest swing",
-                        "No generic state-level digital content — only hyper-local Mangaluru issues work",
-                      ].map((d,i)=>(
-                        <div key={i} style={{display:'flex',gap:6,alignItems:'flex-start',padding:'5px 0',borderBottom:'1px solid rgba(239,68,68,0.06)'}}>
-                          <span style={{color:'#f87171',flexShrink:0,fontSize:9,marginTop:2,fontWeight:900}}>✕</span>
-                          <span style={{fontSize:10,color:'rgba(255,255,255,0.6)',lineHeight:1.45}}>{d}</span>
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, text:"No divisive messaging in mixed wards (Court, Shivabagh, Jeppu)" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, text:"Don't over-promise in Cong-strong wards — hurts swing ward credibility" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>, text:"Don't neglect 26–35 age group — 50,000+ non-voters, reachable digitally" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>, text:"SIR completion ≠ mobilisation — BLO mapping is just step one" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>, text:"Don't spend on posters/hoardings — lowest ROI per vote" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>, text:"Zero tolerance for poll-day worker absenteeism — costs 3–5% turnout" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>, text:"Don't ignore Unclassified voters (37.86%) — likely BJP-leaning OBCs" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, text:"Don't confront Muslim workers in sensitive wards — causes backlash" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>, text:"Don't rely only on historical winning booths — low-poll strongholds = highest swing" },
+                        { icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>, text:"No generic state-level digital content — only hyper-local Mangaluru issues work" },
+                      ].map((item,i)=>(
+                        <div key={i} style={{display:'flex',gap:7,alignItems:'flex-start',padding:'6px 0',borderBottom:'1px solid rgba(239,68,68,0.06)'}}>
+                          <span style={{color:'#f87171',flexShrink:0,marginTop:1,display:'flex',opacity:0.8}}>{item.icon}</span>
+                          <span style={{fontSize:10,color:'rgba(255,255,255,0.6)',lineHeight:1.5}}>{item.text}</span>
                         </div>
                       ))}
                     </div>
@@ -2311,9 +2356,17 @@ function PoliticalIntelligenceHub() {
               {['Infrastructure','Welfare','Cultural','Grassroots'].map(cat=>{
                 const items=POLICIES.filter(p=>p.cat===cat);
                 const cc={Infrastructure:'#22d3ee',Welfare:'#10b981',Cultural:'#f59e0b',Grassroots:'#a78bfa'}[cat];
+                const catIcon = {
+                  Infrastructure: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>,
+                  Welfare:         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+                  Cultural:        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>,
+                  Grassroots:      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+                }[cat];
                 return (
                   <div key={cat} style={{marginBottom:16}}>
-                    <div style={{fontSize:12,fontWeight:800,color:cc,marginBottom:8,padding:'4px 10px',background:`${cc}15`,borderRadius:6,display:'inline-block'}}>{cat}</div>
+                    <div style={{fontSize:12,fontWeight:800,color:cc,marginBottom:8,padding:'4px 10px',background:`${cc}15`,borderRadius:6,display:'inline-flex',alignItems:'center',gap:6}}>
+                      <span style={{display:'flex',opacity:0.85}}>{catIcon}</span>{cat}
+                    </div>
                     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(270px,1fr))',gap:8}}>
                       {items.map(p=>(
                         <div key={p.code} style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:10,padding:'12px 14px'}}>
@@ -2353,9 +2406,52 @@ function PoliticalIntelligenceHub() {
                         <td style={{...C(),color:'#22d3ee',fontWeight:600,fontSize:11}}>{d.bjpTarget}</td>
                         <td style={{...C(),color:'#f59e0b',fontWeight:600,fontSize:11}}>{d.turnoutTarget}</td>
                         <td style={{...C(),color:'#a78bfa',fontWeight:600,fontSize:11}}>{d.sirTarget}</td>
-                        <td style={{...C(),fontSize:10,color:'rgba(255,255,255,0.4)'}}>[ ] YES [ ] NO</td>
-                        <td style={{...C(),fontSize:10,color:d.christian>15?'#f59e0b':'rgba(255,255,255,0.3)'}}>{d.christian>25?'[ ] CRITICAL':d.christian>15?'[ ] NEEDED':'[ ] MONITOR'}</td>
-                        <td style={{...C(),color:pColor(d.priority),fontWeight:700,fontSize:11,whiteSpace:'nowrap'}}>{d.priority.includes('CRITICAL')||d.priority.includes('HIGH')?'FILL':d.priority.includes('WATCH')?'WATCH':d.margin>50?'NORMAL':'FILL STATUS'}</td>
+                        <td style={{...C(),fontSize:10,color:'rgba(255,255,255,0.35)',whiteSpace:'nowrap'}}>
+                            <span style={{display:'inline-flex',alignItems:'center',gap:3}}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                              Cmte
+                            </span>
+                          </td>
+                        <td style={{...C(),whiteSpace:'nowrap'}}>
+                            {d.christian>25 ? (
+                              <span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:9,fontWeight:700,color:'#f87171',background:'rgba(239,68,68,0.1)',borderRadius:4,padding:'2px 6px'}}>
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                CRITICAL
+                              </span>
+                            ) : d.christian>15 ? (
+                              <span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:9,fontWeight:700,color:'#fbbf24',background:'rgba(245,158,11,0.1)',borderRadius:4,padding:'2px 6px'}}>
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                NEEDED
+                              </span>
+                            ) : (
+                              <span style={{fontSize:9,color:'rgba(255,255,255,0.25)'}}>MONITOR</span>
+                            )}
+                          </td>
+                        <td style={{...C(),whiteSpace:'nowrap'}}>
+                          {d.priority.includes('CRITICAL') ? (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:9,fontWeight:700,color:'#f87171',background:'rgba(239,68,68,0.1)',borderRadius:4,padding:'2px 7px'}}>
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                              FILL
+                            </span>
+                          ) : d.priority.includes('HIGH') ? (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:9,fontWeight:700,color:'#fbbf24',background:'rgba(245,158,11,0.1)',borderRadius:4,padding:'2px 7px'}}>
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                              FILL
+                            </span>
+                          ) : d.priority.includes('WATCH') ? (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:9,fontWeight:600,color:'#22d3ee',background:'rgba(34,211,238,0.08)',borderRadius:4,padding:'2px 7px'}}>
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              WATCH
+                            </span>
+                          ) : d.margin>50 ? (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:9,fontWeight:600,color:'#4ade80',background:'rgba(74,222,128,0.08)',borderRadius:4,padding:'2px 7px'}}>
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              OK
+                            </span>
+                          ) : (
+                            <span style={{fontSize:9,color:'rgba(255,255,255,0.3)'}}>STATUS</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}</tbody>
@@ -2370,7 +2466,12 @@ function PoliticalIntelligenceHub() {
               <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:14}}>12-Month Campaign Preparation Timeline — T-12 to T-0 Months</div>
               {CALENDAR.map(phase=>(
                 <div key={phase.phase} style={{marginBottom:20}}>
-                  <div style={{fontSize:13,fontWeight:800,color:phase.color,marginBottom:10,padding:'5px 14px',background:`${phase.color}15`,borderRadius:8,display:'inline-block'}}>{phase.phase}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:phase.color,marginBottom:10,padding:'5px 12px',background:`${phase.color}15`,borderRadius:8,display:'inline-flex',alignItems:'center',gap:7}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  {phase.phase}
+                </div>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:8}}>
                     {phase.items.map(item=>(
                       <div key={item.n} style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:10,padding:'12px 14px',borderLeft:`3px solid ${item.p==='Critical'?'#ef4444':'#f59e0b'}`}}>
@@ -2378,9 +2479,19 @@ function PoliticalIntelligenceHub() {
                           <span style={{fontSize:10,color:'rgba(255,255,255,0.3)'}}>#{item.n}</span>
                           <span style={{fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:4,background:item.p==='Critical'?'rgba(239,68,68,0.2)':'rgba(245,158,11,0.2)',color:item.p==='Critical'?'#ef4444':'#f59e0b'}}>{item.p}</span>
                         </div>
-                        <div style={{fontSize:13,fontWeight:700,color:'var(--text-1)',marginBottom:5}}>{item.act}</div>
+                        <div style={{fontSize:12,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:6}}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,color:phase.color}}>
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                          </svg>
+                          {item.act}
+                        </div>
                         <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',lineHeight:1.5,marginBottom:5}}>{item.desc}</div>
-                        <div style={{fontSize:10,color:phase.color}}>Owner: {item.owner}</div>
+                        <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',display:'flex',alignItems:'center',gap:4}}>
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>
+                          </svg>
+                          {item.owner}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2400,8 +2511,10 @@ function PoliticalIntelligenceHub() {
                     <div style={{flex:1}}>
                       <div style={{fontSize:14,fontWeight:800,color:'var(--text-1)',marginBottom:5}}>{ins.title}</div>
                       <div style={{fontSize:12,color:'rgba(255,255,255,0.6)',marginBottom:8,lineHeight:1.6}}>{ins.msg}</div>
-                      <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:8,padding:'4px 12px'}}>
-                        <span style={{fontSize:11,color:'#10b981'}}>→</span>
+                      <div style={{display:'inline-flex',alignItems:'center',gap:7,background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.18)',borderRadius:7,padding:'5px 12px'}}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+                          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                        </svg>
                         <span style={{fontSize:11,fontWeight:600,color:'#6ee7b7'}}>{ins.action}</span>
                       </div>
                     </div>
@@ -3254,6 +3367,14 @@ function ElectionAnalyticsTab() {
 export default function BJPStrategy() {
   return (
     <>
+      {/* Hide Navbar's floating AI/screenshot button */}
+      <style>{`
+        [style*="position: fixed"][style*="bottom"][style*="right"],
+        [style*="position:fixed"][style*="bottom"][style*="right"] {
+          display: none !important;
+        }
+        .navbar-fab, .fab-btn, [class*="fab"], [class*="float"] { display:none !important; }
+      `}</style>
       <Navbar />
       <PoliticalIntelligenceHub />
     </>
