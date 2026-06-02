@@ -2824,6 +2824,512 @@ function ConfirmedMatchesPanel() {
   );
 }
 
+// ─── PROGENY ANALYSIS DASHBOARD ─────────────────────────────────────────────
+// Embedded intelligence from Mangaluru_Progeny_Family_Tree_Report_2002_2025.xlsx
+// Data: 1,92,023 ancestral voters → 83,997 progeny across 19,727 matched houses
+
+const PROGENY_WARD_DATA = [
+  { ward: 21, name: 'PADAVU',              total: 7569,  base2002: 858,  strong: 188, medium: 669,  weak: 1581, notMappedPct: 0.2296, progenyLinkedPct: 0.3221, status: 'MOD GAP'  },
+  { ward: 24, name: 'Derebail South',      total: 5665,  base2002: 509,  strong: 157, medium: 493,  weak: 678,  notMappedPct: 0.338,  progenyLinkedPct: 0.2344, status: 'HIGH GAP' },
+  { ward: 25, name: 'Derebail West',       total: 7345,  base2002: 780,  strong: 206, medium: 710,  weak: 1063, notMappedPct: 0.2442, progenyLinkedPct: 0.2694, status: 'MOD GAP'  },
+  { ward: 26, name: 'Derebail SW',         total: 7777,  base2002: 632,  strong: 180, medium: 759,  weak: 1126, notMappedPct: 0.3302, progenyLinkedPct: 0.2655, status: 'HIGH GAP' },
+  { ward: 27, name: 'BOLOOR',              total: 6725,  base2002: 816,  strong: 231, medium: 610,  weak: 871,  notMappedPct: 0.2413, progenyLinkedPct: 0.2546, status: 'MOD GAP'  },
+  { ward: 28, name: 'MANNAGUDDA',          total: 7928,  base2002: 583,  strong: 207, medium: 821,  weak: 746,  notMappedPct: 0.3691, progenyLinkedPct: 0.2238, status: 'HIGH GAP' },
+  { ward: 29, name: 'KAMBLA',              total: 5720,  base2002: 437,  strong: 173, medium: 633,  weak: 549,  notMappedPct: 0.3365, progenyLinkedPct: 0.2369, status: 'HIGH GAP' },
+  { ward: 30, name: 'KODIALBAIL',          total: 6022,  base2002: 587,  strong: 158, medium: 620,  weak: 657,  notMappedPct: 0.2846, progenyLinkedPct: 0.2383, status: 'MOD GAP'  },
+  { ward: 31, name: 'BEJAI',               total: 7332,  base2002: 513,  strong: 142, medium: 674,  weak: 768,  notMappedPct: 0.3217, progenyLinkedPct: 0.2160, status: 'HIGH GAP' },
+  { ward: 32, name: 'KADRI North',         total: 5754,  base2002: 627,  strong: 159, medium: 594,  weak: 887,  notMappedPct: 0.2782, progenyLinkedPct: 0.2850, status: 'MOD GAP'  },
+  { ward: 33, name: 'KADRI SOUTH',         total: 6594,  base2002: 381,  strong: 112, medium: 582,  weak: 690,  notMappedPct: 0.3623, progenyLinkedPct: 0.2099, status: 'HIGH GAP' },
+  { ward: 34, name: 'SHIVBHAG',            total: 6314,  base2002: 411,  strong: 112, medium: 515,  weak: 713,  notMappedPct: 0.2781, progenyLinkedPct: 0.2122, status: 'MOD GAP'  },
+  { ward: 35, name: 'PADAVU CENTRAL',      total: 8451,  base2002: 674,  strong: 150, medium: 725,  weak: 1373, notMappedPct: 0.2580, progenyLinkedPct: 0.2660, status: 'MOD GAP'  },
+  { ward: 36, name: 'PADAVU POORVA',       total: 4447,  base2002: 440,  strong: 166, medium: 334,  weak: 677,  notMappedPct: 0.338,  progenyLinkedPct: 0.2647, status: 'HIGH GAP' },
+  { ward: 37, name: 'MAROLI',              total: 6884,  base2002: 627,  strong: 156, medium: 647,  weak: 1157, notMappedPct: 0.1944, progenyLinkedPct: 0.2847, status: 'LOW GAP'  },
+  { ward: 38, name: 'BENDUR',              total: 6095,  base2002: 167,  strong: 61,  medium: 394,  weak: 397,  notMappedPct: 0.2871, progenyLinkedPct: 0.1398, status: 'MOD GAP'  },
+  { ward: 39, name: 'FALNIR',              total: 6512,  base2002: 287,  strong: 62,  medium: 430,  weak: 717,  notMappedPct: 0.2432, progenyLinkedPct: 0.1857, status: 'MOD GAP'  },
+  { ward: 40, name: 'COURT',               total: 6003,  base2002: 237,  strong: 81,  medium: 447,  weak: 458,  notMappedPct: 0.3153, progenyLinkedPct: 0.1643, status: 'HIGH GAP' },
+  { ward: 41, name: 'CENTRAL',             total: 4915,  base2002: 463,  strong: 144, medium: 507,  weak: 458,  notMappedPct: 0.2777, progenyLinkedPct: 0.2256, status: 'MOD GAP'  },
+  { ward: 42, name: 'DONGERKERY',          total: 6709,  base2002: 528,  strong: 172, medium: 691,  weak: 677,  notMappedPct: 0.3123, progenyLinkedPct: 0.2295, status: 'HIGH GAP' },
+  { ward: 43, name: 'KUDROLI',             total: 5710,  base2002: 384,  strong: 145, medium: 392,  weak: 697,  notMappedPct: 0.310,  progenyLinkedPct: 0.2161, status: 'HIGH GAP' },
+  { ward: 44, name: 'NAVAYATH',            total: 5802,  base2002: 483,  strong: 153, medium: 453,  weak: 624,  notMappedPct: 0.2964, progenyLinkedPct: 0.2120, status: 'MOD GAP'  },
+  { ward: 45, name: 'PORT',                total: 7045,  base2002: 490,  strong: 160, medium: 514,  weak: 824,  notMappedPct: 0.2346, progenyLinkedPct: 0.2126, status: 'MOD GAP'  },
+  { ward: 46, name: 'CANTONMENT',          total: 4149,  base2002: 313,  strong: 63,  medium: 360,  weak: 573,  notMappedPct: 0.3717, progenyLinkedPct: 0.2401, status: 'HIGH GAP' },
+  { ward: 47, name: 'MILAGRIS',            total: 6993,  base2002: 295,  strong: 80,  medium: 497,  weak: 602,  notMappedPct: 0.3439, progenyLinkedPct: 0.1686, status: 'HIGH GAP' },
+  { ward: 48, name: 'VALENCIA',            total: 5296,  base2002: 363,  strong: 77,  medium: 460,  weak: 786,  notMappedPct: 0.2321, progenyLinkedPct: 0.2498, status: 'MOD GAP'  },
+  { ward: 49, name: 'KANKANADY',           total: 7547,  base2002: 784,  strong: 188, medium: 687,  weak: 1464, notMappedPct: 0.2308, progenyLinkedPct: 0.3099, status: 'MOD GAP'  },
+  { ward: 50, name: 'ALAPE DAKSHINA',      total: 6338,  base2002: 616,  strong: 150, medium: 602,  weak: 1173, notMappedPct: 0.2032, progenyLinkedPct: 0.3037, status: 'MOD GAP'  },
+  { ward: 51, name: 'ALAPE UTTARA',        total: 7171,  base2002: 493,  strong: 77,  medium: 635,  weak: 1211, notMappedPct: 0.2129, progenyLinkedPct: 0.2682, status: 'MOD GAP'  },
+  { ward: 52, name: 'KANNUR',              total: 7084,  base2002: 680,  strong: 177, medium: 540,  weak: 1374, notMappedPct: 0.2053, progenyLinkedPct: 0.2952, status: 'MOD GAP'  },
+  { ward: 53, name: 'BAJAL',               total: 7823,  base2002: 891,  strong: 297, medium: 619,  weak: 1861, notMappedPct: 0.2223, progenyLinkedPct: 0.3550, status: 'MOD GAP'  },
+  { ward: 54, name: 'JEPPINAMUGER',        total: 7162,  base2002: 565,  strong: 87,  medium: 715,  weak: 1433, notMappedPct: 0.2019, progenyLinkedPct: 0.3121, status: 'MOD GAP'  },
+  { ward: 55, name: 'ATTAVARA',            total: 7603,  base2002: 471,  strong: 90,  medium: 658,  weak: 1174, notMappedPct: 0.2321, progenyLinkedPct: 0.2528, status: 'MOD GAP'  },
+  { ward: 56, name: 'MANGALADEVI',         total: 5274,  base2002: 266,  strong: 27,  medium: 461,  weak: 858,  notMappedPct: 0.2594, progenyLinkedPct: 0.2552, status: 'MOD GAP'  },
+  { ward: 57, name: 'HOIGE BAZAR',         total: 7128,  base2002: 521,  strong: 96,  medium: 663,  weak: 1268, notMappedPct: 0.2647, progenyLinkedPct: 0.2844, status: 'MOD GAP'  },
+  { ward: 58, name: 'BOLAR',               total: 4263,  base2002: 360,  strong: 89,  medium: 409,  weak: 632,  notMappedPct: 0.2648, progenyLinkedPct: 0.2651, status: 'MOD GAP'  },
+  { ward: 59, name: 'JEPPU',               total: 7802,  base2002: 407,  strong: 3,   medium: 674,  weak: 1312, notMappedPct: 0.2452, progenyLinkedPct: 0.2549, status: 'MOD GAP'  },
+  { ward: 60, name: 'BENGRE',              total: 9743,  base2002: 752,  strong: 272, medium: 836,  weak: 1931, notMappedPct: 0.0772, progenyLinkedPct: 0.3119, status: 'LOW GAP'  },
+];
+
+const GENERATION_DATA = [
+  { gen: 'GEN-1/2 (30-44)', count: 31038, pct: 36.95, desc: 'Late children / early grandchildren (boundary cohort)', color: '#f59e0b' },
+  { gen: 'GEN-1 (45-59)',   count: 21393, pct: 25.47, desc: 'Core progeny — direct children of 2002 adults',         color: '#22d3ee' },
+  { gen: 'GEN-1 (60+)',     count: 16706, pct: 19.89, desc: 'Children of elderly 2002 voters (age 70+)',             color: '#a78bfa' },
+  { gen: 'GEN-2 (18-29)',   count: 14860, pct: 17.69, desc: 'Grandchildren — new voters enrolled since 2014',        color: '#10b981' },
+];
+
+// Summary KPIs
+const PROGENY_KPIs = {
+  ancestralVoters:  192023,
+  progenyVoters:    83997,
+  matchedHouses:    19727,
+  totalVoters2025:  251480,
+  totalWards:       39,
+  highGapWards:     13,
+  lowGapWards:      2,
+};
+
+function ProgenyAnalysisDashboard() {
+  const [activeTab, setActiveTab] = useState('overview'); // overview | wards | generations | methodology
+  const [sortKey, setSortKey] = useState('notMappedPct');
+  const [sortDir, setSortDir] = useState('desc');
+  const [wardFilter, setWardFilter] = useState('ALL'); // ALL | HIGH GAP | MOD GAP | LOW GAP
+
+  const statusConfig = {
+    'HIGH GAP': { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: '⚠ HIGH GAP'  },
+    'MOD GAP':  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', label: '▲ MOD GAP'  },
+    'LOW GAP':  { color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)', label: '✓ LOW GAP'  },
+  };
+
+  const filteredWards = PROGENY_WARD_DATA
+    .filter(w => wardFilter === 'ALL' || w.status === wardFilter)
+    .sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      return sortDir === 'desc' ? bv - av : av - bv;
+    });
+
+  const handleSort = (key) => {
+    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+
+  const SortArrow = ({ col }) => (
+    <span style={{ fontSize: 9, marginLeft: 3, opacity: sortKey === col ? 1 : 0.3 }}>
+      {sortKey === col ? (sortDir === 'desc' ? '▼' : '▲') : '⇅'}
+    </span>
+  );
+
+  const totalProgeny = PROGENY_WARD_DATA.reduce((s, w) => s + w.strong + w.medium + w.weak, 0);
+
+  const TABS = [
+    { key: 'overview',     label: '📊 Overview'      },
+    { key: 'wards',        label: '🗺 Ward Analysis'   },
+    { key: 'generations',  label: '👥 Generations'     },
+    { key: 'methodology',  label: '⚙ Methodology'     },
+  ];
+
+  return (
+    <div style={{
+      background: 'linear-gradient(145deg,rgba(12,18,42,0.97),rgba(8,12,28,0.99))',
+      border: '1px solid rgba(245,158,11,0.18)',
+      borderRadius: 18,
+      overflow: 'hidden',
+      marginBottom: 20,
+      boxShadow: '0 6px 32px rgba(0,0,0,0.4)',
+    }}>
+      {/* ── Panel Header ──────────────────────────────────────────────────────── */}
+      <div style={{
+        background: 'linear-gradient(135deg,rgba(245,158,11,0.09),rgba(99,102,241,0.06))',
+        borderBottom: '1px solid rgba(245,158,11,0.15)',
+        padding: '16px 20px 14px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 18 }}>🌳</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#fbbf24', letterSpacing: '-0.3px' }}>
+                Progeny Family Tree Intelligence
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 20, padding: '2px 9px' }}>
+                2002 → 2025
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', paddingLeft: 26 }}>
+              Voter genealogy analysis · 19,727 matched households · Mangaluru City Corporation
+            </div>
+          </div>
+          {/* Top-level KPIs strip */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {[
+              { val: '1,92,023', lbl: 'Ancestors 2002', color: '#f59e0b'  },
+              { val: '83,997',   lbl: 'Progeny 2025',   color: '#22d3ee'  },
+              { val: '19,727',   lbl: 'Matched Houses', color: '#10b981'  },
+              { val: '39',       lbl: 'Wards',          color: '#a78bfa'  },
+            ].map(({ val, lbl, color }) => (
+              <div key={lbl} style={{ textAlign: 'center', background: 'rgba(0,0,0,0.25)', border: `1px solid ${color}28`, borderRadius: 10, padding: '6px 13px', minWidth: 80 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{val}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginTop: 1 }}>{lbl}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tab Row ────────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {TABS.map(({ key, label }) => (
+          <button key={key} onClick={() => setActiveTab(key)} style={{
+            flex: '0 0 auto',
+            padding: '10px 18px',
+            border: 'none',
+            borderBottom: `2px solid ${activeTab === key ? '#f59e0b' : 'transparent'}`,
+            background: activeTab === key ? 'rgba(245,158,11,0.06)' : 'transparent',
+            color: activeTab === key ? '#fbbf24' : 'rgba(255,255,255,0.35)',
+            fontSize: 12, fontWeight: activeTab === key ? 700 : 400,
+            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+          }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: '18px 20px' }}>
+
+        {/* ══ OVERVIEW TAB ══════════════════════════════════════════════════════ */}
+        {activeTab === 'overview' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Coverage metrics row */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 10 }}>
+              {[
+                { label: 'Progeny Coverage',   value: `${((PROGENY_KPIs.progenyVoters / PROGENY_KPIs.totalVoters2025)*100).toFixed(1)}%`, sub: 'of 2025 total roll',   color: '#22d3ee', icon: '📈' },
+                { label: 'High Gap Wards',      value: `${PROGENY_KPIs.highGapWards} / ${PROGENY_KPIs.totalWards}`, sub: 'need urgent SIR action', color: '#ef4444', icon: '⚠️' },
+                { label: 'Total Progeny Voters', value: '83,997', sub: 'classified by generation', color: '#f59e0b', icon: '👥' },
+                { label: 'Low Gap Wards',       value: `${PROGENY_KPIs.lowGapWards}`,           sub: 'Maroli & Bengre leading', color: '#10b981', icon: '✅' },
+              ].map(({ label, value, sub, color, icon }) => (
+                <div key={label} style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${color}22`, borderRadius: 12, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color, letterSpacing: '-0.5px', marginBottom: 2 }}>{value}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', lineHeight: 1.4 }}>{label}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 3 }}>{sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Progeny link quality bar */}
+            <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                Ancestor Link Quality — 83,997 Progeny Voters
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { label: 'STRONG link',  count: PROGENY_WARD_DATA.reduce((s,w)=>s+w.strong,0), color: '#10b981', desc: 'Direct ancestor found at same address — HIGH confidence' },
+                  { label: 'MEDIUM link', count: PROGENY_WARD_DATA.reduce((s,w)=>s+w.medium,0), color: '#f59e0b', desc: 'Rare name, ≤3 occurrences — MEDIUM confidence, verify' },
+                  { label: 'WEAK link',   count: PROGENY_WARD_DATA.reduce((s,w)=>s+w.weak,0),   color: '#f87171', desc: 'Common name, 4–50 occurrences — flag for BLO field check' },
+                ].map(({ label, count, color, desc }) => {
+                  const pct = ((count / totalProgeny) * 100).toFixed(1);
+                  return (
+                    <div key={label}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color, minWidth: 90 }}>{label}</span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{desc}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color }}>{count.toLocaleString()}</span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', minWidth: 36, textAlign: 'right' }}>{pct}%</span>
+                        </div>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Top 5 wards needing immediate action */}
+            <div style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+                <span style={{ color: '#f87171' }}><Icon.Warning /></span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  Highest Unmapped Wards — Immediate SIR Action Required
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[...PROGENY_WARD_DATA]
+                  .sort((a,b) => b.notMappedPct - a.notMappedPct)
+                  .slice(0, 6)
+                  .map((w, i) => {
+                    const sCfg = statusConfig[w.status] || statusConfig['MOD GAP'];
+                    return (
+                      <div key={w.ward} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.2)', minWidth: 16, textAlign: 'right' }}>#{i+1}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)', borderRadius: 4, padding: '2px 6px', minWidth: 30, textAlign: 'center' }}>
+                          {w.ward}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
+                        <div style={{ flex: 2, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', minWidth: 60 }}>
+                          <div style={{ width: `${(w.notMappedPct*100).toFixed(1)}%`, height: '100%', background: w.notMappedPct > 0.35 ? '#ef4444' : '#f59e0b', borderRadius: 3 }} />
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: w.notMappedPct > 0.35 ? '#f87171' : '#fbbf24', minWidth: 40, textAlign: 'right' }}>
+                          {(w.notMappedPct*100).toFixed(1)}%
+                        </span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: sCfg.color, background: sCfg.bg, border: `1px solid ${sCfg.border}`, borderRadius: 5, padding: '1px 6px', flexShrink: 0 }}>
+                          {sCfg.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Best performers */}
+            <div style={{ background: 'rgba(16,185,129,0.04)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+                <span style={{ color: '#10b981' }}><Icon.Shield /></span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  Best Progeny Mapping — Model Wards
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[...PROGENY_WARD_DATA]
+                  .sort((a,b) => b.progenyLinkedPct - a.progenyLinkedPct)
+                  .slice(0, 4)
+                  .map((w, i) => (
+                    <div key={w.ward} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: '#10b981', minWidth: 16, textAlign: 'right' }}>#{i+1}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)', borderRadius: 4, padding: '2px 6px', minWidth: 30, textAlign: 'center' }}>{w.ward}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
+                      <div style={{ flex: 2, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', minWidth: 60 }}>
+                        <div style={{ width: `${(w.progenyLinkedPct*100).toFixed(1)}%`, height: '100%', background: '#10b981', borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', minWidth: 40, textAlign: 'right' }}>
+                        {(w.progenyLinkedPct*100).toFixed(1)}%
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══ WARD ANALYSIS TAB ════════════════════════════════════════════════ */}
+        {activeTab === 'wards' && (
+          <div>
+            {/* Filter + sort controls */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+              {['ALL','HIGH GAP','MOD GAP','LOW GAP'].map(f => {
+                const active = wardFilter === f;
+                const cfg = statusConfig[f] || { color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' };
+                return (
+                  <button key={f} onClick={() => setWardFilter(f)} style={{
+                    padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: active ? 700 : 400, cursor: 'pointer',
+                    background: active ? cfg.bg : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${active ? cfg.border : 'rgba(255,255,255,0.07)'}`,
+                    color: active ? cfg.color : 'rgba(255,255,255,0.4)', transition: 'all 0.15s',
+                  }}>
+                    {f === 'ALL' ? `All (${PROGENY_WARD_DATA.length})` : `${statusConfig[f]?.label} (${PROGENY_WARD_DATA.filter(w=>w.status===f).length})`}
+                  </button>
+                );
+              })}
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>
+                Click column headers to sort
+              </span>
+            </div>
+
+            {/* Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {[
+                      { key: 'ward',            label: 'Ward'              },
+                      { key: 'total',           label: 'Total 2025'        },
+                      { key: 'base2002',        label: '2002 Base'         },
+                      { key: 'strong',          label: 'Strong'            },
+                      { key: 'medium',          label: 'Medium'            },
+                      { key: 'weak',            label: 'Weak'              },
+                      { key: 'notMappedPct',    label: 'Unmapped %'        },
+                      { key: 'progenyLinkedPct',label: 'Progeny Linked %'  },
+                      { key: 'status',          label: 'Status', noSort: true },
+                    ].map(({ key, label, noSort }) => (
+                      <th key={key} onClick={() => !noSort && handleSort(key)}
+                        style={{ padding: '8px 10px', textAlign: key === 'ward' ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: sortKey === key ? '#fbbf24' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: noSort ? 'default' : 'pointer', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)', userSelect: 'none' }}>
+                        {label}{!noSort && <SortArrow col={key} />}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredWards.map((w, i) => {
+                    const sCfg = statusConfig[w.status] || statusConfig['MOD GAP'];
+                    return (
+                      <tr key={w.ward} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                        <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)', borderRadius: 4, padding: '1px 6px', minWidth: 24, textAlign: 'center' }}>{w.ward}</span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>{w.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.total.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#a78bfa' }}>{w.base2002.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#10b981', fontWeight: 700 }}>{w.strong.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#f59e0b' }}>{w.medium.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#f87171' }}>{w.weak.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                          <span style={{ color: w.notMappedPct > 0.35 ? '#f87171' : w.notMappedPct > 0.28 ? '#fbbf24' : '#10b981', fontWeight: 700 }}>
+                            {(w.notMappedPct*100).toFixed(1)}%
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                          <span style={{ color: w.progenyLinkedPct > 0.30 ? '#10b981' : w.progenyLinkedPct > 0.22 ? '#fbbf24' : '#f87171', fontWeight: 700 }}>
+                            {(w.progenyLinkedPct*100).toFixed(1)}%
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: sCfg.color, background: sCfg.bg, border: `1px solid ${sCfg.border}`, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+                            {sCfg.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ══ GENERATIONS TAB ══════════════════════════════════════════════════ */}
+        {activeTab === 'generations' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+              83,997 progeny voters classified by age band into estimated genealogical generation
+            </div>
+
+            {/* Generation bars */}
+            {GENERATION_DATA.map((g, i) => (
+              <div key={g.gen} style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${g.color}22`, borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: g.color, marginBottom: 3 }}>{g.gen}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>{g.desc}</div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: g.color }}>{g.count.toLocaleString()}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{g.pct.toFixed(1)}% of progeny</div>
+                  </div>
+                </div>
+                <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                  <div style={{ width: `${g.pct}%`, height: '100%', background: g.color, borderRadius: 4, transition: 'width 0.6s ease' }} />
+                </div>
+              </div>
+            ))}
+
+            {/* Sample family trees */}
+            <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                Representative Family Snapshots — from 5-Household Sample
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { name: 'KAMATH Family',       community: 'GSB', ward: 41, house: '11-10-993', ancestors: 10, originals: 7, progeny: 4, total: 21 },
+                  { name: 'SHENOY Family',        community: 'GSB', ward: 27, house: '7-2-159',   ancestors: 12, originals: 6, progeny: 5, total: 23 },
+                  { name: 'B.HASANABBA Family',   community: 'Muslim', ward: 57, house: '21-4-385', ancestors: 11, originals: 7, progeny: 19, total: 37 },
+                ].map(f => (
+                  <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 9, border: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 140 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>🏠 {f.name}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                        {f.community} · House {f.house} · Ward {f.ward}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {[
+                        { val: f.ancestors, lbl: 'Ancestors', color: '#f59e0b' },
+                        { val: f.originals, lbl: 'Originals', color: '#22d3ee' },
+                        { val: f.progeny,   lbl: 'Progeny',   color: '#10b981' },
+                        { val: f.total,     lbl: 'Total',     color: '#a78bfa' },
+                      ].map(({ val, lbl, color }) => (
+                        <div key={lbl} style={{ textAlign: 'center', minWidth: 46 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color }}>{val}</div>
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{lbl}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══ METHODOLOGY TAB ══════════════════════════════════════════════════ */}
+        {activeTab === 'methodology' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+              6-phase algorithm linking 1,92,023 ancestral voters to 83,997 progeny across 19,727 matched houses
+            </div>
+            {[
+              { phase: 1, title: 'Data Ingestion & Normalisation', color: '#22d3ee', steps: [
+                'Load 192,023 records from 2002 roll (Serial, House, Name, Relation, EPIC)',
+                'Load 251,480 records from 2025 roll (EPIC, Name, Relation, Age, Booth, Community)',
+                'Normalize house numbers: strip punctuation → UPPERCASE → remove leading zeros',
+                'Normalize voter names: strip salutations (Shri/Smt/Late/Dr) → UPPERCASE → collapse whitespace',
+              ]},
+              { phase: 2, title: 'House-Level Grouping & Indexing', color: '#a78bfa', steps: [
+                'Group 2002 voters by normalized house → per-house ancestral pool',
+                'Group 2025 voters by normalized house → per-house current pool',
+                'Find intersection → 19,727 common houses out of ~2,00,000 unique',
+                'Build O(1) name index and relation index per matched house',
+              ]},
+              { phase: 3, title: 'Voter Status Classification', color: '#f59e0b', steps: [
+                'EPIC exact match at same house → ORIGINAL (highest confidence)',
+                'Normalized name + relative match at same house → ORIGINAL',
+                'Normalized name + house match only → ORIGINAL (weaker, may have false positives)',
+                'Remaining voters at matched houses → PROGENY (new voter from 2002 family)',
+              ]},
+              { phase: 4, title: 'Ancestor Link Scoring', color: '#10b981', steps: [
+                'STRONG: relative name found in 2002 at same house → Direct ancestor, HIGH confidence',
+                'MEDIUM: relative found in 2002 roll anywhere, count ≤ 3 → Rare name, likely specific person',
+                'WEAK: relative in 2002 roll, count 4–50 → Common name, flag for BLO verification',
+                'NO LINK: absent from 2002 OR count > 50 → Check migration / other ward rolls',
+              ]},
+              { phase: 5, title: 'Generational Tree Construction', color: '#f87171', steps: [
+                'GEN-0 ANCESTOR: 2002 voters at matched house NOT in 2025 → Pure ancestors (deceased/migrated)',
+                'GEN-1 PROGENY: Progeny aged 40–70 in 2025 → Direct children of 2002 voter',
+                'GEN-2 PROGENY: Progeny aged 18–39 whose father is also PROGENY → Grandchildren',
+                'Spousal linking: Husband/Wife relation → lateral edge (same generation), BFS traversal for depth',
+              ]},
+              { phase: 6, title: 'Cross-Check Cluster Confidence', color: '#818cf8', steps: [
+                'Cross-check test: does declared relative appear as another voter at SAME house?',
+                'EXACT match score = 1.0 | PARTIAL (Jaccard token overlap ≥ 0.60) score = 0.67',
+                'Confidence = min(100, (cross_links×20 + relation_weight×2 + cluster_size)×2)',
+                'Union-Find cluster merge: all voters connected by cross-check links → single family cluster',
+              ]},
+            ].map(({ phase, title, color, steps }) => (
+              <div key={phase} style={{ background: 'rgba(0,0,0,0.2)', border: `1px solid ${color}20`, borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', background: `linear-gradient(90deg,${color}12,transparent)`, borderLeft: `3px solid ${color}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color, background: `${color}22`, borderRadius: 6, padding: '2px 8px', flexShrink: 0 }}>PHASE {phase}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>{title}</span>
+                </div>
+                <div style={{ padding: '8px 14px 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {steps.map((s, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: 9, color, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>{phase}.{i+1}</span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   return (
@@ -2884,6 +3390,9 @@ export default function SIR() {
 
         {/* All Wards Heatmap */}
         <AllWardsHeatmap />
+
+        {/* Progeny Family Tree Intelligence — from Excel report */}
+        <ProgenyAnalysisDashboard />
 
       </div>
 
