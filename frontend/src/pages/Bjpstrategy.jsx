@@ -221,14 +221,18 @@ const STATUS_COLOR = {
 };
 
 function StatusBadge({ status, small }) {
-  const c = STATUS_COLOR[status] || STATUS_COLOR.WEAK;
+  const labels = {STRONG:'STRONG',MEDIUM:'MEDIUM',WEAK:'WEAK'};
+  const alphas = {STRONG:'rgba(255,255,255,0.15)',MEDIUM:'rgba(255,255,255,0.08)',WEAK:'rgba(255,255,255,0.05)'};
+  const textC   = {STRONG:'#e2e8f0',MEDIUM:'#94a3b8',WEAK:'#64748b'};
   return (
     <span style={{
-      background: c.badge, color: '#fff',
-      fontSize: small ? 8 : 10, fontWeight: 800,
+      background: alphas[status]||alphas.WEAK,
+      color: textC[status]||textC.WEAK,
+      fontSize: small ? 8 : 10, fontWeight: 700,
       padding: small ? '1px 5px' : '2px 7px',
       borderRadius: 4, letterSpacing: 0.5, textTransform: 'uppercase',
-    }}>{c.label}</span>
+      border:'1px solid rgba(255,255,255,0.08)',
+    }}>{labels[status]||status}</span>
   );
 }
 
@@ -1994,20 +1998,19 @@ function PoliticalIntelligenceHub() {
   );
 
   const TABS = [
-    {id:'heatmap',  label:'Heatmap',    icon: IC(<><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>) },
-    {id:'why',      label:'Why S/M/W',  icon: IC(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>) },
-    {id:'wsi',      label:'WSI Scores', icon: IC(<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>) },
-    {id:'community',label:'Community',  icon: IC(<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>) },
-    {id:'history',  label:'History',    icon: IC(<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>) },
-    {id:'math',     label:'Math',       icon: IC(<><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="14" y2="18"/><line x1="19" y1="15" x2="19" y2="21"/><line x1="16" y1="18" x2="22" y2="18"/></>) },
-    {id:'strategy', label:'Strategy',   icon: IC(<><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>) },
-    {id:'policy',   label:'Policy',     icon: IC(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></>) },
-    {id:'tracker',  label:'Tracker',    icon: IC(<><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></>) },
-    {id:'calendar', label:'Calendar',   icon: IC(<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>) },
-    {id:'insights', label:'Insights',   icon: IC(<><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></>) },
-    {id:'aidash',   label:'AI Overview',icon: IC(<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>) },
-    {id:'simulator',label:'Simulator',  icon: IC(<><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></>) },
-    {id:'analytics', label:'Election Analytics', icon: IC(<><path d="M3 3v18h18"/><polyline points="7 16 11 11 15 14 20 8"/></>) },
+    {id:'heatmap',  label:'Map',       icon: IC(<><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>) },
+    {id:'why',      label:'Why',       icon: IC(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>) },
+    {id:'wsi',      label:'WSI',       icon: IC(<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>) },
+    {id:'community',label:'Community', icon: IC(<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>) },
+    {id:'history',  label:'History',   icon: IC(<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>) },
+    {id:'math',     label:'Analytics', icon: IC(<><path d="M3 3v18h18"/><polyline points="7 16 11 11 15 14 20 8"/></>) },
+    {id:'strategy', label:'Strategy',  icon: IC(<><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>) },
+    {id:'policy',   label:'Policy',    icon: IC(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>) },
+    {id:'tracker',  label:'Tracker',   icon: IC(<><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></>) },
+    {id:'calendar', label:'Calendar',  icon: IC(<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>) },
+    {id:'insights', label:'Insights',  icon: IC(<><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></>) },
+    {id:'aidash',   label:'AI',        icon: IC(<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>) },
+    {id:'simulator',label:'Sim',       icon: IC(<><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></>) },
   ];
 
   const clsCfg = (cls) => {
@@ -2021,72 +2024,78 @@ function PoliticalIntelligenceHub() {
   const pColor = (p) => p&&p.includes('CRITICAL')?'#ef4444':p&&p.includes('HIGH')?'#f59e0b':p&&p.includes('MEDIUM')?'#a78bfa':p&&p.includes('WATCH')?'#10b981':'rgba(255,255,255,0.3)';
   const C = (bold=false,color='rgba(255,255,255,0.7)') => ({padding:'7px 10px',fontSize:12,color,fontWeight:bold?700:400,borderBottom:'1px solid rgba(255,255,255,0.05)'});
   const tabBtn = (id) => ({
-    padding:'6px 13px', borderRadius:20, fontSize:11.5, fontWeight:600,
+    padding:'5px 10px', borderRadius:6, fontSize:10.5, fontWeight:600,
     cursor:'pointer', border:'none', whiteSpace:'nowrap', flexShrink:0,
-    background: activeTab===id ? 'rgba(245,158,11,0.16)' : 'rgba(255,255,255,0.02)',
-    color: activeTab===id ? '#fbbf24' : 'rgba(255,255,255,0.4)',
-    outline: activeTab===id ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.06)',
-    transition:'all 0.2s ease',
+    background: activeTab===id ? 'rgba(255,255,255,0.11)' : 'transparent',
+    color: activeTab===id ? '#f1f5f9' : 'rgba(255,255,255,0.38)',
+    outline: activeTab===id ? '1px solid rgba(255,255,255,0.16)' : '1px solid transparent',
+    transition:'all 0.15s',
   });
 
   return (
     <div style={{marginBottom:24}}>
       <div style={{
-        background:'linear-gradient(160deg,#07101f 0%,#0d1b38 100%)',
-        border:'1px solid rgba(255,255,255,0.07)',
-        borderRadius:20,
-        boxShadow:'0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+        background:'#0a0f1e',
+        border:'1px solid rgba(255,255,255,0.08)',
+        borderRadius:16,
+        boxShadow:'0 20px 60px rgba(0,0,0,0.5)',
         overflow:'hidden',
       }}>
 
-        {/* Header */}
-        <div style={{padding:'20px 22px 0',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:12}}>
-            <div>
-              <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:5}}>
-                <span style={{
-                  background:'linear-gradient(135deg,#dc2626,#7f1d1d)',
-                  color:'#fff', fontSize:9, fontWeight:900, letterSpacing:1.5,
-                  padding:'3px 8px', borderRadius:5, textTransform:'uppercase',
-                }}>BJP</span>
-                <span style={{fontSize:17,fontWeight:800,color:'#f1f5f9',letterSpacing:'-0.5px'}}>Political Intelligence System</span>
-              </div>
-              <div style={{fontSize:11,color:'rgba(255,255,255,0.28)',letterSpacing:0.2}}>
-                Mangaluru City South · 38 wards · 246,960 electors · Decadal analysis 2013–2025
+        {/* ── Compact Header ── */}
+        <div style={{padding:'14px 18px 0',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
+          {/* Title row */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{
+                background:'#c00',color:'#fff',fontSize:9,fontWeight:900,
+                letterSpacing:1.5,padding:'2px 7px',borderRadius:4,textTransform:'uppercase',flexShrink:0,
+              }}>BJP</span>
+              <div>
+                <span style={{fontSize:15,fontWeight:800,color:'#f1f5f9',letterSpacing:'-0.3px'}}>Political Intelligence</span>
+                <span style={{fontSize:10,color:'rgba(255,255,255,0.28)',marginLeft:8}}>Mangaluru South · 38W · 247K voters</span>
               </div>
             </div>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-              {[{v:18,l:'BJP wards',c:'#10b981'},{v:5,l:'Contested',c:'#f97316'},{v:9,l:'Cong wards',c:'#8b5cf6'},{v:'58%',l:'Win probability',c:'#f59e0b'}].map(s=>(
+            {/* Inline stat pills */}
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+              {[
+                {v:'18',l:'BJP',dot:'#4ade80'},
+                {v:'5',l:'Contest',dot:'#fbbf24'},
+                {v:'9',l:'Cong',dot:'#f87171'},
+                {v:'58%',l:'Win P',dot:'rgba(255,255,255,0.5)'},
+                {v:'105K',l:'Non-voters',dot:'#f87171'},
+              ].map(s=>(
                 <div key={s.l} style={{
-                  background:`linear-gradient(135deg,${s.c}18,${s.c}06)`,
-                  border:`1px solid ${s.c}30`,
-                  borderRadius:12, padding:'8px 14px', textAlign:'center',
-                  minWidth:62,
+                  display:'flex',alignItems:'center',gap:5,
+                  background:'rgba(255,255,255,0.04)',
+                  border:'1px solid rgba(255,255,255,0.08)',
+                  borderRadius:6,padding:'4px 8px',
                 }}>
-                  <div style={{fontSize:20,fontWeight:900,color:s.c,lineHeight:1}}>{s.v}</div>
-                  <div style={{fontSize:9,color:'rgba(255,255,255,0.32)',marginTop:3,letterSpacing:0.3}}>{s.l}</div>
+                  <span style={{width:6,height:6,borderRadius:'50%',background:s.dot,flexShrink:0}}/>
+                  <span style={{fontSize:12,fontWeight:800,color:'#f1f5f9'}}>{s.v}</span>
+                  <span style={{fontSize:9,color:'rgba(255,255,255,0.35)'}}>{s.l}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Pill tab bar */}
+          {/* Compact tab bar — icons only on mobile, icon+label on wider */}
           <div style={{
-            display:'flex', gap:3, overflowX:'auto', paddingBottom:12,
-            scrollbarWidth:'none', msOverflowStyle:'none',
+            display:'flex',gap:2,overflowX:'auto',paddingBottom:10,
+            scrollbarWidth:'none',msOverflowStyle:'none',
           }}>
             {TABS.map(t=>(
               <button key={t.id} style={tabBtn(t.id)} onClick={()=>setActiveTab(t.id)}>
-                <span style={{display:'flex',alignItems:'center',gap:5}}>
-                  <span style={{opacity:activeTab===t.id?1:0.45,display:'flex'}}>{t.icon}</span>
-                  {t.label}
+                <span style={{display:'flex',alignItems:'center',gap:4}}>
+                  <span style={{display:'flex',opacity:activeTab===t.id?1:0.5}}>{t.icon}</span>
+                  <span style={{fontSize:10.5}}>{t.label}</span>
                 </span>
               </button>
             ))}
           </div>
         </div>
 
-        <div style={{padding:'20px 22px'}}>
+        <div style={{padding:'16px 18px'}}>
 
           {/* HEATMAP */}
           {activeTab==='heatmap'&&(
@@ -2843,20 +2852,20 @@ function ElectionAnalyticsTab() {
     </div>
   );
 
-  const KpiBox = ({label,value,sub,color}) => (
-    <div style={{background:'rgba(0,0,0,0.3)',border:`1px solid ${color}28`,borderRadius:10,padding:'12px 14px',flex:1,minWidth:80}}>
-      <div style={{fontSize:18,fontWeight:900,color,lineHeight:1.1,marginBottom:3}}>{value}</div>
+  const KpiBox = ({label,value,sub}) => (
+    <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.09)',borderRadius:8,padding:'11px 13px',flex:1,minWidth:80}}>
+      <div style={{fontSize:17,fontWeight:900,color:'#f1f5f9',lineHeight:1.1,marginBottom:3}}>{value}</div>
       <div style={{fontSize:9,color:'rgba(255,255,255,0.35)',textTransform:'uppercase',letterSpacing:0.5,marginBottom:2}}>{label}</div>
-      {sub && <div style={{fontSize:9,color:'rgba(255,255,255,0.2)'}}>{sub}</div>}
+      {sub && <div style={{fontSize:9,color:'rgba(255,255,255,0.22)'}}>{sub}</div>}
     </div>
   );
 
   const NAVS = [
-    {id:'overview',  emoji:'📊', label:'Big Picture'},
-    {id:'cycle',     emoji:'〰', label:'Vote Trends'},
-    {id:'stability', emoji:'🔒', label:'Booth Stability'},
-    {id:'targets',   emoji:'🎯', label:'Priority Booths'},
-    {id:'winprob',   emoji:'🏆', label:'Win Probability'},
+    {id:'overview',  label:'Overview'},
+    {id:'cycle',     label:'Trends'},
+    {id:'stability', label:'Stability'},
+    {id:'targets',   label:'Targets'},
+    {id:'winprob',   label:'Win Prob'},
   ];
 
   return (
@@ -2866,13 +2875,13 @@ function ElectionAnalyticsTab() {
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         {NAVS.map(n=>(
           <button key={n.id} onClick={()=>setView(n.id)} style={{
-            padding:'7px 14px',borderRadius:20,fontSize:11,fontWeight:700,cursor:'pointer',border:'none',
-            background: view===n.id ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
-            color:       view===n.id ? '#22d3ee'               : 'rgba(255,255,255,0.4)',
-            outline:     view===n.id ? '1px solid rgba(34,211,238,0.4)' : '1px solid rgba(255,255,255,0.07)',
-            transition:'all 0.18s',
+            padding:'5px 11px',borderRadius:6,fontSize:10.5,fontWeight:600,cursor:'pointer',border:'none',
+            background: view===n.id ? 'rgba(255,255,255,0.11)' : 'transparent',
+            color:       view===n.id ? '#f1f5f9'                : 'rgba(255,255,255,0.38)',
+            outline:     view===n.id ? '1px solid rgba(255,255,255,0.16)' : '1px solid transparent',
+            transition:'all 0.15s',
           }}>
-            {n.emoji} {n.label}
+            {n.label}
           </button>
         ))}
       </div>
@@ -2885,10 +2894,10 @@ function ElectionAnalyticsTab() {
 
           {/* KPI row */}
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-            <KpiBox label="Total Booths"    value="249"    sub="249 polling booths"                 color="#22d3ee"/>
-            <KpiBox label="BJP-safe Booths" value="126"    sub="51.9% of all booths ≥ 60% BJP"     color="#10b981"/>
-            <KpiBox label="At-Risk Booths"  value="77"     sub="29 weak + 48 loss-zone booths"      color="#ef4444"/>
-            <KpiBox label="Avg Win Chance"  value="68.1%"  sub="based on community mix"             color="#f59e0b"/>
+            <KpiBox label="Total Booths"    value="249"    sub="249 polling booths"                />
+            <KpiBox label="BJP-safe Booths" value="126"    sub="51.9% of all booths ≥ 60% BJP"    />
+            <KpiBox label="At-Risk Booths"  value="77"     sub="29 weak + 48 loss-zone booths"     />
+            <KpiBox label="Avg Win Chance"  value="68.1%"  sub="based on community mix"            />
           </div>
 
           {/* Booth health visual */}
@@ -2922,41 +2931,40 @@ function ElectionAnalyticsTab() {
           </div>
 
           {/* 4 model summary cards */}
-          <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}}>
             {[
               {
-                emoji:'〰', title:'Vote Cycle', color:'#22d3ee',
-                finding:'2025 forecast: 41.5% average BJP',
-                explain:'Historical vote data shows a repeating wave pattern. 2025 falls in a natural dip — meaning turnout mobilisation is critical.',
-                tag:'⚠ Risk year',
+                title:'Vote Cycle',
+                finding:'2025 forecast: 41.5% avg BJP',
+                explain:'Historical wave pattern puts 2025 in a natural dip — turnout mobilisation is the critical lever.',
+                tag:'Risk year',
               },
               {
-                emoji:'🔒', title:'Booth Stability', color:'#a78bfa',
-                finding:'126 strong booths stay strong — 90% chance',
-                explain:'Once a booth is firmly BJP, it almost never flips. But WEAK booths are fragile — 1 in 8 slips to LOSS without attention.',
-                tag:'✅ Core is safe',
+                title:'Booth Stability',
+                finding:'126 strong booths · 90% chance to hold',
+                explain:'Strong booths almost never flip. Weak booths are fragile — 1 in 8 slips to loss without targeted effort.',
+                tag:'Core safe',
               },
               {
-                emoji:'🎯', title:'Priority Booths', color:'#f59e0b',
-                finding:'Top booth: #80 Mannagudda — 616 unpolled Hindu voters',
-                explain:'Each of these booths has hundreds of BJP-leaning voters who didn\'t vote last time. Bringing them out is the single biggest lever.',
-                tag:'🔴 20 critical booths',
+                title:'Priority Booths',
+                finding:'Top: Booth #80 Mannagudda · 616 unpolled',
+                explain:'Hundreds of BJP-leaning voters skipped last election. Bringing them out is the single highest-ROI action.',
+                tag:'20 critical',
               },
               {
-                emoji:'🏆', title:'Win Probability', color:'#10b981',
-                finding:'Avg P(BJP Win) = 68.1% across all booths',
-                explain:'Community composition analysis confirms BJP is ahead in 2 out of 3 booths. Dongarakery & Central booths show near-certain win (99%).',
-                tag:'✅ Favourable',
+                title:'Win Probability',
+                finding:'Avg 68.1% across all 249 booths',
+                explain:'Community composition confirms BJP ahead in 2 of 3 booths. Dongarakery & Central show near-certain wins.',
+                tag:'Favourable',
               },
             ].map(c=>(
-              <div key={c.title} style={{background:'rgba(0,0,0,0.25)',border:`1px solid ${c.color}25`,borderRadius:12,padding:'14px 16px'}}>
-                <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:8}}>
-                  <span style={{fontSize:18}}>{c.emoji}</span>
-                  <div style={{fontSize:13,fontWeight:800,color:c.color}}>{c.title}</div>
-                  <span style={{marginLeft:'auto',fontSize:9,fontWeight:700,color:c.color,background:`${c.color}15`,border:`1px solid ${c.color}30`,borderRadius:20,padding:'2px 8px'}}>{c.tag}</span>
+              <div key={c.title} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 14px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                  <div style={{fontSize:12,fontWeight:800,color:'#e2e8f0',flex:1}}>{c.title}</div>
+                  <span style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.45)',background:'rgba(255,255,255,0.07)',borderRadius:4,padding:'2px 7px'}}>{c.tag}</span>
                 </div>
-                <div style={{fontSize:12,fontWeight:700,color:'#e2e8f0',marginBottom:6}}>{c.finding}</div>
-                <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',lineHeight:1.6}}>{c.explain}</div>
+                <div style={{fontSize:11,fontWeight:700,color:'#cbd5e1',marginBottom:5}}>{c.finding}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.38)',lineHeight:1.6}}>{c.explain}</div>
               </div>
             ))}
           </div>
@@ -2980,46 +2988,44 @@ function ElectionAnalyticsTab() {
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
               {VOTE_CYCLE.map(d=>{
                 const isForecast = d.type==='forecast';
-                const barColor   = isForecast ? (d.bjp < 50 ? '#ef4444' : '#22d3ee') : '#10b981';
+                const barColor   = isForecast ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.75)';
                 const maxVal = 70;
                 return (
                   <div key={d.yr} style={{display:'flex',alignItems:'center',gap:12}}>
-                    <div style={{width:36,fontSize:11,fontWeight:700,color: isForecast ? 'rgba(255,255,255,0.4)' : '#e2e8f0',flexShrink:0}}>{d.yr}</div>
+                    <div style={{width:36,fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.65)',flexShrink:0}}>{d.yr}</div>
                     <span style={{fontSize:9,width:56,color: isForecast ? '#94a3b8' : '#10b981',fontWeight:600,flexShrink:0}}>
                       {isForecast ? '📊 Forecast' : '✅ Actual'}
                     </span>
                     <MiniBar val={d.bjp} max={maxVal} color={barColor} h={20}/>
                     <div style={{width:42,textAlign:'right',fontSize:13,fontWeight:900,color:barColor,flexShrink:0}}>{d.bjp}%</div>
-                    {d.note && <span style={{fontSize:10,color:barColor,background:`${barColor}14`,border:`1px solid ${barColor}30`,borderRadius:5,padding:'2px 8px',flexShrink:0,whiteSpace:'nowrap'}}>{d.note}</span>}
+                    {d.note && <span style={{fontSize:9,color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:4,padding:'2px 7px',flexShrink:0,whiteSpace:'nowrap'}}>{d.note}</span>}
                   </div>
                 );
               })}
             </div>
 
             {/* Horizontal legend line */}
-            <div style={{display:'flex',gap:16,marginTop:14,paddingTop:12,borderTop:'1px solid rgba(255,255,255,0.07)'}}>
-              <Seg w={14} color="#10b981" label="Actual result"/>
-              <Seg w={14} color="#22d3ee" label="Forecast (up)"/>
-              <Seg w={14} color="#ef4444" label="Forecast (dip)"/>
+            <div style={{display:'flex',gap:14,marginTop:12,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.07)'}}>
+              <Seg w={14} color="rgba(255,255,255,0.8)" label="Actual"/>
+              <Seg w={14} color="rgba(255,255,255,0.35)" label="Forecast"/>
             </div>
           </div>
 
           {/* What this means */}
-          <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}}>
             {[
-              {emoji:'📉',color:'#ef4444',title:'2025 Is a Dip Year',
-               body:'The wave analysis predicts BJP share may dip to ~41.5% average across all booths — lower than the 56% seen in 2023. This is not guaranteed but is the cycle\'s natural direction.'},
-              {emoji:'📈',color:'#10b981',title:'2027 Bounce-Back',
-               body:'After every dip, the model projects a strong recovery. 2027 is forecast at ~59% and 2029 at ~65.8% — making 2025 a critical bridging election to hold.'},
-              {emoji:'⚡',color:'#f59e0b',title:'Mobilisation Overcomes the Dip',
-               body:'The forecast assumes no extra ground work. Each extra 1% turnout in BJP-leaning booths can add 200–400 net votes — enough to neutralise the projected cycle dip.'},
-              {emoji:'🔑',color:'#a78bfa',title:'Turnout Is the Unlock',
-               body:'76 STRONG booths have 300+ unpolled Hindu voters each. Activating just half of them adds ~11,000 net BJP votes — covering any cyclical shortfall comfortably.'},
+              {title:'2025 Is a Dip Year',
+               body:'Pattern predicts BJP share dips to ~41.5% avg — lower than 56% in 2023. Not guaranteed, but the natural direction without mobilisation effort.'},
+              {title:'2027 Bounce-Back',
+               body:'After every dip, a strong recovery follows. 2027 forecast ~59% and 2029 ~65.8% — making 2025 the critical bridging election to hold.'},
+              {title:'Mobilisation Overcomes the Dip',
+               body:'Each extra 1% turnout in BJP-leaning booths adds 200–400 net votes — enough to neutralise the projected cyclical dip entirely.'},
+              {title:'Turnout Is the Unlock',
+               body:'76 STRONG booths have 300+ unpolled Hindu voters each. Activating half adds ~11,000 net BJP votes — covering any cyclical shortfall.'},
             ].map(c=>(
-              <div key={c.title} style={{background:'rgba(0,0,0,0.2)',border:`1px solid ${c.color}22`,borderRadius:11,padding:'12px 14px'}}>
-                <div style={{fontSize:16,marginBottom:6}}>{c.emoji}</div>
-                <div style={{fontSize:12,fontWeight:700,color:c.color,marginBottom:5}}>{c.title}</div>
-                <div style={{fontSize:11,color:'rgba(255,255,255,0.45)',lineHeight:1.6}}>{c.body}</div>
+              <div key={c.title} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'11px 13px'}}>
+                <div style={{fontSize:11,fontWeight:700,color:'#e2e8f0',marginBottom:5}}>{c.title}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',lineHeight:1.6}}>{c.body}</div>
               </div>
             ))}
           </div>
@@ -3044,9 +3050,9 @@ function ElectionAnalyticsTab() {
                 <div key={m.from} style={{background:`${m.color}08`,border:`1px solid ${m.color}25`,borderRadius:12,padding:'14px 16px'}}>
                   {/* Header */}
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-                    <div style={{width:12,height:12,borderRadius:3,background:m.color,flexShrink:0}}/>
+                    <div style={{width:12,height:12,borderRadius:3,background:'rgba(255,255,255,0.5)',flexShrink:0}}/>
                     <div style={{fontSize:12,fontWeight:800,color:m.color}}>{m.from}</div>
-                    <div style={{marginLeft:'auto',fontSize:10,color:'rgba(255,255,255,0.4)',fontStyle:'italic'}}>{m.verdict}</div>
+                    <div style={{marginLeft:'auto',fontSize:10,color:'rgba(255,255,255,0.3)',fontStyle:'italic'}}>{m.verdict}</div>
                   </div>
 
                   {/* Probability bars */}
@@ -3060,7 +3066,7 @@ function ElectionAnalyticsTab() {
                       <div key={r.label} style={{display:'flex',alignItems:'center',gap:10}}>
                         <span style={{fontSize:10,color:'rgba(255,255,255,0.4)',minWidth:190,flexShrink:0}}>{r.label}</span>
                         <MiniBar val={r.val} max={100} color={r.color} h={7}/>
-                        <span style={{fontSize:11,fontWeight:700,color:r.color,minWidth:42,textAlign:'right'}}>{r.val}%</span>
+                        <span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.7)',minWidth:42,textAlign:'right'}}>{r.val}%</span>
                       </div>
                     ))}
                   </div>
@@ -3114,17 +3120,17 @@ function ElectionAnalyticsTab() {
                     display:'grid',gridTemplateColumns:'28px 44px 1fr 60px 1fr 50px',gap:8,
                     padding:'9px 8px',borderRadius:8,marginBottom:3,alignItems:'center',
                     background: i%2===0 ? 'rgba(255,255,255,0.015)' : 'transparent',
-                    border: b.rank<=10 ? '1px solid rgba(239,68,68,0.15)' : '1px solid transparent',
+                    border: '1px solid rgba(255,255,255,0.05)',
                   }}>
-                    <div style={{fontSize:10,fontWeight:800,color: b.rank<=10?'#f87171':'#fb923c'}}>#{b.rank}</div>
+                    <div style={{fontSize:10,fontWeight:800,color:'rgba(255,255,255,0.5)'}}>#{b.rank}</div>
                     <div style={{fontSize:12,fontWeight:700,color:'#e2e8f0',fontFamily:'ui-monospace,monospace'}}>{b.booth}</div>
                     <div style={{fontSize:11,color:'rgba(255,255,255,0.6)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{b.ward}</div>
                     <div style={{fontSize:11,fontWeight:700,color:'#10b981'}}>{b.bjp23}%</div>
                     <div style={{display:'flex',alignItems:'center',gap:7}}>
-                      <MiniBar val={b.unpolled} max={650} color={barColor} h={6}/>
+                      <MiniBar val={b.unpolled} max={650} color='rgba(255,255,255,0.45)' h={6}/>
                       <span style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.5)',minWidth:28}}>{b.unpolled}</span>
                     </div>
-                    <div style={{fontSize:12,fontWeight:800,color:'#fbbf24'}}>+{b.gain}</div>
+                    <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.7)'}}>+{b.gain}v</div>
                   </div>
                 );
               })}
@@ -3138,15 +3144,14 @@ function ElectionAnalyticsTab() {
           </div>
 
           {/* Total gain potential */}
-          <div style={{background:'rgba(16,185,129,0.06)',border:'1px solid rgba(16,185,129,0.25)',borderRadius:12,padding:'14px 16px'}}>
-            <div style={{fontSize:12,fontWeight:800,color:'#10b981',marginBottom:6}}>💡 Total Recoverable Votes — Top 20 Booths Alone</div>
-            <div style={{fontSize:28,fontWeight:900,color:'#10b981',marginBottom:4}}>
+          <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'14px 16px'}}>
+            <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.55)',marginBottom:5}}>Total Recoverable Votes — Top 20 Booths</div>
+            <div style={{fontSize:28,fontWeight:900,color:'#f1f5f9',marginBottom:4}}>
               +{KKT_TOP20.reduce((s,b)=>s+b.gain,0).toLocaleString()} votes
             </div>
-            <div style={{fontSize:11,color:'rgba(255,255,255,0.45)',lineHeight:1.6}}>
-              If ground teams successfully bring out absent BJP-leaning voters from just the top 20 booths,
-              the net gain is over <strong style={{color:'#6ee7b7'}}>{KKT_TOP20.reduce((s,b)=>s+b.gain,0).toLocaleString()} additional BJP votes</strong>.
-              That's a significant margin in a competitive constituency of ~252,000 voters.
+            <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',lineHeight:1.6}}>
+              Bringing out absent BJP-leaning voters from just the top 20 booths
+              adds <strong style={{color:'#e2e8f0'}}>{KKT_TOP20.reduce((s,b)=>s+b.gain,0).toLocaleString()} additional BJP votes</strong> — a decisive margin in a constituency of ~252,000 voters.
             </div>
           </div>
         </div>
@@ -3158,8 +3163,8 @@ function ElectionAnalyticsTab() {
       {view==='winprob' && (
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
 
-          <div style={{background:'rgba(16,185,129,0.04)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:14,padding:'16px 18px'}}>
-            <div style={{fontSize:14,fontWeight:900,color:'#10b981',marginBottom:4}}>Win Probability by Booth — Based on Community Mix</div>
+          <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'16px 18px'}}>
+            <div style={{fontSize:14,fontWeight:900,color:'#f1f5f9',marginBottom:4}}>Win Probability by Booth — Community Mix</div>
             <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',lineHeight:1.6,marginBottom:16}}>
               Each booth's community composition (Brahmin, OBC, Muslim, Christian etc.) determines how likely a BJP win is.
               Booths with high Brahmin + OBC Hindu share consistently show near-certain BJP wins.
@@ -3167,16 +3172,16 @@ function ElectionAnalyticsTab() {
             </div>
 
             {/* Win probability colour explainer */}
-            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
               {[
-                {range:'≥ 95%', color:'#10b981', label:'Near Certain'},
-                {range:'80–95%',color:'#22d3ee', label:'Very Likely'},
-                {range:'65–80%',color:'#f59e0b', label:'Likely'},
-                {range:'< 65%', color:'#f87171', label:'Competitive'},
+                {range:'≥ 95%',  label:'Near Certain'},
+                {range:'80–95%', label:'Very Likely'},
+                {range:'65–80%', label:'Likely'},
+                {range:'< 65%',  label:'Competitive'},
               ].map(c=>(
-                <div key={c.range} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:`${c.color}14`,border:`1px solid ${c.color}30`,borderRadius:20}}>
-                  <div style={{width:8,height:8,borderRadius:'50%',background:c.color}}/>
-                  <span style={{fontSize:10,fontWeight:700,color:c.color}}>{c.range} — {c.label}</span>
+                <div key={c.range} style={{display:'flex',alignItems:'center',gap:5,padding:'3px 8px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:5}}>
+                  <span style={{fontSize:10,fontWeight:600,color:'rgba(255,255,255,0.6)'}}>{c.range}</span>
+                  <span style={{fontSize:9,color:'rgba(255,255,255,0.3)'}}>{c.label}</span>
                 </div>
               ))}
             </div>
@@ -3185,7 +3190,7 @@ function ElectionAnalyticsTab() {
             <div style={{display:'flex',flexDirection:'column',gap:4,maxHeight:480,overflowY:'auto',scrollbarWidth:'thin',scrollbarColor:'rgba(16,185,129,0.3) transparent'}}>
               {BAYES_TOP15.map((b,i)=>{
                 const pctVal = b.winProb*100;
-                const barCol = pctVal>=95 ? '#10b981' : pctVal>=80 ? '#22d3ee' : '#f59e0b';
+                const barCol = pctVal>=80 ? '#e2e8f0' : 'rgba(255,255,255,0.55)';
                 return (
                   <div key={b.booth} style={{
                     display:'flex',alignItems:'center',gap:10,padding:'10px 12px',
@@ -3197,9 +3202,9 @@ function ElectionAnalyticsTab() {
                     <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',minWidth:58,flexShrink:0}}>BJP {b.bjp23}%</div>
                     {/* Community minibar */}
                     <div style={{display:'flex',flex:1,height:8,borderRadius:4,overflow:'hidden',minWidth:80}}>
-                      <div style={{width:`${b.brahmin}%`,background:'#f59e0b'}} title={`Brahmin ${b.brahmin}%`}/>
-                      <div style={{width:`${b.obc}%`,   background:'#10b981'}} title={`OBC ${b.obc}%`}/>
-                      <div style={{width:`${b.muslim}%`,background:'#ef4444'}} title={`Muslim ${b.muslim}%`}/>
+                      <div style={{width:`${b.brahmin}%`,background:'rgba(255,255,255,0.75)'}} title={`Brahmin ${b.brahmin}%`}/>
+                      <div style={{width:`${b.obc}%`,   background:'rgba(255,255,255,0.4)'}} title={`OBC ${b.obc}%`}/>
+                      <div style={{width:`${b.muslim}%`,background:'rgba(255,255,255,0.15)'}} title={`Muslim ${b.muslim}%`}/>
                       <div style={{flex:1,                background:'rgba(255,255,255,0.08)'}}/>
                     </div>
                     <div style={{minWidth:44,textAlign:'right',flexShrink:0}}>
@@ -3223,8 +3228,8 @@ function ElectionAnalyticsTab() {
             <div style={{fontSize:12,fontWeight:800,color:'#e2e8f0',marginBottom:10}}>How Community Mix Affects Win Probability</div>
             <div style={{display:'flex',flexDirection:'column',gap:7}}>
               {[
-                {community:'Brahmin',      affinity:75, color:'#fbbf24', note:'Highest affinity — every 10% Brahmin share ≈ +7.5% base win probability'},
-                {community:'Hindu (OC)',   affinity:70, color:'#f59e0b', note:'Strong affinity — upper-caste Hindus lean BJP heavily'},
+                {community:'Brahmin',      affinity:75, color:'rgba(255,255,255,0.75)', note:'Highest affinity — every 10% Brahmin share ≈ +7.5% base win probability'},
+                {community:'Hindu (OC)',   affinity:70, color:'rgba(255,255,255,0.55)', note:'Strong affinity — upper-caste Hindus lean BJP heavily'},
                 {community:'Hindu (OBC)',  affinity:55, color:'#10b981', note:'Moderate — BJP leads but not as dominantly; INC competes'},
                 {community:'Christian',    affinity:30, color:'#60a5fa', note:'Majority lean INC; approx 30% lean BJP in mixed booths'},
                 {community:'Muslim',       affinity:10, color:'#f87171', note:'Strongly INC — low BJP affinity across all booths'},
