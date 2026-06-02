@@ -2069,7 +2069,7 @@ function PoliticalIntelligenceHub() {
   });
 
   return (
-    <div style={{marginBottom:24}}>
+    <div style={{maxWidth:1400, margin:'0 auto', padding:'0 24px', marginBottom:24}}>
       <div style={{
         background:'#0a0f1e',
         border:'1px solid rgba(255,255,255,0.08)',
@@ -3563,7 +3563,7 @@ function ElectionAnalyticsTab() {
   );
 }
 
-}
+
 
 
 
@@ -3579,7 +3579,9 @@ export default function BJPStrategy() {
         .navbar-fab, .fab-btn, [class*="fab"], [class*="float"] { display:none !important; }
       `}</style>
       <Navbar />
-      <PoliticalIntelligenceHub />
+      <div style={{ padding: '24px 0', minHeight: '100vh' }}>
+        <PoliticalIntelligenceHub />
+      </div>
     </>
   );
 }
