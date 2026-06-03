@@ -2888,15 +2888,15 @@ const PROGENY_KPIs = {
 };
 
 function ProgenyAnalysisDashboard() {
-  const [activeTab, setActiveTab] = useState('overview'); // overview | wards | generations | methodology
+  const [activeTab, setActiveTab] = useState('overview'); // overview | wards | generations
   const [sortKey, setSortKey] = useState('notMappedPct');
   const [sortDir, setSortDir] = useState('desc');
   const [wardFilter, setWardFilter] = useState('ALL'); // ALL | HIGH GAP | MOD GAP | LOW GAP
 
   const statusConfig = {
-    'HIGH GAP': { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: '⚠ HIGH GAP'  },
-    'MOD GAP':  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', label: '▲ MOD GAP'  },
-    'LOW GAP':  { color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)', label: '✓ LOW GAP'  },
+    'HIGH GAP': { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',  label: 'HIGH GAP'  },
+    'MOD GAP':  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', label: 'MOD GAP'  },
+    'LOW GAP':  { color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)', label: 'LOW GAP'  },
   };
 
   const filteredWards = PROGENY_WARD_DATA
@@ -2919,11 +2919,35 @@ function ProgenyAnalysisDashboard() {
 
   const totalProgeny = PROGENY_WARD_DATA.reduce((s, w) => s + w.strong + w.medium + w.weak, 0);
 
+  const TAB_ICONS = {
+    overview: () => (
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="1" y="8" width="3" height="6" rx="0.5"/>
+        <rect x="6" y="5" width="3" height="9" rx="0.5"/>
+        <rect x="11" y="2" width="3" height="12" rx="0.5"/>
+        <path d="M1 13h14" strokeWidth="1"/>
+      </svg>
+    ),
+    wards: () => (
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 13L6 3l4 6 2-3 2 7"/>
+        <path d="M1 13h14"/>
+      </svg>
+    ),
+    generations: () => (
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="5" cy="4" r="1.8"/>
+        <circle cx="11" cy="4" r="1.8"/>
+        <path d="M2 11c0-1.657 1.343-3 3-3s3 1.343 3 3"/>
+        <path d="M8 11c0-1.657 1.343-3 3-3s3 1.343 3 3"/>
+      </svg>
+    ),
+  };
+
   const TABS = [
-    { key: 'overview',     label: '📊 Overview'      },
-    { key: 'wards',        label: '🗺 Ward Analysis'   },
-    { key: 'generations',  label: '👥 Generations'     },
-    { key: 'methodology',  label: '⚙ Methodology'     },
+    { key: 'overview',     label: 'Overview'      },
+    { key: 'wards',        label: 'Ward Analysis'  },
+    { key: 'generations',  label: 'Generations'    },
   ];
 
   return (
@@ -2944,9 +2968,17 @@ function ProgenyAnalysisDashboard() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 18 }}>🌳</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 7, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#fbbf24', flexShrink: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 14V8"/>
+                  <path d="M8 8C8 8 4 7 4 4a4 4 0 018 0c0 3-4 4-4 4z"/>
+                  <path d="M8 11C8 11 5 10.5 5 8.5"/>
+                  <path d="M8 11C8 11 11 10.5 11 8.5"/>
+                  <path d="M6 14h4"/>
+                </svg>
+              </span>
               <span style={{ fontSize: 16, fontWeight: 800, color: '#fbbf24', letterSpacing: '-0.3px' }}>
-                Progeny Family Tree Intelligence
+                Progeny Family Tree
               </span>
               <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 20, padding: '2px 9px' }}>
                 2002 → 2025
@@ -2975,20 +3007,26 @@ function ProgenyAnalysisDashboard() {
 
       {/* ── Tab Row ────────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {TABS.map(({ key, label }) => (
-          <button key={key} onClick={() => setActiveTab(key)} style={{
-            flex: '0 0 auto',
-            padding: '10px 18px',
-            border: 'none',
-            borderBottom: `2px solid ${activeTab === key ? '#f59e0b' : 'transparent'}`,
-            background: activeTab === key ? 'rgba(245,158,11,0.06)' : 'transparent',
-            color: activeTab === key ? '#fbbf24' : 'rgba(255,255,255,0.35)',
-            fontSize: 12, fontWeight: activeTab === key ? 700 : 400,
-            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
-          }}>
-            {label}
-          </button>
-        ))}
+        {TABS.map(({ key, label }) => {
+          const TabIcon = TAB_ICONS[key];
+          const active = activeTab === key;
+          return (
+            <button key={key} onClick={() => setActiveTab(key)} style={{
+              flex: '0 0 auto',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '10px 18px',
+              border: 'none',
+              borderBottom: `2px solid ${active ? '#f59e0b' : 'transparent'}`,
+              background: active ? 'rgba(245,158,11,0.06)' : 'transparent',
+              color: active ? '#fbbf24' : 'rgba(255,255,255,0.35)',
+              fontSize: 12, fontWeight: active ? 700 : 400,
+              cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+            }}>
+              {TabIcon && <TabIcon />}
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       <div style={{ padding: '18px 20px' }}>
@@ -3000,13 +3038,13 @@ function ProgenyAnalysisDashboard() {
             {/* Coverage metrics row */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 10 }}>
               {[
-                { label: 'Progeny Coverage',   value: `${((PROGENY_KPIs.progenyVoters / PROGENY_KPIs.totalVoters2025)*100).toFixed(1)}%`, sub: 'of 2025 total roll',   color: '#22d3ee', icon: '📈' },
-                { label: 'High Gap Wards',      value: `${PROGENY_KPIs.highGapWards} / ${PROGENY_KPIs.totalWards}`, sub: 'need urgent SIR action', color: '#ef4444', icon: '⚠️' },
-                { label: 'Total Progeny Voters', value: '83,997', sub: 'classified by generation', color: '#f59e0b', icon: '👥' },
-                { label: 'Low Gap Wards',       value: `${PROGENY_KPIs.lowGapWards}`,           sub: 'Maroli & Bengre leading', color: '#10b981', icon: '✅' },
-              ].map(({ label, value, sub, color, icon }) => (
+                { label: 'Progeny Coverage',   value: `${((PROGENY_KPIs.progenyVoters / PROGENY_KPIs.totalVoters2025)*100).toFixed(1)}%`, sub: 'of 2025 total roll',   color: '#22d3ee', icon: () => <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 11L6 7l3 3 5-6"/><path d="M12 4h3v3"/></svg> },
+                { label: 'High Gap Wards',      value: `${PROGENY_KPIs.highGapWards} / ${PROGENY_KPIs.totalWards}`, sub: 'need urgent SIR action', color: '#ef4444', icon: () => <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 1.5L1 14.5h14L8 1.5z"/><path d="M8 6v4M8 11.5v.5"/></svg> },
+                { label: 'Total Progeny Voters', value: '83,997', sub: 'classified by generation', color: '#f59e0b', icon: () => <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="4.5" r="2"/><circle cx="11" cy="4.5" r="2"/><path d="M1 13c0-2.209 1.791-4 4-4s4 1.791 4 4"/><path d="M8 13c0-2.209 1.791-4 4-4s4 1.791 4 4"/></svg> },
+                { label: 'Low Gap Wards',       value: `${PROGENY_KPIs.lowGapWards}`,           sub: 'Maroli & Bengre leading', color: '#10b981', icon: () => <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 1.5L2 4v4.5c0 3 2.5 5.5 6 6 3.5-.5 6-3 6-6V4L8 1.5z"/><path d="M5.5 8.5l2 2 3-3.5"/></svg> },
+              ].map(({ label, value, sub, color, icon: IconComp }) => (
                 <div key={label} style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${color}22`, borderRadius: 12, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
+                  <div style={{ color, marginBottom: 6 }}><IconComp /></div>
                   <div style={{ fontSize: 18, fontWeight: 800, color, letterSpacing: '-0.5px', marginBottom: 2 }}>{value}</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', lineHeight: 1.4 }}>{label}</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 3 }}>{sub}</div>
@@ -3239,7 +3277,15 @@ function ProgenyAnalysisDashboard() {
                 ].map(f => (
                   <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 9, border: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 140 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>🏠 {f.name}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: '#a78bfa', display: 'inline-flex' }}>
+                          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 7.5L8 2l6 5.5"/>
+                            <path d="M3.5 6.5V14h3.5v-3.5h2V14H13V6.5"/>
+                          </svg>
+                        </span>
+                        {f.name}
+                      </div>
                       <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
                         {f.community} · House {f.house} · Ward {f.ward}
                       </div>
@@ -3264,67 +3310,7 @@ function ProgenyAnalysisDashboard() {
           </div>
         )}
 
-        {/* ══ METHODOLOGY TAB ══════════════════════════════════════════════════ */}
-        {activeTab === 'methodology' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
-              6-phase algorithm linking 1,92,023 ancestral voters to 83,997 progeny across 19,727 matched houses
-            </div>
-            {[
-              { phase: 1, title: 'Data Ingestion & Normalisation', color: '#22d3ee', steps: [
-                'Load 192,023 records from 2002 roll (Serial, House, Name, Relation, EPIC)',
-                'Load 251,480 records from 2025 roll (EPIC, Name, Relation, Age, Booth, Community)',
-                'Normalize house numbers: strip punctuation → UPPERCASE → remove leading zeros',
-                'Normalize voter names: strip salutations (Shri/Smt/Late/Dr) → UPPERCASE → collapse whitespace',
-              ]},
-              { phase: 2, title: 'House-Level Grouping & Indexing', color: '#a78bfa', steps: [
-                'Group 2002 voters by normalized house → per-house ancestral pool',
-                'Group 2025 voters by normalized house → per-house current pool',
-                'Find intersection → 19,727 common houses out of ~2,00,000 unique',
-                'Build O(1) name index and relation index per matched house',
-              ]},
-              { phase: 3, title: 'Voter Status Classification', color: '#f59e0b', steps: [
-                'EPIC exact match at same house → ORIGINAL (highest confidence)',
-                'Normalized name + relative match at same house → ORIGINAL',
-                'Normalized name + house match only → ORIGINAL (weaker, may have false positives)',
-                'Remaining voters at matched houses → PROGENY (new voter from 2002 family)',
-              ]},
-              { phase: 4, title: 'Ancestor Link Scoring', color: '#10b981', steps: [
-                'STRONG: relative name found in 2002 at same house → Direct ancestor, HIGH confidence',
-                'MEDIUM: relative found in 2002 roll anywhere, count ≤ 3 → Rare name, likely specific person',
-                'WEAK: relative in 2002 roll, count 4–50 → Common name, flag for BLO verification',
-                'NO LINK: absent from 2002 OR count > 50 → Check migration / other ward rolls',
-              ]},
-              { phase: 5, title: 'Generational Tree Construction', color: '#f87171', steps: [
-                'GEN-0 ANCESTOR: 2002 voters at matched house NOT in 2025 → Pure ancestors (deceased/migrated)',
-                'GEN-1 PROGENY: Progeny aged 40–70 in 2025 → Direct children of 2002 voter',
-                'GEN-2 PROGENY: Progeny aged 18–39 whose father is also PROGENY → Grandchildren',
-                'Spousal linking: Husband/Wife relation → lateral edge (same generation), BFS traversal for depth',
-              ]},
-              { phase: 6, title: 'Cross-Check Cluster Confidence', color: '#818cf8', steps: [
-                'Cross-check test: does declared relative appear as another voter at SAME house?',
-                'EXACT match score = 1.0 | PARTIAL (Jaccard token overlap ≥ 0.60) score = 0.67',
-                'Confidence = min(100, (cross_links×20 + relation_weight×2 + cluster_size)×2)',
-                'Union-Find cluster merge: all voters connected by cross-check links → single family cluster',
-              ]},
-            ].map(({ phase, title, color, steps }) => (
-              <div key={phase} style={{ background: 'rgba(0,0,0,0.2)', border: `1px solid ${color}20`, borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', background: `linear-gradient(90deg,${color}12,transparent)`, borderLeft: `3px solid ${color}` }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color, background: `${color}22`, borderRadius: 6, padding: '2px 8px', flexShrink: 0 }}>PHASE {phase}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>{title}</span>
-                </div>
-                <div style={{ padding: '8px 14px 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {steps.map((s, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 9, color, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>{phase}.{i+1}</span>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{s}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+
       </div>
     </div>
   );
