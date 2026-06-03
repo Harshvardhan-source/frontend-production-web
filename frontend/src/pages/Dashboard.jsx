@@ -4745,6 +4745,367 @@ function HouseMasterPanel() {
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
+
+// ─── ElectionAnalyticsPanel — 2023 hardcoded + 2025 live from DB ─────────────
+function ElectionAnalyticsPanel() {
+  const API_URL = (process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com') + '/api';
+
+  // ── 2023 hardcoded (2023_polled_notpolled_caste_comm_hmc — display only) ──
+  const DATA_2023 = {
+    totalVoters:      251998,
+    avgPollRate:      58.3,
+    polled:           141707,
+    notPolled:        105253,
+    strongholdWards:  8,
+    criticalSIRWards: 2,
+    communityPie: [
+      { name:'Hindu OBC', val:33.8, color:'#f59e0b' },
+      { name:'Muslim',    val:18.9, color:'#34d399' },
+      { name:'Christian', val:14.9, color:'#60a5fa' },
+      { name:'Hindu GSB', val:8.4,  color:'#fbbf24' },
+      { name:'Hindu OC',  val:6.5,  color:'#a78bfa' },
+      { name:'Others',    val:17.5, color:'#475569' },
+    ],
+    communityPoll: [
+      { name:'Hindu OBC',           rate:62.6, color:'#f59e0b' },
+      { name:'Hindu OC (Bunt)',     rate:61.1, color:'#fbbf24' },
+      { name:'Hindu Brahmin (GSB)', rate:60.3, color:'#f59e0b' },
+      { name:'Christian',           rate:53.4, color:'#60a5fa' },
+      { name:'Muslim',              rate:50.1, color:'#f87171' },
+    ],
+    ageGroups: [
+      { label:'18–25', rate:61.3, polled:'13,357', color:'#22d3ee' },
+      { label:'26–35', rate:49.5, polled:'21,484', color:'#f87171' },
+      { label:'36–45', rate:54.4, polled:'25,305', color:'#f59e0b' },
+      { label:'46–55', rate:63.5, polled:'30,378', color:'#10b981' },
+      { label:'56–65', rate:66.3, polled:'26,702', color:'#10b981' },
+      { label:'65+',   rate:51.4, polled:'23,184', color:'#f59e0b' },
+    ],
+    gender: [
+      { label:'Female', polled:74380, notPolled:52604, rate:58.6, color:'#f0abfc' },
+      { label:'Male',   polled:67316, notPolled:52649, rate:56.1, color:'#93c5fd' },
+    ],
+    trend: [
+      {y:'2013',r:72},{y:'2014',r:68},{y:'2018',r:65},{y:'2019',r:73},{y:'2023',r:58}
+    ],
+  };
+
+  // ── 2025 live state ──────────────────────────────────────────────────────
+  const [data25, setData25]   = useState(null);
+  const [loading25, setLoading25] = useState(true);
+  const [activeYear, setActiveYear] = useState('2023');
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/election-analytics/`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(j => { if (j.success) setData25(j); })
+      .catch(() => {})
+      .finally(() => setLoading25(false));
+  }, []);
+
+  // ── donut helper ─────────────────────────────────────────────────────────
+  const buildDonut = (slices) => {
+    let start = 0;
+    return slices.map(s => {
+      const pct   = s.val / 100;
+      const large = pct > 0.5 ? 1 : 0;
+      const x1 = 50 + 42 * Math.cos(2 * Math.PI * start - Math.PI / 2);
+      const y1 = 50 + 42 * Math.sin(2 * Math.PI * start - Math.PI / 2);
+      start += pct;
+      const x2 = 50 + 42 * Math.cos(2 * Math.PI * start - Math.PI / 2);
+      const y2 = 50 + 42 * Math.sin(2 * Math.PI * start - Math.PI / 2);
+      return { d:`M50,50 L${x1.toFixed(2)},${y1.toFixed(2)} A42,42 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z`, ...s };
+    });
+  };
+
+  const donut2023 = buildDonut(DATA_2023.communityPie);
+
+  // ── 2025 community pie ────────────────────────────────────────────────────
+  const PIE_COLORS = ['#f59e0b','#34d399','#60a5fa','#fbbf24','#a78bfa','#f87171','#22d3ee','#475569','#fb923c','#818cf8'];
+  const comm25Pie  = data25
+    ? buildDonut(data25.community.slice(0, 6).map((c, i) => ({
+        name: c.name,
+        val:  parseFloat((c.count / data25.total * 100).toFixed(1)),
+        color: PIE_COLORS[i] || '#475569',
+      })))
+    : [];
+
+  const card = (bg, border) => ({
+    background: bg || 'rgba(255,255,255,0.03)',
+    border: `1px solid ${border || 'rgba(255,255,255,0.08)'}`,
+    borderRadius: 12,
+    padding: 14,
+  });
+
+  const kpiCards2023 = [
+    { l:'Total Registered Voters', v:'2,51,998',  c:'#60a5fa', sub:'2023 voter roll' },
+    { l:'Avg Poll Rate (2023)',     v:'58.3%',     c:'#e2e8f0', sub:'Constituency average' },
+    { l:'Polled (2023)',            v:'1,41,707',  c:'#4ade80', sub:'Actually voted' },
+    { l:'Non-Polled Voters',       v:'1,05,253',  c:'#f87171', sub:"Didn't vote — target pool" },
+    { l:'BJP Stronghold Wards',    v:'8',          c:'#f97316', sub:'BJP proj >80%' },
+    { l:'SIR Critical Wards',      v:'2',          c:'#ef4444', sub:'Immediate action needed' },
+  ];
+
+  const fmt = n => n ? n.toLocaleString() : '—';
+  const pct = (a, b) => b ? (a / b * 100).toFixed(1) + '%' : '—';
+
+  return (
+    <div style={{ marginBottom: 20 }} className="anim-fade-up">
+      {/* ── Panel header ───────────────────────────────────────────────────── */}
+      <div
+        onClick={() => setCollapsed(c => !c)}
+        style={{
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          background:'linear-gradient(135deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))',
+          border:'1px solid rgba(99,102,241,0.25)', borderRadius: collapsed ? 16 : '16px 16px 0 0',
+          padding:'16px 18px', cursor:'pointer',
+          boxShadow:'0 2px 16px rgba(0,0,0,0.3)',
+        }}
+      >
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ width:34, height:34, borderRadius:10, background:'rgba(99,102,241,0.15)', border:'1px solid rgba(99,102,241,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>📊</div>
+          <div>
+            <div style={{ fontSize:15, fontWeight:800, color:'#e2e8f0', lineHeight:1 }}>Election Analytics</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:3 }}>2023 Polling Data · 2025 Live Roll</div>
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          {!loading25 && data25 && (
+            <span style={{ fontSize:10, fontWeight:700, background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:20, padding:'3px 10px', color:'#10b981' }}>
+              LIVE 2025
+            </span>
+          )}
+          <span style={{ color:'rgba(255,255,255,0.35)', fontSize:18 }}>{collapsed ? '▼' : '▲'}</span>
+        </div>
+      </div>
+
+      {!collapsed && (
+        <div style={{ background:'linear-gradient(145deg,rgba(13,22,42,0.97),rgba(8,14,28,0.99))', border:'1px solid rgba(99,102,241,0.2)', borderTop:'none', borderRadius:'0 0 16px 16px', padding:'18px 16px', display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* ── Year toggle ──────────────────────────────────────────────── */}
+          <div style={{ display:'flex', gap:6, padding:'4px', background:'rgba(0,0,0,0.25)', borderRadius:12, alignSelf:'flex-start' }}>
+            {['2023','2025'].map(yr => (
+              <button
+                key={yr}
+                onClick={() => setActiveYear(yr)}
+                style={{
+                  padding:'7px 20px', borderRadius:9, border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
+                  background: activeYear === yr ? (yr === '2023' ? 'rgba(245,158,11,0.2)' : 'rgba(34,211,238,0.18)') : 'transparent',
+                  color: activeYear === yr ? (yr === '2023' ? '#f59e0b' : '#22d3ee') : 'rgba(255,255,255,0.3)',
+                  border: activeYear === yr ? `1px solid ${yr === '2023' ? 'rgba(245,158,11,0.4)' : 'rgba(34,211,238,0.35)'}` : '1px solid transparent',
+                  transition: 'all 0.18s',
+                }}
+              >
+                {yr === '2023' ? '2023 Polling' : '2025 Roll'}
+                {yr === '2025' && loading25 && ' …'}
+              </button>
+            ))}
+          </div>
+
+          {/* ══ 2023 VIEW ═══════════════════════════════════════════════════ */}
+          {activeYear === '2023' && (<>
+
+            {/* KPI grid */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10 }}>
+              {kpiCards2023.map(k => (
+                <div key={k.l} style={card('rgba(255,255,255,0.03)')}>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', marginBottom:5, lineHeight:1.3 }}>{k.l}</div>
+                  <div style={{ fontSize:22, fontWeight:800, color:k.c, lineHeight:1 }}>{k.v}</div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:4 }}>{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Community pie + poll rate */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+              <div style={card()}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', marginBottom:10 }}>Community Composition</div>
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <svg viewBox="0 0 100 100" width={110} height={110} style={{ flexShrink:0 }}>
+                    {donut2023.map((s, i) => <path key={i} d={s.d} fill={s.color} stroke="#080d1a" strokeWidth="1.5" />)}
+                    <circle cx="50" cy="50" r="24" fill="#080d1a" />
+                    <text x="50" y="48" textAnchor="middle" fill="#94a3b8" fontSize="7" fontWeight="600">38</text>
+                    <text x="50" y="57" textAnchor="middle" fill="#64748b" fontSize="6">wards</text>
+                  </svg>
+                  <div style={{ flex:1, display:'flex', flexDirection:'column', gap:5 }}>
+                    {DATA_2023.communityPie.map(c => (
+                      <div key={c.name} style={{ display:'flex', alignItems:'center', gap:5, fontSize:10 }}>
+                        <span style={{ width:8, height:8, borderRadius:'50%', background:c.color, flexShrink:0, display:'inline-block' }} />
+                        <span style={{ flex:1, color:'#94a3b8' }}>{c.name}</span>
+                        <span style={{ fontWeight:700, color:'#e2e8f0' }}>{c.val}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={card()}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', marginBottom:12 }}>Poll Rate by Community</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
+                  {DATA_2023.communityPoll.map(c => (
+                    <div key={c.name}>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'#cbd5e1', marginBottom:3 }}>
+                        <span>{c.name}</span>
+                        <span style={{ fontWeight:700, color: c.rate >= 60 ? '#4ade80' : c.rate >= 55 ? '#fbbf24' : '#f87171' }}>{c.rate}%</span>
+                      </div>
+                      <div style={{ height:5, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:`${c.rate}%`, background:c.color, borderRadius:3 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Age + Gender */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+              <div style={card()}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', marginBottom:10 }}>Poll Rate by Age Group (2023)</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+                  {DATA_2023.ageGroups.map(a => (
+                    <div key={a.label} style={{ background:'rgba(255,255,255,0.04)', borderRadius:8, padding:'8px', textAlign:'center' }}>
+                      <div style={{ fontSize:10, color:'#64748b' }}>{a.label}</div>
+                      <div style={{ fontSize:16, fontWeight:700, margin:'3px 0', color:a.color }}>{a.rate}%</div>
+                      <div style={{ fontSize:9, color:'#64748b' }}>{a.polled}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize:10, color:'#f87171', marginTop:8, fontWeight:600 }}>
+                  ↓ Highest gap: 26–35 age group — 50,500 non-pollers
+                </div>
+              </div>
+
+              <div style={card()}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', marginBottom:10 }}>Gender Polling Analysis</div>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11, marginBottom:12 }}>
+                  <thead>
+                    <tr>{['Gender','Polled','Not Polled','Rate'].map(h => (
+                      <th key={h} style={{ textAlign:'left', padding:'5px 6px', fontSize:10, color:'#64748b', borderBottom:'1px solid rgba(255,255,255,0.08)', fontWeight:600 }}>{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {DATA_2023.gender.map(g => (
+                      <tr key={g.label}>
+                        <td style={{ padding:'6px', color:g.color, fontWeight:700 }}>{g.label}</td>
+                        <td style={{ padding:'6px', color:'#e2e8f0' }}>{g.polled.toLocaleString()}</td>
+                        <td style={{ padding:'6px', color:'#64748b' }}>{g.notPolled.toLocaleString()}</td>
+                        <td style={{ padding:'6px', fontWeight:700, color: g.rate >= 58 ? '#4ade80' : '#f59e0b' }}>{g.rate}%</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td colSpan={4} style={{ padding:'6px', fontSize:10, color:'#64748b', fontStyle:'italic' }}>Female lead +2.5% — key swing lever</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div style={{ fontSize:10, fontWeight:700, color:'#94a3b8', marginBottom:6 }}>Historical Poll Rate Trend</div>
+                {DATA_2023.trend.map(t => (
+                  <div key={t.y} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+                    <span style={{ fontSize:9, color:'#64748b', width:28 }}>{t.y}</span>
+                    <div style={{ flex:1, height:5, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden' }}>
+                      <div style={{ height:'100%', width:`${(t.r / 80) * 100}%`, background: t.r >= 70 ? '#4ade80' : t.r >= 65 ? '#60a5fa' : '#f87171', borderRadius:3 }} />
+                    </div>
+                    <span style={{ fontSize:9, fontWeight:700, color:'#94a3b8', width:24 }}>{t.r}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>)}
+
+          {/* ══ 2025 VIEW ═══════════════════════════════════════════════════ */}
+          {activeYear === '2025' && (<>
+            {loading25 ? (
+              <div style={{ display:'flex', alignItems:'center', gap:10, padding:'28px 0', color:'rgba(255,255,255,0.3)', fontSize:13 }}>
+                <span className="spinner" />  Loading 2025 roll data…
+              </div>
+            ) : !data25 ? (
+              <div style={{ textAlign:'center', padding:'28px 0', color:'rgba(255,255,255,0.25)', fontSize:13 }}>
+                Could not load 2025 data.
+              </div>
+            ) : (<>
+
+              {/* KPI grid */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10 }}>
+                {[
+                  { l:'Total Registered (2025)', v:fmt(data25.total),           c:'#22d3ee', sub:'Current voter roll' },
+                  { l:'Male Voters',             v:fmt(data25.gender.male),     c:'#93c5fd', sub:`${pct(data25.gender.male, data25.total)} of roll` },
+                  { l:'Female Voters',           v:fmt(data25.gender.female),   c:'#f0abfc', sub:`${pct(data25.gender.female, data25.total)} of roll` },
+                  { l:'Mapped',                  v:fmt(data25.mapping.mapped),  c:'#4ade80', sub:`${data25.mapping.pctMapped}% mapped` },
+                  { l:'Not Mapped',              v:fmt(data25.mapping.notMapped), c:'#f87171', sub:`${(100 - data25.mapping.pctMapped).toFixed(1)}% unmapped` },
+                  { l:'Poll Status 2023 (in roll)', v:`${data25.pollStatus2023.rate}%`, c:'#f59e0b', sub:`${fmt(data25.pollStatus2023.polled)} polled` },
+                ].map(k => (
+                  <div key={k.l} style={card('rgba(255,255,255,0.03)')}>
+                    <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', marginBottom:5, lineHeight:1.3 }}>{k.l}</div>
+                    <div style={{ fontSize:20, fontWeight:800, color:k.c, lineHeight:1 }}>{k.v}</div>
+                    <div style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:4 }}>{k.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Mapping bar */}
+              <div style={card()}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#94a3b8' }}>Mapping Coverage (2025 Roll)</span>
+                  <span style={{ fontSize:11, fontWeight:800, color: data25.mapping.pctMapped >= 65 ? '#4ade80' : '#f59e0b' }}>{data25.mapping.pctMapped}% mapped</span>
+                </div>
+                <div style={{ height:10, borderRadius:5, background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${data25.mapping.pctMapped}%`, background:'linear-gradient(90deg,#10b981,#22d3ee)', borderRadius:5, transition:'width 0.6s' }} />
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, fontSize:10, color:'rgba(255,255,255,0.35)' }}>
+                  <span>Mapped: {fmt(data25.mapping.mapped)}</span>
+                  <span>Not Mapped: {fmt(data25.mapping.notMapped)}</span>
+                </div>
+              </div>
+
+              {/* Community breakdown + age groups */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                <div style={card()}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', marginBottom:10 }}>Community Composition (2025)</div>
+                  {comm25Pie.length > 0 && (
+                    <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
+                      <svg viewBox="0 0 100 100" width={100} height={100} style={{ flexShrink:0 }}>
+                        {comm25Pie.map((s, i) => <path key={i} d={s.d} fill={s.color} stroke="#080d1a" strokeWidth="1.5" />)}
+                        <circle cx="50" cy="50" r="24" fill="#080d1a" />
+                        <text x="50" y="51" textAnchor="middle" fill="#94a3b8" fontSize="6.5" fontWeight="600">2025</text>
+                      </svg>
+                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:5 }}>
+                        {data25.community.slice(0, 6).map((c, i) => (
+                          <div key={c.name} style={{ display:'flex', alignItems:'center', gap:5, fontSize:10 }}>
+                            <span style={{ width:8, height:8, borderRadius:'50%', background:PIE_COLORS[i]||'#475569', flexShrink:0, display:'inline-block' }} />
+                            <span style={{ flex:1, color:'#94a3b8', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.name}</span>
+                            <span style={{ fontWeight:700, color:'#e2e8f0', flexShrink:0 }}>{pct(c.count, data25.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={card()}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', marginBottom:10 }}>Age Distribution (2025)</div>
+                  {data25.ageGroups.map((a, i) => (
+                    <div key={a.label} style={{ marginBottom:8 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#cbd5e1', marginBottom:3 }}>
+                        <span>{a.label}</span>
+                        <span style={{ fontWeight:700, color:PIE_COLORS[i]||'#94a3b8' }}>{fmt(a.count)}</span>
+                      </div>
+                      <div style={{ height:5, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:`${data25.total ? a.count / data25.total * 100 : 0}%`, background:PIE_COLORS[i]||'#475569', borderRadius:3 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </>)}
+          </>)}
+
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user }              = useAuth();
   const location              = useLocation();
@@ -5788,6 +6149,7 @@ export default function Dashboard() {
               })()}
             </div>
 
+            <ElectionAnalyticsPanel />
             <div style={{ background: 'linear-gradient(145deg, rgba(17,28,52,0.95), rgba(10,18,35,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '20px 16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)', marginBottom: 4 }}>Quick Actions</div>
