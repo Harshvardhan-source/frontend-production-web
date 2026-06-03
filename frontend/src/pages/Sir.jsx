@@ -237,13 +237,14 @@ function SIRAIOverview() {
     : null;
 
   const BULLET_COLORS_SIR = {
-    '📊': { accent: '#60a5fa', bg: 'rgba(96,165,250,0.07)',  border: 'rgba(96,165,250,0.22)'  },
-    '🏘️': { accent: '#f59e0b', bg: 'rgba(245,158,11,0.07)',  border: 'rgba(245,158,11,0.22)'  },
-    '🕌': { accent: '#34d399', bg: 'rgba(52,211,153,0.07)',  border: 'rgba(52,211,153,0.22)'  },
-    '⚠️': { accent: '#f87171', bg: 'rgba(248,113,113,0.07)', border: 'rgba(248,113,113,0.22)' },
-    '🎯': { accent: '#a78bfa', bg: 'rgba(167,139,250,0.07)', border: 'rgba(167,139,250,0.22)' },
+    '📊': { bg: 'rgba(96,165,250,0.07)',  border: 'rgba(96,165,250,0.22)'  },
+    '✅': { bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.28)'  },
+    '🏘️': { bg: 'rgba(245,158,11,0.07)',  border: 'rgba(245,158,11,0.22)'  },
+    '🕌': { bg: 'rgba(52,211,153,0.07)',  border: 'rgba(52,211,153,0.22)'  },
+    '⚠️': { bg: 'rgba(248,113,113,0.07)', border: 'rgba(248,113,113,0.22)' },
+    '🎯': { bg: 'rgba(167,139,250,0.07)', border: 'rgba(167,139,250,0.22)' },
   };
-  const DEFAULT_COLOR = { accent: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.18)' };
+  const DEFAULT_COLOR = { bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.18)' };
 
   return (
     <div style={{ marginBottom: 18 }}>
@@ -255,30 +256,8 @@ function SIRAIOverview() {
         }
         @keyframes sirShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes sirSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        .sir-ai-bullet:hover { transform: translateX(2px); background: rgba(245,158,11,0.06) !important; }
+        .sir-ai-bullet:hover { transform: translateX(2px); }
       `}</style>
-
-      {/* ── Live stats strip ────────────────────────────────────────────────── */}
-      {liveStats && (
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:10 }}>
-          {[
-            { label:'New Additions', val: liveStats.new_additions, color:'#22d3ee' },
-            { label:'Retained',      val: liveStats.retained,      color:'#10b981' },
-            { label:'Modified',      val: liveStats.modifications,  color:'#f59e0b' },
-            { label:'Deleted',       val: liveStats.deletions,      color:'#f87171' },
-            { label:'Suspicious',    val: liveStats.suspicious,     color:'#ef4444' },
-            { label:'Not Found',     val: liveStats.not_found,      color:'#94a3b8' },
-          ].map(s => (
-            <div key={s.label} style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:`1px solid rgba(255,255,255,0.07)`, borderRadius:8, padding:'5px 10px', flex:'1 1 auto', minWidth:90 }}>
-              <div style={{ width:6, height:6, borderRadius:'50%', background:s.color, flexShrink:0 }} />
-              <div>
-                <div style={{ fontSize:14, fontWeight:800, color:s.color, lineHeight:1 }}>{(s.val || 0).toLocaleString()}</div>
-                <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>{s.label}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* ── Trigger button ──────────────────────────────────────────────────── */}
       <button
@@ -376,49 +355,61 @@ function SIRAIOverview() {
           marginTop:8,
           background:'linear-gradient(160deg,rgba(13,20,40,0.98),rgba(8,14,32,0.99))',
           border:'1px solid rgba(245,158,11,0.28)',
-          borderRadius:14, overflow:'hidden',
-          boxShadow:'0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,158,11,0.06) inset',
+          borderRadius:16, overflow:'hidden',
+          boxShadow:'0 12px 40px rgba(0,0,0,0.5)',
         }}>
 
-          {/* Header */}
+          {/* ── Header band ─────────────────────────────────────────────────── */}
           <div style={{
-            padding:'16px 20px 14px',
+            padding:'14px 18px 12px',
             borderBottom:'1px solid rgba(245,158,11,0.13)',
-            background:'linear-gradient(135deg,rgba(217,119,6,0.1),rgba(245,158,11,0.05),transparent)',
+            background:'linear-gradient(135deg,rgba(217,119,6,0.1),rgba(245,158,11,0.04),transparent)',
+            display:'flex', alignItems:'flex-start', gap:12,
           }}>
-            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:8 }}>
-              <div style={{ width:5, height:5, borderRadius:'50%', background:'#f59e0b', boxShadow:'0 0 6px #f59e0b' }} />
-              <span style={{ fontSize:9.5, fontWeight:800, color:'#f59e0b', letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'Space Mono, monospace' }}>
-                ShaastraAI · SIR Intelligence
-              </span>
-              <button
-                onClick={() => { _sirOverviewCache.data = null; setState('idle'); setOverview(null); setOpen(false); }}
-                style={{ marginLeft:'auto', fontSize:9, color:'rgba(255,255,255,0.25)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px' }}
-              >↺ regenerate</button>
+            {/* Gold icon */}
+            <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:'linear-gradient(135deg,#d97706,#f59e0b)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 14px rgba(245,158,11,0.4)', marginTop:2 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff8e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
             </div>
-            <div style={{ fontSize:16, fontWeight:800, color:'#f1f5f9', lineHeight:1.35, letterSpacing:'-0.025em' }}>
-              {overview.headline}
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
+                <div style={{ width:5, height:5, borderRadius:'50%', background:'#f59e0b', boxShadow:'0 0 6px #f59e0b', flexShrink:0 }} />
+                <span style={{ fontSize:9.5, fontWeight:800, color:'#f59e0b', letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'Space Mono, monospace' }}>
+                  ShaastraAI · SIR Intelligence
+                </span>
+                <button
+                  onClick={() => { _sirOverviewCache.data = null; setState('idle'); setOverview(null); setOpen(false); }}
+                  style={{ marginLeft:'auto', fontSize:10, color:'rgba(255,255,255,0.25)', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, cursor:'pointer', padding:'2px 8px', fontFamily:'inherit' }}
+                >↺ Regenerate</button>
+              </div>
+              <div style={{ fontSize:17, fontWeight:800, color:'#f1f5f9', lineHeight:1.3, letterSpacing:'-0.025em' }}>
+                {overview.headline}
+              </div>
             </div>
           </div>
 
-          {/* Summary */}
+          {/* ── Summary block ───────────────────────────────────────────────── */}
           {overview.summary && (
-            <div style={{ padding:'14px 20px 0', fontSize:13, color:'rgba(255,255,255,0.65)', lineHeight:1.65 }}>
-              <SIR_HL text={overview.summary} />
+            <div style={{ padding:'14px 18px 0 18px' }}>
+              <div style={{ fontSize:13, color:'rgba(255,255,255,0.7)', lineHeight:1.7, background:'rgba(255,255,255,0.025)', borderRadius:10, padding:'12px 14px', border:'1px solid rgba(255,255,255,0.06)' }}>
+                <SIR_HL text={overview.summary} />
+              </div>
             </div>
           )}
 
-          {/* Bullets */}
+          {/* ── Bullets ─────────────────────────────────────────────────────── */}
           {overview.bullets?.length > 0 && (
-            <div style={{ padding:'14px 20px', display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ padding:'12px 18px', display:'flex', flexDirection:'column', gap:7 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.2)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Key Findings</div>
               {overview.bullets.map((b, i) => {
                 const icon   = b.icon || '•';
                 const colors = BULLET_COLORS_SIR[icon] || DEFAULT_COLOR;
                 return (
                   <div key={i} className="sir-ai-bullet"
-                    style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'10px 12px', borderRadius:10, background:colors.bg, border:`1px solid ${colors.border}`, transition:'all 0.18s', cursor:'default' }}>
-                    <span style={{ fontSize:16, flexShrink:0, lineHeight:1.2, marginTop:1 }}>{icon}</span>
-                    <span style={{ fontSize:12.5, color:'rgba(255,255,255,0.8)', lineHeight:1.55 }}>
+                    style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'10px 13px', borderRadius:10, background:colors.bg, border:`1px solid ${colors.border}`, transition:'transform 0.15s', cursor:'default' }}>
+                    <span style={{ fontSize:17, flexShrink:0, lineHeight:1.1, marginTop:0 }}>{icon}</span>
+                    <span style={{ fontSize:13, color:'rgba(255,255,255,0.85)', lineHeight:1.6 }}>
                       <SIR_HL text={b.text} />
                     </span>
                   </div>
@@ -427,20 +418,17 @@ function SIRAIOverview() {
             </div>
           )}
 
-          {/* Callout */}
+          {/* ── Callout / Bottom Line ───────────────────────────────────────── */}
           {overview.callout && (
-            <div style={{
-              margin:'0 20px 20px',
-              padding:'12px 16px',
-              borderRadius:10,
-              background:`rgba(245,158,11,0.07)`,
-              border:`1px solid rgba(245,158,11,0.25)`,
-            }}>
-              <div style={{ fontSize:9.5, fontWeight:800, color:'#f59e0b', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5 }}>
-                {overview.callout.label || 'SIR Bottom Line'}
-              </div>
-              <div style={{ fontSize:13, color:'rgba(255,255,255,0.75)', lineHeight:1.55 }}>
-                <SIR_HL text={overview.callout.text} />
+            <div style={{ margin:'0 18px 18px', padding:'13px 16px', borderRadius:11, background:'rgba(245,158,11,0.07)', border:'1px solid rgba(245,158,11,0.28)', display:'flex', gap:10, alignItems:'flex-start' }}>
+              <div style={{ fontSize:18, flexShrink:0, marginTop:1 }}>🎖️</div>
+              <div>
+                <div style={{ fontSize:9.5, fontWeight:800, color:'#f59e0b', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4 }}>
+                  {overview.callout.label || 'SIR Bottom Line'}
+                </div>
+                <div style={{ fontSize:13.5, color:'rgba(255,255,255,0.8)', lineHeight:1.55, fontWeight:500 }}>
+                  <SIR_HL text={overview.callout.text} />
+                </div>
               </div>
             </div>
           )}
