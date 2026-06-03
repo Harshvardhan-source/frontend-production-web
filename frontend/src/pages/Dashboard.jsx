@@ -4750,45 +4750,123 @@ function HouseMasterPanel() {
 function ElectionAnalyticsPanel() {
   const API_URL = (process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com') + '/api';
 
-  // ── 2023 hardcoded (2023_polled_notpolled_caste_comm_hmc — display only) ──
-  const DATA_2023 = {
-    totalVoters:      251998,
-    avgPollRate:      58.3,
-    polled:           141707,
-    notPolled:        105253,
-    strongholdWards:  8,
-    criticalSIRWards: 2,
-    communityPie: [
-      { name:'Hindu OBC', val:33.8, color:'#f59e0b' },
-      { name:'Muslim',    val:18.9, color:'#34d399' },
-      { name:'Christian', val:14.9, color:'#60a5fa' },
-      { name:'Hindu GSB', val:8.4,  color:'#fbbf24' },
-      { name:'Hindu OC',  val:6.5,  color:'#a78bfa' },
-      { name:'Others',    val:17.5, color:'#475569' },
-    ],
-    communityPoll: [
-      { name:'Hindu OBC',           rate:62.6, color:'#f59e0b' },
-      { name:'Hindu OC (Bunt)',     rate:61.1, color:'#fbbf24' },
-      { name:'Hindu Brahmin (GSB)', rate:60.3, color:'#f59e0b' },
-      { name:'Christian',           rate:53.4, color:'#60a5fa' },
-      { name:'Muslim',              rate:50.1, color:'#f87171' },
-    ],
-    ageGroups: [
-      { label:'18–25', rate:61.3, polled:'13,357', color:'#22d3ee' },
-      { label:'26–35', rate:49.5, polled:'21,484', color:'#f87171' },
-      { label:'36–45', rate:54.4, polled:'25,305', color:'#f59e0b' },
-      { label:'46–55', rate:63.5, polled:'30,378', color:'#10b981' },
-      { label:'56–65', rate:66.3, polled:'26,702', color:'#10b981' },
-      { label:'65+',   rate:51.4, polled:'23,184', color:'#f59e0b' },
-    ],
-    gender: [
-      { label:'Female', polled:74380, notPolled:52604, rate:58.6, color:'#f0abfc' },
-      { label:'Male',   polled:67316, notPolled:52649, rate:56.1, color:'#93c5fd' },
-    ],
-    trend: [
-      {y:'2013',r:72},{y:'2014',r:68},{y:'2018',r:65},{y:'2019',r:73},{y:'2023',r:58}
-    ],
-  };
+  // ── 2023 live state — fetched from 2023_polled_notpolled_caste_comm_hmc ──
+  const [data23, setData23]     = useState(null);
+  const [loading23, setLoading23] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_URL}/polled-summary/`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(j => { if (j.success) setData23(j); })
+      .catch(() => {})
+      .finally(() => setLoading23(false));
+  }, []);
+
+  // Derive DATA_2023 from live API response; fall back to static values while loading
+  const _PIE_COLORS_23 = ['#f59e0b','#34d399','#60a5fa','#fbbf24','#a78bfa','#f87171','#22d3ee','#475569'];
+  const _AGE_COLORS_23 = ['#22d3ee','#f87171','#f59e0b','#10b981','#10b981','#f59e0b'];
+
+  const DATA_2023 = React.useMemo(() => {
+    const STATIC = {
+      totalVoters:      251998,
+      avgPollRate:      58.3,
+      polled:           141707,
+      notPolled:        105253,
+      strongholdWards:  8,
+      criticalSIRWards: 2,
+      communityPie: [
+        { name:'Hindu OBC', val:33.8, color:'#f59e0b' },
+        { name:'Muslim',    val:18.9, color:'#34d399' },
+        { name:'Christian', val:14.9, color:'#60a5fa' },
+        { name:'Hindu GSB', val:8.4,  color:'#fbbf24' },
+        { name:'Hindu OC',  val:6.5,  color:'#a78bfa' },
+        { name:'Others',    val:17.5, color:'#475569' },
+      ],
+      communityPoll: [
+        { name:'Hindu OBC',           rate:62.6, color:'#f59e0b' },
+        { name:'Hindu OC (Bunt)',     rate:61.1, color:'#fbbf24' },
+        { name:'Hindu Brahmin (GSB)', rate:60.3, color:'#f59e0b' },
+        { name:'Christian',           rate:53.4, color:'#60a5fa' },
+        { name:'Muslim',              rate:50.1, color:'#f87171' },
+      ],
+      ageGroups: [
+        { label:'18–25', rate:61.3, polled:'13,357', color:'#22d3ee' },
+        { label:'26–35', rate:49.5, polled:'21,484', color:'#f87171' },
+        { label:'36–45', rate:54.4, polled:'25,305', color:'#f59e0b' },
+        { label:'46–55', rate:63.5, polled:'30,378', color:'#10b981' },
+        { label:'56–65', rate:66.3, polled:'26,702', color:'#10b981' },
+        { label:'65+',   rate:51.4, polled:'23,184', color:'#f59e0b' },
+      ],
+      gender: [
+        { label:'Female', polled:74380, notPolled:52604, rate:58.6, color:'#f0abfc' },
+        { label:'Male',   polled:67316, notPolled:52649, rate:56.1, color:'#93c5fd' },
+      ],
+      trend: [
+        {y:'2013',r:72},{y:'2014',r:68},{y:'2018',r:65},{y:'2019',r:73},{y:'2023',r:58}
+      ],
+    };
+
+    if (!data23) return STATIC;
+
+    const tv = data23.totalVoters || 1;
+
+    // Community pie — top 5 + Others
+    const topComm = (data23.community || []).slice(0, 5);
+    const othersTotal = tv - topComm.reduce((s, c) => s + c.total, 0);
+    const communityPie = [
+      ...topComm.map((c, i) => ({
+        name: c.key,
+        val:  parseFloat((c.total / tv * 100).toFixed(1)),
+        color: _PIE_COLORS_23[i],
+      })),
+      { name:'Others', val: parseFloat((Math.max(0, othersTotal) / tv * 100).toFixed(1)), color:'#475569' },
+    ];
+
+    // Community poll rates — top 5 by rate (min 200 voters)
+    const communityPoll = (data23.community || [])
+      .filter(c => c.total >= 200)
+      .map((c, i) => ({
+        name:  c.key,
+        rate:  parseFloat((c.polled / c.total * 100).toFixed(1)),
+        color: _PIE_COLORS_23[i % _PIE_COLORS_23.length],
+      }))
+      .sort((a, b) => b.rate - a.rate)
+      .slice(0, 5);
+
+    // Age groups
+    const ageGroups = (data23.ageGroups || []).map((ag, i) => ({
+      label:  ag.label,
+      rate:   ag.rate,
+      polled: (ag.polled || 0).toLocaleString(),
+      color:  _AGE_COLORS_23[i % _AGE_COLORS_23.length],
+    }));
+
+    // Gender
+    const genderColorMap = { Female:'#f0abfc', Male:'#93c5fd' };
+    const gender = (data23.gender || [])
+      .filter(g => g.key === 'Male' || g.key === 'Female')
+      .map(g => ({
+        label:     g.key,
+        polled:    g.polled,
+        notPolled: g.notPolled,
+        rate:      g.total ? parseFloat((g.polled / g.total * 100).toFixed(1)) : 0,
+        color:     genderColorMap[g.key] || '#60a5fa',
+      }));
+
+    return {
+      totalVoters:      data23.totalVoters,
+      avgPollRate:      data23.avgPollRate,
+      polled:           data23.polled,
+      notPolled:        data23.notPolled,
+      strongholdWards:  STATIC.strongholdWards,
+      criticalSIRWards: STATIC.criticalSIRWards,
+      communityPie:     communityPie.length  ? communityPie  : STATIC.communityPie,
+      communityPoll:    communityPoll.length ? communityPoll : STATIC.communityPoll,
+      ageGroups:        ageGroups.length     ? ageGroups     : STATIC.ageGroups,
+      gender:           gender.length        ? gender        : STATIC.gender,
+      trend:            STATIC.trend,
+    };
+  }, [data23]);
 
   // ── 2025 live state ──────────────────────────────────────────────────────
   const [data25, setData25]   = useState(null);
@@ -4839,12 +4917,12 @@ function ElectionAnalyticsPanel() {
   });
 
   const kpiCards2023 = [
-    { l:'Total Registered Voters', v:'2,51,998',  c:'#60a5fa', sub:'2023 voter roll' },
-    { l:'Avg Poll Rate (2023)',     v:'58.3%',     c:'#e2e8f0', sub:'Constituency average' },
-    { l:'Polled (2023)',            v:'1,41,707',  c:'#4ade80', sub:'Actually voted' },
-    { l:'Non-Polled Voters',       v:'1,05,253',  c:'#f87171', sub:"Didn't vote — target pool" },
-    { l:'BJP Stronghold Wards',    v:'8',          c:'#f97316', sub:'BJP proj >80%' },
-    { l:'SIR Critical Wards',      v:'2',          c:'#ef4444', sub:'Immediate action needed' },
+    { l:'Total Registered Voters', v: loading23 ? '…' : DATA_2023.totalVoters.toLocaleString(),  c:'#60a5fa', sub:'2023 voter roll · live' },
+    { l:'Avg Poll Rate (2023)',     v: loading23 ? '…' : `${DATA_2023.avgPollRate}%`,             c:'#e2e8f0', sub:'Constituency average' },
+    { l:'Polled (2023)',            v: loading23 ? '…' : DATA_2023.polled.toLocaleString(),       c:'#4ade80', sub:'Actually voted' },
+    { l:'Non-Polled Voters',       v: loading23 ? '…' : DATA_2023.notPolled.toLocaleString(),    c:'#f87171', sub:"Didn't vote — target pool" },
+    { l:'BJP Stronghold Wards',    v:'8',                                                          c:'#f97316', sub:'BJP proj >80%' },
+    { l:'SIR Critical Wards',      v:'2',                                                          c:'#ef4444', sub:'Immediate action needed' },
   ];
 
   const fmt = n => n ? n.toLocaleString() : '—';
