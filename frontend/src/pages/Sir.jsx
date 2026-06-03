@@ -114,6 +114,342 @@ const SIR_WARD_DATA = {
   60:{ classification:'CONGRESS STRONG',pollRate:41.6, hindu:30.9, muslim:68.3, christian:0.8,  bloMapped:60.39, progeny:127.86,totalMapped:90.09, totalElectors:10897, bjpProj:30.9, congProj:69.1, margin:-38.2, priority:'WATCH'   },
 };
 
+// ─── SIR AI Overview ──────────────────────────────────────────────────────────
+// Mirrors the SwotAIOverview pattern from Swot.jsx.
+// Fetches live stats from /api/sir/stats/ + ward/booth data from SIR_WARD_DATA,
+// sends to /api/sir/ai-overview/, renders a structured insight panel.
+// ──────────────────────────────────────────────────────────────────────────────
+
+const _sirOverviewCache = {};  // module-level — survives re-renders
+
+// Serialise all available SIR data so the AI has real numbers
+function buildSIRData(liveStats) {
+  const lines = [];
+  lines.push('=== SIR Ward Classification + BLO Mapping Progress ===');
+  lines.push('Ward | Name | Classification | Poll Rate | Hindu% | Muslim% | Christian% | BLO Mapped% | Total Mapped% | Priority | BJP Proj | Margin');
+  Object.entries(SIR_WARD_DATA).forEach(([num, d]) => {
+    const name = WARD_NAMES[num] || `Ward ${num}`;
+    lines.push(
+      `${num} | ${name} | ${d.classification} | ${d.pollRate}% | ` +
+      `${d.hindu}% | ${d.muslim}% | ${d.christian}% | ` +
+      `${d.bloMapped}% | ${d.totalMapped}% | ${d.priority} | BJP ${d.bjpProj}% | ${d.margin > 0 ? '+' : ''}${d.margin}%`
+    );
+  });
+
+  if (liveStats) {
+    lines.push('');
+    lines.push('=== Live SIR Database Counts ===');
+    lines.push(`New Additions: ${(liveStats.new_additions || 0).toLocaleString()}`);
+    lines.push(`Retained:      ${(liveStats.retained     || 0).toLocaleString()}`);
+    lines.push(`Modified:      ${(liveStats.modifications|| 0).toLocaleString()}`);
+    lines.push(`Deleted:       ${(liveStats.deletions    || 0).toLocaleString()}`);
+    lines.push(`Suspicious:    ${(liveStats.suspicious   || 0).toLocaleString()}`);
+    lines.push(`Not Found:     ${(liveStats.not_found    || 0).toLocaleString()}`);
+    lines.push(`2002 Roll:     ${(liveStats.voters_2002  || 0).toLocaleString()}`);
+    lines.push(`2025 Roll:     ${(liveStats.voters_2025  || 0).toLocaleString()}`);
+    const delta = (liveStats.voters_2025 || 0) - (liveStats.voters_2002 || 0);
+    lines.push(`Net Change:    ${delta > 0 ? '+' : ''}${delta.toLocaleString()}`);
+  }
+
+  // Risk wards summary
+  lines.push('');
+  lines.push('=== Priority Wards (non-NORMAL) ===');
+  Object.entries(SIR_WARD_DATA)
+    .filter(([, d]) => d.priority !== 'NORMAL')
+    .sort(([, a], [, b]) => (PRIORITY_CONFIG[a.priority]?.order ?? 9) - (PRIORITY_CONFIG[b.priority]?.order ?? 9))
+    .forEach(([num, d]) => {
+      const name = WARD_NAMES[num] || `Ward ${num}`;
+      lines.push(`${d.priority} | ${name} (${num}) | ${d.classification} | Poll ${d.pollRate}% | BJP ${d.bjpProj}% | Margin ${d.margin > 0 ? '+' : ''}${d.margin}%`);
+    });
+
+  return lines.join('\n').slice(0, 5000);
+}
+
+// ── Highlight numbers inside text ────────────────────────────────────────────
+function SIR_HL({ text }) {
+  if (!text || typeof text !== 'string') return null;
+  const parts = text.split(/([-+]?\d+\.?\d*%?)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        /^[-+]?\d/.test(p)
+          ? <span key={i} style={{ color: '#f59e0b', fontWeight: 700 }}>{p}</span>
+          : p
+      )}
+    </>
+  );
+}
+
+function SIRAIOverview() {
+  const [state,    setState]    = useState(_sirOverviewCache.data ? 'done' : 'idle');
+  const [overview, setOverview] = useState(_sirOverviewCache.data || null);
+  const [open,     setOpen]     = useState(false);
+  const [liveStats,setLiveStats]= useState(null);
+
+  // Fetch sir/stats on mount so we can send live counts to the AI
+  useEffect(() => {
+    const token = sessionStorage.getItem('cc_token');
+    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    fetch(`${API}/sir/stats/`, { credentials: 'include', headers })
+      .then(r => r.json())
+      .then(j => { if (j.success) setLiveStats(j); })
+      .catch(() => {});
+  }, []);
+
+  const load = useCallback(async () => {
+    if (_sirOverviewCache.data) {
+      setOverview(_sirOverviewCache.data);
+      setState('done');
+      setOpen(true);
+      return;
+    }
+    setState('loading');
+    setOpen(true);
+    try {
+      const token = sessionStorage.getItem('cc_token');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+      const sirData = buildSIRData(liveStats);
+      const res  = await fetch(`${API}/sir/ai-overview/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({ sirData }),
+      });
+      const data = await res.json();
+      if (data?.success && data?.overview) {
+        _sirOverviewCache.data = data.overview;
+        setOverview(data.overview);
+        setState('done');
+      } else {
+        setState('error');
+      }
+    } catch {
+      setState('error');
+    }
+  }, [liveStats]);
+
+  const totalSIR = liveStats
+    ? (liveStats.new_additions || 0) + (liveStats.retained || 0) + (liveStats.modifications || 0) +
+      (liveStats.deletions || 0) + (liveStats.suspicious || 0) + (liveStats.not_found || 0)
+    : null;
+
+  const BULLET_COLORS_SIR = {
+    '📊': { accent: '#60a5fa', bg: 'rgba(96,165,250,0.07)',  border: 'rgba(96,165,250,0.22)'  },
+    '🏘️': { accent: '#f59e0b', bg: 'rgba(245,158,11,0.07)',  border: 'rgba(245,158,11,0.22)'  },
+    '🕌': { accent: '#34d399', bg: 'rgba(52,211,153,0.07)',  border: 'rgba(52,211,153,0.22)'  },
+    '⚠️': { accent: '#f87171', bg: 'rgba(248,113,113,0.07)', border: 'rgba(248,113,113,0.22)' },
+    '🎯': { accent: '#a78bfa', bg: 'rgba(167,139,250,0.07)', border: 'rgba(167,139,250,0.22)' },
+  };
+  const DEFAULT_COLOR = { accent: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.18)' };
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <style>{`
+        .sir-ai-shimmer {
+          background: linear-gradient(90deg,rgba(51,65,85,0.5) 25%,rgba(245,158,11,0.2) 50%,rgba(51,65,85,0.5) 75%);
+          background-size: 200% 100%;
+          animation: sirShimmer 1.5s linear infinite;
+        }
+        @keyframes sirShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes sirSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        .sir-ai-bullet:hover { transform: translateX(2px); background: rgba(245,158,11,0.06) !important; }
+      `}</style>
+
+      {/* ── Live stats strip ────────────────────────────────────────────────── */}
+      {liveStats && (
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:10 }}>
+          {[
+            { label:'New Additions', val: liveStats.new_additions, color:'#22d3ee' },
+            { label:'Retained',      val: liveStats.retained,      color:'#10b981' },
+            { label:'Modified',      val: liveStats.modifications,  color:'#f59e0b' },
+            { label:'Deleted',       val: liveStats.deletions,      color:'#f87171' },
+            { label:'Suspicious',    val: liveStats.suspicious,     color:'#ef4444' },
+            { label:'Not Found',     val: liveStats.not_found,      color:'#94a3b8' },
+          ].map(s => (
+            <div key={s.label} style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.03)', border:`1px solid rgba(255,255,255,0.07)`, borderRadius:8, padding:'5px 10px', flex:'1 1 auto', minWidth:90 }}>
+              <div style={{ width:6, height:6, borderRadius:'50%', background:s.color, flexShrink:0 }} />
+              <div>
+                <div style={{ fontSize:14, fontWeight:800, color:s.color, lineHeight:1 }}>{(s.val || 0).toLocaleString()}</div>
+                <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:1 }}>{s.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Trigger button ──────────────────────────────────────────────────── */}
+      <button
+        onClick={state === 'loading' ? undefined : (open && state === 'done' ? () => setOpen(o => !o) : load)}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', gap:10,
+          padding:'11px 16px', borderRadius:12,
+          background: state === 'done' && open
+            ? 'linear-gradient(135deg,rgba(245,158,11,0.12),rgba(217,119,6,0.06))'
+            : 'rgba(255,255,255,0.03)',
+          border: `1px solid ${state === 'done' ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.08)'}`,
+          cursor: state === 'loading' ? 'default' : 'pointer',
+          transition: 'all 0.2s', fontFamily: 'inherit', textAlign: 'left',
+        }}
+      >
+        {/* Icon */}
+        <div style={{
+          width:32, height:32, borderRadius:9, flexShrink:0,
+          background: state === 'loading'
+            ? 'linear-gradient(135deg,rgba(245,158,11,0.2),rgba(217,119,6,0.2))'
+            : 'linear-gradient(135deg,#d97706,#f59e0b)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          boxShadow: state === 'done' ? '0 0 16px rgba(245,158,11,0.45)' : 'none',
+          transition:'all 0.3s',
+        }}>
+          {state === 'loading' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fde68a" strokeWidth="2" strokeLinecap="round"
+              style={{ animation:'sirSpin 1s linear infinite' }}>
+              <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" strokeOpacity="0.25"/>
+              <path d="M21 12a9 9 0 0 0-9-9"/>
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff8e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          )}
+        </div>
+
+        {/* Label */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:12, fontWeight:800, color: state === 'done' ? '#fde68a' : 'rgba(255,255,255,0.55)', lineHeight:1.2 }}>
+            {state === 'loading' ? 'ShaastraAI is analysing SIR data…'
+              : state === 'done'  ? 'AI Overview — SIR Intelligence'
+              : state === 'error' ? 'Analysis unavailable — tap to retry'
+              : 'Get AI Overview — SIR Intelligence'}
+          </div>
+          {state === 'idle' && (
+            <div style={{ fontSize:10.5, color:'rgba(255,255,255,0.25)', marginTop:2 }}>
+              ShaastraAI · {totalSIR !== null ? `${totalSIR.toLocaleString()} records · ` : ''}Ward + Religion + Booth analysis
+            </div>
+          )}
+          {state === 'done' && overview?.headline && (
+            <div style={{ fontSize:10.5, color:'rgba(255,255,255,0.32)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {overview.headline}
+            </div>
+          )}
+        </div>
+
+        {state === 'idle' && (
+          <span style={{ fontSize:10, fontWeight:700, background:'linear-gradient(135deg,#d97706,#f59e0b)', color:'#fff', borderRadius:6, padding:'3px 9px', flexShrink:0, letterSpacing:'0.04em' }}>
+            Generate
+          </span>
+        )}
+        {state === 'done' && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(253,230,138,0.6)" strokeWidth="2.5" strokeLinecap="round"
+            style={{ flexShrink:0, transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition:'transform 0.2s' }}>
+            <path d="M9 6l6 6-6 6"/>
+          </svg>
+        )}
+      </button>
+
+      {/* ── Loading shimmer ─────────────────────────────────────────────────── */}
+      {state === 'loading' && (
+        <div style={{ marginTop:10, background:'rgba(15,23,42,0.8)', border:'1px solid rgba(245,158,11,0.2)', borderRadius:12, padding:'18px 20px' }}>
+          <div style={{ textAlign:'center', marginBottom:14 }}>
+            <div style={{ fontSize:11, color:'rgba(245,158,11,0.6)', marginBottom:10 }}>ShaastraAI is analysing ward · booth · religion data…</div>
+            <div style={{ display:'flex', justifyContent:'center', gap:6 }}>
+              {['Counting records', 'Mapping wards', 'Religion analysis', 'Booth breakdown', 'Generating insight'].map((s, i) => (
+                <div key={i} style={{ display:'flex', alignItems:'center', gap:4, fontSize:9.5, color:'rgba(255,255,255,0.25)', background:'rgba(255,255,255,0.04)', borderRadius:4, padding:'3px 7px' }}>
+                  <div style={{ width:5, height:5, borderRadius:'50%', background:'rgba(245,158,11,0.4)', animation:'sirSpin 1.5s linear infinite', animationDelay:`${i * 0.2}s` }} />
+                  {s}
+                </div>
+              ))}
+            </div>
+          </div>
+          {[72, 55, 68, 42].map((w, i) => (
+            <div key={i} className="sir-ai-shimmer" style={{ width:`${w}%`, height: i === 0 ? 13 : 10, borderRadius:6, marginBottom: i < 3 ? 12 : 0 }} />
+          ))}
+        </div>
+      )}
+
+      {/* ── Result panel ────────────────────────────────────────────────────── */}
+      {state === 'done' && open && overview && (
+        <div style={{
+          marginTop:8,
+          background:'linear-gradient(160deg,rgba(13,20,40,0.98),rgba(8,14,32,0.99))',
+          border:'1px solid rgba(245,158,11,0.28)',
+          borderRadius:14, overflow:'hidden',
+          boxShadow:'0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,158,11,0.06) inset',
+        }}>
+
+          {/* Header */}
+          <div style={{
+            padding:'16px 20px 14px',
+            borderBottom:'1px solid rgba(245,158,11,0.13)',
+            background:'linear-gradient(135deg,rgba(217,119,6,0.1),rgba(245,158,11,0.05),transparent)',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:8 }}>
+              <div style={{ width:5, height:5, borderRadius:'50%', background:'#f59e0b', boxShadow:'0 0 6px #f59e0b' }} />
+              <span style={{ fontSize:9.5, fontWeight:800, color:'#f59e0b', letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'Space Mono, monospace' }}>
+                ShaastraAI · SIR Intelligence
+              </span>
+              <button
+                onClick={() => { _sirOverviewCache.data = null; setState('idle'); setOverview(null); setOpen(false); }}
+                style={{ marginLeft:'auto', fontSize:9, color:'rgba(255,255,255,0.25)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px' }}
+              >↺ regenerate</button>
+            </div>
+            <div style={{ fontSize:16, fontWeight:800, color:'#f1f5f9', lineHeight:1.35, letterSpacing:'-0.025em' }}>
+              {overview.headline}
+            </div>
+          </div>
+
+          {/* Summary */}
+          {overview.summary && (
+            <div style={{ padding:'14px 20px 0', fontSize:13, color:'rgba(255,255,255,0.65)', lineHeight:1.65 }}>
+              <SIR_HL text={overview.summary} />
+            </div>
+          )}
+
+          {/* Bullets */}
+          {overview.bullets?.length > 0 && (
+            <div style={{ padding:'14px 20px', display:'flex', flexDirection:'column', gap:8 }}>
+              {overview.bullets.map((b, i) => {
+                const icon   = b.icon || '•';
+                const colors = BULLET_COLORS_SIR[icon] || DEFAULT_COLOR;
+                return (
+                  <div key={i} className="sir-ai-bullet"
+                    style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'10px 12px', borderRadius:10, background:colors.bg, border:`1px solid ${colors.border}`, transition:'all 0.18s', cursor:'default' }}>
+                    <span style={{ fontSize:16, flexShrink:0, lineHeight:1.2, marginTop:1 }}>{icon}</span>
+                    <span style={{ fontSize:12.5, color:'rgba(255,255,255,0.8)', lineHeight:1.55 }}>
+                      <SIR_HL text={b.text} />
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Callout */}
+          {overview.callout && (
+            <div style={{
+              margin:'0 20px 20px',
+              padding:'12px 16px',
+              borderRadius:10,
+              background:`rgba(245,158,11,0.07)`,
+              border:`1px solid rgba(245,158,11,0.25)`,
+            }}>
+              <div style={{ fontSize:9.5, fontWeight:800, color:'#f59e0b', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5 }}>
+                {overview.callout.label || 'SIR Bottom Line'}
+              </div>
+              <div style={{ fontSize:13, color:'rgba(255,255,255,0.75)', lineHeight:1.55 }}>
+                <SIR_HL text={overview.callout.text} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Risk Wards Card Grid ─────────────────────────────────────────────────────
 function RiskWardsOverview({ onWardClick }) {
   const riskWards = Object.entries(SIR_WARD_DATA)
@@ -3364,6 +3700,9 @@ export default function SIR() {
           <h1>Special Intensive Revision</h1>
           <p>Voter roll comparison · 2002 vs 2025 · Anomaly detection · Classification</p>
         </div>
+
+        {/* AI Overview — SIR Intelligence (ShaastraAI) */}
+        <SIRAIOverview />
 
         {/* Live check panel — Instant SIR Check */}
         <LiveCheckPanel />
