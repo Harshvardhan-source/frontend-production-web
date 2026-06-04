@@ -3454,7 +3454,7 @@ function WardLocalPlaces({ wardNum }) {
 }
 
 // ─── Member Row ───────────────────────────────────────────────────────────────
-function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData, query, onSurveyDone, user }) {
+function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData, query, onSurveyDone, user, highlightName }) {
   const navigate = useNavigate();
 
   const canSurvey = (() => {
@@ -3501,7 +3501,6 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
           areaType:           hs.areaType     || '',
           homeType:           hs.homeType     || '',
           familyIncome:       hs.familyIncome || '',
-          // ── 2025 voter roll fields ─────────────────────────────────────
           relation:           member.relation           || '',
           relationName:       member.relationName       || '',
           partNo:             member.partNo             || member.ward     || '',
@@ -3516,6 +3515,9 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
       },
     });
   };
+
+  // Render name — use highlightName from parent if available, else plain text
+  const renderedName = highlightName ? highlightName(member.name || '—') : (member.name || '—');
 
   return (
     <div style={{
@@ -3537,7 +3539,7 @@ function MemberRow({ member, wardNumber, wardName, serialStart, houseSurveyData,
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {member.name || '—'}
+          {renderedName}
           {member.relation && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>{member.relation}</span>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
@@ -3575,49 +3577,144 @@ function HouseCard({ house, serialCounter, query, user }) {
   const pct         = house.total_members ? Math.round((house.surveyed / house.total_members) * 100) : 0;
   const statusColor = pct === 100 ? '#10b981' : pct > 0 ? '#f59e0b' : '#ef4444';
 
+  // ── Relevance-tier badge config ─────────────────────────────────────────────
+  const TIER_CFG = {
+    0: { label: '✦ Exact Match',    color: '#22d3ee', bg: 'rgba(34,211,238,0.12)',  border: 'rgba(34,211,238,0.3)',   cardBorder: 'rgba(34,211,238,0.3)'   },
+    1: { label: '👥 Family Member',  color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)',  cardBorder: 'rgba(167,139,250,0.25)' },
+    2: { label: '~ Similar Name',   color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.25)',  cardBorder: 'rgba(255,255,255,0.08)' },
+  };
+
+  const hasTier    = house.match_tier !== undefined && house.match_tier !== null;
+  const tierCfg    = hasTier ? (TIER_CFG[house.match_tier] ?? TIER_CFG[0]) : null;
+  const cardBorder = pct === 100
+    ? 'rgba(16,185,129,0.3)'
+    : tierCfg ? tierCfg.cardBorder : 'rgba(255,255,255,0.09)';
+
+  // ── Query word highlighter ──────────────────────────────────────────────────
+  const queryWords = (query || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+  const highlightName = (name) => {
+    if (!queryWords.length || !name) return name;
+    const parts = [];
+    let remaining = name;
+    let key = 0;
+    // Simple word-by-word highlight
+    queryWords.forEach(w => {
+      const re = new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      remaining = remaining.replace(re, '\x00$1\x00');
+    });
+    remaining.split('\x00').forEach((chunk, i) => {
+      const isMatch = queryWords.some(w => chunk.toLowerCase() === w);
+      parts.push(
+        isMatch
+          ? <mark key={i} style={{ background: 'rgba(34,211,238,0.28)', color: '#22d3ee', borderRadius: 3, padding: '0 2px', fontWeight: 800, fontStyle: 'normal' }}>{chunk}</mark>
+          : chunk
+      );
+    });
+    return parts;
+  };
+
+  // Names that directly match the query (for the tier strip subtitle)
+  const directMatches = (house.members || [])
+    .filter(m => queryWords.length > 0 && queryWords.every(w => (m.name || '').toLowerCase().includes(w)))
+    .map(m => m.name);
+
   return (
     <div style={{
-      background: 'rgba(17,28,52,0.75)',
-      border: `1px solid ${pct === 100 ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.09)'}`,
+      background: house.match_tier === 0
+        ? 'linear-gradient(135deg, rgba(34,211,238,0.04) 0%, rgba(17,28,52,0.88) 60%)'
+        : house.match_tier === 1
+        ? 'linear-gradient(135deg, rgba(167,139,250,0.04) 0%, rgba(17,28,52,0.88) 60%)'
+        : 'rgba(17,28,52,0.75)',
+      border: `1px solid ${cardBorder}`,
       borderRadius: 16, marginBottom: 18, overflow: 'hidden',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
+      boxShadow: house.match_tier === 0
+        ? '0 4px 24px rgba(34,211,238,0.08), 0 1px 0 rgba(34,211,238,0.1) inset'
+        : '0 4px 20px rgba(0,0,0,0.22)',
     }}>
+
+      {/* Relevance tier strip */}
+      {tierCfg && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '4px 16px',
+          background: tierCfg.bg,
+          borderBottom: `1px solid ${tierCfg.border}`,
+        }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: tierCfg.color, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            {tierCfg.label}
+          </span>
+          {directMatches.length > 0 && (
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 600, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {directMatches.join(' · ')}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* House header */}
       <div onClick={() => setExpanded(p => !p)} style={{
-        display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px',
+        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
         cursor: 'pointer', background: 'rgba(255,255,255,0.025)',
         borderBottom: expanded ? '1px solid rgba(255,255,255,0.07)' : 'none',
-        minHeight: 72,
+        minHeight: 64,
       }}>
-        <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Home size={22} color="#f59e0b" /></div>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+          background: tierCfg ? tierCfg.bg : 'rgba(245,158,11,0.12)',
+          border: `1px solid ${tierCfg ? tierCfg.border : 'rgba(245,158,11,0.22)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Home size={20} color={tierCfg ? tierCfg.color : '#f59e0b'} />
+        </div>
+
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--text-1)' }}>
             House No: {house.house_no}
-            {house.ward && <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--text-3)', fontWeight: 400 }}>Ward {house.ward} {house.booth ? `· Booth ${house.booth}` : ''}</span>}
+            {house.ward && (
+              <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--text-3)', fontWeight: 400 }}>
+                Ward {house.ward}
+                {house.ward_name ? ` — ${house.ward_name}` : ''}
+                {house.booth ? ` · Booth ${house.booth}` : ''}
+              </span>
+            )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-            <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7 }}>
+            <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
               <div style={{ width: `${pct}%`, height: '100%', background: statusColor, borderRadius: 3, transition: 'width 0.4s' }} />
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: statusColor, flexShrink: 0 }}>{house.surveyed}/{house.total_members}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, flexShrink: 0 }}>
+              {house.surveyed}/{house.total_members}
+            </span>
           </div>
         </div>
+
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           {pct === 100 ? (
             <span style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>✓ Complete</span>
           ) : house.remaining > 0 ? (
             <span style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>{house.remaining} pending</span>
           ) : null}
-          <span style={{ color: 'var(--text-3)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'flex' }}><ChevronDown size={16} /></span>
+          <span style={{ color: 'var(--text-3)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'flex' }}>
+            <ChevronDown size={16} />
+          </span>
         </div>
       </div>
+
+      {/* Members */}
       {expanded && (
         <div style={{ padding: '12px 16px' }}>
           {house.members.map((m, i) => (
             <MemberRow
               key={`${house.house_no}-${m.voterid || 'noid'}-${i}`}
-              member={m} wardNumber={house.ward} wardName={`Ward ${house.ward}`}
-              serialStart={serialCounter + i} houseSurveyData={house.house_survey_data} query={query}
+              member={m}
+              wardNumber={house.ward}
+              wardName={house.ward_name ? `Ward ${house.ward} — ${house.ward_name}` : `Ward ${house.ward}`}
+              serialStart={serialCounter + i}
+              houseSurveyData={house.house_survey_data}
+              query={query}
               user={user}
+              highlightName={highlightName}
             />
           ))}
         </div>
@@ -3625,6 +3722,7 @@ function HouseCard({ house, serialCounter, query, user }) {
     </div>
   );
 }
+
 
 // ─── Large Families · Member Detail Panel ────────────────────────────────────
 // ─── Voter Detail Card (tap to expand) ───────────────────────────────────────
