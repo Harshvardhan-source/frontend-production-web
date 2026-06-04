@@ -3520,52 +3520,74 @@ function ProgenyVoterListModal({ onClose }) {
             </div>
 
             {/* ── 2002 Ancestors in House ─────────────────────────────────────── */}
-            {r['2002 Ancestors in House'] && (
-              <div style={{
-                gridColumn: isMobile ? '1' : '1 / -1',
-                borderRadius: 10,
-                border: '1px solid rgba(167,139,250,0.2)',
-                borderLeft: '3px solid #a78bfa',
-                background: 'rgba(167,139,250,0.04)',
-                padding: '12px 14px',
-                marginTop: 4,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 7.5L8 2l6 5.5"/><path d="M3.5 6.5V14h3.5v-3.5h2V14H13V6.5"/>
-                    </svg>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#a78bfa', letterSpacing: '0.5px' }}>
-                      2002 ANCESTORS IN HOUSE
-                    </span>
-                  </div>
-                  {r['2002 Family Size'] != null && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 20, padding: '2px 10px' }}>
-                      {r['2002 Family Size']} in household
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 6px' }}>
-                  {String(r['2002 Ancestors in House']).split('|').map((name, i) => {
-                    const n = name.trim();
-                    if (!n) return null;
-                    return (
-                      <span key={i} style={{
-                        fontSize: 10, fontWeight: 600,
-                        color: 'rgba(255,255,255,0.65)',
-                        background: 'rgba(167,139,250,0.08)',
-                        border: '1px solid rgba(167,139,250,0.15)',
-                        borderRadius: 5,
-                        padding: '2px 8px',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {n}
+            {r['2002 Ancestors in House'] && (() => {
+              const ancestors = String(r['2002 Ancestors in House']).split('|').map(n => n.trim()).filter(Boolean);
+              return (
+                <div style={{
+                  gridColumn: isMobile ? '1' : '1 / -1',
+                  borderRadius: 10,
+                  border: '1px solid rgba(167,139,250,0.2)',
+                  borderLeft: '3px solid #a78bfa',
+                  background: 'rgba(167,139,250,0.04)',
+                  padding: '12px 14px',
+                  marginTop: 4,
+                }}>
+                  {/* Section header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 7.5L8 2l6 5.5"/><path d="M3.5 6.5V14h3.5v-3.5h2V14H13V6.5"/>
+                      </svg>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#a78bfa', letterSpacing: '0.5px' }}>
+                        2002 ANCESTORS IN HOUSE
                       </span>
-                    );
-                  })}
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>· {ancestors.length} voters listed</span>
+                    </div>
+                    {r['2002 Family Size'] != null && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 20, padding: '2px 10px' }}>
+                        {r['2002 Family Size']} in household
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Voter name rows */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {ancestors.map((name, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '5px 10px',
+                        borderRadius: 6,
+                        background: i % 2 === 0 ? 'rgba(167,139,250,0.05)' : 'transparent',
+                        border: '1px solid rgba(167,139,250,0.08)',
+                      }}>
+                        {/* Row number */}
+                        <span style={{
+                          fontSize: 9, fontWeight: 700,
+                          color: 'rgba(167,139,250,0.45)',
+                          minWidth: 20, textAlign: 'right',
+                          flexShrink: 0,
+                          fontFamily: 'ui-monospace,monospace',
+                        }}>
+                          {i + 1}
+                        </span>
+                        {/* Person icon */}
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="rgba(167,139,250,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
+                        </svg>
+                        {/* Name */}
+                        <span style={{
+                          fontSize: 11, fontWeight: 600,
+                          color: '#e2e8f0',
+                          letterSpacing: '0.1px',
+                        }}>
+                          {name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
       </div>
