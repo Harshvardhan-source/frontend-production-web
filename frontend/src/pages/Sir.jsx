@@ -3211,7 +3211,10 @@ const PROGENY_KPIs = {
   lowGapWards:      2,
 };
 
-// ─── Progeny Voter List Modal ─────────────────────────────────────────────────
+// ─── Progeny Voter List Modal (Ancestor-primary redesign) ─────────────────────
+// Each row shows the ANCESTOR (2023 roll) as the primary identity.
+// The 2025 voter record is displayed as a linked child beneath it.
+// Layout: ancestor card (left accent) → 2025 row (indented, teal border)
 function ProgenyVoterListModal({ onClose }) {
   const [records, setRecords]     = useState([]);
   const [total, setTotal]         = useState(0);
@@ -3222,6 +3225,7 @@ function ProgenyVoterListModal({ onClose }) {
   const [search, setSearch]       = useState('');
   const [wardF, setWardF]         = useState('');
   const [boothF, setBoothF]       = useState('');
+  const [expanded, setExpanded]   = useState({});   // _id → true/false for detail expansion
   const searchDebounce            = useRef(null);
 
   const fetchVoters = useCallback(async (pg = 1, q = search, w = wardF, b = boothF) => {
@@ -3242,6 +3246,7 @@ function ProgenyVoterListModal({ onClose }) {
         setTotal(data.total);
         setPages(data.pages);
         setPage(pg);
+        setExpanded({});
       } else {
         setError(data.message || 'Failed to load voters');
       }
@@ -3262,8 +3267,264 @@ function ProgenyVoterListModal({ onClose }) {
 
   const handleWard  = (val) => { setWardF(val);  fetchVoters(1, search, val, boothF); };
   const handleBooth = (val) => { setBoothF(val); fetchVoters(1, search, wardF, val);  };
+  const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
-  // Field labels for display
+  // ── Ancestor-primary card ───────────────────────────────────────────────────
+  const AncestorRow = ({ r, idx }) => {
+    const id      = r._id || idx;
+    const isOpen  = !!expanded[id];
+    const polled  = (r['Polled 2023?'] || '').toLowerCase() === 'polled';
+    const in2025  = (r['In 2025?'] || '').toUpperCase() === 'YES';
+    const gender  = r['Gender'] || '';
+    const relType = r['Relation Type'] || r['relationType'] || '';
+    const gColor  = gender === 'M' ? '#60a5fa' : gender === 'F' ? '#f472b6' : '#a3a3a3';
+    const polledColor = polled ? '#10b981' : '#ef4444';
+    const in2025Color = in2025 ? '#22d3ee' : '#f87171';
+
+    // Relation label mapping
+    const REL_MAP = { F:'Father', M:'Mother', H:'Husband', W:'Wife', S:'Son', D:'Daughter', O:'Other', C:'Child' };
+    const relLabel = REL_MAP[relType] || relType || 'Relative';
+
+    return (
+      <div style={{
+        borderRadius: 12,
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderLeft: `3px solid rgba(245,158,11,0.6)`,
+        background: idx % 2 === 0 ? 'rgba(255,255,255,0.018)' : 'rgba(0,0,0,0.15)',
+        marginBottom: 8,
+        overflow: 'hidden',
+        transition: 'border-color 0.15s',
+      }}>
+
+        {/* ── ANCESTOR primary row ─────────────────────────────────────────── */}
+        <div
+          onClick={() => toggleExpand(id)}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile
+              ? '1fr auto'
+              : '260px 130px 72px 52px 90px 90px 1fr auto',
+            alignItems: 'center',
+            gap: isMobile ? 8 : 0,
+            padding: isMobile ? '12px 14px' : '10px 14px',
+            cursor: 'pointer',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          {/* Name + EPIC + House */}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+              {/* Generation avatar */}
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: `linear-gradient(135deg, rgba(245,158,11,0.25), rgba(245,158,11,0.08))`,
+                border: '1px solid rgba(245,158,11,0.35)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, fontSize: 12,
+              }}>
+                {gender === 'M' ? '♂' : gender === 'F' ? '♀' : '?'}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', lineHeight: 1.2 }}>
+                  {r['Voter Name'] || '—'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, fontFamily: 'ui-monospace,monospace', color: '#f59e0b' }}>
+                    {r['Epic / Voter ID'] || '—'}
+                  </span>
+                  {r['House No'] && (
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                      · {r['House No']}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Ancestor of (relation) */}
+          {!isMobile && (
+            <div style={{ padding: '0 10px' }}>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
+                Ancestor of
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', lineHeight: 1.3 }}>
+                {r['Relative Name'] || '—'}
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>{relLabel}</div>
+            </div>
+          )}
+
+          {/* Gender + Age */}
+          {!isMobile && (
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: gColor, background: gColor + '22', borderRadius: 5, padding: '2px 7px', display: 'inline-block', marginBottom: 3 }}>
+                {gender || '—'}
+              </span>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Age {r['Age (2023)'] ?? '—'}</div>
+            </div>
+          )}
+
+          {/* Ward / Booth */}
+          {!isMobile && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>W{r['Ward'] ?? '—'}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>B{r['Booth'] ?? '—'}</div>
+            </div>
+          )}
+
+          {/* 2023 polled status */}
+          {!isMobile && (
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: polledColor, background: polledColor + '1a', borderRadius: 5, padding: '2px 7px' }}>
+                {polled ? 'Polled' : 'Not Polled'}
+              </span>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>2023</div>
+            </div>
+          )}
+
+          {/* 2025 status */}
+          {!isMobile && (
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: in2025Color, background: in2025Color + '1a', borderRadius: 5, padding: '2px 7px' }}>
+                {in2025 ? 'In 2025' : 'Not in 2025'}
+              </span>
+              {r['Name in 2025'] && (
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Name in 2025']}</div>
+              )}
+            </div>
+          )}
+
+          {/* Community */}
+          {!isMobile && (
+            <div style={{ paddingLeft: 8 }}>
+              {r['Community'] && (
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.06)', borderRadius: 5, padding: '2px 7px', fontWeight: 600 }}>
+                  {r['Community']}
+                </span>
+              )}
+              {r['Category'] && (
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{r['Category']}</div>
+              )}
+            </div>
+          )}
+
+          {/* Mobile badges */}
+          {isMobile && (
+            <div style={{ display: 'flex', gap: 4, flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: polledColor, background: polledColor + '1a', borderRadius: 5, padding: '1px 6px' }}>
+                {polled ? 'Polled' : 'Not Polled'}
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: in2025Color, background: in2025Color + '1a', borderRadius: 5, padding: '1px 6px' }}>
+                {in2025 ? '2025 ✓' : '2025 ✗'}
+              </span>
+            </div>
+          )}
+
+          {/* Expand toggle */}
+          <div style={{ color: 'rgba(255,255,255,0.25)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none', flexShrink: 0, marginLeft: 4 }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 6l4 4 4-4"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* ── EXPANDED DETAIL PANEL ───────────────────────────────────────── */}
+        {isOpen && (
+          <div style={{
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            padding: '14px 16px',
+            background: 'rgba(0,0,0,0.18)',
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+            gap: 12,
+          }}>
+
+            {/* Ancestor (2023 Roll) detail */}
+            <div style={{
+              borderRadius: 10,
+              border: '1px solid rgba(245,158,11,0.2)',
+              borderLeft: '3px solid #f59e0b',
+              background: 'rgba(245,158,11,0.04)',
+              padding: '12px 14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
+                </svg>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#f59e0b', letterSpacing: '0.5px' }}>ANCESTOR — 2023 VOTER ROLL</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
+                {[
+                  ['Name',      r['Voter Name']],
+                  ['EPIC ID',   r['Epic / Voter ID']],
+                  ['House No',  r['House No']],
+                  ['Gender',    r['Gender']],
+                  ['Age (2023)',r['Age (2023)']],
+                  ['Relation',  `${(r['Relation Type'] || '')} of ${r['Relative Name'] || '—'}`],
+                  ['Ward',      r['Ward']],
+                  ['Booth',     r['Booth']],
+                  ['Polled',    r['Polled 2023?']],
+                  ['Community', r['Community']],
+                  ['Category',  r['Category']],
+                ].filter(([, v]) => v != null && v !== '').map(([lbl, val]) => (
+                  <div key={lbl}>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 1 }}>{lbl}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: lbl === 'Polled' ? ((val||'').toLowerCase() === 'polled' ? '#10b981' : '#f87171') : '#e2e8f0', fontFamily: lbl === 'EPIC ID' ? 'ui-monospace,monospace' : 'inherit' }}>
+                      {String(val)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 2025 Roll record */}
+            <div style={{
+              borderRadius: 10,
+              border: `1px solid ${in2025 ? 'rgba(34,211,238,0.25)' : 'rgba(239,68,68,0.18)'}`,
+              borderLeft: `3px solid ${in2025 ? '#22d3ee' : '#ef4444'}`,
+              background: in2025 ? 'rgba(34,211,238,0.04)' : 'rgba(239,68,68,0.03)',
+              padding: '12px 14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={in2025 ? '#22d3ee' : '#f87171'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  {in2025
+                    ? <><polyline points="3 8 6 11 13 4"/><circle cx="8" cy="8" r="6.5"/></>
+                    : <><circle cx="8" cy="8" r="6.5"/><line x1="5" y1="5" x2="11" y2="11"/><line x1="11" y1="5" x2="5" y2="11"/></>
+                  }
+                </svg>
+                <span style={{ fontSize: 11, fontWeight: 800, color: in2025 ? '#22d3ee' : '#f87171', letterSpacing: '0.5px' }}>
+                  {in2025 ? 'CURRENT — 2025 VOTER ROLL' : 'NOT FOUND IN 2025 ROLL'}
+                </span>
+              </div>
+              {in2025 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
+                  {[
+                    ['Name (2025)',   r['Name in 2025']],
+                    ['Age (2025)',    r['Age in 2025']],
+                    ['Ward',         r['Ward']],
+                    ['Booth',        r['Booth']],
+                  ].filter(([, v]) => v != null && v !== '').map(([lbl, val]) => (
+                    <div key={lbl}>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 1 }}>{lbl}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>{String(val)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                  This voter was on the 2023 roll but does not appear in the 2025 voter list.
+                  They may have been deleted, migrated, or not yet enrolled.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ── keep the old FIELDS def below but we only use it for the legacy desktop table (now replaced) ──
   const FIELDS = [
     { key: 'House No',        label: 'House No'   },
     { key: 'Voter Name',      label: 'Name'       },
@@ -3429,86 +3690,40 @@ function ProgenyVoterListModal({ onClose }) {
           )}
 
           {!loading && records.length > 0 && (
-            isMobile ? (
-              /* ── Mobile card view ──────────────────────────────────────── */
-              <div style={{ padding: '12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {records.map((r, i) => (
-                  <div key={r._id || i} style={{
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-                    borderRadius: 10, padding: '12px 14px',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{r['Voter Name'] || '—'}</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{r['Epic / Voter ID'] || '—'}</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                        <GenderBadge g={r['Gender']} />
-                      </div>
+            <div style={{ padding: isMobile ? '10px 10px' : '12px 16px' }}>
+
+              {/* ── Column header (desktop only) ─────────────────────────── */}
+              {!isMobile && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '260px 130px 72px 52px 90px 90px 1fr auto',
+                  padding: '0 14px 8px',
+                  gap: 0,
+                  marginBottom: 4,
+                }}>
+                  {[
+                    { label: 'Ancestor (2023 Roll)', sub: 'name · epic · house' },
+                    { label: 'Ancestor of',          sub: 'relative · relation' },
+                    { label: 'Gender / Age',         sub: '' },
+                    { label: 'Ward',                 sub: 'Booth' },
+                    { label: '2023 Poll',            sub: 'voted?' },
+                    { label: '2025 Roll',            sub: 'present?' },
+                    { label: 'Community',            sub: 'category' },
+                    { label: '',                     sub: '' },
+                  ].map((col, ci) => (
+                    <div key={ci} style={{ padding: ci === 0 ? 0 : '0 10px' }}>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.55px' }}>{col.label}</div>
+                      {col.sub && <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.15)', marginTop: 1 }}>{col.sub}</div>}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', fontSize: 11 }}>
-                      {[
-                        ['House', r['House No']],
-                        ['Age', r['Age (2023)']],
-                        ['Ward', r['Ward']],
-                        ['Booth', r['Booth']],
-                        ['Relative', r['Relative Name']],
-                        ['Community', r['Community']],
-                      ].map(([lbl, val]) => (
-                        <div key={lbl}>
-                          <span style={{ color: 'rgba(255,255,255,0.25)', marginRight: 4 }}>{lbl}:</span>
-                          <span style={{ color: 'rgba(255,255,255,0.7)' }}>{val ?? '—'}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', gap: 5, marginTop: 8, flexWrap: 'wrap' }}>
-                      <PolledBadge val={r['Polled 2023?']} />
-                      <In2025Badge val={r['In 2025?']} />
-                      {r['Category'] && (
-                        <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.07)', borderRadius: 4, padding: '1px 6px' }}>{r['Category']}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* ── Desktop table view ────────────────────────────────────── */
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#0f1117', zIndex: 1 }}>
-                      {FIELDS.map(f => (
-                        <th key={f.key} style={{ padding: '9px 12px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
-                          {f.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {records.map((r, i) => (
-                      <tr key={r._id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.1s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        {FIELDS.map(f => {
-                          const val = r[f.key];
-                          let cell;
-                          if (f.key === 'Gender')       cell = <GenderBadge g={val} />;
-                          else if (f.key === 'Polled 2023?') cell = <PolledBadge val={val} />;
-                          else if (f.key === 'In 2025?')    cell = <In2025Badge val={val} />;
-                          else if (f.key === 'Voter Name' || f.key === 'Name in 2025')
-                            cell = <span style={{ fontWeight: 600, color: f.key === 'Voter Name' ? '#fff' : 'rgba(255,255,255,0.6)' }}>{val || '—'}</span>;
-                          else if (f.key === 'Epic / Voter ID')
-                            cell = <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#22d3ee' }}>{val || '—'}</span>;
-                          else
-                            cell = <span style={{ color: 'rgba(255,255,255,0.55)' }}>{val ?? '—'}</span>;
-                          return <td key={f.key} style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{cell}</td>;
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )
+                  ))}
+                </div>
+              )}
+
+              {/* ── Ancestor rows ─────────────────────────────────────────── */}
+              {records.map((r, i) => (
+                <AncestorRow key={r._id || i} r={r} idx={i} />
+              ))}
+            </div>
           )}
         </div>
 
