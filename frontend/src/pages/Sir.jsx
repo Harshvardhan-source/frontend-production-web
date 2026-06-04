@@ -3232,9 +3232,9 @@ function ProgenyVoterListModal({ onClose }) {
       if (q) params.set('search', q);
       if (w) params.set('ward', w);
       if (b) params.set('booth', b);
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      const token = sessionStorage.getItem('cc_token') || '';
       const res = await fetch(`${API}/progeny/voters/?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       });
       const data = await res.json();
       if (data.success) {
