@@ -3518,6 +3518,54 @@ function ProgenyVoterListModal({ onClose }) {
                 </div>
               )}
             </div>
+
+            {/* ── 2002 Ancestors in House ─────────────────────────────────────── */}
+            {r['2002 Ancestors in House'] && (
+              <div style={{
+                gridColumn: isMobile ? '1' : '1 / -1',
+                borderRadius: 10,
+                border: '1px solid rgba(167,139,250,0.2)',
+                borderLeft: '3px solid #a78bfa',
+                background: 'rgba(167,139,250,0.04)',
+                padding: '12px 14px',
+                marginTop: 4,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 7.5L8 2l6 5.5"/><path d="M3.5 6.5V14h3.5v-3.5h2V14H13V6.5"/>
+                    </svg>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#a78bfa', letterSpacing: '0.5px' }}>
+                      2002 ANCESTORS IN HOUSE
+                    </span>
+                  </div>
+                  {r['2002 Family Size'] != null && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 20, padding: '2px 10px' }}>
+                      {r['2002 Family Size']} in household
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 6px' }}>
+                  {String(r['2002 Ancestors in House']).split('|').map((name, i) => {
+                    const n = name.trim();
+                    if (!n) return null;
+                    return (
+                      <span key={i} style={{
+                        fontSize: 10, fontWeight: 600,
+                        color: 'rgba(255,255,255,0.65)',
+                        background: 'rgba(167,139,250,0.08)',
+                        border: '1px solid rgba(167,139,250,0.15)',
+                        borderRadius: 5,
+                        padding: '2px 8px',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {n}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
