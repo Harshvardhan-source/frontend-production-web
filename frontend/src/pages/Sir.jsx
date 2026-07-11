@@ -884,15 +884,28 @@ function VoterInfoModal({ record, roll, onClose }) {
   const accentBdr   = roll === '2025' ? 'rgba(34,211,238,0.25)'  : 'rgba(245,158,11,0.25)';
 
   const fields = [
-    { label: 'Name',          value: record.name,                    mono: false },
-    { label: 'Relation',      value: record.relation,                mono: false },
-    { label: 'House / Flat',  value: record.house,                   mono: true  },
-    { label: 'Voter ID/EPIC', value: record.voterid,                 mono: true  },
-    { label: 'Gender',        value: record.gender,                  mono: false },
-    { label: 'Age',           value: record.age,                     mono: false },
-    { label: 'Booth No',      value: record.booth || record.part,    mono: false },
-    ...(record.serial ? [{ label: 'Serial No', value: record.serial, mono: false }] : []),
-    ...(record.score  ? [{ label: 'Match Score', value: `${record.score}%`, mono: false }] : []),
+    { label: 'Name',                      value: record.name,                          mono: false },
+    { label: 'Relation',                  value: record.relation,                      mono: false },
+    { label: 'House / Flat',              value: record.house,                         mono: true  },
+    { label: 'Voter ID/EPIC',             value: record.voterid,                       mono: true  },
+    { label: 'Gender',                    value: record.gender,                        mono: false },
+    { label: 'Age',                       value: record.age,                           mono: false },
+    { label: 'Booth No',                  value: record.booth,                         mono: false },
+    { label: 'Ward No',                   value: record.ward || record.part,           mono: false },
+    { label: 'Ward Name',                 value: record.ward_name,                     mono: false },
+    { label: 'Serial No',                 value: record.serial,                        mono: false },
+    { label: 'Mapping Status',            value: record.mapping_status,                mono: false },
+    { label: 'Community',                 value: record.community,                     mono: false },
+    { label: 'Category',                  value: record.category,                      mono: false },
+    { label: 'Ward Classification',       value: record.ward_classification,           mono: false },
+    { label: 'Risk Status',               value: record.risk_status,                   mono: false },
+    { label: 'Action Priority',           value: record.action_priority,               mono: false },
+    { label: 'Poll Status 2023',          value: record.poll_status_2023,              mono: false },
+    { label: 'Religion',                  value: record.religion,                      mono: false },
+    { label: 'Section Name',              value: record.section_name,                  mono: false },
+    { label: 'Polling Station Name',      value: record.polling_station_name,          mono: false },
+    { label: 'Polling Station Address',   value: record.polling_station_address,       mono: false },
+    { label: 'Voter Address',             value: record.voter_address,                 mono: false },
   ].filter(f => f.value);
 
   return (
@@ -910,7 +923,7 @@ function VoterInfoModal({ record, roll, onClose }) {
           background:'linear-gradient(145deg,rgba(17,28,52,0.99),rgba(10,18,35,0.99))',
           border:`1px solid ${accentBdr}`,
           borderRadius:18, padding:'22px 24px',
-          width:'100%', maxWidth:420,
+          width:'100%', maxWidth:480,
           maxHeight:'90dvh', overflowY:'auto',
           boxShadow:'0 28px 64px rgba(0,0,0,0.65)',
           animation:'fadeIn 0.2s ease',
@@ -960,7 +973,7 @@ function VoterInfoModal({ record, roll, onClose }) {
               </span>
               <span style={{
                 fontSize:13, fontWeight:600, color:'#e2e8f0',
-                textAlign:'right', wordBreak:'break-all',
+                textAlign:'right', wordBreak:'break-word',
                 fontFamily: mono ? 'ui-monospace,monospace' : 'inherit',
               }}>
                 {value}
