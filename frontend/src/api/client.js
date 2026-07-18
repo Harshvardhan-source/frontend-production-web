@@ -293,6 +293,57 @@ export const aiChatApi = {
 // ── SIR Confirm Match ─────────────────────────────────────────────────────────
 export const sirApi = {
   /**
+   * Instant SIR check — the actual search endpoint. Runs against the DK-wide
+   * Elasticsearch indices via _dk_run_check_preview() / _dk_find_voter() in
+   * views.py (POST /api/sir/check/). Sir.jsx currently calls this endpoint
+   * directly with its own fetch() (it needs custom debounce/abort/retry
+   * handling this axios instance doesn't provide out of the box), so this
+   * wrapper isn't wired into Sir.jsx today — added here for parity so any
+   * other page/component can reuse the same auth + CSRF + error handling
+   * this client already gives every other endpoint.
+   *
+   * @param {object} params
+   * @param {string} [params.name]         - Voter Name
+   * @param {string} [params.epic]         - EPIC / Voter ID
+   * @param {string} [params.relation]     - Relative Name
+   * @param {string} [params.house]        - House / Flat No
+   * @param {string} [params.constituency] - Constituency (full or partial)
+   * @param {boolean} [params.store]       - true = also persist a SIR decision
+   *                                          (see views.py:_run_sir_analysis);
+   *                                          false = read-only preview (default)
+   *
+   * Response shape: { success, results, suspicious, changes, stored, in_2025,
+   *   in_2002, similar_2025, suggestions_2002, record_2002, record_2025 }
+   */
+  check: (params = {}) =>
+    api.post('/api/sir/check/', {
+      name:         params.name || '',
+      voterid:      (params.epic || '').trim().toUpperCase(),
+      relationName: params.relation || '',
+      houseNumber:  (params.house || '').trim().toUpperCase(),
+      constituency: params.constituency || '',
+      wardNumber:   '',
+      boothNo:      '',
+      serialNumber: '',
+      store:        !!params.store,
+    }),
+
+  /**
+   * Admin only (MLA/PA — enforced server-side by _require_superuser).
+   * Rebuilds the DK-wide voters_2025 / voters_2002 Elasticsearch indices
+   * from the DK Mongo collections. See views.py:api_sir_es_sync /
+   * _dk_sync_timeline. Nothing in api_check_sir will reflect new Mongo data
+   * until this has been run.
+   *
+   * @param {'both'|'2025'|'2002'} [timeline]
+   * @param {boolean} [force] - true = drop & recreate the index from scratch
+   *
+   * Response: { success, synced: [{ timeline, total, indexed, errors }, …] }
+   */
+  esSync: (timeline = 'both', force = false) =>
+    api.post('/api/sir/es-sync/', { timeline, force }),
+
+  /**
    * Persist the user's confirmation decision from the SimilarRecordsPanel.
    * Returns { success, status, doc_id } — doc_id is the MongoDB _id of the
    * inserted document; pass it to attachForm() to link the scanned form.
