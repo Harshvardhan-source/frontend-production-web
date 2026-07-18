@@ -31,6 +31,79 @@ function compressSIRPhoto(file, maxPx = 1200, quality = 0.80) {
   });
 }
 
+// ─── SIR name-variant helpers ───────────────────────────────────────────────────
+// Client-side port of the SIR search backend's name_variants.py, so the
+// "also try these spelling / short-form variants" hint (ported from
+// sir_dashboard.html) works without needing the /api/sir/check/ backend to
+// return variant data itself. These are SUGGESTIONS for the reviewer to try
+// in the search box — same as the original Python docstring's stance: low
+// stakes for a human picking from a list, so widening recall here is fine.
+// They are NOT used to alter which records the backend treats as a match.
+const SIR_NICKNAMES = {
+  ravindra: ['ravi'], ravindran: ['ravi'], surendra: ['suri'], narendra: ['naren'],
+  rajendra: ['raju', 'raja'], devendra: ['deva'], virendra: ['viru'], dharmendra: ['dharma'],
+  yashwanth: ['yash'], yashwant: ['yash'],
+  krishnamurthy: ['krishna', 'murthy'], krishnappa: ['krishna'],
+  ramakrishna: ['ram', 'krishna'], gopalakrishna: ['gopal', 'krishna'],
+  venkataramana: ['venkat', 'venky'], venkataraman: ['venkat', 'venky'], venkatesh: ['venkat', 'venky'],
+  lakshminarayana: ['lakshman', 'narayan'], sathyanarayana: ['sathya'],
+  chandrashekhar: ['chandra'], chandrasekhara: ['chandra'],
+  vishwanatha: ['vishu'], vishwanath: ['vishu'],
+  manjunatha: ['manju'], manjunath: ['manju'],
+  puttaswamy: ['putta'], basavaraju: ['basu'],
+  subramanya: ['subbu'], subramaniam: ['subbu'],
+  narasimha: ['simha'], jayarama: ['jaya'], jayaram: ['jaya'], mahalakshmi: ['lakshmi'],
+};
+const SIR_REVERSE_NICKNAMES = (() => {
+  const rev = {};
+  Object.entries(SIR_NICKNAMES).forEach(([full, shorts]) => {
+    shorts.forEach(s => { (rev[s] = rev[s] || []).push(full); });
+  });
+  return rev;
+})();
+const SIR_SUFFIX_RULES = [
+  ['endra', 'endar'], ['endar', 'endra'], ['indra', 'indar'], ['indar', 'indra'],
+  ['achar', 'acharya'], ['acharya', 'achar'],
+];
+const SIR_SUBSTRING_RULES = [
+  ['ee', 'i'], ['oo', 'u'], ['dh', 'd'], ['th', 't'], ['ph', 'f'], ['sh', 's'], ['v', 'w'],
+];
+function sirTransliterationVariants(nameLower) {
+  const variants = new Set();
+  SIR_SUFFIX_RULES.forEach(([find, replace]) => {
+    if (nameLower.endsWith(find)) variants.add(nameLower.slice(0, -find.length) + replace);
+  });
+  SIR_SUBSTRING_RULES.forEach(([find, replace]) => {
+    if (nameLower.includes(find))    variants.add(nameLower.split(find).join(replace));
+    if (nameLower.includes(replace)) variants.add(nameLower.split(replace).join(find));
+  });
+  variants.delete(nameLower);
+  return [...variants].sort();
+}
+function sirNicknameVariants(nameLower) {
+  const variants = new Set([...(SIR_NICKNAMES[nameLower] || []), ...(SIR_REVERSE_NICKNAMES[nameLower] || [])]);
+  variants.delete(nameLower);
+  return [...variants].sort();
+}
+// Returns ONLY the generated extras (as full name strings, surname preserved),
+// deduped — mirrors sir_dashboard.html's `.slice(1)` treatment of
+// generate_variants()'s python return value (which includes the as-typed
+// name at index 0; we just never add it here).
+function generateSIRNameVariants(name, maxVariants = 6) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return [];
+  const firstToken = trimmed.split(/\s+/)[0];
+  const rest = trimmed.slice(firstToken.length);
+  const lower = firstToken.toLowerCase();
+  if (lower.length < 3) return []; // too short for transliteration rules to be meaningful
+  const seen = new Set([lower]);
+  const candidates = [];
+  [...sirNicknameVariants(lower), ...sirTransliterationVariants(lower)].forEach(v => {
+    if (!seen.has(v)) { seen.add(v); candidates.push(v); }
+  });
+  return candidates.slice(0, maxVariants).map(v => v + rest);
+}
+
 // Convert a base64 string (no data-URL prefix) back to a File.
 // Used in ConfirmAndSaveBar when only base64 is stored in state.
 function base64ToFile(base64, mimeType, filename = 'sir_form.jpg') {
@@ -768,6 +841,20 @@ const Icon = {
       <circle cx="8" cy="6" r="1.5"/>
     </svg>
   ),
+  // Map pin — for the Constituency field (ported from sir_dashboard.html)
+  MapPin: () => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1.5C5.24 1.5 3 3.74 3 6.5c0 4 5 8 5 8s5-4 5-8c0-2.76-2.24-5-5-5z"/>
+      <circle cx="8" cy="6.5" r="1.8"/>
+    </svg>
+  ),
+  // Magic wand — for the spelling/nickname variant chips (ported from sir_dashboard.html)
+  Wand: () => (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 13.5L9.5 6.5"/>
+      <path d="M11.5 2v2.4M14.5 5h-2.4M12.7 3l-1.4 1.4"/>
+    </svg>
+  ),
 };
 
 // ─── Category meta ─────────────────────────────────────────────────────────────
@@ -893,6 +980,8 @@ function VoterInfoModal({ record, roll, onClose }) {
     { label: 'Booth No',                  value: record.booth,                         mono: false },
     { label: 'Ward No',                   value: record.ward || record.part,           mono: false },
     { label: 'Ward Name',                 value: record.ward_name,                     mono: false },
+    { label: 'Part No',                   value: record.part_no || record.partNo,      mono: true  },
+    { label: 'Constituency',              value: record.constituency || record.ac_name || record.acName, mono: false },
     { label: 'Serial No',                 value: record.serial,                        mono: false },
     { label: 'Mapping Status',            value: record.mapping_status,                mono: false },
     { label: 'Community',                 value: record.community,                     mono: false },
@@ -1926,13 +2015,14 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
 
   // ── Field metadata ───────────────────────────────────────────────────────────
   const FIELD_META = {
-    voterid:   { label: 'Voter ID',           color: '#10b981' },
-    name:      { label: 'Voter Name',         color: '#22d3ee' },
-    house:     { label: 'House No',           color: '#a78bfa' },
-    relation:  { label: 'Relation',           color: '#f59e0b' },
-    confirmed: { label: '✓ Confirmed',        color: '#10b981' },
-    not_exact: { label: '✗ No Exact Match',   color: '#f87171' },
-    partial:   { label: 'Partial Name',       color: '#6366f1' },
+    voterid:      { label: 'Voter ID',           color: '#10b981' },
+    name:         { label: 'Voter Name',         color: '#22d3ee' },
+    house:        { label: 'House No',           color: '#a78bfa' },
+    relation:     { label: 'Relation',           color: '#f59e0b' },
+    constituency: { label: 'Constituency',       color: '#38bdf8' },
+    confirmed:    { label: '✓ Confirmed',        color: '#10b981' },
+    not_exact:    { label: '✗ No Exact Match',   color: '#f87171' },
+    partial:      { label: 'Partial Name',       color: '#6366f1' },
   };
 
   // ── Group rows by match strength + "Almost matched" labelling ────────────────
@@ -2104,7 +2194,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                 </div>
                 {/* Table */}
                 <div style={{ overflowX:'auto' }}>
-                  <table style={{ width:'100%', borderCollapse:'collapse', minWidth:420 }}>
+                  <table style={{ width:'100%', borderCollapse:'collapse', minWidth:600 }}>
                     <thead>
                       <tr>
                         <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:34, textAlign:'center', fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', letterSpacing:'0.5px' }}>Pick</th>
@@ -2114,6 +2204,8 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                         <ColHeader>Relation</ColHeader>
                         <ColHeader>Matched</ColHeader>
                         <ColHeader>Booth</ColHeader>
+                        <ColHeader>Part No</ColHeader>
+                        <ColHeader>Constituency</ColHeader>
                         <ColHeader>EPIC</ColHeader>
                         <th style={{ padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', width:36 }} />
                       </tr>
@@ -2211,6 +2303,23 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
                               </span>
                             ) : <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>}
                           </td>
+                          {/* Part No — ported from sir_dashboard.html's voter-card "Part no" field.
+                              Field name on the real record isn't confirmed against the Django
+                              backend yet, so this tries the likely candidates and falls back to — . */}
+                          <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap', color:'rgba(255,255,255,0.45)' }}>
+                            {r.part_no || r.partNo || r.part || <span style={{ color:'rgba(255,255,255,0.2)' }}>—</span>}
+                          </td>
+                          {/* Constituency — ported from sir_dashboard.html's voter-card "Constituency"
+                              field. Same caveat as Part No above re: real field name. */}
+                          <td style={{ padding:'7px 10px', fontSize:11, whiteSpace:'nowrap', maxWidth:140, overflow:'hidden', textOverflow:'ellipsis', color:'rgba(255,255,255,0.45)' }}>
+                            <HighlightText
+                              text={r.constituency || r.ac_name || r.acName || '—'}
+                              query={searchInputs?.constituency}
+                              highlightColor="#38bdf8"
+                              baseColor="rgba(255,255,255,0.45)"
+                              bold={false}
+                            />
+                          </td>
                           {/* EPIC */}
                           <td style={{ padding:'7px 10px', fontSize:11, fontFamily:'ui-monospace,monospace', whiteSpace:'nowrap' }}>
                             <HighlightText
@@ -2278,7 +2387,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
           {/* Legend */}
           <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
             <span style={{ fontSize:9, color:'#f59e0b', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:4, padding:'1px 6px', fontWeight:700 }}>⚡ Almost matched</span>
-            {[['voterid','Voter ID'],['name','Voter Name'],['house','House No'],['relation','Relation'],['partial','Partial']].map(([f, lbl]) => (
+            {[['voterid','Voter ID'],['name','Voter Name'],['house','House No'],['relation','Relation'],['constituency','Constituency'],['partial','Partial']].map(([f, lbl]) => (
               <span key={f} style={{ fontSize:9, color:FIELD_META[f].color, background:`${FIELD_META[f].color}14`, border:`1px solid ${FIELD_META[f].color}28`, borderRadius:4, padding:'1px 6px', fontWeight:700 }}>{lbl}</span>
             ))}
           </div>
@@ -2321,7 +2430,7 @@ function SimilarRecordsPanel({ similar2025, similar2002, record2025, record2002,
 
 // ─── LIVE CHECK PANEL ─────────────────────────────────────────────────────────
 function LiveCheckPanel() {
-  const [form, setForm]     = useState({ name:'', epic:'', relation:'', house:'' });
+  const [form, setForm]     = useState({ name:'', epic:'', relation:'', house:'', constituency:'' });
   const [state, setState]   = useState('idle');
   const [result, setResult] = useState(null);
   const debounceRef         = useRef(null);
@@ -2350,7 +2459,7 @@ function LiveCheckPanel() {
     })();
   }, []);
 
-  const hasInput = form.name.trim() || form.epic.trim() || form.house.trim() || form.relation.trim();
+  const hasInput = form.name.trim() || form.epic.trim() || form.house.trim() || form.relation.trim() || form.constituency.trim();
 
   // Auto-retry once on error after a short delay
   React.useEffect(() => {
@@ -2363,11 +2472,12 @@ function LiveCheckPanel() {
   }, [state]);
 
   const doCheck = useCallback(async (f) => {
-    const name     = f.name.trim();
-    const epic     = f.epic.trim().toUpperCase();
-    const relation = f.relation.trim();
-    const house    = f.house.trim().toUpperCase();
-    if (!name && !epic && !house && !relation) { setState('idle'); setResult(null); return; }
+    const name         = f.name.trim();
+    const epic         = f.epic.trim().toUpperCase();
+    const relation     = f.relation.trim();
+    const house        = f.house.trim().toUpperCase();
+    const constituency = f.constituency.trim();
+    if (!name && !epic && !house && !relation && !constituency) { setState('idle'); setResult(null); return; }
 
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
@@ -2379,7 +2489,11 @@ function LiveCheckPanel() {
       const res  = await fetch(`${API}/sir/check/`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, voterid: epic, relationName: relation, houseNumber: house, wardNumber:'', boothNo:'', serialNumber:'', store:false }),
+        // NOTE: `constituency` is new (ported from sir_dashboard.html's search
+        // form) and is sent for forward-compatibility. Confirm /api/sir/check/
+        // actually filters on it before relying on it to narrow results — if
+        // the backend ignores unknown fields, this is a no-op today.
+        body: JSON.stringify({ name, voterid: epic, relationName: relation, houseNumber: house, constituency, wardNumber:'', boothNo:'', serialNumber:'', store:false }),
         signal: abortRef.current.signal,
       });
       const data = await res.json();
@@ -2405,7 +2519,7 @@ function LiveCheckPanel() {
   };
 
   const handleClear = () => {
-    setForm({ name:'', epic:'', relation:'', house:'' });
+    setForm({ name:'', epic:'', relation:'', house:'', constituency:'' });
     setState('idle'); setResult(null); setConfirmedRec(null);
     clearTimeout(debounceRef.current);
     if (abortRef.current) abortRef.current.abort();
@@ -2465,12 +2579,38 @@ function LiveCheckPanel() {
         </div>
       </div>
 
+      {/* Spelling / nickname variant chips — ported from sir_dashboard.html.
+          Computed entirely client-side (see generateSIRNameVariants near the
+          top of this file) from whatever's currently typed, so it updates
+          live without waiting on a network round-trip. These are suggested
+          search terms for the reviewer to try, not confirmed backend matches. */}
+      {(() => {
+        const nameExtras = generateSIRNameVariants(form.name);
+        const relExtras  = generateSIRNameVariants(form.relation);
+        const extras     = [...new Set([...nameExtras, ...relExtras])];
+        if (!extras.length) return null;
+        return (
+          <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:8, marginBottom:14 }}>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)', display:'flex', alignItems:'center', gap:5 }}>
+              <span style={{ color:'rgba(255,255,255,0.3)' }}><Icon.Wand /></span>
+              Similar spellings/short forms to also try:
+            </span>
+            {extras.map(v => (
+              <span key={v} style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, background:'rgba(56,189,248,0.1)', color:'#7dd3fc', border:'1px solid rgba(56,189,248,0.25)' }}>
+                {v}
+              </span>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Input grid */}
       <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap:14 }}>
         <InputBox label="Voter Name"      placeholder="Enter full name…"         value={form.name}     onChange={handleChange('name')}     IconComp={Icon.User}   autoFocus />
         <InputBox label="EPIC / Voter ID" placeholder="e.g. NUX4001234"         value={form.epic}     onChange={handleChange('epic')}     IconComp={Icon.ID}     mono />
         <InputBox label="House / Flat No" placeholder="e.g. 7-1-42 or 2-14-1223" value={form.house}  onChange={handleChange('house')}    IconComp={Icon.House}  mono note="Narrows search — partial match supported" />
         <InputBox label="Relative Name"   placeholder="Father / Husband name"   value={form.relation} onChange={handleChange('relation')} IconComp={Icon.Family} note="Search standalone or as fallback" />
+        <InputBox label="Constituency"    placeholder="e.g. Mangalore City North" value={form.constituency} onChange={handleChange('constituency')} IconComp={Icon.MapPin} note="Full or partial name" />
       </div>
 
       {/* EPIC-only: not found in either roll — show clear "Not Found" block */}
@@ -2504,11 +2644,11 @@ function LiveCheckPanel() {
           record2002={result?.record_2002}
           in2025={result?.in_2025}
           in2002={result?.in_2002}
-          inputFieldCount={[form.name, form.epic, form.house, form.relation].filter(v => v.trim()).length}
+          inputFieldCount={[form.name, form.epic, form.house, form.relation, form.constituency].filter(v => v.trim()).length}
           searchName={form.name.trim()}
           searchRelation={form.relation.trim()}
           searchEpic={form.epic.trim().toUpperCase()}
-          searchInputs={{ name: form.name.trim(), epic: form.epic.trim().toUpperCase(), house: form.house.trim(), relation: form.relation.trim() }}
+          searchInputs={{ name: form.name.trim(), epic: form.epic.trim().toUpperCase(), house: form.house.trim(), relation: form.relation.trim(), constituency: form.constituency.trim() }}
           confirmedVoterIds={confirmedVoterIds}
         />
       )}
@@ -2550,6 +2690,8 @@ function LiveCheckPanel() {
                         ['Age',      rec.age],
                         ['EPIC',     rec.voterid],
                         ...(year === '2025' ? [['Ward', rec.ward], ['Booth', rec.booth]] : []),
+                        ['Part No',     rec.part_no || rec.partNo],
+                        ['Constituency', rec.constituency || rec.ac_name || rec.acName],
                       ].map(([lbl,val]) => val ? (
                         <div key={lbl} style={{ display:'flex', gap:8, alignItems:'baseline' }}>
                           <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)', minWidth:52, fontWeight:600 }}>{lbl}</span>
