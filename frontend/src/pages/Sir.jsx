@@ -2653,6 +2653,32 @@ function LiveCheckPanel() {
         />
       )}
 
+      {/* Nothing found anywhere — SimilarRecordsPanel above renders null when
+          there's truly no candidate on either side (see its early `if
+          (!rows25.length && !rows02.length) return null`), and the primary
+          2002-vs-2025 comparison block below is also gated on a match
+          existing. Without this, a search that legitimately finds nothing
+          just leaves the page blank with no confirmation the search ran —
+          this makes that state explicit instead of silent. */}
+      {state === 'result' && !result?.epic_only && !result?.in_2025 && !result?.in_2002 &&
+       !(result?.similar_2025?.length > 0) && !(result?.suggestions_2002?.length > 0) && (
+        <div style={{ marginTop:16, padding:'22px 20px', textAlign:'center', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, animation:'fadeIn 0.3s ease' }}>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:8, opacity:0.3, color:'#f87171' }}>
+            <Icon.Ghost />
+          </div>
+          <div style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.55)', marginBottom:4 }}>
+            No matching records found
+          </div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', lineHeight:1.6, maxWidth:420, margin:'0 auto' }}>
+            The search ran against both rolls and found nothing for{' '}
+            {[form.name && `name "${form.name.trim()}"`, form.epic && `EPIC "${form.epic.trim().toUpperCase()}"`,
+              form.house && `house "${form.house.trim()}"`, form.relation && `relation "${form.relation.trim()}"`,
+              form.constituency && `constituency "${form.constituency.trim()}"`].filter(Boolean).join(', ') || 'this search'}.
+            {' '}Double-check spelling, try a spelling variant above, or broaden the search by clearing a field.
+          </div>
+        </div>
+      )}
+
       {/* Checking skeleton */}
       {state === 'checking' && (
         <div style={{ marginTop:20, display:'flex', flexDirection:'column', gap:10 }}>
