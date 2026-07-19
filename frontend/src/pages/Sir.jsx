@@ -4322,6 +4322,54 @@ function ProgenyAnalysisDashboard() {
   );
 }
 
+// ─── DK SIR Verification — external redirect button ───────────────────────────
+// Replaces the in-app "Instant SIR Check" tool with a button that sends the
+// user to the external DK SIR verification site.
+function DKSIRVerificationButton() {
+  return (
+    <div style={{
+      background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.08)',
+      borderRadius:16, padding: isMobile ? 20 : 28, marginBottom:8,
+      display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', gap:14,
+    }}>
+      <div style={{
+        width:48, height:48, borderRadius:12, flexShrink:0,
+        background:'linear-gradient(135deg,#d97706,#f59e0b)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        boxShadow:'0 0 20px rgba(245,158,11,0.35)', color:'#fff8e1',
+      }}>
+        <Icon.SIR />
+      </div>
+      <div>
+        <div style={{ fontSize:16, fontWeight:800, color:'var(--text-1)', marginBottom:4, letterSpacing:'-0.2px' }}>
+          Instant SIR Check
+        </div>
+        <div style={{ fontSize:12, color:'rgba(255,255,255,0.35)', maxWidth:420, lineHeight:1.6 }}>
+          Cross-reference a voter across the 2002 &amp; 2025 rolls using the DK SIR verification tool
+        </div>
+      </div>
+      <a
+        href="https://sir-dk-api-nbb2.onrender.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display:'inline-flex', alignItems:'center', gap:8,
+          background:'linear-gradient(135deg,#d97706,#f59e0b)',
+          color:'#fff', fontWeight:700, fontSize:13,
+          borderRadius:10, padding:'11px 24px',
+          textDecoration:'none', boxShadow:'0 4px 18px rgba(245,158,11,0.3)',
+          transition:'transform 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+      >
+        Open DK SIR Verification
+        <Icon.ArrowRight />
+      </a>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   return (
@@ -4374,8 +4422,8 @@ export default function SIR() {
         {/* AI Overview — SIR Intelligence (ShaastraAI) */}
         <SIRAIOverview />
 
-        {/* Live check panel — Instant SIR Check */}
-        <LiveCheckPanel />
+        {/* DK SIR verification — redirects out to the external checker */}
+        <DKSIRVerificationButton />
 
         {/* Confirmed matches / not-found panel */}
         <ConfirmedMatchesPanel />
