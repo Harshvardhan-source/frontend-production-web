@@ -4524,6 +4524,355 @@ function LargeFamiliesModal({ onClose, wardNumber, boothNo }) {
   return createPortal(modal, document.body);
 }
 
+// ─── Family Size Analytics Modal ─────────────────────────────────────────────
+// Mirrors report section "2.6 Family size" — live data from
+// GET /api/family-size-analytics/ (grouped by House No in MongoDB '2025').
+
+const FAMILY_SIZE_TABS = [
+  { key: 'assembly', label: 'Overview' },
+  { key: 'wards',    label: 'Ward Distribution' },
+  { key: 'average',  label: 'Average Size' },
+  { key: 'single',   label: 'Single Voters' },
+  { key: 'large',    label: 'Large Families' },
+];
+
+function FSHeading({ num, title, sub }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>
+        {num && <span style={{ color: '#22d3ee', marginRight: 6 }}>{num}</span>}{title}
+      </div>
+      {sub && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function FSTable({ columns, rows }) {
+  return (
+    <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, marginBottom: 22 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+        <thead>
+          <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+            {columns.map(c => (
+              <th key={c.key} style={{ textAlign: c.align || 'left', padding: '8px 12px', color: 'rgba(255,255,255,0.5)', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3, borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' }}>{c.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} style={{ background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent' }}>
+              {columns.map(c => (
+                <td key={c.key} style={{ padding: '7px 12px', color: '#e2e8f0', textAlign: c.align || 'left', borderBottom: '1px solid rgba(255,255,255,0.04)', whiteSpace: 'nowrap' }}>
+                  {c.render ? c.render(row) : row[c.key]}
+                </td>
+              ))}
+            </tr>
+          ))}
+          {rows.length === 0 && (
+            <tr><td colSpan={columns.length} style={{ padding: '18px 12px', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No data</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FSMiniStat({ label, value, color }) {
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${color}30`, borderRadius: 10, padding: '10px 12px' }}>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color }}>{value}</div>
+    </div>
+  );
+}
+
+const FS_TOOLTIP_STYLE = { background: '#0d1b30', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontSize: 12 };
+const FS_AXIS_TICK      = { fill: 'rgba(255,255,255,0.55)', fontSize: 11 };
+const FS_AXIS_LINE       = { stroke: 'rgba(255,255,255,0.1)' };
+const FS_BUCKET_KEYS    = ['1', '2-3', '4-5', '6-8', '9-12', '12+'];
+
+function fsShortName(name, len = 13) {
+  return name && name.length > len ? name.slice(0, len) + '…' : (name || '—');
+}
+
+function FamilySizeAssemblyTab({ data }) {
+  const a = data.assembly;
+  const chartData = a.buckets.map(b => ({ name: b.group, Families: b.families }));
+  return (
+    <>
+      <FSHeading num="2.6.1" title="Assembly-wide Family Size Distribution" sub="Family Size Distribution at Assembly Level" />
+      <FSTable
+        columns={[
+          { key: 'group', label: 'Family Group' },
+          { key: 'families', label: 'Families', align: 'right', render: r => r.families.toLocaleString() },
+          { key: 'percent', label: 'Percent', align: 'right', render: r => `${r.percent}%` },
+        ]}
+        rows={a.buckets}
+      />
+      <div style={{ height: 300, marginBottom: 20 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <XAxis dataKey="name" tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <YAxis tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <Tooltip contentStyle={FS_TOOLTIP_STYLE} />
+            <Bar dataKey="Families" radius={[6, 6, 0, 0]}>
+              {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+        <FSMiniStat label="Total Families" value={a.totalFamilies.toLocaleString()} color="#22d3ee" />
+        <FSMiniStat label="Total Members" value={a.totalMembers.toLocaleString()} color="#10b981" />
+        <FSMiniStat label="Avg Family Size" value={a.averageFamilySize} color="#f59e0b" />
+        <FSMiniStat label="Single-voter Houses" value={`${a.singleVoters.toLocaleString()} (${a.singlePercent}%)`} color="#8b5cf6" />
+        <FSMiniStat label="Large Families (6+)" value={`${a.largeFamilies.toLocaleString()} (${a.largePercent}%)`} color="#ef4444" />
+      </div>
+    </>
+  );
+}
+
+function FamilySizeWardsTab({ data }) {
+  const wards = data.wards;
+  const countRows = wards.map(w => {
+    const row = { ward: w.wardName, total: w.totalFamilies };
+    w.buckets.forEach(b => { row[b.group] = b.families; });
+    return row;
+  });
+  const pctChartData = wards.map(w => {
+    const row = { name: fsShortName(w.wardName) };
+    w.buckets.forEach(b => { row[b.group] = b.percent; });
+    return row;
+  });
+  return (
+    <>
+      <FSHeading num="2.6.2" title="Ward-wise Family Size Distribution" sub="Family Size Distribution at Ward Level" />
+      <FSTable
+        columns={[
+          { key: 'ward', label: 'Ward' },
+          ...FS_BUCKET_KEYS.map(k => ({ key: k, label: k, align: 'right', render: r => (r[k] ?? 0).toLocaleString() })),
+          { key: 'total', label: 'Total', align: 'right', render: r => r.total.toLocaleString() },
+        ]}
+        rows={countRows}
+      />
+
+      <FSHeading num="2.6.4" title="Ward-wise Family Size Percent" sub="This is much more useful for comparing wards." />
+      <div style={{ height: Math.max(260, wards.length * 34) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={pctChartData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 0 }}>
+            <XAxis type="number" domain={[0, 100]} unit="%" tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <YAxis type="category" dataKey="name" width={100} tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <Tooltip contentStyle={FS_TOOLTIP_STYLE} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            {FS_BUCKET_KEYS.map((k, i) => (
+              <Bar key={k} dataKey={k} stackId="pct" fill={COLORS[i % COLORS.length]} />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </>
+  );
+}
+
+function FamilySizeAverageTab({ data }) {
+  const wards = [...data.wards].sort((a, b) => b.averageFamilySize - a.averageFamilySize);
+  const top10 = data.topWardsByAvg;
+  const chartData = wards.map(w => ({ name: fsShortName(w.wardName, 15), avg: w.averageFamilySize }));
+  return (
+    <>
+      <FSHeading num="2.6.3" title="Average Family Size by Ward" sub="Ward Wise Average Family Size" />
+      <FSTable
+        columns={[
+          { key: 'ward', label: 'Ward' },
+          { key: 'avg', label: 'Average Family Size', align: 'right' },
+          { key: 'families', label: 'Families', align: 'right' },
+        ]}
+        rows={wards.map(w => ({ ward: w.wardName, avg: w.averageFamilySize.toFixed(2), families: w.totalFamilies.toLocaleString() }))}
+      />
+      <div style={{ height: Math.max(260, wards.length * 30), marginBottom: 26 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 0 }}>
+            <XAxis type="number" tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <YAxis type="category" dataKey="name" width={110} tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <Tooltip contentStyle={FS_TOOLTIP_STYLE} />
+            <Bar dataKey="avg" fill="#3b82f6" radius={[0, 6, 6, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <FSHeading num="2.6.7" title="Top 10 Wards with Highest Average Family Size" />
+      <FSTable
+        columns={[
+          { key: 'ward', label: 'Ward' },
+          { key: 'avg', label: 'Average Family Size', align: 'right' },
+          { key: 'families', label: 'Families', align: 'right' },
+        ]}
+        rows={top10.map(w => ({ ward: w.wardName, avg: w.averageFamilySize.toFixed(2), families: w.totalFamilies.toLocaleString() }))}
+      />
+    </>
+  );
+}
+
+function FamilySizeSingleTab({ data }) {
+  const wards = [...data.wards].sort((a, b) => b.singlePercent - a.singlePercent);
+  const g = data.assembly.genderSingle;
+  const assemblyGenderData = [
+    { name: 'Female', value: g.female },
+    { name: 'Male',   value: g.male },
+    { name: 'NA',     value: g.na },
+  ].filter(d => d.value > 0);
+  return (
+    <>
+      <FSHeading num="2.6.5" title="Single Voters Analysis at Ward Level" sub="Ward Wise Single Voters" />
+      <FSTable
+        columns={[
+          { key: 'ward', label: 'Ward' },
+          { key: 'total', label: 'Total Families', align: 'right' },
+          { key: 'single', label: 'Single Voter', align: 'right' },
+          { key: 'pct', label: 'Single %', align: 'right' },
+        ]}
+        rows={wards.map(w => ({ ward: w.wardName, total: w.totalFamilies.toLocaleString(), single: w.singleVoters.toLocaleString(), pct: `${w.singlePercent}%` }))}
+      />
+
+      <FSHeading title="Gender-wise Single Voters by Ward" />
+      <div style={{ height: Math.max(260, wards.length * 32), marginBottom: 26 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={wards.map(w => ({ name: fsShortName(w.wardName), Male: w.singleMale, Female: w.singleFemale }))}
+            layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 0 }}
+          >
+            <XAxis type="number" tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <YAxis type="category" dataKey="name" width={100} tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <Tooltip contentStyle={FS_TOOLTIP_STYLE} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar dataKey="Male" fill="#3b82f6" />
+            <Bar dataKey="Female" fill="#ef4444" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <FSHeading title="Single-Voter Households by Gender — Assembly Level" />
+      <div style={{ height: 260 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={assemblyGenderData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <XAxis dataKey="name" tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <YAxis tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <Tooltip contentStyle={FS_TOOLTIP_STYLE} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+              {assemblyGenderData.map((d, i) => (
+                <Cell key={i} fill={d.name === 'Female' ? '#ef4444' : d.name === 'Male' ? '#3b82f6' : '#6b7280'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </>
+  );
+}
+
+function FamilySizeLargeTab({ data }) {
+  const wards = [...data.wards].sort((a, b) => b.largePercent - a.largePercent);
+  return (
+    <>
+      <FSHeading num="2.6.6" title="Percentage of Large Families (6+) by Ward" sub="Ward Wise Large Families (6+ Members)" />
+      <FSTable
+        columns={[
+          { key: 'ward', label: 'Ward' },
+          { key: 'total', label: 'Total Families', align: 'right' },
+          { key: 'large', label: 'Large Families', align: 'right' },
+          { key: 'pct', label: 'Large %', align: 'right' },
+        ]}
+        rows={wards.map(w => ({ ward: w.wardName, total: w.totalFamilies.toLocaleString(), large: w.largeFamilies.toLocaleString(), pct: `${w.largePercent}%` }))}
+      />
+      <div style={{ height: Math.max(260, wards.length * 32) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={wards.map(w => ({ name: fsShortName(w.wardName, 15), pct: w.largePercent }))}
+            layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 0 }}
+          >
+            <XAxis type="number" unit="%" tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <YAxis type="category" dataKey="name" width={110} tick={FS_AXIS_TICK} axisLine={FS_AXIS_LINE} />
+            <Tooltip contentStyle={FS_TOOLTIP_STYLE} />
+            <Bar dataKey="pct" fill="#16a34a" radius={[0, 6, 6, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </>
+  );
+}
+
+function FamilySizeAnalyticsModal({ onClose, wardNumber }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
+  const [data, setData]       = useState(null);
+  const [tab, setTab]         = useState('assembly');
+
+  useEffect(() => {
+    const params = {};
+    if (wardNumber) params.ward = wardNumber;
+    api.get('/api/family-size-analytics/', { params })
+      .then(r => {
+        if (r.data.success) setData(r.data);
+        else setError('Failed to load data.');
+      })
+      .catch(e => setError(e.userMessage || 'Network error.'))
+      .finally(() => setLoading(false));
+  }, [wardNumber]);
+
+  const contextLabel = wardNumber ? `Ward ${wardNumber}` : null;
+
+  const modal = (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 1080, background: 'linear-gradient(160deg, #0d1b30 0%, #090e1c 100%)', border: '1px solid rgba(34,211,238,0.18)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.65)', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+        <div style={{ padding: '20px 24px 16px', background: 'rgba(34,211,238,0.05)', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Home size={20} color="#22d3ee" /></div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>
+                Family Size Analytics
+                {contextLabel && <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 600, color: '#22d3ee', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.25)', borderRadius: 6, padding: '1px 7px' }}>{contextLabel}</span>}
+                {!loading && data && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>{data.assembly.totalFamilies.toLocaleString()} families</span>}
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>Household composition · single voters · large families</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: 'rgba(255,255,255,0.45)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
+        </div>
+
+        {!loading && !error && data && (
+          <div style={{ display: 'flex', gap: 6, padding: '12px 24px 0', flexShrink: 0, overflowX: 'auto' }}>
+            {FAMILY_SIZE_TABS.map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)} style={{
+                padding: '7px 14px', borderRadius: 8,
+                border: `1px solid ${tab === t.key ? 'rgba(34,211,238,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                background: tab === t.key ? 'rgba(34,211,238,0.12)' : 'rgba(255,255,255,0.03)',
+                color: tab === t.key ? '#67e8f9' : 'rgba(255,255,255,0.55)',
+                fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              }}>{t.label}</button>
+            ))}
+          </div>
+        )}
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 24px' }}>
+          {loading && <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[1, 2, 3].map(i => <div key={i} style={{ height: 64, borderRadius: 12, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.6s ease-in-out infinite' }} />)}</div>}
+          {error && <div style={{ padding: '20px 0', color: '#f87171', textAlign: 'center', fontSize: 14 }}>⚠ {error}</div>}
+          {!loading && !error && data && (
+            <>
+              {tab === 'assembly' && <FamilySizeAssemblyTab data={data} />}
+              {tab === 'wards'    && <FamilySizeWardsTab    data={data} />}
+              {tab === 'average'  && <FamilySizeAverageTab  data={data} />}
+              {tab === 'single'   && <FamilySizeSingleTab   data={data} />}
+              {tab === 'large'    && <FamilySizeLargeTab    data={data} />}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(modal, document.body);
+}
+
 // ─── Ward Strength Intelligence Panel ────────────────────────────────────────
 
 // ─── House Master Consolidated Report Panel ───────────────────────────────────
@@ -5300,6 +5649,7 @@ export default function Dashboard() {
   const [boothError,        setBoothError]        = useState('');
 
   const [largeFamiliesOpen, setLargeFamiliesOpen] = useState(false);
+  const [familySizeOpen,    setFamilySizeOpen]    = useState(false);
   const [localPlacesOpen,   setLocalPlacesOpen]   = useState(false);
   const [hmcRecordsModal,    setHmcRecordsModal]    = useState(null); // { religion, label, totalCount, color }
   const [polledRecordsModal, setPolledRecordsModal] = useState(null); // { filterType, value, status, displayLabel, totalCount, color }
@@ -5425,6 +5775,15 @@ export default function Dashboard() {
         : s.largeFamilyCount?.toLocaleString() ?? null,
       icon: <Users2 size={20} />, color: '#f97316',
       sub: 'Houses with 15+ members',
+    },
+    {
+      label: 'Family Size',
+      value: s.houseCount != null && s.totalVoters != null && s.houseCount
+        ? (s.totalVoters / s.houseCount).toFixed(2)
+        : null,
+      icon: <Home size={20} />, color: '#22d3ee',
+      sub: 'Avg family size · click for full breakdown',
+      isFamilySize: true,
     },
     {
       label: 'Coverage',
@@ -5985,6 +6344,7 @@ export default function Dashboard() {
                 <div key={c.label}
                   onClick={
                     c.label === 'Large Families' ? () => setLargeFamiliesOpen(true) :
+                    c.isFamilySize              ? () => setFamilySizeOpen(true)     :
                     c.isLocalPlaces             ? () => setLocalPlacesOpen(true)   :
                     c.label === 'Risk Wards'    ? () => { riskWardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } :
                     undefined
@@ -5995,7 +6355,7 @@ export default function Dashboard() {
                     border: `1px solid ${c.color}28`, borderRadius: 16, padding: '16px 14px',
                     position: 'relative', overflow: 'hidden',
                     boxShadow: `0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)`,
-                    cursor: (c.label === 'Large Families' || c.label === 'Risk Wards' || c.isLocalPlaces) ? 'pointer' : 'default',
+                    cursor: (c.label === 'Large Families' || c.label === 'Risk Wards' || c.isLocalPlaces || c.isFamilySize) ? 'pointer' : 'default',
                     minHeight: 100,
                     ...(c.isLocalPlaces ? { gridColumn: '1 / -1' } : {}),
                   }}
@@ -6363,6 +6723,10 @@ export default function Dashboard() {
         onClose={() => setLargeFamiliesOpen(false)}
         wardNumber={selectedBooth ? undefined : (selectedWard || undefined)}
         boothNo={selectedBooth || undefined}
+      />}
+    {familySizeOpen && <FamilySizeAnalyticsModal
+        onClose={() => setFamilySizeOpen(false)}
+        wardNumber={selectedBooth ? undefined : (selectedWard || undefined)}
       />}
     {localPlacesOpen   && <LocalPlacesModal   onClose={() => setLocalPlacesOpen(false)} />}
     {hmcRecordsModal && (
