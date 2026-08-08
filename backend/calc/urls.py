@@ -1,14 +1,12 @@
-# ── Add these lines to your existing urls.py urlpatterns list ────────────────
+# ── Add this one line to the urlpatterns list in urls.py ─────────────────────
 #
-# from . import views   ← already present
+#   path('community-records/', views.api_community_records, name='api_community_records'),
 #
-#   # AI Chat — document-aware Anthropic chat
-#   path('ai/chat/',         views.api_ai_chat,         name='api_ai_chat'),
-#   path('ai/chat/export/',  views.api_ai_chat_export,  name='api_ai_chat_export'),
-#   path('ai/data-files/',   views.api_ai_data_files,   name='api_ai_data_files'),
-#
+# Full updated urlpatterns list shown below for reference.
+# Place it alongside the other dashboard/data routes.
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Full urls.py with new routes added (safe to replace your existing file)
+# Suggested placement inside urlpatterns (after 'large-families/'):
 # ─────────────────────────────────────────────────────────────────────────────
 
 from django.urls import path
@@ -48,6 +46,10 @@ urlpatterns = [
 
     # SIR — Summary Intensive Revision
     path('sir/check/',               views.api_check_sir,          name='api_check_sir'),
+    path('sir/confirm/',             views.api_sir_confirm_match,   name='api_sir_confirm_match'),
+    path('sir/confirmed/',           views.api_sir_confirmed_list,  name='api_sir_confirmed_list'),
+    path('sir/attach-form/',         views.api_sir_attach_form,     name='api_sir_attach_form'),
+    path('sir/form-extract/',        views.api_sir_form_extract,    name='api_sir_form_extract'),
     path('sir-data/',                views.api_sir_data,           name='api_sir_data'),
     path('sir-bulk/',                views.api_sir_bulk,           name='api_sir_bulk'),
     path('sir/records/',             views.api_sir_records,        name='api_sir_records'),
@@ -56,6 +58,39 @@ urlpatterns = [
     path('update-voter/',            views.api_update_voter,       name='api_update_voter'),
     path('update-survey/',           views.api_update_survey,      name='api_update_survey'),
     path('large-families/',          views.api_large_families,     name='api_large_families'),
+    path('family-size-analytics/',   views.api_family_size_analytics, name='api_family_size_analytics'),
+
+    # ── Community Records (2025_cst_com_hmc) ────────────────────────────────────
+    path('community-records/',       views.api_community_records,       name='api_community_records'),
+    path('debug-community/',         views.api_debug_community_values,  name='api_debug_community_values'),
+
+    # ── Community Breakdown Aggregation (2025_new_mapped_notmapped_hmc) ─────────
+    # GET /api/community-breakdown/              → constituency-wide counts
+    # GET /api/community-breakdown/?ward=<N>     → ward-level counts
+    # GET /api/community-breakdown/?ward=<N>&booth=<B> → booth-level counts
+    path('community-breakdown/',     views.api_community_breakdown,     name='api_community_breakdown'),
+
+    # ── HMC Records (2025_new) — Religion filter ─────────────────────────────────
+    path('hmc-records/',             views.api_hmc_records,             name='api_hmc_records'),
+
+    # ── Mapped / Not-Mapped Records (2025_new_mapped_notmapped_hmc) ──────────────
+    path('mapped-records/',          views.api_mapped_records,          name='api_mapped_records'),
+
+    # ── Polled / NotPolled Records (2023_polled_notpolled_caste_comm_hmc) ─────────
+    path('polled-records/',          views.api_polled_records,          name='api_polled_records'),
+
+    # ── Polled Breakdown — ward / booth level HMC + Category + Community ─────────
+    # GET /api/polled-breakdown/?ward=<N>            → all booths for that ward
+    # GET /api/polled-breakdown/?ward=<N>&booth=<B>  → single booth
+    path('polled-breakdown/',        views.api_polled_breakdown,        name='api_polled_breakdown'),
+    path('polled-summary/',          views.api_polled_summary,          name='api_polled_summary'),
+    # ── Election Analytics (2025 live roll stats) ─────────────────────────────────
+    path('election-analytics/',      views.api_election_analytics,      name='api_election_analytics'),
+
+    # ── Community Mapping & Poll Rates (2025_new_mapped_notmapped_hmc) ───────────
+    # GET /api/community-map-poll-rates/
+    # Returns per-community unique house counts + mapped% + polled%
+    path('community-map-poll-rates/', views.api_community_map_poll_rates, name='api_community_map_poll_rates'),
 
     # Wards
     path('wards/',                   views.api_wards,              name='api_wards'),
@@ -77,15 +112,18 @@ urlpatterns = [
     # ML Intelligence
     path('ml/constituency-swot/',    views.api_ml_constituency_swot,  name='api_ml_constituency_swot'),
 
-    # AI Insights (existing)
+    # AI Insights
     path('ai/query-insight/',        views.api_ai_query_insight,      name='api_ai_query_insight'),
     path('ai/birdseye-view/',        views.api_ai_birdseye_view,      name='api_ai_birdseye_view'),
     path('ai/swot-overview/',        views.api_swot_overview,         name='api_swot_overview'),
-
-    # ── AI Chat — NEW ─────────────────────────────────────────────────────────
+    path('sir/ai-overview/', views.api_sir_ai_overview, name='api_sir_ai_overview'),
+    # AI Chat
     path('ai/chat/',                 views.api_ai_chat,               name='api_ai_chat'),
     path('ai/chat/export/',          views.api_ai_chat_export,        name='api_ai_chat_export'),
     path('ai/data-files/',           views.api_ai_data_files,         name='api_ai_data_files'),
-    path('ward-places/',             views.api_ward_places,              name='api_ward_places'),
-    path('local-places-summary/',    views.api_local_places_summary,     name='api_local_places_summary'),
+    path('ward-places/',             views.api_ward_places,           name='api_ward_places'),
+    path('local-places-summary/',    views.api_local_places_summary,  name='api_local_places_summary'),
+    path('swot/beneficiaries/',      views.api_beneficiary_list,      name='api_beneficiary_list'),
+    # ✅ CORRECT — resolves to /api/progeny/voters/
+    path('progeny/voters/', views.api_progeny_voters, name='api_progeny_voters'),
 ]

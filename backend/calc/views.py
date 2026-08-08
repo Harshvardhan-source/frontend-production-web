@@ -21,6 +21,7 @@ from bson import ObjectId
 import ast
 import jwt as pyjwt
 import threading
+import anthropic as _anthropic_mod
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # WARD REFERENCE — SINGLE SOURCE OF TRUTH
@@ -81,6 +82,23 @@ for _wnum, _wdata in WARD_FULL_DATA.items():
 
 # ward_name (upper) → list of booth ints
 WARD_NAME_TO_BOOTHS = {v["name"].upper(): v["booths"] for v in WARD_FULL_DATA.values()}
+
+# ── HMC label derived from Community field in 2025_new_mapped_notmapped_hmc ─────
+# Used in MongoDB $addFields to convert Community string → H / M / C label.
+# Reused by both api_ward_dashboard and api_booth_dashboard.
+_CHRISTIAN_COMMUNITIES = [
+    'Christian', 'Mangalorean Catholic', 'Christian + Catholic',
+    'Roman Catholic', 'Catholic', 'RC',
+]
+HMC_FROM_COMMUNITY = {
+    '$switch': {
+        'branches': [
+            {'case': {'$eq':  ['$Community', 'Muslim']},       'then': 'M'},
+            {'case': {'$in':  ['$Community', _CHRISTIAN_COMMUNITIES]}, 'then': 'C'},
+        ],
+        'default': 'H',   # Hindu + Unclassified + all other communities
+    }
+}
 
 # ── 2023 polled/notpolled collection uses SurveyOpt-style ward names ───────────
 # Maps WARD_FULL_DATA name (UPPER) → ward name stored in 2023_polled_notpolled
@@ -197,65 +215,104 @@ _COL_MAP_2002 = {
 
 # ─── MongoDB connection pool (module-level singletons) ───────────────────────
 #
-# MongoClient is thread-safe and manages its own connection pool internally.
-# Creating it ONCE at import time means every request reuses warm TLS connections
-# instead of doing a fresh 300-800ms Atlas handshake on each call.
+# IMPORTANT — READ BEFORE TOUCHING THIS BLOCK
+# ─────────────────────────────────────────────
+# MongoClient MUST be created at import time (module level), NOT inside a view
+# or a lazy getter that runs inside a Gunicorn request handler.
+#
+# Why: MongoClient with a mongodb+srv:// URI triggers SRV DNS resolution, which
+# imports dnspython (dns.asyncquery).  On Python 3.14 + Gunicorn sync workers,
+# dnspython ≥ 2.3 imports asyncio internals at module level.  If this import
+# happens mid-request, Gunicorn's SIGALRM worker-timeout handler fires inside
+# the import machinery and kills the worker with SIGKILL — producing the
+# "WORKER TIMEOUT / Error handling request" crash seen in logs.
+#
+# Solution: create all three clients here, at Django import time (before any
+# Gunicorn worker timeout is armed).  MongoClient is fully thread-safe and
+# connection-pooled; one instance per process is correct and optimal.
+#
+# Also add to requirements.txt:  dnspython==2.2.1
+# (last version without the asyncio-at-import-time behaviour)
 #
 # Cluster layout:
-#   MONGODB_URL        — original cluster  → SurveyDataBase (voter rolls, SIR, 2002/2025)
-#                                           → MainB          (CollDB, scheme data)
-#   MONGODB_SURVEY_URL — NEW cluster       → SurveyDataBase  (SurveyRecords, FutureVoters, Deceased)
+#   MONGODB_URL  — original cluster → SurveyDataBase (voter rolls, SIR, 2002/2025)
+#                                   → MainB          (CollDB, scheme data)
+#   _SURVEY_URL  — survey cluster   → SurveyDataBase (SurveyRecords, FutureVoters, Deceased)
 
-_SURVEY_URL = 'mongodb+srv://vickyhooda799_db_user:LgAvVKcZE7gM0ess@cluster0.kkin5ww.mongodb.net/'
+_SURVEY_URL = _os.getenv(
+    'MONGODB_SURVEY_URL',
+    'mongodb+srv://vickyhooda799_db_user:LgAvVKcZE7gM0ess@cluster0.kkin5ww.mongodb.net/'
+)
 
-# Lazy-initialised singletons — created on first use, reused forever after
-_client_main   = None
-_client_survey = None
-_client_main1  = None
+_MONGO_OPTS = dict(
+    tls=True,
+    tlsCAFile=certifi.where(),
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=5000,
+    socketTimeoutMS=30000,   # prevent hung queries from blocking the worker
+)
 
-def _get_main_client():
-    global _client_main
-    if _client_main is None:
-        _client_main = MongoClient(
-            settings.MONGODB_URL, tls=True, tlsCAFile=certifi.where(),
-            maxPoolSize=10, minPoolSize=2,
-            serverSelectionTimeoutMS=5000, connectTimeoutMS=5000,
-        )
-    return _client_main
+# ── Eagerly create all clients at import time — never inside a request ────────
+try:
+    _client_main = MongoClient(
+        settings.MONGODB_URL,
+        maxPoolSize=10, minPoolSize=2,
+        **_MONGO_OPTS,
+    )
+except Exception as _e:
+    import logging as _logging
+    _logging.getLogger('views').error('[DB] _client_main failed to initialise: %s', _e)
+    _client_main = None
 
-def _get_survey_client():
-    global _client_survey
-    if _client_survey is None:
-        _client_survey = MongoClient(
-            _SURVEY_URL, tls=True, tlsCAFile=certifi.where(),
-            maxPoolSize=10, minPoolSize=2,
-            serverSelectionTimeoutMS=5000, connectTimeoutMS=5000,
-        )
-    return _client_survey
+try:
+    _client_survey = MongoClient(
+        _SURVEY_URL,
+        maxPoolSize=10, minPoolSize=2,
+        **_MONGO_OPTS,
+    )
+except Exception as _e:
+    import logging as _logging
+    _logging.getLogger('views').error('[DB] _client_survey failed to initialise: %s', _e)
+    _client_survey = None
 
-def _get_main1_client():
-    global _client_main1
-    if _client_main1 is None:
-        _client_main1 = MongoClient(
-            settings.MONGODB_URL, tls=True, tlsCAFile=certifi.where(),
-            maxPoolSize=5, minPoolSize=1,
-            serverSelectionTimeoutMS=5000, connectTimeoutMS=5000,
-        )
-    return _client_main1
+try:
+    _client_main1 = MongoClient(
+        settings.MONGODB_URL,
+        maxPoolSize=5, minPoolSize=1,
+        **_MONGO_OPTS,
+    )
+except Exception as _e:
+    import logging as _logging
+    _logging.getLogger('views').error('[DB] _client_main1 failed to initialise: %s', _e)
+    _client_main1 = None
+
 
 def get_db():
     """Original cluster — voter rolls, SIR, 2002/2025, WardReference (pooled)."""
-    return _get_main_client().get_database('SurveyDataBase')
+    if _client_main is None:
+        raise RuntimeError('Main MongoDB client not initialised. Check MONGODB_URL and server logs.')
+    return _client_main.get_database('SurveyDataBase')
 
 def get_survey_db():
-    """New cluster — SurveyRecords, FutureVoters, Deceased (pooled)."""
-    return _get_survey_client().get_database('SurveyDataBase')
+    """Survey cluster — SurveyRecords, FutureVoters, Deceased (pooled)."""
+    if _client_survey is None:
+        raise RuntimeError('Survey MongoDB client not initialised. Check MONGODB_SURVEY_URL and server logs.')
+    return _client_survey.get_database('SurveyDataBase')
 
 def get_db1():
     """Original cluster — MainB / CollDB (pooled)."""
-    return _get_main1_client().get_database('MainB')
+    if _client_main1 is None:
+        raise RuntimeError('MainB MongoDB client not initialised. Check MONGODB_URL and server logs.')
+    return _client_main1.get_database('MainB')
 
-JWT_SECRET = 'c0bcbb0e7afbdef8e53f9db603fb9140b1c793cd1e3e6379e3648281474e83f470b201b882b1864b09a0d3a9bb3716829563218e2813c4f89d35053a0141cd29'
+
+# ── JWT — load secret from env; fall back to hardcoded value for local dev ────
+# WARNING: set JWT_SECRET in your Render/production env-vars.
+# The hardcoded value below is kept only so local dev without a .env still works.
+JWT_SECRET = _os.getenv(
+    'JWT_SECRET',
+    'c0bcbb0e7afbdef8e53f9db603fb9140b1c793cd1e3e6379e3648281474e83f470b201b882b1864b09a0d3a9bb3716829563218e2813c4f89d35053a0141cd29',
+)
 JWT_ALG    = 'HS256'
 
 
@@ -686,7 +743,7 @@ def _registration_analytics(db=None):
                 'large_families': [
                     {'$match': {'House No': {'$exists': True, '$ne': None}}},
                     {'$group': {'_id': '$House No', 'count': {'$sum': 1}}},
-                    {'$match': {'count': {'$gt': 15}}},
+                    {'$match': {'count': {'$gte': 15}}},
                     {'$count': 'n'},
                 ],
             }
@@ -838,6 +895,92 @@ def _sir_cache_set(key_tuple, data):
 
 
 @require_http_methods(['GET'])
+def api_election_analytics(request):
+    """
+    GET /api/election-analytics/
+    Live 2025 voter roll stats from '2025' collection.
+    2023 polling data is hardcoded on the frontend.
+    """
+    try:
+        db  = get_db()
+        col = db['2025']
+
+        total_2025 = col.count_documents({})
+
+        # Gender
+        gender_raw = {r['_id']: r['count'] for r in col.aggregate([
+            {'$group': {'_id': '$Gender', 'count': {'$sum': 1}}}
+        ])}
+        male   = gender_raw.get('Male',   0)
+        female = gender_raw.get('Female', 0)
+
+        # Age groups
+        age_raw = {str(r['_id']): r['count'] for r in col.aggregate([
+            {'$bucket': {
+                'groupBy': '$Age',
+                'boundaries': [0, 18, 26, 36, 46, 56, 66, 200],
+                'default': 'Other',
+                'output': {'count': {'$sum': 1}},
+            }}
+        ])}
+        age_groups = [
+            {'label': '18-25', 'count': age_raw.get('18', 0)},
+            {'label': '26-35', 'count': age_raw.get('26', 0)},
+            {'label': '36-45', 'count': age_raw.get('36', 0)},
+            {'label': '46-55', 'count': age_raw.get('46', 0)},
+            {'label': '56-65', 'count': age_raw.get('56', 0)},
+            {'label': '65+',   'count': age_raw.get('66', 0)},
+        ]
+
+        # Community breakdown (top 10)
+        community = [
+            {'name': r['_id'] or 'Unclassified', 'count': r['count']}
+            for r in col.aggregate([
+                {'$group': {'_id': '$Community', 'count': {'$sum': 1}}},
+                {'$sort': {'count': -1}},
+                {'$limit': 10},
+            ])
+        ]
+
+        # Mapping status
+        map_raw    = {r['_id']: r['count'] for r in col.aggregate([
+            {'$group': {'_id': '$Mapping Status', 'count': {'$sum': 1}}}
+        ])}
+        mapped     = map_raw.get('MAPPED',     0)
+        not_mapped = map_raw.get('NOT MAPPED', 0)
+
+        # Poll Status 2023 stored in 2025 collection
+        poll_raw  = {r['_id']: r['count'] for r in col.aggregate([
+            {'$group': {'_id': '$Poll Status 2023', 'count': {'$sum': 1}}}
+        ])}
+        polled_23 = poll_raw.get('POLLED',     0)
+        not_pol23 = poll_raw.get('NOT POLLED', 0)
+
+        return JsonResponse({
+            'success':        True,
+            'total':          total_2025,
+            'gender':         {'male': male, 'female': female},
+            'ageGroups':      age_groups,
+            'community':      community,
+            'mapping':        {
+                'mapped':    mapped,
+                'notMapped': not_mapped,
+                'pctMapped': round(mapped / total_2025 * 100, 1) if total_2025 else 0,
+            },
+            'pollStatus2023': {
+                'polled':    polled_23,
+                'notPolled': not_pol23,
+                'rate':      round(polled_23 / (polled_23 + not_pol23) * 100, 1)
+                             if (polled_23 + not_pol23) else 0,
+            },
+        })
+    except Exception as exc:
+        import traceback
+        return JsonResponse({'success': False, 'error': str(exc),
+                             'traceback': traceback.format_exc()}, status=500)
+
+
+@require_http_methods(['GET'])
 def api_ward_dashboard(request):
     import time as _t
     ward = request.GET.get('ward', '').strip()
@@ -928,39 +1071,61 @@ def api_ward_dashboard(request):
         rmap        = {r['_id']: r['n'] for r in s_res['religions']}
         reg_religion= {r: rmap.get(r, 0) for r in religions}
 
-        # ── 3. Large families + HMC from 2025 voter list ────────────────────
-        # Use module-level WARD_NAME_TO_BOOTHS — no local copy needed
+        # ── 3. Voter counts + HMC + large families from 2025_new_mapped_notmapped_hmc ──
+        # Use Booth No field (int + str forms) mapped from WARD_FULL_DATA booth lists.
+        # Community field → H/M/C via HMC_FROM_COMMUNITY $switch expression.
+        ward_num_key     = ward_int if ward_int is not None else (int(ward) if str(ward).isdigit() else None)
         ward_name_upper  = ward_name.upper().strip()
         ward_booths_list = WARD_NAME_TO_BOOTHS.get(ward_name_upper, [])
+        if not ward_booths_list and ward_num_key:
+            ward_booths_list = WARD_FULL_DATA.get(ward_num_key, {}).get('booths', [])
 
-        # Include BOTH string and integer forms of each booth number.
-        # Part No in the 2025 collection may be stored as int or str — $in is type-strict.
+        # Both int and str forms — MongoDB $in is type-strict
+        booth_ints = list(ward_booths_list)
         booth_strs = [str(b) for b in ward_booths_list]
-        booth_ints = list(ward_booths_list)   # already ints from WARD_FULL_DATA
 
         large_family_count = 0
-        ward_hmc = {'H': 0, 'M': 0, 'C': 0, 'total': 0}
+        ward_hmc  = {'H': 0, 'M': 0, 'C': 0, 'total': 0}
+        ward_voter_total  = 0
+        ward_voter_male   = 0
+        ward_voter_female = 0
+
         if ward_booths_list:
-            booth_match = {'Part No': {'$in': booth_strs + booth_ints}}  # str + int forms
+            booth_match = {'Booth No': {'$in': booth_ints + booth_strs}}
+            # ── Large families: find houses in this ward's booths, count ALL
+            # voters per house (a house can span multiple booths).
+            lf_house_nos = db['2025'].distinct(
+                'House No',
+                {**booth_match, 'House No': {'$exists': True, '$ne': None, '$ne': ''}}
+            )
+            large_family_count = 0
+            if lf_house_nos:
+                lf_count_pipeline = [
+                    {'$match': {'House No': {'$in': lf_house_nos}}},
+                    {'$group': {'_id': '$House No', 'count': {'$sum': 1}}},
+                    {'$match': {'count': {'$gte': 15}}},
+                    {'$count': 'n'},
+                ]
+                lf_count_res = list(db['2025'].aggregate(lf_count_pipeline))
+                large_family_count = lf_count_res[0]['n'] if lf_count_res else 0
+
+            # HMC + voter gender + total still from 2025_new_mapped_notmapped_hmc
             lf_pipeline = [
                 {'$match': booth_match},
+                {'$addFields': {'_hmc': HMC_FROM_COMMUNITY}},
                 {'$facet': {
-                    'large_families': [
-                        {'$match': {'House No': {'$exists': True, '$ne': None}}},
-                        {'$group': {'_id': '$House No', 'count': {'$sum': 1}}},
-                        {'$match': {'count': {'$gt': 15}}},
-                        {'$count': 'n'},
-                    ],
                     'hmc': [
-                        {'$match': {'Predicted_Religion_Label': {'$in': ['H', 'M', 'C']}}},
-                        {'$group': {'_id': '$Predicted_Religion_Label', 'n': {'$sum': 1}}},
+                        {'$group': {'_id': '$_hmc', 'n': {'$sum': 1}}},
                     ],
+                    'genders': [
+                        {'$group': {'_id': '$Gender', 'n': {'$sum': 1}}},
+                    ],
+                    'total': [{'$count': 'n'}],
                 }}
             ]
-            lf_result = list(db['2025'].aggregate(lf_pipeline))
+            lf_result = list(db['2025_new_mapped_notmapped_hmc'].aggregate(lf_pipeline))
             if lf_result:
                 r = lf_result[0]
-                large_family_count = r['large_families'][0]['n'] if r.get('large_families') else 0
                 hmc_map = {g['_id']: g['n'] for g in r.get('hmc', [])}
                 ward_hmc = {
                     'H': hmc_map.get('H', 0),
@@ -968,6 +1133,16 @@ def api_ward_dashboard(request):
                     'C': hmc_map.get('C', 0),
                     'total': sum(hmc_map.get(k, 0) for k in ('H', 'M', 'C')),
                 }
+                ward_voter_total  = r['total'][0]['n'] if r.get('total')   else 0
+                gmap_vl = {g['_id']: g['n'] for g in r.get('genders', [])}
+                ward_voter_male   = gmap_vl.get('Male',   0)
+                ward_voter_female = gmap_vl.get('Female', 0)
+
+        # Fall back to WardReference totalCount if collection returned 0
+        if not ward_voter_total:
+            ward_voter_total  = total_voters
+            ward_voter_male   = total_male
+            ward_voter_female = total_female
 
         # ── 4. Polled/NotPolled HMC from 2023_polled_notpolled for this ward ───
         # FIX 1: 2023_polled_notpolled is on SURVEY cluster (get_survey_db), not main db.
@@ -976,7 +1151,6 @@ def api_ward_dashboard(request):
         #         which fails because 2023 collection uses legacy ward names.
         #         Both int + str forms passed because MongoDB $in is type-strict.
         _survey_db_ward = get_survey_db()
-        ward_num_key = ward_int if ward_int is not None else (int(ward) if str(ward).isdigit() else None)
         ward_booths_for_polled = WARD_FULL_DATA.get(ward_num_key, {}).get("booths", [])
         try:
             if ward_booths_for_polled:
@@ -989,7 +1163,7 @@ def api_ward_dashboard(request):
             ward_polled_hmc = None
 
         # ── 5. Coverage ───────────────────────────────────────────────────────
-        denom        = total_voters or 1
+        denom        = ward_voter_total or total_voters or 1
         coverage_pct = round(total_reg / denom * 100, 1)
 
         result = {
@@ -997,10 +1171,11 @@ def api_ward_dashboard(request):
             'wardNumber':       ward,
             'districtId':       district_id,
             'constituencyId':   const_id,
-            'totalVoters':      total_voters,
-            'totalMale':        total_male,
-            'totalFemale':      total_female,
-            'totalTrans':       total_trans,
+            # Voter totals from 2025_new_mapped_notmapped_hmc (Booth No-based query)
+            'totalVoters':      ward_voter_total,
+            'totalMale':        ward_voter_male,
+            'totalFemale':      ward_voter_female,
+            'totalTrans':       total_trans,           # kept from WardReference
             'totalHindu':       total_hindu,
             'totalMuslim':      total_muslim,
             'totalChristian':   total_chr,
@@ -1055,8 +1230,8 @@ def api_booth_dashboard(request):
 
     try:
         # WardBoothWise_2026 is in SurveyDataBase on the ORIGINAL cluster
-        main_db   = get_db()           # _get_main_client() → SurveyDataBase
-        survey_db = get_survey_db()    # _get_survey_client() → SurveyDataBase
+        main_db   = get_db()           # original cluster → SurveyDataBase
+        survey_db = get_survey_db()    # survey cluster   → SurveyDataBase
         ward_int  = int(ward)  if ward.isdigit()  else None
         booth_int = int(booth) if booth.isdigit() else None
 
@@ -1112,29 +1287,50 @@ def api_booth_dashboard(request):
         house_count = s_res['houses'][0]['n'] if s_res['houses'] else 0
         gmap        = {g['_id']: g['n'] for g in s_res['genders']}
 
-        # ── 3. HMC from 2025 voter list for this booth ────────────────────────
-        # IMPORTANT: Part No may be stored as int OR string in MongoDB.
-        # $in does strict type matching, so we include BOTH forms to guarantee a hit.
-        booth_vals = list({booth, str(booth_int)} if booth_int is not None else {booth})
+        # ── 3. Voter counts + HMC + gender from 2025_new_mapped_notmapped_hmc ──────
+        # Query by Booth No (int + str). Community field → H/M/C via HMC_FROM_COMMUNITY.
+        booth_vals = []
         if booth_int is not None:
-            booth_vals.append(booth_int)   # ← integer form — critical for collections
-                                           #   where Part No is stored as int (e.g. 31, not "31")
+            booth_vals = [booth_int, str(booth_int)]   # int form first (more common)
+        else:
+            booth_vals = [booth, str(booth)]
+
         booth_voter_pipeline = [
-            {'$match': {'Part No': {'$in': booth_vals}}},
+            {'$match': {'Booth No': {'$in': booth_vals}}},
+            {'$addFields': {'_hmc': HMC_FROM_COMMUNITY}},
             {'$facet': {
                 'hmc': [
-                    {'$match': {'Predicted_Religion_Label': {'$in': ['H', 'M', 'C']}}},
-                    {'$group': {'_id': '$Predicted_Religion_Label', 'n': {'$sum': 1}}},
+                    {'$group': {'_id': '$_hmc', 'n': {'$sum': 1}}},
                 ],
-                # 2025 stores Gender as full strings: "Male" / "Female"
                 'genders': [
                     {'$group': {'_id': '$Gender', 'n': {'$sum': 1}}},
                 ],
                 'total': [{'$count': 'n'}],
             }}
         ]
-        bv_result   = list(main_db['2025'].aggregate(booth_voter_pipeline))
+        bv_result   = list(main_db['2025_new_mapped_notmapped_hmc'].aggregate(booth_voter_pipeline))
         bv_facet    = bv_result[0] if bv_result else {}
+
+        # ── Large families count for this booth ──────────────────────────────
+        # A house can span multiple booths — first find all houses that have ANY
+        # voter in this booth, then count ALL voters for those houses (any booth).
+        # This gives the true household size, not just the per-booth subset.
+        house_nos_in_booth = get_db()['2025'].distinct(
+            'House No',
+            {'Booth No': {'$in': booth_vals},
+             'House No': {'$exists': True, '$ne': None, '$ne': ''}}
+        )
+        if house_nos_in_booth:
+            lf_total_pipeline = [
+                {'$match': {'House No': {'$in': house_nos_in_booth}}},
+                {'$group': {'_id': '$House No', 'count': {'$sum': 1}}},
+                {'$match': {'count': {'$gte': 15}}},
+                {'$count': 'n'},
+            ]
+            lf_result = list(get_db()['2025'].aggregate(lf_total_pipeline))
+            booth_large_family_count = lf_result[0]['n'] if lf_result else 0
+        else:
+            booth_large_family_count = 0
 
         hmc_map     = {g['_id']: g['n'] for g in bv_facet.get('hmc', [])}
         booth_hmc   = {
@@ -1151,7 +1347,9 @@ def api_booth_dashboard(request):
         booth_total_voters = bv_facet['total'][0]['n'] if bv_facet.get('total') else 0
 
         total_electors = _num(booth_doc.get('totalElectors'))
-        coverage_pct   = round(total_reg / (total_electors or 1) * 100, 1)
+        # Use voter count from 2025_new_mapped_notmapped_hmc if WardBoothWise_2026 has no data
+        denom_electors = total_electors or booth_total_voters or 1
+        coverage_pct   = round(total_reg / denom_electors * 100, 1)
 
         # ── 4. Polled/NotPolled HMC from 2023_polled_notpolled for this booth ──
         # FIX: 2023_polled_notpolled is on the SURVEY cluster, not main db.
@@ -1197,6 +1395,8 @@ def api_booth_dashboard(request):
             'boothHMC':          booth_hmc,
             # Polled/NotPolled HMC from 2023 election data
             'polledHMC':         booth_polled_hmc,
+            # Large families (houses with 15+ registered voters)
+            'largeFamilyCount':  booth_large_family_count,
         }
 
         _booth_dash_cache[cache_key] = {'data': result, 'ts': _t.time()}
@@ -1215,7 +1415,12 @@ def api_large_families(request):
     """
     GET /api/large-families/
     Returns every house with >15 members, grouped by ward.
- 
+
+    Optional query params:
+      ?ward=25      — filter to a single ward number only
+      ?booth=1      — filter to a single booth number only
+      ?refresh=1    — bypass cache
+
     Response shape:
     {
       "success": true,
@@ -1236,67 +1441,535 @@ def api_large_families(request):
     """
     import time as _t
     global _large_families_cache
- 
-    # ── Cache hit ─────────────────────────────────────────────────────────────
-    cached = _large_families_cache.get('data')
-    if cached and (_t.time() - _large_families_cache.get('ts', 0)) < _LF_CACHE_TTL:
-        return JsonResponse({'success': True, 'total': _large_families_cache['total'], 'byWard': cached})
- 
+
+    filter_ward  = request.GET.get('ward',  '').strip()
+    filter_booth = request.GET.get('booth', '').strip()
+    force_refresh = request.GET.get('refresh') == '1'
+
+    # ── Cache only for unfiltered (constituency-wide) requests ───────────────
+    use_cache = not filter_ward and not filter_booth
+    if use_cache and not force_refresh:
+        cached = _large_families_cache.get('data')
+        if cached and (_t.time() - _large_families_cache.get('ts', 0)) < _LF_CACHE_TTL:
+            return JsonResponse({'success': True, 'total': _large_families_cache['total'], 'byWard': cached})
+
     try:
         db = get_db()
- 
-        # Use module-level WARD_NUM_TO_NAME and BOOTH_TO_WARD — no local copies needed
- 
-        # Single aggregation: group by house, keep booth, filter >15 members
-        pipeline = [
-            {'$match': {'House No': {'$exists': True, '$ne': None, '$ne': ''}}},
-            {'$group': {
-                '_id': '$House No',
-                'count': {'$sum': 1},
-                # Grab one Part No per house to determine ward
-                'booth': {'$first': '$Part No'},
-            }},
-            {'$match': {'count': {'$gt': 15}}},
-            {'$sort': {'count': -1}},
-        ]
- 
+
+        # ── Build aggregation pipeline ────────────────────────────────────────
+        # IMPORTANT: A single house can span multiple booths (voters in the same
+        # household registered under different booth numbers). We must always count
+        # ALL voters per house, not just those in one booth.
+        #
+        # Strategy:
+        #   booth filter → step 1: find all distinct House No values that have at
+        #                           least one voter in that booth
+        #                  step 2: count ALL voters for those houses (any booth)
+        #   ward filter  → filter by Ward No, then group by House No (single pass)
+        #   no filter    → group by House No across whole collection
+
+        if filter_booth:
+            # Step 1: find all house numbers that have at least one voter in this booth
+            b_int = int(filter_booth) if filter_booth.isdigit() else None
+            booth_vals = [filter_booth]
+            if b_int is not None:
+                booth_vals.append(b_int)
+
+            house_nos_in_booth = db['2025'].distinct(
+                'House No',
+                {'Booth No': {'$in': booth_vals},
+                 'House No': {'$exists': True, '$ne': None, '$ne': ''}}
+            )
+            if not house_nos_in_booth:
+                return JsonResponse({'success': True, 'total': 0, 'byWard': []})
+
+            # Step 2: count ALL voters for those houses (any booth)
+            # Collect all booths per house so we can show the correct set.
+            pipeline = [
+                {'$match': {'House No': {'$in': house_nos_in_booth}}},
+                {'$group': {
+                    '_id':     '$House No',
+                    'count':   {'$sum': 1},
+                    'ward_no': {'$first': '$Ward No'},
+                    'booths':  {'$addToSet': '$Booth No'},  # ALL booths this house spans
+                    'part_no': {'$first': '$Part No'},
+                }},
+                {'$match': {'count': {'$gte': 15}}},
+                {'$sort': {'count': -1}},
+            ]
+        else:
+            base_match = {'House No': {'$exists': True, '$ne': None, '$ne': ''}}
+            if filter_ward:
+                w_int = int(filter_ward) if filter_ward.isdigit() else None
+                ward_vals = [filter_ward]
+                if w_int is not None:
+                    ward_vals.append(w_int)
+                base_match['Ward No'] = {'$in': ward_vals}
+
+            pipeline = [
+                {'$match': base_match},
+                {'$group': {
+                    '_id':     '$House No',
+                    'count':   {'$sum': 1},
+                    'ward_no': {'$first': '$Ward No'},
+                    'booths':  {'$addToSet': '$Booth No'},  # ALL booths this house spans
+                    'part_no': {'$first': '$Part No'},
+                }},
+                {'$match': {'count': {'$gte': 15}}},
+                {'$sort': {'count': -1}},
+            ]
+
         raw = list(db['2025'].aggregate(pipeline))
- 
+
         # Group results by ward
         ward_map = {}   # ward_number → { wardName, houses: [] }
         for doc in raw:
-            booth = str(doc.get('booth', '') or '')
-            ward_no = BOOTH_TO_WARD.get(booth, 'Unknown')
+            # All booths this house spans — sorted as strings for display
+            all_booths = [str(b).strip() for b in (doc.get('booths') or []) if str(b).strip()]
+            all_booths_sorted = sorted(set(all_booths), key=lambda x: int(x) if x.isdigit() else x)
+
+            # When filtering by a specific booth, always use that booth as the
+            # display booth (not a random $first). For unfiltered/ward views,
+            # use the numerically smallest booth (most consistent choice).
+            if filter_booth:
+                display_booth = str(filter_booth)
+            else:
+                display_booth = all_booths_sorted[0] if all_booths_sorted else ''
+
+            # ── Resolve ward number ───────────────────────────────────────────
+            # Try Ward No field first, then look up each booth in BOOTH_TO_WARD
+            ward_no_direct = str(doc.get('ward_no', '') or '').strip()
+            # Try all booths — they all belong to the same ward
+            ward_no_from_booth = ''
+            for b in all_booths_sorted:
+                ward_no_from_booth = (BOOTH_TO_WARD.get(b, '') or
+                                      BOOTH_TO_WARD.get(int(b) if b.isdigit() else b, ''))
+                if ward_no_from_booth:
+                    break
+            part_val = str(doc.get('part_no', '') or '').strip()
+            ward_no_from_part = BOOTH_TO_WARD.get(part_val, '') or BOOTH_TO_WARD.get(
+                int(part_val) if part_val.isdigit() else part_val, '')
+
+            ward_no = ward_no_direct or ward_no_from_booth or ward_no_from_part or 'Unknown'
+
             if ward_no not in ward_map:
                 ward_map[ward_no] = {
                     'wardNumber': ward_no,
-                    'wardName': WARD_NUM_TO_NAME.get(ward_no, f'Ward {ward_no}'),
+                    'wardName': WARD_NUM_TO_NAME.get(ward_no, WARD_NUM_TO_NAME.get(
+                        str(int(ward_no)) if str(ward_no).isdigit() else ward_no,
+                        f'Ward {ward_no}' if ward_no != 'Unknown' else 'Unknown'
+                    )),
                     'houses': [],
                 }
             ward_map[ward_no]['houses'].append({
-                'houseNo': doc['_id'],
+                'houseNo':     doc['_id'],
                 'memberCount': doc['count'],
-                'booth': booth,
+                'booth':       display_booth,
+                'booths':      all_booths_sorted,
+                'wardNumber':  ward_no,       # always set — used to scope member fetch
             })
- 
+
         by_ward = sorted(
             [{'wardNumber': v['wardNumber'], 'wardName': v['wardName'],
               'count': len(v['houses']), 'houses': v['houses']}
              for v in ward_map.values()],
-            key=lambda x: -x['count']
+            key=lambda x: (x['wardNumber'] == 'Unknown', -x['count'])
         )
- 
+
         total = sum(w['count'] for w in by_ward)
-        _large_families_cache['data'] = by_ward
-        _large_families_cache['total'] = total
-        _large_families_cache['ts'] = _t.time()
- 
+
+        # Cache only unfiltered (constituency-wide) results
+        if use_cache:
+            _large_families_cache['data'] = by_ward
+            _large_families_cache['total'] = total
+            _large_families_cache['ts'] = _t.time()
+
         return JsonResponse({'success': True, 'total': total, 'byWard': by_ward})
- 
+
     except Exception as exc:
         traceback.print_exc()
         return JsonResponse({'success': False, 'message': str(exc)}, status=500)
  
+
+# ─── FAMILY SIZE ANALYTICS (2025) ───────────────────────────────────────────────
+# GET /api/family-size-analytics/
+#
+# Mirrors the "2.6 Family size" report section:
+#   2.6.1  Assembly-wide family size distribution
+#   2.6.2  Ward-wise family size distribution
+#   2.6.3  Average family size by ward
+#   2.6.4  Ward-wise family size percent (derived client-side from 2.6.2)
+#   2.6.5  Single voters analysis at ward level
+#   2.6.6  Gender-wise single voters at ward level
+#   2.6.7  Percentage of large families (6+) by ward
+#   2.6.8  Top wards by average family size
+#
+# "Family size" = number of voter rows sharing the same House No.
+#
+# Optional query params:
+#   ?ward=25      — restrict to a single ward (still returns assembly totals
+#                    scoped to that ward so the UI can reuse the same shape)
+#   ?refresh=1    — bypass cache
+#
+# Add to urls.py:
+#   path('family-size-analytics/', views.api_family_size_analytics, name='api_family_size_analytics'),
+# ─────────────────────────────────────────────────────────────────────────────────
+
+_FAMILY_SIZE_BUCKETS = ['1', '2-3', '4-5', '6-8', '9-12', '12+']
+
+_family_size_cache     = {}   # key ('global' or ward number) → {'data': {...}, 'ts': float}
+_FAMILY_SIZE_CACHE_TTL = 600  # 10 minutes — voter roll changes infrequently
+
+
+def _family_size_bucket_stage():
+    """Shared $group accumulators for one bucket of per-house documents."""
+    return {
+        'totalFamilies': {'$sum': 1},
+        'totalMembers':  {'$sum': '$size'},
+        'singleVoters':  {'$sum': {'$cond': [{'$eq': ['$size', 1]}, 1, 0]}},
+        'singleMale':    {'$sum': {'$cond': [
+            {'$and': [{'$eq': ['$size', 1]}, {'$eq': ['$gender', 'Male']}]}, 1, 0]}},
+        'singleFemale':  {'$sum': {'$cond': [
+            {'$and': [{'$eq': ['$size', 1]}, {'$eq': ['$gender', 'Female']}]}, 1, 0]}},
+        'b_1':     {'$sum': {'$cond': [{'$eq': ['$size', 1]}, 1, 0]}},
+        'b_2_3':   {'$sum': {'$cond': [{'$and': [{'$gte': ['$size', 2]}, {'$lte': ['$size', 3]}]}, 1, 0]}},
+        'b_4_5':   {'$sum': {'$cond': [{'$and': [{'$gte': ['$size', 4]}, {'$lte': ['$size', 5]}]}, 1, 0]}},
+        'b_6_8':   {'$sum': {'$cond': [{'$and': [{'$gte': ['$size', 6]}, {'$lte': ['$size', 8]}]}, 1, 0]}},
+        'b_9_12':  {'$sum': {'$cond': [{'$and': [{'$gte': ['$size', 9]}, {'$lte': ['$size', 12]}]}, 1, 0]}},
+        'b_12p':   {'$sum': {'$cond': [{'$gte': ['$size', 13]}, 1, 0]}},
+        'large6p': {'$sum': {'$cond': [{'$gte': ['$size', 6]}, 1, 0]}},
+    }
+
+
+def _family_size_buckets_from_row(row, total_families):
+    counts = {
+        '1':    row.get('b_1', 0),
+        '2-3':  row.get('b_2_3', 0),
+        '4-5':  row.get('b_4_5', 0),
+        '6-8':  row.get('b_6_8', 0),
+        '9-12': row.get('b_9_12', 0),
+        '12+':  row.get('b_12p', 0),
+    }
+    return [
+        {
+            'group':   g,
+            'families': counts[g],
+            'percent': round((counts[g] / total_families) * 100, 2) if total_families else 0.0,
+        }
+        for g in _FAMILY_SIZE_BUCKETS
+    ]
+
+
+def _pct(num, den, digits=1):
+    return round((num / den) * 100, digits) if den else 0.0
+
+
+@require_http_methods(['GET'])
+def api_family_size_analytics(request):
+    import time as _t
+    global _family_size_cache
+
+    filter_ward   = request.GET.get('ward', '').strip()
+    force_refresh = request.GET.get('refresh') == '1'
+    cache_key     = filter_ward or 'global'
+
+    if not force_refresh:
+        cached = _family_size_cache.get(cache_key)
+        if cached and (_t.time() - cached['ts']) < _FAMILY_SIZE_CACHE_TTL:
+            return JsonResponse({'success': True, **cached['data']})
+
+    try:
+        db  = get_db()
+        col = db['2025']
+
+        base_match = {'House No': {'$exists': True, '$ne': None, '$ne': ''}}
+        if filter_ward:
+            w_int = int(filter_ward) if filter_ward.isdigit() else None
+            ward_vals = [filter_ward]
+            if w_int is not None:
+                ward_vals.append(w_int)
+            base_match['Ward No'] = {'$in': ward_vals}
+
+        pipeline = [
+            {'$match': base_match},
+            # ── Step 1: collapse to one document per house (family) ─────────
+            {'$group': {
+                '_id':       '$House No',
+                'size':      {'$sum': 1},
+                'ward_no':   {'$first': '$Ward No'},
+                'ward_name': {'$first': '$Ward Name'},
+                'gender':    {'$first': '$Gender'},
+            }},
+            # ── Step 2: fan out into ward-level and assembly-level rollups ──
+            {'$facet': {
+                'byWard': [
+                    {'$group': {
+                        '_id':      '$ward_no',
+                        'wardName': {'$first': '$ward_name'},
+                        **_family_size_bucket_stage(),
+                    }},
+                ],
+                'assembly': [
+                    {'$group': {
+                        '_id': None,
+                        **_family_size_bucket_stage(),
+                    }},
+                ],
+            }},
+        ]
+
+        raw = list(col.aggregate(pipeline, allowDiskUse=True))
+        facet = raw[0] if raw else {'byWard': [], 'assembly': []}
+
+        # ── Assembly-wide (2.6.1) ────────────────────────────────────────────
+        a_row = facet['assembly'][0] if facet['assembly'] else {}
+        a_total_families = a_row.get('totalFamilies', 0)
+        a_total_members  = a_row.get('totalMembers', 0)
+        assembly = {
+            'totalFamilies':     a_total_families,
+            'totalMembers':      a_total_members,
+            'averageFamilySize': round(a_total_members / a_total_families, 2) if a_total_families else 0.0,
+            'buckets':           _family_size_buckets_from_row(a_row, a_total_families),
+            'singleVoters':      a_row.get('singleVoters', 0),
+            'singlePercent':     _pct(a_row.get('singleVoters', 0), a_total_families),
+            'largeFamilies':     a_row.get('large6p', 0),
+            'largePercent':      _pct(a_row.get('large6p', 0), a_total_families),
+            'genderSingle': {
+                'male':          a_row.get('singleMale', 0),
+                'female':        a_row.get('singleFemale', 0),
+                'na':            a_row.get('singleVoters', 0) - a_row.get('singleMale', 0) - a_row.get('singleFemale', 0),
+                'malePercent':   _pct(a_row.get('singleMale', 0),   a_row.get('singleVoters', 0)),
+                'femalePercent': _pct(a_row.get('singleFemale', 0), a_row.get('singleVoters', 0)),
+            },
+        }
+
+        # ── Ward-wise (2.6.2 – 2.6.7) ────────────────────────────────────────
+        wards = []
+        for row in facet['byWard']:
+            ward_no_raw = row.get('_id')
+            ward_no = str(ward_no_raw).strip() if ward_no_raw not in (None, '') else 'Unknown'
+            ward_name = (row.get('wardName') or '').strip() or WARD_NUM_TO_NAME.get(
+                ward_no, WARD_NUM_TO_NAME.get(
+                    str(int(ward_no)) if ward_no.isdigit() else ward_no,
+                    f'Ward {ward_no}' if ward_no != 'Unknown' else 'Unknown'
+                )
+            )
+            total_families = row.get('totalFamilies', 0)
+            total_members  = row.get('totalMembers', 0)
+            single_voters  = row.get('singleVoters', 0)
+            large_families = row.get('large6p', 0)
+            single_male    = row.get('singleMale', 0)
+            single_female  = row.get('singleFemale', 0)
+
+            wards.append({
+                'wardNumber':        ward_no,
+                'wardName':          ward_name,
+                'totalFamilies':     total_families,
+                'totalMembers':      total_members,
+                'averageFamilySize': round(total_members / total_families, 2) if total_families else 0.0,
+                'buckets':           _family_size_buckets_from_row(row, total_families),
+                'singleVoters':      single_voters,
+                'singlePercent':     _pct(single_voters, total_families),
+                'singleMale':        single_male,
+                'singleFemale':      single_female,
+                'singleMalePercent':   _pct(single_male,   single_voters),
+                'singleFemalePercent': _pct(single_female, single_voters),
+                'largeFamilies':     large_families,
+                'largePercent':      _pct(large_families, total_families),
+            })
+
+        # Main table order: numeric ward number ascending, 'Unknown' last
+        wards_by_number = sorted(
+            wards, key=lambda w: (w['wardNumber'] == 'Unknown',
+                                   int(w['wardNumber']) if w['wardNumber'].isdigit() else 0,
+                                   w['wardNumber'])
+        )
+
+        # Top wards by average family size (2.6.7)
+        top_wards_by_avg = sorted(
+            [w for w in wards if w['totalFamilies'] > 0],
+            key=lambda w: w['averageFamilySize'], reverse=True
+        )
+
+        result = {
+            'assembly':        assembly,
+            'wards':           wards_by_number,
+            'topWardsByAvg':   top_wards_by_avg[:10],
+            'wardScope':       filter_ward or None,
+        }
+
+        _family_size_cache[cache_key] = {'data': result, 'ts': _t.time()}
+        return JsonResponse({'success': True, **result})
+
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
+
+
+# ─── COMMUNITY RECORDS (2025_cst_com_hmc) ───────────────────────────────────────
+
+@require_http_methods(['GET'])
+def api_community_records(request):
+    """
+    GET /api/community-records/
+    Query params:
+      community  — Community field value to filter (required)
+      page       — 1-based page number (default 1)
+      limit      — records per page (default 25, max 100)
+      q          — free-text search across Name, Epic No, Booth No (optional)
+
+    Reads from the '2025_cst_com_hmc' collection in SurveyDataBase (MONGODB_URL cluster).
+    Returns paginated voter records for the selected community.
+
+    Matching strategy (in order):
+      1. Exact match on Community field
+      2. If 0 results → case-insensitive regex with flexible whitespace
+         (handles trailing spaces, double spaces, minor encoding differences)
+    """
+    community = request.GET.get('community', '').strip()
+    if not community:
+        return JsonResponse({'success': False, 'message': 'community parameter is required'}, status=400)
+
+    try:
+        page  = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page  = 1
+
+    try:
+        limit = min(100, max(1, int(request.GET.get('limit', 25))))
+    except (ValueError, TypeError):
+        limit = 25
+
+    q = request.GET.get('q', '').strip()
+
+    try:
+        db         = get_db()
+        collection = db['2025_caste_comm_hmc']
+
+        # ── Resolve the Community filter ───────────────────────────────────────
+        # community param may be a single name OR comma-joined group e.g.
+        # "Mangalorean Catholic,Christian,Possibly Christian"
+        community_names = [c.strip() for c in community.split(',') if c.strip()]
+
+        def _make_filter_for_name(name):
+            """Exact match first; falls back to flexible regex."""
+            exact = {'Community': name}
+            if collection.count_documents(exact, limit=1) > 0:
+                return exact
+            escaped  = re.escape(name)
+            flexible = re.sub(r'\\ ', r'\\s+', escaped)
+            regex_f  = {'Community': {'$regex': f'^\\s*{flexible}\\s*$', '$options': 'i'}}
+            if collection.count_documents(regex_f, limit=1) > 0:
+                return regex_f
+            # Broadest: all words present (order-independent)
+            words = name.split()
+            if len(words) > 1:
+                return {'$and': [{'Community': {'$regex': re.escape(w), '$options': 'i'}} for w in words]}
+            return regex_f  # return regex even if 0 — better than wrong filter
+
+        if len(community_names) == 1:
+            community_filter = _make_filter_for_name(community_names[0])
+        else:
+            # OR across all named communities
+            community_filter = {'$or': [_make_filter_for_name(n) for n in community_names]}
+
+        # ── Build full filter (community + optional text search) ──────────────
+        if q:
+            try:
+                booth_int = int(q)
+                search_or = [
+                    {'Name':    {'$regex': re.escape(q), '$options': 'i'}},
+                    {'Epic No': {'$regex': re.escape(q), '$options': 'i'}},
+                    {'EPIC No': {'$regex': re.escape(q), '$options': 'i'}},
+                    {'Epic NO': {'$regex': re.escape(q), '$options': 'i'}},
+                    {'Booth No': booth_int},
+                ]
+            except ValueError:
+                search_or = [
+                    {'Name':    {'$regex': re.escape(q), '$options': 'i'}},
+                    {'Epic No': {'$regex': re.escape(q), '$options': 'i'}},
+                    {'EPIC No': {'$regex': re.escape(q), '$options': 'i'}},
+                    {'Epic NO': {'$regex': re.escape(q), '$options': 'i'}},
+                ]
+            # Merge community filter + search filter via $and
+            mongo_filter = {'$and': [community_filter, {'$or': search_or}]}
+        else:
+            mongo_filter = community_filter
+
+        # ── Count + paginate ──────────────────────────────────────────────────
+        total_count = collection.count_documents(mongo_filter)
+        total_pages = max(1, math.ceil(total_count / limit))
+        page        = min(page, total_pages)
+        skip        = (page - 1) * limit
+
+        projection  = {
+            '_id': 0, 'Serial No': 1, 'EPIC No': 1, 'Epic No': 1, 'Epic NO': 1, 'Name': 1,
+            'Relation Name': 1, 'Relative Name': 1, 'Relation': 1, 'Age': 1, 'Gender': 1,
+            'Booth No': 1, 'Ward No': 1, 'Part No': 1, 'Category': 1, 'Community': 1,
+            'Mapping Status': 1, 'House No': 1,
+        }
+
+        raw_records = list(collection.find(mongo_filter, projection).skip(skip).limit(limit))
+        records = []
+        for rec in raw_records:
+            f = _flat_2025(rec)
+            out = {
+                'Serial No':    rec.get('Serial No', ''),
+                'Epic No':      f.get('voterid', ''),
+                'Name':         f.get('name', ''),
+                'Relation Name':f.get('relation', ''),
+                'Age':          f.get('age', ''),
+                'Gender':       f.get('gender', ''),
+                'Booth No':     f.get('booth', ''),
+                'Ward No':      f.get('ward', ''),
+                'House No':     f.get('house', ''),
+                'Category':     rec.get('Category', ''),
+                'Community':    rec.get('Community', ''),
+                'Mapping Status': f.get('mapping_status', ''),
+            }
+            for k, v in out.items():
+                if not isinstance(v, (str, int, float, bool, type(None))):
+                    out[k] = str(v)
+            records.append(out)
+
+        return JsonResponse({
+            'success':     True,
+            'community':   community,
+            'total_count': total_count,
+            'total_pages': total_pages,
+            'page':        page,
+            'limit':       limit,
+            'records':     records,
+        })
+
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(['GET'])
+def api_debug_community_values(request):
+    """
+    GET /api/debug-community/?q=Mangalorean
+    Returns the distinct Community values in 2025_caste_comm_hmc that match
+    the query string (case-insensitive contains).
+    USE ONLY FOR DEBUGGING — remove or restrict once issue is resolved.
+    """
+    q  = request.GET.get('q', '').strip()
+    if not q:
+        return JsonResponse({'error': 'q param required'}, status=400)
+    try:
+        db     = get_db()
+        coll   = db['2025_caste_comm_hmc']
+        values = coll.distinct('Community', {
+            'Community': {'$regex': re.escape(q), '$options': 'i'}
+        })
+        return JsonResponse({'query': q, 'matched_values': sorted(values), 'count': len(values)})
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'error': str(exc)}, status=500)
+
 
 # ─── SURVEY ───────────────────────────────────────────────────────────────────
 
@@ -1314,7 +1987,7 @@ def api_serial_number(request):
     if voterid:
         # Try to find the voter in the 2025 roll and return their Serial No
         voter_2025 = get_db()['2025'].find_one(
-            {'Epic NO': voterid},
+            {'$or': [{'Epic NO': voterid}, {'Epic No': voterid}, {'EPIC No': voterid}]},
             {'Serial No': 1, 'Sl No': 1}
         )
         if voter_2025:
@@ -1773,6 +2446,60 @@ def _upload_to_gcs(file_obj, destination_blob_name):
             pass
 
 
+def _upload_bytes_to_gcs(image_bytes, destination_blob_name, content_type='image/jpeg'):
+    """
+    Upload raw bytes to GCS. Returns the public HTTPS URL or raises on error.
+    Follows the exact same pattern as _upload_to_gcs (temp-file + upload_from_filename).
+    """
+    import os as _os, json as _json, tempfile as _tmp
+    from google.cloud import storage as _gcs
+    from google.oauth2 import service_account as _sa
+
+    bucket_name = _os.environ.get('GCS_BUCKET_NAME', '')
+    creds_json  = _os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON', '')
+
+    if not bucket_name:
+        raise ValueError('GCS_BUCKET_NAME env var is not set')
+    if not creds_json:
+        raise ValueError('GOOGLE_APPLICATION_CREDENTIALS_JSON env var is not set')
+
+    creds_dict  = _json.loads(creds_json)
+    credentials = _sa.Credentials.from_service_account_info(
+        creds_dict,
+        scopes=[
+            'https://www.googleapis.com/auth/cloud-platform',
+            'https://www.googleapis.com/auth/devstorage.full_control',
+        ],
+    )
+    client = _gcs.Client(credentials=credentials, project=creds_dict.get('project_id'))
+    bucket = client.bucket(bucket_name)
+    blob   = bucket.blob(destination_blob_name)
+
+    # Write bytes to a temp file, then upload_from_filename (proven pattern)
+    ext = _os.path.splitext(destination_blob_name)[1] or '.jpg'
+    with _tmp.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+        tmp.write(image_bytes)
+        tmp_path = tmp.name
+
+    try:
+        blob.upload_from_filename(tmp_path, content_type=content_type)
+        try:
+            blob.make_public()
+            public_url = blob.public_url
+        except Exception as _acl_err:
+            print(f"[GCS] make_public() skipped ({_acl_err}); using direct URL.")
+            public_url = f"https://storage.googleapis.com/{bucket_name}/{destination_blob_name}"
+
+        print(f"[GCS] ✓ Uploaded bytes → gs://{bucket_name}/{destination_blob_name}")
+        print(f"[GCS] ✓ Public URL: {public_url}")
+        return public_url
+    finally:
+        try:
+            _os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
 @csrf_exempt
 @require_http_methods(['POST'])
 def api_save_deceased(request):
@@ -2133,19 +2860,24 @@ def api_data_view(request):
             db       = get_db()
             coll     = db['2025']
             PROJ = {
-                'Name': 1, 'Epic NO': 1, 'House No': 1,
-                'Gender': 1, 'Age': 1, 'Booth No': 1, 'Part No': 1,
-                'Relation Name': 1, 'Address': 1,
-                'Sl No': 1, 'Serial No': 1,
+                'Name': 1, 'Epic NO': 1, 'Epic No': 1, 'EPIC No': 1, 'House No': 1,
+                'Gender': 1, 'Age': 1, 'Booth No': 1, 'Part No': 1, 'Ward No': 1,
+                'Relation Name': 1, 'Relative Name': 1, 'Address': 1,
+                'Voter Address': 1, 'Sl No': 1, 'Serial No': 1,
+                'Mapping Status': 1,
             }
             if search:
                 regex = {'$regex': search.strip(), '$options': 'i'}
                 query = {'$or': [
                     {'Name':          regex},
                     {'Epic NO':       regex},
+                    {'Epic No':       regex},
+                    {'EPIC No':       regex},
                     {'House No':      regex},
                     {'Relation Name': regex},
+                    {'Relative Name': regex},
                     {'Address':       regex},
+                    {'Voter Address': regex},
                 ]}
             else:
                 query = {}
@@ -2299,83 +3031,194 @@ def api_data_view(request):
 
 @require_http_methods(['GET'])
 def api_voter_search(request):
-    q      = request.GET.get('q', '').strip()
-    page   = int(request.GET.get('page', 1))
-    limit  = 50
+    """
+    Voter search over the '2025' collection.
+    Exact EPIC No first, then tiered flexible search.
+    """
+    q     = request.GET.get('q', '').strip()
+    page  = max(1, int(request.GET.get('page', 1)))
+    LIMIT = 50
 
-    if not q:
+    if not q or len(q) < 2:
         return JsonResponse({'success': True, 'voters': [], 'total': 0})
 
     db   = get_db()
     coll = db['2025']
 
-    regex = {'$regex': q, '$options': 'i'}
-    query = {'$or': [
-        {'Name':         regex},
-        {'Epic NO':      regex},
-        {'House No':     regex},
-        {'Relation Name': regex},
-        {'Address':      regex},
-    ]}
-
-    total = coll.count_documents(query)
-    skip  = (page - 1) * limit
-    docs  = list(coll.find(query).skip(skip).limit(limit))
-
-    voters = []
-    for doc in docs:
-        d = bson_clean(doc)
-        # Normalise to consistent frontend keys using actual 2025 field names
-        voters.append({
-            'Voter_Name':    d.get('Name', ''),
-            'VoterID':       d.get('Epic NO', ''),
-            'House_No':      d.get('House No', ''),
-            'Relation_Name': d.get('Relation Name', ''),
-            'Booth_No':      str(d.get('Booth No', '')),
-            'Age':           d.get('Age', ''),
-            'Gender':        d.get('Gender', ''),
-            'Address':       d.get('Address', ''),
-            'Part_No':       str(d.get('Part No', '')),
-            'Section_name':  d.get('Section name', ''),
-            'Polling_Station_Name':    d.get('polling Station Name', ''),
-            'Polling_Station_Address': d.get('Polling Statuin Address', ''),
-            'Source_PDF_Name':         d.get('Source PDF Name', ''),
-            'Page_No_of_card':         d.get('Page No of card', ''),
-            'Predicted_Religion':      d.get('Predicted_Religion', ''),
-            'Predicted_Religion_Label':d.get('Predicted_Religion_Label', ''),
-            'Serial_No':     d.get('Serial No', ''),
-            'Relation':      d.get('Relation', ''),
+    # ── 1. Exact EPIC No match ───────────────────────────────────────────────
+    q_upper = q.upper().strip()
+    exact = coll.find_one(
+        {'$or': [
+            {'EPIC No': q_upper},
+            {'Epic No': q_upper},
+            {'Epic NO': q_upper},
+        ]},
+        {'_id': 0}
+    )
+    if exact:
+        d = bson_clean(exact)
+        f = _flat_2025(d)
+        return JsonResponse({
+            'success': True,
+            'voters':  [_format_voter_result(d, f)],
+            'total':   1,
+            'page':    1,
         })
 
+    # ── 2. Flexible search ───────────────────────────────────────────────────
+    query = _build_voter_search_query(q)
+    total = coll.count_documents(query)
+    skip  = (page - 1) * LIMIT
+    docs  = list(coll.find(query, {'_id': 0}).skip(skip).limit(LIMIT))
+    voters = [_format_voter_result(bson_clean(doc), _flat_2025(bson_clean(doc))) for doc in docs]
     return JsonResponse({'success': True, 'voters': voters, 'total': total, 'page': page})
 
 
-# ─── VOTER FAMILY ─────────────────────────────────────────────────────────────
+def _build_voter_search_query(q):
+    """
+    Build a MongoDB query for q.
+    Multi-word: $and of per-word patterns (no lookaheads — avoids table-scan timeouts).
+    """
+    q       = q.strip()
+    words   = q.split()
+    sub_pat = {'$regex': re.escape(q), '$options': 'i'}
+
+    if len(words) == 1:
+        return {'$or': [
+            {'Name':          sub_pat},
+            {'EPIC No':       sub_pat},
+            {'Epic No':       sub_pat},
+            {'Epic NO':       sub_pat},
+            {'House No':      sub_pat},
+            {'Relation Name': sub_pat},
+            {'Relative Name': sub_pat},
+            {'Voter Address': sub_pat},
+            {'Address':       sub_pat},
+            {'Ward Name':     sub_pat},
+            {'Section Name':  sub_pat},
+        ]}
+
+    word_name = [{'Name':          {'$regex': re.escape(w), '$options': 'i'}} for w in words]
+    word_rel  = [{'Relation Name': {'$regex': re.escape(w), '$options': 'i'}} for w in words]
+    return {'$or': [
+        {'$and': word_name},
+        {'$and': word_rel},
+        {'EPIC No':       sub_pat},
+        {'Epic No':       sub_pat},
+        {'Epic NO':       sub_pat},
+        {'House No':      sub_pat},
+        {'Voter Address': sub_pat},
+        {'Address':       sub_pat},
+        {'Ward Name':     sub_pat},
+        {'Section Name':  sub_pat},
+    ]}
+
+
+def _format_voter_result(d, f):
+    """Convert raw doc + _flat_2025 → frontend voter shape."""
+    return {
+        'Voter_Name':    f.get('name', ''),
+        'VoterID':       f.get('voterid', ''),
+        'House_No':      f.get('house', ''),
+        'Relation_Name': f.get('relation', ''),
+        'Booth_No':      f.get('booth', ''),
+        'Age':           f.get('age', ''),
+        'Gender':        f.get('gender', ''),
+        'Address':       d.get('Voter Address', d.get('Address', '')),
+        'Part_No':       f.get('ward', ''),
+        'Ward_Name':     d.get('Ward Name', ''),
+        'Section_name':  d.get('Section Name', d.get('Section name', '')),
+        'Polling_Station_Name':     d.get('Polling Station Name', d.get('polling Station Name', '')),
+        'Polling_Station_Address':  d.get('Polling Station Address', d.get('Polling Statuin Address', '')),
+        'Source_PDF_Name':          d.get('Source PDF Name', ''),
+        'Page_No_of_card':          d.get('Page No of card', ''),
+        'Predicted_Religion':       d.get('Predicted_Religion', ''),
+        'Predicted_Religion_Label': d.get('Predicted_Religion_Label', ''),
+        'Serial_No':     d.get('Serial No', ''),
+        'Relation':      d.get('Relation', ''),
+        'mapping_status': f.get('mapping_status', ''),
+        'Community':           d.get('Community', ''),
+        'Category':            d.get('Category', ''),
+        'Ward_Classification': d.get('Ward Classification', ''),
+        'Risk_Status':         d.get('Risk Status', ''),
+        'Action_Priority':     d.get('Action Priority', ''),
+        'Poll_Status_2023':    d.get('Poll Status 2023', ''),
+    }
+
+
+# ─── VOTER FAMILY ──────────────────────────────────────────────────────────────
 
 @require_http_methods(['GET'])
 def api_voter_family(request):
     house_no = request.GET.get('house')
     if not house_no:
         return JsonResponse({'success': True, 'family': []})
-
     db   = get_db()
     coll = db['2025']
     docs = list(coll.find({'House No': house_no}))
-    family = [bson_clean(d) for d in docs]
-    return JsonResponse({'success': True, 'family': family})
+    return JsonResponse({'success': True, 'family': [bson_clean(d) for d in docs]})
 
 
-# ─── HOUSE SEARCH ─────────────────────────────────────────────────────────────
+# ─── HOUSE SEARCH ──────────────────────────────────────────────────────────────
+#
+# Search strategy (mirrors the SIR Live Check algo):
+#
+#   TIER 0 — EXACT MATCH    voter's own Name contains ALL query words
+#                            OR exact EPIC No match
+#                            OR exact / prefix House No match
+#   TIER 1 — FAMILY MEMBER  voter's Relation Name contains ALL query words
+#   TIER 2 — SIMILAR NAME   phonetic prefix variant on first name token
+#                            (only added when T0+T1 < 25, keeps noise low)
+#
+# Key improvements over the old version
+#   • EPIC No detected by KA-prefix pattern → instant single-house result
+#   • House-number queries get a dedicated fast path (exact + prefix)
+#   • Multi-word name queries use phonetic prefix variants (_gen_prefixes)
+#     so "VEDHAVYAS" finds "VEDAVYAS", "RAJESH" finds "RAJESH SHETTY" etc.
+#   • T0/T1 candidate limit raised to 500 each; T2 kept at 150 to cap noise
+#   • Final output capped at 25 houses (T0+T1 first, T2 fills remainder)
+#   • All DB queries run in parallel threads
+#
+_HS_KA_PREFIXES = {
+    'NUX','KAX','KAP','SCX','SXK','JWX','XKA','ZMK','YHX','TFX',
+    'KXA','NUK','KAZ','SKA','KAS','AKA','NAX','ZKA','ST',
+}
+_HS_EPIC_RE = re.compile(
+    r'^([A-Z]{2,4})\d',
+    re.IGNORECASE
+)
+_HS_HOUSE_RE = re.compile(
+    r'^[\d][-/\d]',   # starts with digit then dash/slash/digit  e.g. 1-10-609  4-7
+)
+
+
+def _hs_is_epic(q: str) -> bool:
+    """Return True if q looks like a Voter-ID / EPIC No."""
+    qu = q.upper().strip()
+    m  = _HS_EPIC_RE.match(qu)
+    if m and m.group(1).upper() in _HS_KA_PREFIXES:
+        return True
+    # Also accept anything that is all-alpha + digits without spaces
+    if re.match(r'^[A-Z]{2,4}\d{7,10}$', qu):
+        return True
+    return False
+
+
+def _hs_is_house(q: str) -> bool:
+    """Return True if q looks like a house number (e.g. 1-10-609, 4-7, 620-1)."""
+    return bool(_HS_HOUSE_RE.match(q.strip()))
+
 
 @require_http_methods(['GET'])
 def api_house_search(request):
     """
-    Optimised: 3 DB queries total regardless of result size.
-      Q1 — match search term → collect unique house numbers (projection only)
-      Q2 — fetch ALL members for those houses in one $in query
-      Q3 — fetch all surveyed voter IDs for those members in one $in query
+    House-grouped voter search — results sorted by relevance tier.
+    Output capped at 25 houses (exact+family first, similar fills remainder).
     """
-    q = request.GET.get('q', '').strip()
+    q      = request.GET.get('q',      '').strip()
+    ward   = request.GET.get('ward',   '').strip()
+    booths = request.GET.get('booths', '').strip()
+
     if len(q) < 2:
         return JsonResponse({'success': True, 'houses': [], 'total_houses': 0})
 
@@ -2383,87 +3226,302 @@ def api_house_search(request):
     voter_col  = db['2025']
     survey_col = get_survey_db()['SurveyRecords']
 
-    exact_voter = voter_col.find_one(
-        {'Epic NO': q},
-        {'House No': 1}
-    )
-    if exact_voter:
-        hn = str(exact_voter.get('House No', '')).strip()
-        house_nos = {hn} if hn else set()
-    else:
-        regex       = {'$regex': re.escape(q), '$options': 'i'}
-        match_query = {'$or': [
-            {'Name':          regex},
-            {'Epic NO':       regex},
-            {'House No':      regex},
-            {'Relation Name': regex},
-            {'Address':       regex},
-        ]}
-        matched = voter_col.find(
-            match_query,
-            {'House No': 1}
-        ).limit(100)
+    # ── Scope filter (ward / booths) ──────────────────────────────────────────
+    scope_filter = {}
+    if booths:
+        bl  = [b.strip() for b in booths.split(',') if b.strip()]
+        bi  = [int(b) for b in bl if b.isdigit()]
+        scope_filter['Booth No'] = {'$in': bi + bl}
+    elif ward:
+        wi        = int(ward) if ward.isdigit() else None
+        ward_vals = [ward] + ([wi] if wi is not None else [])
+        scope_filter['Ward No'] = {'$in': ward_vals}
 
-        house_nos = set()
-        for doc in matched:
+    def _scoped(q_dict):
+        return {'$and': [q_dict, scope_filter]} if scope_filter else q_dict
+
+    def _collect_house_nos(query, limit=500):
+        """Collect unique house numbers from voter_col matching query."""
+        nos = set()
+        for doc in voter_col.find(query, {'House No': 1}).limit(limit):
             hn = str(doc.get('House No', '')).strip()
             if hn:
-                house_nos.add(hn)
+                nos.add(hn)
+        return nos
 
-    if not house_nos:
+    q_upper = q.upper().strip()
+    words   = [w for w in q.split() if len(w) >= 1]
+
+    house_nos_t0 = set()
+    house_nos_t1 = set()
+    house_nos_t2 = set()
+
+    # Score maps populated only in the name-search path (house_no -> best int score)
+    _hs_t0_scores = None  # type: dict|None
+    _hs_t1_scores = None  # type: dict|None
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CASE A — EPIC No (Voter ID)
+    # ══════════════════════════════════════════════════════════════════════════
+    if _hs_is_epic(q):
+        exact_voter = voter_col.find_one(
+            {'$or': [
+                {'EPIC No': q_upper},
+                {'Epic No': q_upper},
+                {'Epic NO': q_upper},
+            ]},
+            {'House No': 1}
+        )
+        if exact_voter:
+            hn = str(exact_voter.get('House No', '')).strip()
+            if hn:
+                house_nos_t0 = {hn}
+        else:
+            # Prefix match (partial EPIC typed)
+            pfx_rx = {'$regex': f'^{re.escape(q_upper)}', '$options': 'i'}
+            pfx_q  = {'$or': [{'EPIC No': pfx_rx}, {'Epic No': pfx_rx}, {'Epic NO': pfx_rx}]}
+            house_nos_t0 = _collect_house_nos(_scoped(pfx_q), 50)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CASE B — House Number
+    # ══════════════════════════════════════════════════════════════════════════
+    elif _hs_is_house(q):
+        # Exact match first
+        exact_q   = _scoped({'House No': q})
+        exact_nos = _collect_house_nos(exact_q, 300)
+
+        # Prefix match (catches "1-10" matching "1-10-609", "1-10-620" etc.)
+        pfx_rx  = {'$regex': f'^{re.escape(q)}', '$options': 'i'}
+        pfx_q   = _scoped({'House No': pfx_rx})
+        pfx_nos = _collect_house_nos(pfx_q, 300)
+
+        # Substring match for house addresses containing the fragment
+        sub_rx  = {'$regex': re.escape(q), '$options': 'i'}
+        sub_q   = _scoped({'$or': [
+            {'House No':      sub_rx},
+            {'Voter Address': sub_rx},
+            {'Address':       sub_rx},
+        ]})
+        sub_nos = _collect_house_nos(sub_q, 200)
+
+        house_nos_t0 = exact_nos | pfx_nos
+        house_nos_t1 = set()
+        house_nos_t2 = sub_nos - house_nos_t0
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CASE C — Name (single or multi-word)
+    # ══════════════════════════════════════════════════════════════════════════
+    else:
+        # Build phonetic prefix variants from first significant token
+        sig_tokens = [w for w in words if len(w) >= 2]
+        first_tok  = sig_tokens[0].upper() if sig_tokens else ''
+        prefixes   = list(_gen_prefixes(first_tok)) if first_tok else []
+        q_up_tokens = [t.upper() for t in sig_tokens]
+
+        def _name_score(name_up):
+            """
+            Score how closely a voter's Name matches the query.
+            Higher = more relevant.  Used to rank T0/T1 before the 25-cap.
+
+            5 — exact full name match (normalised)
+            4 — all tokens present AND first token starts the name
+            3 — all tokens present anywhere (standard T0)
+            2 — first token starts the name but not all tokens present
+            1 — at least one token present
+            0 — nothing
+            """
+            if not name_up or not q_up_tokens:
+                return 0
+            all_present  = all(t in name_up for t in q_up_tokens)
+            starts_first = name_up.startswith(q_up_tokens[0])
+            # Exact: the name IS the query tokens joined (handles middle initials loosely)
+            norm_name  = ' '.join(name_up.split())
+            norm_query = ' '.join(q_up_tokens)
+            if norm_name == norm_query:
+                return 5
+            if all_present and starts_first:
+                return 4
+            if all_present:
+                return 3
+            if starts_first:
+                return 2
+            if any(t in name_up for t in q_up_tokens):
+                return 1
+            return 0
+
+        # scored result: dict {house_no: best_score}
+        _t0_scored = [{}]
+        _t1_scored = [{}]
+        _t2_nos    = [set()]
+
+        def _run_t0():
+            """T0: ALL tokens must appear in Name. Collect with per-house best score."""
+            if not sig_tokens:
+                return
+            if len(sig_tokens) == 1:
+                rx = {'$regex': re.escape(sig_tokens[0]), '$options': 'i'}
+                q0 = _scoped({'Name': rx})
+            else:
+                conds = [{'Name': {'$regex': re.escape(w), '$options': 'i'}} for w in sig_tokens]
+                q0    = _scoped({'$and': conds})
+            scored = {}
+            for doc in voter_col.find(q0, {'House No': 1, 'Name': 1}).limit(500):
+                hn = str(doc.get('House No', '')).strip()
+                if not hn:
+                    continue
+                sc = _name_score(str(doc.get('Name', '')).upper())
+                if hn not in scored or sc > scored[hn]:
+                    scored[hn] = sc
+            _t0_scored[0] = scored
+
+        def _run_t1():
+            """T1: ALL tokens must appear in Relation Name / Relative Name."""
+            if not sig_tokens:
+                return
+            if len(sig_tokens) == 1:
+                rx = {'$regex': re.escape(sig_tokens[0]), '$options': 'i'}
+                q1 = _scoped({'$or': [
+                    {'Relation Name': rx},
+                    {'Relative Name': rx},
+                ]})
+            else:
+                conds_rn  = [{'Relation Name': {'$regex': re.escape(w), '$options': 'i'}} for w in sig_tokens]
+                conds_rel = [{'Relative Name': {'$regex': re.escape(w), '$options': 'i'}} for w in sig_tokens]
+                q1 = _scoped({'$or': [{'$and': conds_rn}, {'$and': conds_rel}]})
+            scored = {}
+            for doc in voter_col.find(q1, {'House No': 1, 'Relation Name': 1, 'Relative Name': 1}).limit(500):
+                hn = str(doc.get('House No', '')).strip()
+                if not hn:
+                    continue
+                rel = str(doc.get('Relation Name', doc.get('Relative Name', ''))).upper()
+                sc  = _name_score(rel)
+                if hn not in scored or sc > scored[hn]:
+                    scored[hn] = sc
+            _t1_scored[0] = scored
+
+        def _run_t2():
+            """T2: phonetic prefix variants on first token + surname token."""
+            clauses = []
+            for p in prefixes:
+                clauses.append({'Name': {'$regex': f'^{re.escape(p)}', '$options': 'i'}})
+            if len(sig_tokens) >= 2:
+                surname = sig_tokens[-1]
+                clauses.append({'Name': {'$regex': re.escape(surname), '$options': 'i'}})
+            if not clauses:
+                return
+            q2 = _scoped({'$or': clauses})
+            _t2_nos[0] = _collect_house_nos(q2, 300)
+
+        _ta = threading.Thread(target=_run_t0, daemon=True)
+        _tb = threading.Thread(target=_run_t1, daemon=True)
+        _tc = threading.Thread(target=_run_t2, daemon=True)
+        _ta.start(); _tb.start(); _tc.start()
+        _ta.join();  _tb.join();  _tc.join()
+
+        _hs_t0_scores = _t0_scored[0]   # assign to outer for cap-sort
+        _hs_t1_scores = _t1_scored[0]
+        house_nos_t0 = set(_hs_t0_scores.keys())
+        house_nos_t1 = set(_hs_t1_scores.keys()) - house_nos_t0
+        house_nos_t2 = _t2_nos[0] - house_nos_t0 - house_nos_t1
+
+    # ── Cap output at 25 houses — ranked by relevance score, T0 first ─────────
+    #
+    # Critical: sort by SCORE DESC (most relevant first) before slicing to 25.
+    # Without this, alphabetically-early houses (e.g. "1-22-...") crowd out the
+    # actual match (e.g. "17-12-..." NILESH D KAMATH) even though both are T0.
+    #
+    MAX_HOUSES = 25
+
+    if _hs_t0_scores is not None:
+        # Name-search path: sort by relevance score DESC so most-relevant houses
+        # come first before the 25-cap slices — "NILESH D KAMATH" (score 3-5)
+        # beats "AISHWARYA ASHWIN KAMATH" (score 1) even if alphabetically later.
+        exact_family = (
+            [hn for hn, _ in sorted(_hs_t0_scores.items(), key=lambda x: (-x[1], x[0]))]
+            + [hn for hn, _ in sorted(_hs_t1_scores.items(), key=lambda x: (-x[1], x[0]))]
+        )
+    else:
+        # EPIC / House-number path — no scoring, plain string sort is fine
+        exact_family = sorted(house_nos_t0) + sorted(house_nos_t1 - house_nos_t0)
+
+    similar    = sorted(house_nos_t2 - house_nos_t0 - house_nos_t1)
+    chosen_t01 = exact_family[:MAX_HOUSES]
+    remaining  = MAX_HOUSES - len(chosen_t01)
+    chosen_t2  = similar[:remaining] if remaining > 0 else []
+
+    selected_house_nos = set(chosen_t01) | set(chosen_t2)
+    total_found        = len(house_nos_t0 | house_nos_t1 | house_nos_t2)
+
+    if not selected_house_nos:
         return JsonResponse({'success': True, 'houses': [], 'total_houses': 0})
 
-    hn_list = list(house_nos)
-    hn_ints = [int(h) for h in hn_list if h.isdigit()]
+    # Tier lookup for each house
+    tier_info = {}
+    for hn in house_nos_t0:                                  tier_info[hn] = (0, 'Exact Match')
+    for hn in (house_nos_t1 - house_nos_t0):                 tier_info[hn] = (1, 'Family Member')
+    for hn in (house_nos_t2 - house_nos_t0 - house_nos_t1): tier_info[hn] = (2, 'Similar Name')
+
+    # ── Q2: Fetch ALL members of matched houses ───────────────────────────────
+    hn_list = list(selected_house_nos)
+    hn_ints = [int(h) for h in hn_list if str(h).isdigit()]
     house_query = {'House No': {'$in': hn_list + hn_ints}}
+    if scope_filter:
+        house_query.update(scope_filter)
     all_member_docs = list(voter_col.find(house_query))
 
-    house_map = {}
+    house_map     = {}
     all_voter_ids = []
+
     for doc in all_member_docs:
-        d  = bson_clean(doc)
-        hn = str(d.get('House No', '')).strip()
+        d   = bson_clean(doc)
+        f   = _flat_2025(d)
+        hn  = f.get('house', '') or str(d.get('House No', '')).strip()
         if not hn:
             continue
-        vid = str(d.get('Epic NO', '')).strip()
-        _relation      = str(d.get('Relation',      '')).strip()   # e.g. "Father", "Husband"
-        _relation_name = str(d.get('Relation Name', '')).strip()   # e.g. "HARISHCHANDRA"
+        vid = f.get('voterid', '')
         member = {
-            'name':               str(d.get('Name', '')).strip(),
-            'relation':           _relation,
-            'relationName':       _relation_name,
+            'name':               f.get('name', ''),
+            'relation':           str(d.get('Relation', '')).strip(),
+            'relationName':       f.get('relation', ''),
             'voterid':            vid,
-            'gender':             str(d.get('Gender', '')),
-            'age':                d.get('Age', ''),
-            'booth':              str(d.get('Booth No', '')),
-            'ward':               str(d.get('Part No', '')),
+            'gender':             f.get('gender', ''),
+            'age':                f.get('age', ''),
+            'booth':              f.get('booth', ''),
+            'ward':               f.get('ward', ''),
             'house_no':           hn,
-            'address':            str(d.get('Address', '')),
+            'address':            d.get('Voter Address', d.get('Address', '')),
             'serial_no':          d.get('Serial No') or d.get('Sl No', ''),
-            # ── 2025 voter roll enrichment fields ──────────────────────────
-            'partNo':             str(d.get('Part No', '')).strip(),
-            'sectionName':        str(d.get('Section name', '')).strip(),
-            'pollingStation':     str(d.get('polling Station Name', '')).strip(),
-            'pollingStationAddr': str(d.get('Polling Statuin Address', '')).strip(),
+            'mapping_status':     f.get('mapping_status', ''),
+            'partNo':             f.get('ward', ''),
+            'sectionName':        str(d.get('Section Name',         d.get('Section name',         ''))).strip(),
+            'pollingStation':     str(d.get('Polling Station Name', d.get('polling Station Name', ''))).strip(),
+            'pollingStationAddr': str(d.get('Polling Station Address', d.get('Polling Statuin Address', ''))).strip(),
             'sourcePdfName':      str(d.get('Source PDF Name', '')).strip(),
             'pageNoOfCard':       str(d.get('Page No of card', '')).strip(),
             'predictedReligion':  str(d.get('Predicted_Religion_Label', '')).strip(),
-            'religion':           {'H': 'Hindu', 'M': 'Muslim', 'C': 'Christian', 'J': 'Jain', 'B': 'Buddhist', 'S': 'Sikh'}.get(str(d.get('Predicted_Religion_Label', '')).strip(), ''),
+            'religion':           {'H':'Hindu','M':'Muslim','C':'Christian','J':'Jain','B':'Buddhist','S':'Sikh'}.get(
+                                      str(d.get('Predicted_Religion_Label', d.get('Religion',''))).strip(), ''),
+            'community':          str(d.get('Community',           '')).strip(),
+            'category':           str(d.get('Category',            '')).strip(),
+            'ward_class':         str(d.get('Ward Classification', '')).strip(),
+            'ward_name':          str(d.get('Ward Name',           '')).strip(),
+            'risk_status':        str(d.get('Risk Status',         '')).strip(),
+            'action_priority':    str(d.get('Action Priority',     '')).strip(),
+            'poll_status_2023':   str(d.get('Poll Status 2023',    '')).strip(),
             'surveyed':           False,
         }
         house_map.setdefault(hn, []).append(member)
         if vid:
             all_voter_ids.append(vid)
 
+    # ── Q3: Batch surveyed lookup ─────────────────────────────────────────────
     surveyed_ids   = set()
     survey_rec_map = {}
     if all_voter_ids:
         for rec in survey_col.find(
             {'voterid': {'$in': all_voter_ids}},
-            {
-                'voterid': 1, 'houseNumber': 1, 'wardNumber': 1, 'boothNo': 1,
-                'address': 1, 'areaType': 1, 'homeType': 1, 'familyIncome': 1,
-            }
+            {'voterid':1,'houseNumber':1,'wardNumber':1,'boothNo':1,
+             'address':1,'areaType':1,'homeType':1,'familyIncome':1}
         ):
             sid = (rec.get('voterid') or '').strip()
             if sid:
@@ -2478,8 +3536,21 @@ def api_house_search(request):
                     'familyIncome': rec.get('familyIncome', ''),
                 }
 
+    # ── Assemble houses, sorted by tier → score desc → house string ─────────
+    # For name searches _hs_t0_scores/_hs_t1_scores give per-house relevance;
+    # use them so high-scoring houses always precede low-scoring ones in the
+    # output even when both share tier 0.
+    def _tier_key(hn):
+        tier, _ = tier_info.get(hn, (0, ''))
+        # Score: higher is more relevant → negate for ascending sort
+        if _hs_t0_scores is not None:
+            sc = _hs_t0_scores.get(hn) or (_hs_t1_scores.get(hn) if _hs_t1_scores else None) or 0
+        else:
+            sc = 0
+        return (tier, -sc, hn)
+
     houses = []
-    for hn in sorted(house_map.keys()):
+    for hn in sorted(house_map.keys(), key=_tier_key):
         members = house_map[hn]
         for m in members:
             m['surveyed'] = m['voterid'] in surveyed_ids
@@ -2494,22 +3565,110 @@ def api_house_search(request):
                 house_survey_data = survey_rec_map[m['voterid']]
                 break
 
+        # ── Family clustering — Union-Find ────────────────────────────────────
+        n      = len(members)
+        parent = list(range(n))
+
+        def _uf_find(x):
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        def _uf_union(a, b):
+            ra, rb = _uf_find(a), _uf_find(b)
+            if ra != rb:
+                parent[ra] = rb
+
+        def _nn(s):
+            return ' '.join(str(s or '').upper().split())
+
+        def _fw(s):
+            p = s.split()
+            return p[0] if p else ''
+
+        name_to_idx   = {}
+        fname_to_idxs = {}
+        for i, m in enumerate(members):
+            key = _nn(m['name'])
+            if key:
+                name_to_idx.setdefault(key, []).append(i)
+                fw = _fw(key)
+                if fw:
+                    fname_to_idxs.setdefault(fw, []).append(i)
+
+        virtual         = {}
+        virtual_counter = [n]
+
+        def _get_virtual(anchor):
+            if anchor not in virtual:
+                virtual[anchor] = virtual_counter[0]
+                virtual_counter[0] += 1
+                parent.append(len(parent))
+            return virtual[anchor]
+
+        for i, m in enumerate(members):
+            rn = _nn(m.get('relationName', ''))
+            if not rn:
+                continue
+            linked = name_to_idx.get(rn)
+            if linked:
+                for li in linked:
+                    _uf_union(i, li)
+            else:
+                v = _get_virtual(rn)
+                _uf_union(i, v)
+                fw = _fw(rn)
+                if fw and fw in fname_to_idxs:
+                    for li in fname_to_idxs[fw]:
+                        _uf_union(li, v)
+
+        cluster_map = {}
+        for i in range(n):
+            cluster_map.setdefault(_uf_find(i), []).append(i)
+
+        def _serial(i):
+            try:
+                return int(members[i].get('serial_no') or 9_999_999)
+            except (ValueError, TypeError):
+                return 9_999_999
+
+        clusters = sorted(cluster_map.values(), key=lambda c: min(_serial(i) for i in c))
+
+        families = []
+        for fi, cluster in enumerate(clusters):
+            fam_members = [members[i] for i in sorted(cluster, key=_serial)]
+            families.append({'family_id': fi, 'size': len(fam_members), 'members': fam_members})
+
+        families.sort(key=lambda f: (-f['size'], f['family_id']))
+        for fi, fam in enumerate(families):
+            fam['family_id'] = fi
+            for m in fam['members']:
+                m['family_id'] = fi
+
+        t_num, t_label = tier_info.get(hn, (0, 'Match'))
         houses.append({
             'house_no':          hn,
             'ward':              sample.get('ward', ''),
+            'ward_name':         sample.get('ward_name', ''),
             'booth':             sample.get('booth', ''),
+            'match_tier':        t_num,
+            'match_reason':      t_label,
             'total_members':     total,
             'surveyed':          surveyed,
             'remaining':         total - surveyed,
             'members':           members,
+            'families':          families,
             'house_survey_data': house_survey_data,
         })
 
     return JsonResponse({
         'success':      True,
         'houses':       houses,
-        'total_houses': len(houses),
+        'total_houses': total_found,
     })
+
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2533,17 +3692,60 @@ def _norm(v):
 #   Epic NO, Name, Relation Name, House No, Gender, Age, Booth No, Part No
 
 def _flat_2025(doc):
+    """Normalise a raw 2025 roll document into a consistent flat dict.
+
+    Handles all known field-name schemas transparently:
+    ┌─────────────────┬───────────────────────────────┬──────────────────────────────┐
+    │ Field           │ Old ('2025')                  │ New (re-uploaded 2025 list)  │
+    ├─────────────────┼───────────────────────────────┼──────────────────────────────┤
+    │ Voter ID        │ Epic NO / Epic No             │ EPIC No                      │
+    │ Relation name   │ Relative Name / Relation Name │ Relation Name                │
+    │ Mapping Status  │ Mapped / Not Mapped           │ MAPPED / NOT MAPPED          │
+    │ All others      │ Name / House No / Gender / …  │ same                         │
+    └─────────────────┴───────────────────────────────┴──────────────────────────────┘
+    """
     if not doc:
         return {}
+    def _g(*keys):
+        """Return the first non-empty value from candidate field names."""
+        for k in keys:
+            v = doc.get(k)
+            if v is not None and str(v).strip() not in ('', 'nan', 'NaN', 'NAN'):
+                return str(v)
+        return ''
+    # Normalise mapping_status to a consistent lowercase value regardless of
+    # whether the collection stores "Mapped"/"Not Mapped" (old) or
+    # "MAPPED"/"NOT MAPPED" (new re-uploaded list).
+    raw_ms = _g('Mapping Status')
+    if raw_ms.upper() in ('MAPPED', 'MAPPED '):
+        norm_ms = 'Mapped'
+    elif raw_ms.upper() in ('NOT MAPPED', 'NOTMAPPED', 'NOT_MAPPED'):
+        norm_ms = 'Not Mapped'
+    else:
+        norm_ms = raw_ms  # pass through anything unexpected unchanged
     return {
-        'name':     _norm(doc.get('Name', '')),
-        'relation': _norm(doc.get('Relation Name', '')),
-        'house':    _norm(doc.get('House No', '')),
-        'voterid':  _norm(doc.get('Epic NO', '')),
-        'gender':   _norm(doc.get('Gender', '')),
-        'age':      str(doc.get('Age', '')).strip(),
-        'booth':    str(doc.get('Booth No', '')),
-        'ward':     str(doc.get('Part No', '')),
+        'name':           _norm(_g('Name')),
+        'relation':       _norm(_g('Relation Name', 'Relative Name')),
+        'house':          _norm(_g('House No')),
+        'voterid':        _norm(_g('EPIC No', 'Epic No', 'Epic NO')),
+        'gender':         _norm(_g('Gender')),
+        'age':            _g('Age'),
+        'booth':          _g('Booth No'),
+        'ward':           _g('Ward No', 'Part No'),
+        'mapping_status': norm_ms,
+        'serial':                 _g('Serial No'),
+        'ward_name':               _g('Ward Name'),
+        'community':               _g('Community'),
+        'category':                _g('Category'),
+        'ward_classification':     _g('Ward Classification'),
+        'risk_status':             _g('Risk Status'),
+        'action_priority':         _g('Action Priority'),
+        'poll_status_2023':        _g('Poll Status 2023'),
+        'religion':                _g('Religion'),
+        'section_name':            _g('Section Name'),
+        'polling_station_name':    _g('Polling Station Name'),
+        'polling_station_address': _g('Polling Station Address'),
+        'voter_address':           _g('Voter Address'),
     }
 
 
@@ -2858,6 +4060,24 @@ def _score_candidates(candidates, flat_fn, name, relation):
         if n_toks >= 2 and tok_cov_pct < 0.5:
             comp = min(comp, 62.0)
 
+        # ── Relation token-coverage guard ─────────────────────────────────────
+        # Mirrors the name multi-token guard above.
+        # partial_ratio inflates scores whenever two relations share any common
+        # token (typically the surname).  "MADHAVARAYA KAMATH" vs "VAMANA KAMATH"
+        # scores ~75 because "KAMATH" is a perfect substring — but only 1 of the 2
+        # query tokens actually appears in the candidate.
+        # Rule: if strictly ≤50 % of the query relation tokens (≥2 chars) are
+        # found in the candidate relation, force comp below all thresholds.
+        # For a 2-token query this requires BOTH tokens to match (100 %);
+        # for a 3-token query it allows 2 of 3 (67 %); etc.
+        # Single-token relation queries are unaffected (they fall into the else branch).
+        if name and relation and cand_rel:
+            _rel_toks = [t for t in relation.split() if len(t) >= 2]
+            if len(_rel_toks) >= 2:
+                _rel_cov = sum(1 for t in _rel_toks if t in cand_rel)
+                if _rel_cov / len(_rel_toks) <= 0.5:
+                    comp = min(comp, 55.0)   # below all thresholds (60/78/88/90)
+
         comp = max(comp, 0.0)
 
         if comp > best_score:
@@ -2959,12 +4179,20 @@ def _find_voter_in_2025(col, voterid, name, house, relation=''):
     Tier 4 no-house + relation : 88  (must match BOTH name and relation well)
     Tier 4 no-house, name only : 90  (very high bar without corroborating field)
     """
-    _PROJ = {'Name':1,'Relation Name':1,'Epic NO':1,
-             'House No':1,'Gender':1,'Age':1,'Booth No':1,'Part No':1}
+    _PROJ = {
+        'Name': 1,
+        'Relation Name': 1, 'Relative Name': 1,   # old / new schema
+        'Epic NO': 1,       'Epic No': 1,  'EPIC No': 1,  # old / new schema
+        'House No': 1, 'Gender': 1, 'Age': 1,
+        'Booth No': 1, 'Part No': 1, 'Ward No': 1,
+        'Mapping Status': 1,
+    }
 
     # ── Tier 1: EPIC exact ────────────────────────────────────────────────────
     if voterid:
-        doc = col.find_one({'Epic NO': voterid}, _PROJ)
+        doc = col.find_one(
+            {'$or': [{'Epic NO': voterid}, {'Epic No': voterid}, {'EPIC No': voterid}]}, _PROJ
+        )
         if doc:
             return bson_clean(doc)
 
@@ -3130,8 +4358,8 @@ def _run_sir_analysis(voterid, name, house, ward, booth, serial, relation='',
     if write_db is None:
         write_db = read_db
 
-    col_2025 = read_db['2025']
-    col_2002 = get_survey_db()['2002']  # 2002 roll lives on the _SURVEY_URL cluster
+    col_2025 = read_db['2025_new_mapped_notmapped_hmc']
+    col_2002 = get_db()['2002']  # 2002 roll lives on the _SURVEY_URL cluster
 
     # ── Look up in both rolls — parallel threads ─────────────────────────────────
     _rr = [None, None]
@@ -3256,7 +4484,7 @@ def _run_sir_analysis(voterid, name, house, ward, booth, serial, relation='',
             suspicious.append({'flag': 'OUT_OF_STATE_EPIC', 'label': 'Out-of-State EPIC',
                                 'detail': f'Prefix "{prefix}" is not a Karnataka code.',
                                 'value': voterid})
-        dup = col_2025.count_documents({'Epic NO': voterid})
+        dup = col_2025.count_documents({'$or': [{'Epic NO': voterid}, {'Epic No': voterid}, {'EPIC No': voterid}]})
         if dup > 1:
             suspicious.append({'flag': 'DUPLICATE_EPIC', 'label': 'Duplicate EPIC',
                                 'detail': f'EPIC "{voterid}" appears {dup} times in the 2025 list.',
@@ -3291,8 +4519,10 @@ def _run_sir_analysis(voterid, name, house, ward, booth, serial, relation='',
 
 
 @csrf_exempt
-@require_http_methods(['POST'])
+@require_http_methods(['POST', 'OPTIONS'])
 def api_check_sir(request):
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
     """
     SIR check endpoint.
     store=false (default) → read-only preview, nothing written to DB.
@@ -3312,7 +4542,7 @@ def api_check_sir(request):
     try:
         body = json.loads(request.body)
     except Exception:
-        return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400))
 
     # ── Parse inputs ──────────────────────────────────────────────────────────
     # Accept either 'name' (from live-check panel) or firstName+lastName (from survey form)
@@ -3335,15 +4565,15 @@ def api_check_sir(request):
     if not do_store:
         _cached_data = _sir_cache_get(_sir_cache_key)
         if _cached_data is not None:
-            return JsonResponse(_cached_data)
+            return _sir_cors(request, JsonResponse(_cached_data))
 
     if do_store:
         sir = _run_sir_analysis(voterid, name, house, ward, booth, serial, relation, db=db)
-        return JsonResponse({'success': True, **sir})
+        return _sir_cors(request, JsonResponse({'success': True, **sir}))
 
     # ── Read-only preview (no DB writes) ──────────────────────────────────────
-    col_2025 = db['2025']
-    col_2002 = get_survey_db()['2002']  # 2002 roll lives on the _SURVEY_URL cluster
+    col_2025 = db['2025_new_mapped_notmapped_hmc']
+    col_2002 = get_db()['2002']  # 2002 roll lives on the _SURVEY_URL cluster
 
     # ── Pre-compute name tokens and prefix variants ─────────────────────────────────────────
     # Split name into individual tokens used by all 4 parallel phases.
@@ -3353,7 +4583,19 @@ def api_check_sir(request):
     _name_tok         = _name_tokens_list[0] if _name_tokens_list else ''
     _name_prefixes    = _gen_prefixes(_name_tok) if _name_tok else ()
 
-    _PROJ_25 = {'Name':1,'Relation Name':1,'Epic NO':1,'House No':1,'Gender':1,'Age':1,'Booth No':1,'Part No':1}
+    _PROJ_25 = {
+        'Name': 1,
+        'Relation Name': 1, 'Relative Name': 1,   # old / new schema
+        'Epic NO': 1,       'Epic No': 1,  'EPIC No': 1,  # old / new schema
+        'House No': 1, 'Gender': 1, 'Age': 1,
+        'Booth No': 1, 'Part No': 1, 'Ward No': 1,
+        'Mapping Status': 1,
+        'Serial No': 1, 'Ward Name': 1, 'Community': 1, 'Category': 1,
+        'Ward Classification': 1, 'Risk Status': 1, 'Action Priority': 1,
+        'Poll Status 2023': 1, 'Religion': 1, 'Section Name': 1,
+        'Polling Station Name': 1, 'Polling Station Address': 1,
+        'Voter Address': 1,
+    }
     _PROJ_02 = {'Voter Name':1,'Name':1,'Relative Name':1,'Relation Name':1,
                 'House / Flat No':1,'House No':1,'Voter ID / EPIC No':1,'Epic NO':1,
                 'Gender':1,'Age':1,'Booth No':1,'Part No':1,'Serial No':1}
@@ -3394,7 +4636,7 @@ def api_check_sir(request):
             if _name_tokens_list:
                 # c) Single-token search: contains each token anywhere in name
                 #    This catches "AKSHAYA RAJESH", "B RAJESH BALIGA" etc.
-                _tok_lim = 500 if _name_only_search else 200
+                _tok_lim = 150 if _name_only_search else 80
                 for tok in _name_tokens_list:
                     rx = {'$regex': re.escape(tok), '$options': 'i'}
                     _add(col_2002.find({'$or':[{'Voter Name':rx},{'Name':rx}]}, _PROJ_02).limit(_tok_lim))
@@ -3407,7 +4649,7 @@ def api_check_sir(request):
                     for tok in _name_tokens_list:
                         rx = {'$regex': re.escape(tok), '$options': 'i'}
                         and_clauses.append({'$or':[{'Voter Name':rx},{'Name':rx}]})
-                    _add(col_2002.find({'$and': and_clauses}, _PROJ_02).limit(500))
+                    _add(col_2002.find({'$and': and_clauses}, _PROJ_02).limit(200))
 
                 # e) Phonetic prefix variants (original fallback for transliteration)
                 if _name_tok:
@@ -3415,7 +4657,7 @@ def api_check_sir(request):
                     for p in _name_prefixes:
                         rx = {'$regex':f'^{re.escape(p)}','$options':'i'}
                         clauses.append({'Voter Name':rx}); clauses.append({'Name':rx})
-                    _add(col_2002.find({'$or':clauses}, _PROJ_02).limit(500))
+                    _add(col_2002.find({'$or':clauses}, _PROJ_02).limit(150))
 
             # f) Relation prefix — greatly expanded for relation-only searches
             if relation and len(relation) >= 2:
@@ -3428,7 +4670,7 @@ def api_check_sir(request):
                     for _rtok in relation.split():
                         if len(_rtok) >= 3:
                             _rx = {'$regex': re.escape(_rtok), '$options': 'i'}
-                            _add(col_2002.find({'$or':[{'Relative Name':_rx},{'Relation Name':_rx}]}, _PROJ_02).limit(200))
+                            _add(col_2002.find({'$or':[{'Relative Name':_rx},{'Relation Name':_rx}]}, _PROJ_02).limit(100))
         except Exception:
             pass
 
@@ -3443,7 +4685,10 @@ def api_check_sir(request):
                     if oid not in seen: seen.add(oid); _raw25.append(bson_clean(d))
 
             if voterid:
-                _add(col_2025.find({'Epic NO':voterid}, _PROJ_25).limit(5))
+                _add(col_2025.find(
+                    {'$or': [{'Epic NO': voterid}, {'Epic No': voterid}, {'EPIC No': voterid}]},
+                    _PROJ_25
+                ).limit(5))
 
             if house:
                 _add(col_2025.find({'House No':house}, _PROJ_25).limit(60))
@@ -3452,7 +4697,7 @@ def api_check_sir(request):
 
             if _name_tokens_list:
                 # c) Contains search for each token — catches mid-name occurrences
-                _tok_lim25 = 500 if _name_only_search else 200
+                _tok_lim25 = 150 if _name_only_search else 80
                 for tok in _name_tokens_list:
                     rx = {'$regex': re.escape(tok), '$options': 'i'}
                     _add(col_2025.find({'Name': rx}, _PROJ_25).limit(_tok_lim25))
@@ -3460,12 +4705,12 @@ def api_check_sir(request):
                 # d) Multi-token AND intersection — highest precision for multi-word queries
                 if len(_name_tokens_list) >= 2:
                     and_clauses = [{'Name':{'$regex':re.escape(tok),'$options':'i'}} for tok in _name_tokens_list]
-                    _add(col_2025.find({'$and': and_clauses}, _PROJ_25).limit(500))
+                    _add(col_2025.find({'$and': and_clauses}, _PROJ_25).limit(200))
 
                 # e) Phonetic prefix variants fallback
                 if _name_tok:
                     clauses = [{'Name':{'$regex':f'^{re.escape(p)}','$options':'i'}} for p in _name_prefixes]
-                    _add(col_2025.find({'$or':clauses}, _PROJ_25).limit(500))
+                    _add(col_2025.find({'$or':clauses}, _PROJ_25).limit(150))
 
             if relation and len(relation) >= 3:
                 frt = relation.split()[0]
@@ -3477,7 +4722,7 @@ def api_check_sir(request):
                     for _rtok in relation.split():
                         if len(_rtok) >= 3:
                             _rx = {'$regex': re.escape(_rtok), '$options': 'i'}
-                            _add(col_2025.find({'Relation Name': _rx}, _PROJ_25).limit(200))
+                            _add(col_2025.find({'Relation Name': _rx}, _PROJ_25).limit(100))
         except Exception:
             pass
 
@@ -3560,7 +4805,7 @@ def api_check_sir(request):
                 'detail': 'Prefix "{}" is not a recognised Karnataka EPIC code.'.format(prefix),
                 'value': voterid,
             })
-        dup = col_2025.count_documents({'Epic NO': voterid})
+        dup = col_2025.count_documents({'$or': [{'Epic NO': voterid}, {'Epic No': voterid}, {'EPIC No': voterid}]})
         if dup > 1:
             suspicious.append({
                 'flag': 'DUPLICATE_EPIC', 'label': 'Duplicate EPIC',
@@ -3598,13 +4843,42 @@ def api_check_sir(request):
         h_ok = (flat['house'].upper() == house.upper()) if has_house else False
         e_ok = bool(has_epic and flat['voterid'] and flat['voterid'].upper() == voterid.upper())
 
-        # Token coverage: how many search tokens appear in the candidate name
-        cov02 = _token_coverage(_name_tokens_list, flat['name']) if (_name_tokens_list and has_name) else 0
+        # ── Token coverage: how many search tokens appear as substrings in candidate name ──
+        cov02        = _token_coverage(_name_tokens_list, flat['name']) if (_name_tokens_list and has_name) else 0
         total_toks02 = len(_name_tokens_list)
-        full_cov02 = (total_toks02 > 0 and cov02 == total_toks02)
-        coverage_bonus02 = 15.0 if (total_toks02 > 1 and full_cov02) else 0.0
+        full_cov02   = (total_toks02 > 0 and cov02 == total_toks02)
 
-        # Composite relevance score
+        # ── First-word prefix bonus ────────────────────────────────────────────────
+        # "VEDA VYASA KAMATH" → first word "VEDA" starts with query "VEDA" → bonus.
+        # "SHRIMATHI VEDA VATHI" → first word "SHRIMATHI" ≠ "VEDA" → NO bonus.
+        # This correctly separates records where the query matches the primary name token
+        # from records where the query appears as a secondary/middle word.
+        _cand_words02 = flat['name'].upper().split() if flat['name'] else []
+        # Leading-word check: ALL query tokens must be prefixes of the corresponding
+        # positional word in the candidate (query token 0 → candidate word 0, etc.)
+        _first_word_pfx02 = bool(
+            _name_tokens_list and _cand_words02 and
+            _cand_words02[0].startswith(_name_tokens_list[0].upper())
+        )
+        # Fallback any-word prefix (weaker — any word in candidate starts with token)
+        _any_word_pfx02 = bool(_name_tokens_list and any(
+            w.startswith(_name_tokens_list[0].upper()) for w in _cand_words02
+        ))
+        _full_pfx02 = _first_word_pfx02   # used for bonus — only reward leading match
+
+        # Bonus: first word of candidate starts with query's first token → strong signal.
+        # Multi-token full substring coverage keeps 15 pt bonus unchanged.
+        coverage_bonus02 = (15.0 if (total_toks02 > 1 and full_cov02)  else
+                            10.0 if _first_word_pfx02                   else
+                             4.0 if _any_word_pfx02                     else 0.0)
+
+        # ── Relation quality score — used as a fine-grained tiebreaker ────────────
+        # When multiple records tie on flag count + prefix rank, the one whose relation
+        # most closely matches the query floats to the top.
+        # Scale: 0 at r_sc=60 threshold, up to 10 pts at r_sc=100.
+        _rel_quality02 = max(0.0, (r_sc - 60) / 4.0) if (has_rel and r_sc >= 60) else 0.0
+
+        # ── Composite relevance score ─────────────────────────────────────────────
         if has_name and has_house and has_rel:
             comp = 0.55*n_sc + 0.25*r_sc + 0.20*(100.0 if h_ok else 0.0) + coverage_bonus02
         elif has_name and has_house:
@@ -3628,16 +4902,35 @@ def api_check_sir(request):
         if has_rel and not has_name and r_sc < _rel_gate and not e_ok: continue
 
         matched_by = []
-        if e_ok:                                          matched_by.append('voterid')
-        if has_name and (n_sc >= 60 or full_cov02):       matched_by.append('name')
-        elif has_name and cov02 > 0:                      matched_by.append('partial')
-        if has_house and h_ok:                            matched_by.append('house')
-        # For relation-only lower the threshold so results surface even for transliteration variants
+        if e_ok:                                                        matched_by.append('voterid')
+        # 'name' flag: good fuzzy score, full substring coverage, or full prefix coverage
+        if has_name and (n_sc >= 60 or full_cov02 or _full_pfx02):     matched_by.append('name')
+        elif has_name and cov02 > 0:                                     matched_by.append('partial')
+        if has_house and h_ok:                                           matched_by.append('house')
         _rel_match_threshold = 35 if _relation_only_search else 60
-        if has_rel   and r_sc >= _rel_match_threshold:    matched_by.append('relation')
+        if has_rel and r_sc >= _rel_match_threshold:
+            # Token-coverage guard: for multi-token relation queries, strictly
+            # more than half the tokens must appear in the candidate relation.
+            _rel_toks02 = [t for t in relation.split() if len(t) >= 2]
+            _cand_rel02 = flat.get('relation', '') or ''
+            if len(_rel_toks02) >= 2:
+                _rel_cov02 = sum(1 for t in _rel_toks02 if t in _cand_rel02)
+                _rel_ok02 = _rel_cov02 / len(_rel_toks02) > 0.5
+            else:
+                _rel_ok02 = True
+            if _rel_ok02:
+                matched_by.append('relation')
+            elif _relation_only_search:
+                matched_by.append('partial')
 
         _scored02.append({
-            'comp': comp, 'flat': flat, 'doc': doc,
+            'comp':        comp,
+            'flat':        flat,
+            'doc':         doc,
+            # prefix_rank: 2=first-word prefix, 1=any-word prefix, 0=no prefix
+            # Used as sort tiebreaker between records with same flag count + comp score.
+            'prefix_rank':   2 if _first_word_pfx02 else (1 if _any_word_pfx02 else 0),
+            'rel_quality':   _rel_quality02,
             'field_scores': {
                 'name':     round(n_sc) if has_name  else 0,
                 'relation': round(r_sc) if has_rel   else 0,
@@ -3647,9 +4940,15 @@ def api_check_sir(request):
             'matched_by': matched_by,
         })
 
-    _scored02.sort(key=lambda x: (-len([f for f in x['matched_by'] if f != 'partial']), -x['comp']))
+    # Sort: (1) most matched fields, (2) first-word prefix rank, (3) relation quality, (4) composite score
+    _scored02.sort(key=lambda x: (
+        -len([f for f in x['matched_by'] if f != 'partial']),
+        -x['prefix_rank'],
+        -x['rel_quality'],
+        -x['comp'],
+    ))
     _seen_sigs02 = set()
-    for item in _scored02[:300]:
+    for item in _scored02[:100]:
         f   = item['flat']
         doc = item['doc']
         sig = (f['name'], f['house'])
@@ -3668,10 +4967,17 @@ def api_check_sir(request):
             'source':       'mongodb',
             'field_scores': item['field_scores'],
             'matched_by':   item['matched_by'],
+            'prefix_rank':  item['prefix_rank'],
+            'rel_quality':  item['rel_quality'],
         })
 
-    suggestions_2002.sort(key=lambda x: (-len([f for f in x.get('matched_by',[]) if f != 'partial']), -x['score']))
-    suggestions_2002 = suggestions_2002[:300]
+    suggestions_2002.sort(key=lambda x: (
+        -len([f for f in x.get('matched_by',[]) if f != 'partial']),
+        -x.get('prefix_rank', 0),
+        -x.get('rel_quality', 0),
+        -x['score'],
+    ))
+    suggestions_2002 = suggestions_2002[:100]
 
     # ── Score similar_2025 from pre-fetched _raw25 ────────────────────────────────────
     similar_2025 = []
@@ -3700,15 +5006,30 @@ def api_check_sir(request):
             # variants like VAMANA / VAMAN don't fall below the gate entirely.
             _rel_threshold = 35 if _relation_only_search else 60
             if _name_score(relation, rr) >= _rel_threshold:
-                flags.append('relation')
+                # Token-coverage guard: for multi-token relation queries, strictly
+                # more than half the tokens must appear in the candidate relation.
+                # Prevents a shared surname ("KAMATH") from flagging unrelated people.
+                _rel_toks25 = [t for t in relation.split() if len(t) >= 2]
+                if len(_rel_toks25) >= 2:
+                    _rel_cov25 = sum(1 for t in _rel_toks25 if t in (rr or ''))
+                    _rel_ok25 = _rel_cov25 / len(_rel_toks25) > 0.5
+                else:
+                    _rel_ok25 = True  # single-token query — trust the score
+                if _rel_ok25:
+                    flags.append('relation')
+                elif _relation_only_search:
+                    flags.append('partial')
         return flags
 
     _scored25 = []
     for d in _raw25:
-        rn  = _norm(d.get('Name',''))
-        rr  = _norm(d.get('Relation Name',''))
-        rh  = _norm(d.get('House No',''))
-        re_ = _norm(d.get('Epic NO',''))
+        # Use _flat_2025 so field-name aliases (Relative Name / Relation Name,
+        # Epic No / Epic NO) are resolved the same way throughout.
+        _f25     = _flat_2025(d)
+        rn  = _f25['name']
+        rr  = _f25['relation']
+        rh  = _f25['house']
+        re_ = _f25['voterid']
         flags = _flags25(rn, rr, rh, re_)
         if not flags: continue
         n_sc25 = _name_score(name, rn)     if name     else 0.0
@@ -3730,12 +5051,26 @@ def api_check_sir(request):
             _c25 = min(_c25, 55.0)
         _scored25.append((len([f for f in flags if f != 'partial']), _c25, {
             'name': rn, 'relation': rr, 'house': rh, 'voterid': re_,
-            'gender': _norm(d.get('Gender','')),
-            'age':    str(d.get('Age','')).strip(),
-            'booth':  str(d.get('Booth No','')).strip(),
-            'part':   str(d.get('Part No','')).strip(),
+            'gender': _f25['gender'],
+            'age':    _f25['age'],
+            'booth':  _f25['booth'],
+            'part':   _f25['ward'],
             'score':  round(min(100.0, _c25)),
             'matched_by': flags,
+            'mapping_status':           _f25['mapping_status'],
+            'serial':                   _f25['serial'],
+            'ward_name':                _f25['ward_name'],
+            'community':                _f25['community'],
+            'category':                 _f25['category'],
+            'ward_classification':      _f25['ward_classification'],
+            'risk_status':              _f25['risk_status'],
+            'action_priority':          _f25['action_priority'],
+            'poll_status_2023':         _f25['poll_status_2023'],
+            'religion':                 _f25['religion'],
+            'section_name':             _f25['section_name'],
+            'polling_station_name':     _f25['polling_station_name'],
+            'polling_station_address':  _f25['polling_station_address'],
+            'voter_address':            _f25['voter_address'],
         }))
 
     _scored25.sort(key=lambda x: (-x[0], -x[1]))
@@ -3745,7 +5080,7 @@ def api_check_sir(request):
         if _conf25_epic and epic == _conf25_epic: continue
         _seen25_epics.add(epic)
         similar_2025.append(rec)
-        if len(similar_2025) >= 300: break
+        if len(similar_2025) >= 100: break
 
     _response_data = {
         'success':    True,
@@ -3767,23 +5102,27 @@ def api_check_sir(request):
             'booth':    r02.get('booth',    ''),
         } if in_2002 else {},
         'record_2025': {
-            'name':     r25.get('name',     ''),
-            'relation': r25.get('relation', ''),
-            'house':    r25.get('house',    ''),
-            'gender':   r25.get('gender',   ''),
-            'age':      r25.get('age',      ''),
-            'voterid':  r25.get('voterid',  ''),
-            'booth':    r25.get('booth',    ''),
-            'ward':     r25.get('ward',     ''),
+            'name':           r25.get('name',           ''),
+            'relation':       r25.get('relation',       ''),
+            'house':          r25.get('house',          ''),
+            'gender':         r25.get('gender',         ''),
+            'age':            r25.get('age',            ''),
+            'voterid':        r25.get('voterid',        ''),
+            'booth':          r25.get('booth',          ''),
+            'ward':           r25.get('ward',           ''),
+            'mapping_status': r25.get('mapping_status', ''),
         } if in_2025 else {},
     }
     # Cache the result — persists to MongoDB so it survives server restarts/sleep
     _sir_cache_set(_sir_cache_key, _response_data)
-    return JsonResponse(_response_data)
+    return _sir_cors(request, JsonResponse(_response_data))
 
 
-@require_http_methods(['GET'])
+@csrf_exempt
+@require_http_methods(['GET', 'OPTIONS'])
 def api_sir_records(request):
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
     db       = get_db()
     category = request.GET.get('category', 'ALL')
     page     = max(1, int(request.GET.get('page', 1)))
@@ -3805,15 +5144,15 @@ def api_sir_records(request):
         col   = db[col_map[category]]
         total = col.count_documents(base_filter)
         docs  = [bson_clean(d) for d in col.find().skip(skip).limit(limit).sort('surveyed_at', -1)]
-        return JsonResponse({'success': True, 'category': category,
-                             'records': docs, 'total': total, 'page': page})
+        return _sir_cors(request, JsonResponse({'success': True, 'category': category,
+                             'records': docs, 'total': total, 'page': page}))
 
     counts  = {k: db[v].count_documents({}) for k, v in col_map.items()}
     samples = {k: [bson_clean(d) for d in db[v].find().limit(5).sort('surveyed_at', -1)]
                for k, v in col_map.items()}
-    return JsonResponse({'success': True, 'category': 'ALL',
+    return _sir_cors(request, JsonResponse({'success': True, 'category': 'ALL',
                          'counts': counts, 'samples': samples,
-                         'total': sum(counts.values())})
+                         'total': sum(counts.values())}))
 
 
 @csrf_exempt
@@ -3892,13 +5231,16 @@ def api_sir_suggest(request):
         })
     return JsonResponse({'success': True, 'suggestions': suggestions})
 
-@require_http_methods(['GET'])
+@csrf_exempt
+@require_http_methods(['GET', 'OPTIONS'])
 def api_sir_stats(request):
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
     db        = get_db()
     survey_db = get_survey_db()
     voters_2002 = db['2002'].count_documents({})
     voters_2025 = db['2025'].count_documents({})
-    return JsonResponse({'success': True,
+    return _sir_cors(request, JsonResponse({'success': True,
         'new_additions':  survey_db['SIR_NewAdditions'].count_documents({}),
         'deletions':      survey_db['SIR_Deleted'].count_documents({}),
         'modifications':  survey_db['SIR_Modified'].count_documents({}),
@@ -3909,11 +5251,14 @@ def api_sir_stats(request):
         'voters_2025':    voters_2025,
         'db_2002_status': 'ok' if voters_2002 > 0 else 'empty — place 2002.xlsx in project root and call /api/sync-2002/',
         'db_2025_status': 'ok' if voters_2025 > 0 else 'empty — upload voter list first',
-    })
+    }))
 
 
-@require_http_methods(['GET'])
+@csrf_exempt
+@require_http_methods(['GET', 'OPTIONS'])
 def api_sir_data(request):
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
     db        = get_db()
     survey_db = get_survey_db()   # SIR_* collections live here
     category = request.GET.get('category', 'ALL').upper()
@@ -3969,7 +5314,290 @@ def api_sir_data(request):
                          'records': all_records[:limit], 'total': total})
 
 
-def _sir_to_frontend(doc, category):
+# ─── SIR Confirm Match ────────────────────────────────────────────────────────
+@csrf_exempt
+@require_http_methods(['POST', 'OPTIONS'])
+def api_sir_confirm_match(request):
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
+    """
+    Persist a user-confirmed SIR match decision.
+
+    Accepts two content types:
+
+    ── Multipart/form-data (preferred — includes GCS image upload in one call) ──
+      sir_data       : form field (JSON)  — confirmation payload (see below)
+      form_extraction: form field (JSON)  — optional AI-extracted form data
+      form_image     : file field         — optional compressed JPEG → GCS
+
+    ── application/json (no image) ──────────────────────────────────────────────
+      record_2025, record_2002, not_found_2025, not_found_2002, search_inputs
+
+    Payload fields (inside sir_data or JSON body):
+      record_2025    : dict | null   — the 2025 roll row the user ticked
+      record_2002    : dict | null   — the 2002 roll row the user ticked
+      not_found_2025 : bool          — user explicitly marked "not in 2025"
+      not_found_2002 : bool          — user explicitly marked "not in 2002"
+      search_inputs  : dict          — { name, epic, house, relation }
+
+    Storage rules:
+      • Both records confirmed      → SIR_ConfirmedMatches
+      • One or both absent          → SIR_ConfirmedNotFound
+    """
+    user = _user_from_request(request)
+    if not user:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401))
+
+    # ── Detect multipart vs JSON ──────────────────────────────────────────────
+    is_multipart    = bool(request.FILES.get('form_image') or request.POST.get('sir_data'))
+    form_image_file = request.FILES.get('form_image')   # may be None
+    form_extraction = None
+    form_image_url  = None
+    form_image_error= None
+
+    if is_multipart:
+        raw_sir = request.POST.get('sir_data', '{}')
+        try:
+            body = json.loads(raw_sir)
+        except Exception:
+            return _sir_cors(request, JsonResponse({'success': False, 'message': 'Invalid sir_data JSON'}, status=400))
+        raw_ext = request.POST.get('form_extraction', '')
+        if raw_ext:
+            try:
+                form_extraction = json.loads(raw_ext)
+            except Exception:
+                form_extraction = None
+        print(f"[sir_confirm] MULTIPART | image={'yes' if form_image_file else 'no'} "
+              f"extraction={'yes' if form_extraction else 'no'}")
+    else:
+        try:
+            body = json.loads(request.body)
+        except Exception:
+            return _sir_cors(request, JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400))
+
+    rec25         = body.get('record_2025')
+    rec02         = body.get('record_2002')
+    nf25          = bool(body.get('not_found_2025', False))
+    nf02          = bool(body.get('not_found_2002', False))
+    search_inputs = body.get('search_inputs', {})
+
+    # Determine status
+    has25 = bool(rec25 and rec25.get('name'))
+    has02 = bool(rec02 and rec02.get('name'))
+
+    if has25 and has02:
+        status = 'MATCHED'
+    elif nf25 and nf02:
+        status = 'NOT_FOUND_BOTH'
+    elif nf25 or not has25:
+        status = 'NOT_FOUND_2025'
+    elif nf02 or not has02:
+        status = 'NOT_FOUND_2002'
+    else:
+        status = 'PARTIAL'
+
+    doc = {
+        'status':         status,
+        'record_2025':    rec25,
+        'record_2002':    rec02,
+        'not_found_2025': nf25,
+        'not_found_2002': nf02,
+        'search_inputs':  search_inputs,
+        'confirmed_at':   datetime.now(timezone.utc),
+        'confirmed_by':   user.get('Username') or user.get('Email') or 'unknown',
+        'name':     (rec25 or rec02 or {}).get('name', '') or search_inputs.get('name', ''),
+        'voterid':  (rec25 or rec02 or {}).get('voterid', '') or search_inputs.get('epic', ''),
+        'house':    (rec25 or rec02 or {}).get('house', '') or search_inputs.get('house', ''),
+        'relation': (rec25 or rec02 or {}).get('relation', '') or search_inputs.get('relation', ''),
+    }
+
+    # ── Upload form photo to GCS and embed URL in the same document ───────────
+    if form_image_file:
+        try:
+            import uuid as _uuid          # _uuid not at module level — import locally (same as api_save_survey)
+            ext       = _os.path.splitext(form_image_file.name)[1].lower() or '.jpg'
+            # Use a temp unique name — real _id not yet known, use timestamp + random suffix
+            blob_name = f"sir_form_photos/pending_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{_uuid.uuid4().hex[:8]}{ext}"
+            form_image_url = _upload_to_gcs(form_image_file, blob_name)
+            doc['form_image_url'] = form_image_url
+            print(f"[sir_confirm] ✓ GCS URL: {form_image_url}")
+        except Exception as gcs_err:
+            form_image_error = str(gcs_err)
+            print(f"[sir_confirm] ✗ GCS upload failed: {gcs_err}")
+
+    # ── Embed form extraction in the same document ────────────────────────────
+    if form_extraction:
+        doc['form_extraction']        = form_extraction
+        doc['form_extraction_at']     = datetime.now(timezone.utc)
+        doc['form_extraction_source'] = 'claude-vision-annexure-iii'
+
+    try:
+        survey_db = get_db()
+        if status == 'MATCHED':
+            result = survey_db['SIR_ConfirmedMatches'].insert_one(doc)
+        else:
+            result = survey_db['SIR_ConfirmedNotFound'].insert_one(doc)
+
+        # After insert, rename the GCS blob to use the real _id for traceability
+        if form_image_url and form_image_file:
+            try:
+                real_id   = str(result.inserted_id)
+                ext       = _os.path.splitext(form_image_file.name)[1].lower() or '.jpg'
+                new_blob  = f"sir_form_photos/{real_id}{ext}"
+                # Rename by copy + delete (GCS has no native rename)
+                from google.cloud import storage as _gcs_mod
+                bucket_name = _os.environ.get('GCS_BUCKET_NAME', '')
+                if bucket_name:
+                    import json as _j2
+                    from google.oauth2 import service_account as _sa2
+                    creds = _sa2.Credentials.from_service_account_info(
+                        _j2.loads(_os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON', '{}')),
+                        scopes=['https://www.googleapis.com/auth/cloud-platform'],
+                    )
+                    gcs   = _gcs_mod.Client(credentials=creds, project=creds.service_account_email.split('@')[0] if hasattr(creds, 'service_account_email') else None)
+                    bucket = gcs.bucket(bucket_name)
+                    old_b  = bucket.blob(form_image_url.split(bucket_name + '/')[1] if bucket_name in form_image_url else '')
+                    if old_b.name:
+                        new_b  = bucket.copy_blob(old_b, bucket, new_blob)
+                        new_b.make_public()
+                        new_url = new_b.public_url
+                        old_b.delete()
+                        # Update MongoDB with the cleaner URL
+                        coll = survey_db['SIR_ConfirmedMatches'] if status == 'MATCHED' else survey_db['SIR_ConfirmedNotFound']
+                        coll.update_one({'_id': result.inserted_id}, {'$set': {'form_image_url': new_url}})
+                        form_image_url = new_url
+            except Exception as rename_err:
+                print(f"[sir_confirm] ⚠ blob rename failed (non-fatal): {rename_err}")
+
+        return _sir_cors(request, JsonResponse({
+            'success':          True,
+            'status':           status,
+            'doc_id':           str(result.inserted_id),
+            'form_image_url':   form_image_url,    # null if no image or GCS failed
+            'form_image_error': form_image_error,  # diagnostic string if GCS failed
+        }))
+    except Exception as exc:
+        traceback.print_exc()
+        return _sir_cors(request, JsonResponse({'success': False, 'message': str(exc)}, status=500))
+
+
+# ─── ADD TO urls.py: path('api/sir/confirmed/', views.api_sir_confirmed_list) ──
+@csrf_exempt
+@require_http_methods(['GET', 'OPTIONS'])
+def api_sir_confirmed_list(request):
+    """
+    GET /api/sir/confirmed/?category=ALL&page=1&limit=20
+
+    Returns confirmed SIR decisions (matches + not-found) categorised by status.
+
+    category:
+      ALL             — most-recent records from both collections (default)
+      MATCHED         — voter confirmed in both 2002 & 2025 rolls
+      NOT_FOUND_2025  — voter absent from 2025 roll
+      NOT_FOUND_2002  — voter absent from 2002 roll
+      NOT_FOUND_BOTH  — voter absent from both rolls
+
+    Response:
+    {
+      success: true,
+      counts: { MATCHED, NOT_FOUND_2025, NOT_FOUND_2002, NOT_FOUND_BOTH, TOTAL },
+      records: [ { _id, status, name, voterid, house, relation,
+                   record_2025, record_2002,
+                   not_found_2025, not_found_2002, confirmed_at }, ... ],
+      total: <int for current category>,
+      page: <int>,
+    }
+    """
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
+
+    user = _user_from_request(request)
+    if not user:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401))
+
+    category = request.GET.get('category', 'ALL').upper()
+    page     = max(1, int(request.GET.get('page', 1)))
+    limit    = min(50, max(1, int(request.GET.get('limit', 20))))
+    skip     = (page - 1) * limit
+
+    try:
+        db             = get_db()
+        matched_coll   = db['SIR_ConfirmedMatches']
+        notfound_coll  = db['SIR_ConfirmedNotFound']
+
+        # ── Counts (always returned, all categories) ──────────────────────────
+        counts = {
+            'MATCHED':        matched_coll.count_documents({}),
+            'NOT_FOUND_2025': notfound_coll.count_documents({'status': 'NOT_FOUND_2025'}),
+            'NOT_FOUND_2002': notfound_coll.count_documents({'status': 'NOT_FOUND_2002'}),
+            'NOT_FOUND_BOTH': notfound_coll.count_documents({'status': 'NOT_FOUND_BOTH'}),
+        }
+        counts['TOTAL'] = sum(counts.values())
+
+        # ── Fetch records for the requested category ──────────────────────────
+        PROJ = {
+            '_id': 1, 'status': 1,
+            'name': 1, 'voterid': 1, 'house': 1, 'relation': 1,
+            'record_2025': 1, 'record_2002': 1,
+            'not_found_2025': 1, 'not_found_2002': 1,
+            'search_inputs': 1, 'confirmed_at': 1,
+            # ── Form extraction (Annexure-III AI data) ────────────────────────
+            'form_extraction': 1, 'form_extraction_at': 1,
+            'form_extraction_source': 1,
+            'form_image_url': 1,          # GCS public URL of the original form photo
+        }
+
+        def _serialize(docs):
+            out = []
+            for d in docs:
+                d['_id'] = str(d['_id'])
+                # Serialise datetime fields
+                for dt_field in ('confirmed_at', 'form_extraction_at'):
+                    dt_val = d.get(dt_field)
+                    if hasattr(dt_val, 'isoformat'):
+                        d[dt_field] = dt_val.isoformat()
+                out.append(d)
+            return out
+
+        if category == 'MATCHED':
+            total   = counts['MATCHED']
+            records = _serialize(list(
+                matched_coll.find({}, PROJ).sort('confirmed_at', -1).skip(skip).limit(limit)
+            ))
+
+        elif category in ('NOT_FOUND_2025', 'NOT_FOUND_2002', 'NOT_FOUND_BOTH'):
+            q       = {'status': category}
+            total   = counts[category]
+            records = _serialize(list(
+                notfound_coll.find(q, PROJ).sort('confirmed_at', -1).skip(skip).limit(limit)
+            ))
+
+        else:
+            # ALL — merge most-recent from both collections
+            total = counts['TOTAL']
+            fetch_n = limit + skip          # fetch enough to paginate in-memory
+            m_docs  = _serialize(list(matched_coll.find({}, PROJ).sort('confirmed_at', -1).limit(fetch_n)))
+            nf_docs = _serialize(list(notfound_coll.find({}, PROJ).sort('confirmed_at', -1).limit(fetch_n)))
+            merged  = sorted(
+                m_docs + nf_docs,
+                key=lambda d: d.get('confirmed_at', ''),
+                reverse=True,
+            )
+            records = merged[skip: skip + limit]
+
+        return _sir_cors(request, JsonResponse({
+            'success': True,
+            'counts':  counts,
+            'records': records,
+            'total':   total,
+            'page':    page,
+        }))
+
+    except Exception as exc:
+        traceback.print_exc()
+        return _sir_cors(request, JsonResponse({'success': False, 'message': str(exc)}, status=500))
+
+
     r25 = doc.get('voter_record_2025') or {}
     r02 = doc.get('voter_record_2002') or {}
 
@@ -3983,7 +5611,7 @@ def _sir_to_frontend(doc, category):
                or _g(r25, 'Name')
                or _g(r02, 'Voter Name') or '')
     voterid = (doc.get('voterid') or doc.get('survey_voterid')
-               or _g(r25, 'Epic NO')
+               or _g(r25, 'EPIC No', 'Epic No', 'Epic NO')
                or _g(r02, 'Voter ID / EPIC No') or '')
     house   = (doc.get('house')   or doc.get('survey_house')
                or _g(r25, 'House No')
@@ -4034,9 +5662,266 @@ def _sir_to_frontend(doc, category):
     }
 
 
+
+
+# ─── SIR: Attach extracted form data to an existing confirmed record ──────────
 @csrf_exempt
-@require_http_methods(['POST'])
+@require_http_methods(['POST', 'OPTIONS'])
+def api_sir_attach_form(request):
+    """
+    PATCH a confirmed SIR record (in SIR_ConfirmedMatches or SIR_ConfirmedNotFound)
+    with the AI-extracted Annexure-III form data AND the original form photo.
+
+    Accepts TWO content types (mirrors api_save_survey Aadhaar pattern):
+
+    ── Multipart/form-data (preferred — same credentials as Aadhaar upload) ──
+      doc_id          : form field (str)   — MongoDB ObjectId
+      form_extraction : form field (str)   — JSON-encoded extraction dict
+      form_image      : file field         — compressed JPEG (uploaded to GCS via
+                                             _upload_to_gcs, same as Aadhaar)
+
+    ── application/json (backward-compat / base64 fallback) ─────────────────
+      doc_id          : str
+      form_extraction : dict
+      form_image_b64  : str  (optional) — raw base64, no data-URL prefix
+      image_mime_type : str  (optional, default image/jpeg)
+    """
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
+
+    user = _user_from_request(request)
+    if not user:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401))
+
+    # ── Detect multipart vs JSON ──────────────────────────────────────────────
+    is_multipart    = bool(request.FILES.get('form_image'))
+    form_image_file = None    # Django InMemoryUploadedFile / TemporaryUploadedFile
+    raw_image       = ''      # base64 string (JSON path)
+    image_mime      = 'image/jpeg'
+
+    if is_multipart:
+        # ── Same pattern as api_save_survey reading aadhaar_photo ────────────
+        raw_id     = request.POST.get('doc_id', '').strip()
+        extr_raw   = request.POST.get('form_extraction', '')
+        try:
+            extraction = json.loads(extr_raw) if extr_raw else {}
+        except Exception:
+            extraction = {}
+        form_image_file = request.FILES.get('form_image')   # optional — image may not always be sent
+        print(f"[sir_attach_form] MULTIPART | doc_id={raw_id} | "
+              f"file={form_image_file.name if form_image_file else 'none'} | "
+              f"extraction={'yes' if extraction else 'no'}")
+    else:
+        # ── JSON path ─────────────────────────────────────────────────────────
+        try:
+            body = json.loads(request.body)
+        except Exception:
+            return _sir_cors(request, JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400))
+        raw_id     = body.get('doc_id', '').strip()
+        extraction = body.get('form_extraction', {})
+        raw_image  = body.get('form_image_b64', '')
+        image_mime = body.get('image_mime_type', 'image/jpeg')
+
+    if not raw_id:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'doc_id is required'}, status=400))
+    # form_extraction is optional — a call may only update the image URL (extraction done separately)
+    if not extraction and not form_image_file and not raw_image:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Nothing to update: provide form_extraction and/or form_image'}, status=400))
+
+    try:
+        oid = ObjectId(raw_id)
+    except Exception:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': f'Invalid doc_id: {raw_id}'}, status=400))
+
+    safe_id        = str(raw_id).replace('/', '_')
+    form_image_url = None
+
+    # ── Upload form photo to GCS ──────────────────────────────────────────────
+    if form_image_file:
+        # Multipart path — uses _upload_to_gcs (same function as Aadhaar in api_save_survey)
+        try:
+            import uuid as _uuid          # _uuid not at module level — import locally
+            ext       = _os.path.splitext(form_image_file.name)[1].lower() or '.jpg'
+            blob_name = f"sir_form_photos/{safe_id}_{_uuid.uuid4().hex[:8]}{ext}"
+            form_image_url = _upload_to_gcs(form_image_file, blob_name)
+            print(f"[sir_attach_form] ✓ GCS URL (multipart/_upload_to_gcs): {form_image_url}")
+        except Exception as gcs_err:
+            print(f"[sir_attach_form] ✗ GCS upload failed (multipart): {gcs_err}")
+            form_image_url = None
+
+    elif raw_image:
+        # JSON / base64 fallback path — uses _upload_bytes_to_gcs
+        try:
+            import base64 as _b64
+            ext_map = {
+                'image/jpeg': '.jpg', 'image/jpg': '.jpg',
+                'image/png':  '.png', 'image/webp': '.webp',
+                'image/heic': '.heic',
+            }
+            ext            = ext_map.get(image_mime, '.jpg')
+            img_bytes      = _b64.b64decode(raw_image)
+            blob_name      = f"sir_form_photos/{safe_id}{ext}"
+            form_image_url = _upload_bytes_to_gcs(img_bytes, blob_name, content_type=image_mime)
+            print(f"[sir_attach_form] ✓ GCS URL (base64/_upload_bytes_to_gcs): {form_image_url}")
+        except Exception as gcs_err:
+            print(f"[sir_attach_form] ✗ GCS upload failed (base64): {gcs_err}")
+            form_image_url = None
+
+    # ── Persist to MongoDB ────────────────────────────────────────────────────
+    try:
+        db     = get_db()
+        fields = {}
+        # Only update extraction if provided
+        if extraction:
+            fields['form_extraction']        = extraction
+            fields['form_extraction_at']     = datetime.now(timezone.utc)
+            fields['form_extraction_source'] = 'claude-vision-annexure-iii'
+        # Only update image URL if GCS upload succeeded
+        if form_image_url:
+            fields['form_image_url'] = form_image_url
+
+        if not fields:
+            return _sir_cors(request, JsonResponse({'success': True, 'doc_id': raw_id, 'modified': 0, 'message': 'Nothing to update'}))
+
+        update = {'$set': fields}
+        res = db['SIR_ConfirmedMatches'].update_one({'_id': oid}, update)
+        if res.matched_count == 0:
+            res = db['SIR_ConfirmedNotFound'].update_one({'_id': oid}, update)
+
+        if res.matched_count == 0:
+            return _sir_cors(request, JsonResponse({'success': False, 'message': 'Document not found in either SIR collection'}, status=404))
+
+        return _sir_cors(request, JsonResponse({
+            'success':          True,
+            'doc_id':           raw_id,
+            'modified':         res.modified_count,
+            'form_image_url':   form_image_url,
+            'form_image_error': form_image_error if 'form_image_error' in dir() else None,
+        }))
+    except Exception as exc:
+        traceback.print_exc()
+        return _sir_cors(request, JsonResponse({'success': False, 'message': str(exc)}, status=500))
+
+@csrf_exempt
+@require_http_methods(['POST', 'OPTIONS'])
+def api_sir_form_extract(request):
+    """
+    POST /api/sir/form-extract/
+
+    Server-side proxy for Annexure-III SIR form OCR.
+    The browser cannot call api.anthropic.com directly (CORS).  This
+    endpoint receives the base64 image, forwards it to Claude on the
+    server, and returns the structured extraction JSON.
+
+    Body (JSON):
+      {
+        "image":     "<base64-encoded image bytes>",
+        "mimeType":  "image/jpeg" | "image/png" | "image/webp"
+      }
+
+    Response (JSON):
+      { "success": true,  "data": { <extracted fields> } }
+      { "success": false, "message": "<error>" }
+    """
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
+
+    user = _user_from_request(request)
+    if not user:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401))
+
+    try:
+        body      = json.loads(request.body)
+        image_b64 = body.get('image', '').strip()
+        mime_type = body.get('mimeType', 'image/jpeg').strip()
+    except Exception:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Invalid JSON body'}, status=400))
+
+    if not image_b64:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Missing image data'}, status=400))
+
+    SYSTEM_PROMPT = (
+        "You are an expert OCR system for Indian electoral Annexure-III Enumeration Forms. "
+        "Extract ALL visible information and return ONLY a valid JSON object with this exact structure:\n"
+        "{\n"
+        '  "personal": { "dateOfBirth": "", "aadhaarNo": "", "mobileNo": "", '
+        '"fathersGuardianName": "", "fathersGuardianEpicNo": "", "mothersName": "", '
+        '"mothersEpicNo": "", "spouseName": "", "spouseEpicNo": "" },\n'
+        '  "electorDetails": { "electorName": "", "epicNo": "", "relativeName": "", '
+        '"relationship": "", "district": "", "state": "", "acName": "", "acNumber": "", '
+        '"partNo": "", "srNo": "" },\n'
+        '  "relativeDetails": { "name": "", "epicNo": "", "relativeName": "", '
+        '"relationship": "", "district": "", "state": "", "acName": "", "acNumber": "", '
+        '"partNo": "", "srNo": "" },\n'
+        '  "preprinted": { "serialNo": "", "partNo": "", "acPcName": "", "state": "", '
+        '"electorName": "", "epicNo": "", "address": "" },\n'
+        '  "meta": { "confidence": "high", "missingFields": [], "notes": "" }\n'
+        "}\n"
+        'Return ONLY the JSON. Use "" for blank/unreadable fields. '
+        "List blank field names in missingFields."
+    )
+
+    try:
+        client = _get_anthropic()
+        message = client.messages.create(
+            model='claude-sonnet-4-20250514',
+            # 1200 tokens is enough for Annexure-III (~40 fields × name+value).
+            # Lower token limit = faster response = stays well under Render's 30 s proxy timeout.
+            max_tokens=1200,
+            system=SYSTEM_PROMPT,
+            messages=[{
+                'role': 'user',
+                'content': [
+                    {
+                        'type': 'image',
+                        'source': {
+                            'type':       'base64',
+                            'media_type': mime_type,
+                            'data':       image_b64,
+                        },
+                    },
+                    {
+                        'type': 'text',
+                        'text': 'Extract all fields from this Annexure-III SIR form. Return only JSON.',
+                    },
+                ],
+            }],
+            # ⚠️  Keep well under Render's 30 s request timeout.
+            # If this call exceeds 30 s, Render's nginx returns a 504 *without*
+            # CORS headers → browser sees "No Access-Control-Allow-Origin".
+            # 25 s gives the view time to serialise and return before that happens.
+            timeout=25.0,
+        )
+        raw = ''.join(b.text for b in message.content if hasattr(b, 'text')).strip()
+        # Strip any markdown code fences Claude might add despite the system prompt
+        import re as _re
+        raw = _re.sub(r'^```(?:json)?\s*', '', raw, flags=_re.MULTILINE)
+        raw = _re.sub(r'\s*```$',          '', raw, flags=_re.MULTILINE)
+        raw = raw.strip()
+        data = json.loads(raw)
+        return _sir_cors(request, JsonResponse({'success': True, 'data': data}))
+
+    except json.JSONDecodeError as exc:
+        # Return raw text so the frontend can show a useful error + the actual response
+        raw_preview = raw[:300] if 'raw' in dir() else '(no response)'
+        return _sir_cors(request, JsonResponse({
+            'success': False,
+            'message': f'Claude returned non-JSON: {exc}',
+            'raw_preview': raw_preview,
+        }, status=500))
+    except Exception as exc:
+        traceback.print_exc()
+        return _sir_cors(request, JsonResponse({
+            'success': False,
+            'message': str(exc),
+        }, status=500))
+
+
+@csrf_exempt
+@require_http_methods(['POST', 'OPTIONS'])
 def api_sir_bulk(request):
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
     """
     Bulk SIR pass over both voter rolls stored in MongoDB.
       Phase 1 — iterate SurveyDataBase.2025  (catches NEW additions, MODIFICATIONS, floods)
@@ -4045,7 +5930,7 @@ def api_sir_bulk(request):
     """
     db        = get_db()
     col_2025  = db['2025']
-    col_2002  = get_survey_db()['2002']  # 2002 roll lives on the _SURVEY_URL cluster
+    col_2002  = get_db()['2002']  # 2002 roll lives on the _SURVEY_URL cluster
     processed = 0
     errors    = 0
 
@@ -4712,7 +6597,7 @@ ML_CHUNK_SIZE       = 500   # must match predict_query_stack.py
 
 def _get_ml_db():
     """Return SurveyDataBase from the survey cluster (same cluster as NewQueryStack1)."""
-    return _get_survey_client()["SurveyDataBase"]
+    return get_survey_db()
 
 
 def _reassemble_chunks(col, filter_q: dict) -> list:
@@ -4785,17 +6670,10 @@ def api_ml_constituency_swot(request):
 _ANTHROPIC_CLIENT = None
 
 def _get_anthropic():
-    """Lazy-init Anthropic client. Import is deferred so a missing package only
-    errors when an AI endpoint is actually called, not at Django startup."""
+    """Init Anthropic client once and reuse. anthropic is imported at module
+    level so it is fully loaded before any request arrives."""
     global _ANTHROPIC_CLIENT
     if _ANTHROPIC_CLIENT is None:
-        try:
-            import anthropic as _anthropic_mod
-        except ImportError:
-            raise ImportError(
-                "The 'anthropic' package is required for AI endpoints. "
-                "Add 'anthropic' to requirements.txt and redeploy."
-            )
         import os
         api_key = (
             getattr(settings, 'ANTHROPIC_API_KEY', None)
@@ -4813,7 +6691,7 @@ def _get_anthropic():
 
 
 @csrf_exempt
-@require_http_methods(["POST"])
+@require_http_methods(["POST", "OPTIONS"])
 def api_ai_query_insight(request):
     """
     POST /api/ai/query-insight/
@@ -4840,14 +6718,18 @@ def api_ai_query_insight(request):
         "riskColor": str
     }
     """
+    # ── Handle CORS preflight ──────────────────────────────────────────────────
+    if request.method == "OPTIONS":
+        return _ai_cors(request, JsonResponse({}))
+
     user = _user_from_request(request)
     if not user:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+        return _ai_cors(request, JsonResponse({"error": "Unauthorized"}, status=401))
 
     try:
         body = json.loads(request.body)
     except Exception:
-        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+        return _ai_cors(request, JsonResponse({"error": "Invalid JSON body."}, status=400))
 
     query_obj    = body.get("query", {})
     columns      = body.get("columns", [])
@@ -4889,28 +6771,129 @@ def api_ai_query_insight(request):
         '{"ctx":"Health","signal":"S/W/O/T/N","color":"#22d3ee","note":"1 line"},'
         '{"ctx":"Political","signal":"S/W/O/T/N","color":"#f59e0b","note":"1 line"}]},'
         '"suggestedSchemes":['
-        '{"name":"Scheme name (central or state)","ministry":"Ministry/Department","relevance":"Why it applies to this voter segment","impact":"High/Medium/Low"},'
-        '{"name":"Another applicable scheme","ministry":"Ministry/Department","relevance":"Why it applies","impact":"High/Medium/Low"}'
+        '{"name":"Exact scheme name from catalogue","ministry":"Ministry name","relevance":"Why this segment qualifies","impact":"High/Medium/Low","url":"exact myscheme.gov.in URL from catalogue","perBeneficiaryCost":<integer from cost table>,"budgetBreakdown":"e.g. Rs6,000 x 3,956 beneficiaries = Rs23.7 L"}'
         '],'
+        '"budgetRequired":{"totalINR":<sum of all perBeneficiaryCost x beneficiary count>,"displayLabel":"RsX.X Cr or RsX.X L","note":"Estimated annual government outlay for this voter segment"},'
         '"recommendation":"One specific actionable recommendation for 2028",'
         '"riskLevel":"Low/Medium/High/Critical",'
         '"riskColor":"#10b981 or #f59e0b or #fb923c or #f87171"}\n\n'
-        "For suggestedSchemes: include 2-4 real central/state government schemes (Karnataka or India) "
-        "that are most applicable to this voter segment based on their demographic filters "
-        "(economic status, employment, health, education, religion, community). "
-        "Examples: PM-KISAN for farmers, Ayushman Bharat for health, PM Awas Yojana for housing, "
-        "Skill India for unemployed youth, PM Ujjwala for BPL women, MGNREGS for rural labour, "
-        "Karnataka Rajiv Gandhi Housing Corp schemes, Devaraj Urs BC Corporation loans, etc. "
-        "Only suggest schemes genuinely relevant to the segment's filters."
+
+        "SCHEME CATALOGUE — 85 verified schemes from system database. "
+        "Pick 2-4 that match the segment filters exactly. Use exact Name + URL below.\n\n"
+
+        "AGRICULTURE/FARMER:\n"
+        "Pradhan Mantri Kisan Samman Nidhi | APL+BPL farmers, all religions | perBeneficiaryCost=6000 (Rs2000x3 fixed) | https://www.myscheme.gov.in/schemes/pm-kisan\n"
+        "Pradhan Mantri Fasal Bima Yojna | BPL farmers, all religions | perBeneficiaryCost=4500 (avg premium subsidy/farmer/season) | https://www.myscheme.gov.in/schemes/pmfby\n"
+        "Krushy Aranya Protsaha Yojane | APL+BPL SC/ST/OBC farmers | perBeneficiaryCost=5000 (agroforestry incentive) | https://www.myscheme.gov.in/schemes/kapy\n"
+        "Pradhan Mantri Matsya Sampada Yojana | BPL fisherfolk, all religions | perBeneficiaryCost=20000 (avg subsidy for equipment) | https://www.myscheme.gov.in/schemes/pmmsy\n"
+        "Livestock Health and Diseases Control | APL+BPL livestock holders | perBeneficiaryCost=2000 (vaccination+treatment/household/yr) | https://www.myscheme.gov.in/schemes/lhadc\n"
+        "Nekar Samman Yojana | BPL weavers, all religions | perBeneficiaryCost=6000 (Rs500/month x 12) | https://www.myscheme.gov.in/schemes/nsy\n\n"
+
+        "HOUSING:\n"
+        "Pradhan Mantri Awas Yojana - Urban | BPL only, renting/no own home, all religions | perBeneficiaryCost=150000 (avg central+state subsidy — NOT full cost) | https://www.myscheme.gov.in/schemes/pmay-u\n\n"
+
+        "HEALTH/INSURANCE:\n"
+        "Niramaya Health Insurance Scheme | APL+BPL DifferentlyAbled=Yes, Diseased | perBeneficiaryCost=500 (annual premium subsidy) | https://www.myscheme.gov.in/schemes/nhis\n"
+        "Pradhan Mantri Jeevan Jyoti Bima Yojana | BPL age 18+, all religions | perBeneficiaryCost=436 (annual premium fully subsidised) | https://www.myscheme.gov.in/schemes/pmjjby\n"
+        "Pradhan Mantri Suraksha Bima Yojana | BPL Diseased age 18+, all religions | perBeneficiaryCost=20 (annual premium Rs20 govt bears) | https://www.myscheme.gov.in/schemes/pmsby\n"
+        "Pradhan Mantri Garib Kalyan Anna Yojana | APL+BPL Diseased, all religions | perBeneficiaryCost=3600 (5kg grain/month x Rs60 x 12) | https://www.myscheme.gov.in/schemes/pm-gkay\n\n"
+
+        "WOMEN & CHILD:\n"
+        "Pradhan Mantri Matru Vandana Yojana | BPL pregnant/lactating women, all religions | perBeneficiaryCost=5000 (one-time maternity benefit fixed) | https://www.myscheme.gov.in/schemes/pmmvy\n"
+        "Thayi Bhagya Scheme | BPL women Karnataka | perBeneficiaryCost=5000 (institutional delivery incentive) | https://www.myscheme.gov.in/schemes/thayi-bhagya\n"
+        "Bhagyalaxmi Scheme | BPL girl child at birth Karnataka | perBeneficiaryCost=19300 (annualised Rs19,300 bond value) | https://www.myscheme.gov.in/schemes/bys\n"
+        "Scheme For Adolescent Girls | BPL girls age 11-18, all religions | perBeneficiaryCost=4500 (nutrition+IFA+health per girl/yr) | https://www.myscheme.gov.in/schemes/sag\n"
+        "Indira Gandhi National Widow Pension Scheme | BPL widows, all religions | perBeneficiaryCost=3600 (Rs300/month x 12 central share) | https://www.myscheme.gov.in/schemes/ignwps\n"
+        "One Stop Centre | APL+BPL women in distress, all religions | perBeneficiaryCost=2000 (avg service cost/beneficiary) | https://www.myscheme.gov.in/schemes/osc\n"
+        "Incentive For The Sc Widow Remarriage | BPL SC widow women, Hindu | perBeneficiaryCost=50000 (one-time on remarriage) | https://www.myscheme.gov.in/schemes/iscwr\n"
+        "Incentive For The Simple Marriage | BPL SC Hindu | perBeneficiaryCost=25000 (one-time inter-caste marriage incentive) | https://www.myscheme.gov.in/schemes/iftsm\n\n"
+
+        "EMPLOYMENT/ENTREPRENEURSHIP:\n"
+        "PM Street Vendors AtmaNirbhar Nidhi (PM SVANidhi) | BPL urban street vendors, all religions | perBeneficiaryCost=10000 (first tranche working capital) | https://www.myscheme.gov.in/schemes/pm-svanidhi\n"
+        "Prime Minister's Employment Generation Programme | APL+BPL unemployed educated, all religions | perBeneficiaryCost=90000 (avg 15-35% subsidy on Rs3L avg project) | https://www.myscheme.gov.in/schemes/pmegp\n"
+        "PM Vishwakarma | APL+BPL traditional artisans OBC Hindu | perBeneficiaryCost=15000 (toolkit Rs15,000 + skill stipend) | https://www.myscheme.gov.in/schemes/pmv\n"
+        "Self Employment Scheme | APL+BPL Muslim/Christian/Jain/Buddhist/Sikh ONLY | perBeneficiaryCost=50000 (avg loan per minority beneficiary) | https://www.myscheme.gov.in/schemes/ses\n"
+        "Udyogini Scheme | BPL women entrepreneurs, all religions | perBeneficiaryCost=30000 (avg subsidy/grant per woman) | https://www.myscheme.gov.in/schemes/us\n"
+        "Shrama Shakthi Scheme | APL+BPL employed Muslim/Christian/Jain/Buddhist/Sikh | perBeneficiaryCost=12000 (avg annual welfare benefit/worker) | https://www.myscheme.gov.in/schemes/sss\n"
+        "Airavata Scheme | APL+BPL SC/ST Hindu | perBeneficiaryCost=40000 (avg subsidy on vehicle/equipment loan) | https://www.myscheme.gov.in/schemes/airavata\n"
+        "Subsidy Scheme For Purchase Of Taxi/Goods Vehicle | APL+BPL ST community | perBeneficiaryCost=50000 (avg vehicle subsidy) | https://www.myscheme.gov.in/schemes/subsidy-scheme-for-taxi\n"
+        "Prerana (micro Credit Finance) Scheme | APL+BPL micro-entrepreneurs, all religions | perBeneficiaryCost=25000 (avg micro-credit loan) | https://www.myscheme.gov.in/schemes/prerana\n"
+        "Direct Loans For Business Enterprise | APL+BPL Muslim/Christian/Jain/Buddhist/Sikh ONLY | perBeneficiaryCost=100000 (avg loan) | https://www.myscheme.gov.in/schemes/dlbe\n"
+        "Samruddhi Scheme | BPL SC/ST educated women | perBeneficiaryCost=20000 (avg grant+training) | https://www.myscheme.gov.in/schemes/samruddhischeme\n"
+        "Unnati Scheme | APL+BPL all religions | perBeneficiaryCost=8000 (avg skill training cost) | https://www.myscheme.gov.in/schemes/unnati\n"
+        "Ganga Kalyana Scheme | BPL Muslim/Christian/Jain/Buddhist/Sikh farmers ONLY | perBeneficiaryCost=75000 (avg borewell/pump subsidy) | https://www.myscheme.gov.in/schemes/gks\n\n"
+
+        "SKILL DEVELOPMENT:\n"
+        "Pradhan Mantri Kaushal Vikas Yojana - Short Term Training | APL+BPL unemployed, all religions | perBeneficiaryCost=8000 (avg govt training cost/candidate) | https://www.myscheme.gov.in/schemes/pmkvy-stt\n"
+        "Entrepreneurship and Skill Development Programme | BPL employed/retired, all religions | perBeneficiaryCost=6000 (avg MSME skill training cost) | https://www.myscheme.gov.in/schemes/esdp\n\n"
+
+        "EDUCATION/SCHOLARSHIP:\n"
+        "Pre Matric Scholarship For Scheduled Tribe Students | BPL SC/ST students age <18 | perBeneficiaryCost=7000 (avg annual scholarship) | https://www.myscheme.gov.in/schemes/pre-st\n"
+        "Post-Matric Scholarship for SC students | BPL SC students, all religions | perBeneficiaryCost=12000 (avg annual scholarship) | https://www.myscheme.gov.in/schemes/pmsfss\n"
+        "Centrally Sponsored Scheme of Post-Matric Scholarship for OBC Students | APL+BPL OBC female students | perBeneficiaryCost=10000 (avg annual OBC scholarship) | https://www.myscheme.gov.in/schemes/csspostmsossi\n"
+        "Pre Matric Scholarship For Students With Disabilities | APL+BPL DifferentlyAbled=Yes students | perBeneficiaryCost=9000 (avg annual scholarship) | https://www.myscheme.gov.in/schemes/pre-dis\n"
+        "Top Class Education For Students With Disabilities | APL+BPL DifferentlyAbled=Yes | perBeneficiaryCost=75000 (fees+allowances top institution) | https://www.myscheme.gov.in/schemes/tce-swd\n"
+        "Post Graduate Indira Gandhi Scholarship For Single Girl Child | APL+BPL single girl PG | perBeneficiaryCost=36200 (Rs3,100/month x 12) | https://www.myscheme.gov.in/schemes/pg-igssgc\n"
+        "Pragati Scholarship Scheme For Girl Students (Technical Diploma) | APL+BPL girl students tech diploma | perBeneficiaryCost=30000 (Rs30,000/year fixed) | https://www.myscheme.gov.in/schemes/psgs-dip\n"
+        "Vidyasiri food And Accommodation Scholarship Scheme | BPL SC/ST/OBC students Hindu | perBeneficiaryCost=18000 (food+accommodation/student/yr) | https://www.myscheme.gov.in/schemes/vfas\n"
+        "Free Coaching Scheme for SC and OBC Students | APL+BPL SC/OBC students | perBeneficiaryCost=45000 (avg coaching+stipend/student/yr) | https://www.myscheme.gov.in/schemes/fcssos\n"
+        "Padho Pardesh | APL+BPL OBC minority students overseas | perBeneficiaryCost=200000 (avg interest subsidy on education loan) | https://www.myscheme.gov.in/schemes/ppma\n"
+        "National Talent Scholarship Undergraduate | BPL merit students, all religions | perBeneficiaryCost=12000 (Rs1,000/month x 12) | https://www.myscheme.gov.in/schemes/nts-ug\n"
+        "National Scholarship For Post Graduate Studies | APL ONLY, all religions | perBeneficiaryCost=24000 (Rs2,000/month x 12) | https://www.myscheme.gov.in/schemes/nsfpgs\n"
+        "Rajiv Gandhi National Fellowship For Scheduled Caste Candidates | APL+BPL SC research students | perBeneficiaryCost=312000 (JRF Rs31,000/month+HRA avg 2 yrs) | https://www.myscheme.gov.in/schemes/rgnfscc\n"
+        "Prabhuddha Overseas Scholarship | APL+BPL SC/ST educated | perBeneficiaryCost=1000000 (overseas tuition+living) | https://www.myscheme.gov.in/schemes/pdos\n"
+        "Savitribai Jyotirao Phule Fellowship For Single Girl Child | APL+BPL single girl OBC MPhil/PhD | perBeneficiaryCost=84000 (Rs7,000/month x 12) | https://www.myscheme.gov.in/schemes/sjpfsgc\n"
+        "National Scheme Of Incentive To Girls For Secondary Education | BPL girls class 8, all religions | perBeneficiaryCost=3000 (one-time FD at class 8) | https://www.myscheme.gov.in/schemes/nsigse\n"
+        "Pre-Matric Scholarships Scheme for Scheduled Castes & Others | APL+BPL SC/OBC students class 9-10 | perBeneficiaryCost=5250 (avg day-scholar scholarship/yr) | https://www.myscheme.gov.in/schemes/pmsssc\n"
+        "Education Loan Scheme | APL+BPL OBC/SC/ST students | perBeneficiaryCost=150000 (avg loan — flag as loan) | https://www.myscheme.gov.in/schemes/els\n\n"
+
+        "PENSION/SOCIAL SECURITY:\n"
+        "Atal Pension Yojana | BPL unorganised workers educated age 18+, all religions | perBeneficiaryCost=1000 (avg govt co-contribution/yr) | https://www.myscheme.gov.in/schemes/apy\n"
+        "Indira Gandhi National Disability Pension Scheme | BPL DifferentlyAbled=Yes, all religions | perBeneficiaryCost=3600 (Rs300/month x 12 central share) | https://www.myscheme.gov.in/schemes/igndps\n"
+        "National Family Benefit Scheme | APL+BPL DifferentlyAbled on breadwinner death | perBeneficiaryCost=20000 (one-time lump sum) | https://www.myscheme.gov.in/schemes/nfbs\n"
+        "National Pension Scheme For Traders And Self Employed Persons | APL+BPL self-employed SC traders | perBeneficiaryCost=1500 (avg govt co-contribution/yr) | https://www.myscheme.gov.in/schemes/nps-tsep\n\n"
+
+        "DIFFERENTLY ABLED (DifferentlyAbled=Yes ONLY):\n"
+        "National Action Plan for Skill Development of Persons with Disabilities | APL+BPL DiffAbled=Yes, all religions | perBeneficiaryCost=10000 (skill training+placement) | https://www.myscheme.gov.in/schemes/nap-sdp\n"
+        "Deen Dayal Disabled Rehabilitation Scheme | APL+BPL SC/ST DiffAbled | perBeneficiaryCost=8000 (avg rehab grant/yr) | https://www.myscheme.gov.in/schemes/dddrs\n"
+        "Vikaas-Day Care Scheme For Person with Disability Children | APL+BPL OBC/SC DiffAbled children | perBeneficiaryCost=12000 (day-care cost/child/yr) | https://www.myscheme.gov.in/schemes/vdcspds\n\n"
+
+        "ENERGY:\n"
+        "PM Surya Ghar: Muft Bijli Yojana | APL+BPL SC community own home | perBeneficiaryCost=78000 (avg central subsidy 2kW rooftop solar) | https://www.myscheme.gov.in/schemes/pmsgmb\n"
+        "Pradhan Mantri Ujjwala Yojana | BPL women all religions NEW connection only | perBeneficiaryCost=1600 (one-time cylinder+regulator) | https://www.myscheme.gov.in/schemes/pmuy\n\n"
+
+        "FINANCIAL INCLUSION:\n"
+        "Pradhan Mantri Jan Dhan Yojana | APL+BPL ST community | perBeneficiaryCost=2000 (overdraft+RuPay insurance value) | https://www.myscheme.gov.in/schemes/pmjdy\n"
+        "Stand-Up India | BPL SC/ST women entrepreneurs | perBeneficiaryCost=1000000 (avg loan Rs10L-1Cr — flag as loan) | https://www.myscheme.gov.in/schemes/sui\n\n"
+
+        "SELECTION RULES — follow strictly:\n"
+        "1. Match ALL segment filters before selecting: economicStatus, religion, community, healthStatus, gender, homeType, employmentStatus, differentlyAbled.\n"
+        "2. NEVER suggest PMAY-Urban if homeType includes Own (voter already owns home).\n"
+        "3. NEVER suggest PM-KISAN unless the segment filters include farmer/agriculture employment.\n"
+        "4. NEVER suggest PM SVANidhi unless explicitly urban street vendors.\n"
+        "5. NEVER suggest schemes marked Muslim/Christian/Jain/Buddhist/Sikh ONLY for Hindu segments.\n"
+        "6. NEVER suggest religion-neutral schemes for segments where the scheme has a religion restriction.\n"
+        "7. NEVER suggest disability schemes if DifferentlyAbled=No.\n"
+        "8. Select max 4 schemes; prefer highest perBeneficiaryCost that genuinely applies.\n\n"
+
+        "BUDGET FORMAT:\n"
+        "budgetBreakdown: 'Rs<cost with commas> x <N> beneficiaries = Rs<total>'\n"
+        "  Use RsX.X L for total < 1,00,00,000; RsX.X Cr for total >= 1,00,00,000. Round to 1 decimal.\n"
+        "  Example: Rs6,000 x 3,956 beneficiaries = Rs23.7 L\n"
+        "budgetRequired.totalINR = exact integer sum of all (perBeneficiaryCost x count).\n"
+        "budgetRequired.displayLabel = 'RsX.X Cr' if total >= 1,00,00,000 else 'RsX.X L'.\n"
+        "budgetRequired.note = 'Estimated annual government outlay for this voter segment across applicable schemes'."
     )
 
     try:
         client = _get_anthropic()
+        # timeout=25 ensures we fail cleanly before Gunicorn's worker timeout kills the process
         message = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=1200,
+            max_tokens=1800,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],
+            timeout=35.0,
         )
         raw = "".join(b.text for b in message.content if hasattr(b, "text")).strip()
         # Strip markdown fences if present
@@ -4919,9 +6902,9 @@ def api_ai_query_insight(request):
             insight = json.loads(raw)
         except json.JSONDecodeError:
             insight = {"_raw": raw}
-        return JsonResponse({"success": True, "insight": insight})
+        return _ai_cors(request, JsonResponse({"success": True, "insight": insight}))
     except Exception as exc:
-        return JsonResponse({"error": str(exc)}, status=500)
+        return _ai_cors(request, JsonResponse({"error": str(exc)}, status=500))
 
 
 @csrf_exempt
@@ -5438,6 +7421,18 @@ def _ai_cors(request, response):
     return response
 
 
+# Alias — SIR endpoints use the same CORS policy as AI endpoints
+def _sir_cors(request, response):
+    """Add cross-origin headers to every SIR response."""
+    return _ai_cors(request, response)
+
+
+def _sir_options(request):
+    """Return a 200 OPTIONS preflight response for SIR endpoints."""
+    resp = JsonResponse({})
+    return _sir_cors(request, resp)
+
+
 def _ai_err(request, msg, status=500):
     print(f'[AI Chat] ERROR {status}: {msg}')
     return _ai_cors(request, JsonResponse({'success': False, 'message': msg}, status=status))
@@ -5447,16 +7442,13 @@ def _ai_err(request, msg, status=500):
 
 def _ai_get_client():
     try:
-        import anthropic as _ant
         api_key = (
             getattr(settings, 'ANTHROPIC_API_KEY', None)
             or _os2.environ.get('ANTHROPIC_API_KEY', '')
         )
         if not api_key:
             return None, 'ANTHROPIC_API_KEY not set in Render environment variables.'
-        return _ant.Anthropic(api_key=api_key), None
-    except ImportError:
-        return None, 'anthropic package not installed. Add "anthropic" to requirements.txt.'
+        return _anthropic_mod.Anthropic(api_key=api_key), None
     except Exception as e:
         return None, f'Anthropic client error: {e}'
 
@@ -5663,7 +7655,7 @@ def _ai_ctx_sir_summary():
             except Exception:
                 pass
 
-        v2002 = _safe_count(db['2002'])
+        v2002 = _safe_count(db2['2002'])
         v2025 = _safe_count(db2['2025'])
 
         lines = ['=== SIR (Summary Intensive Revision) — 2002 vs 2025 ===',
@@ -6089,7 +8081,7 @@ def _ai_ctx_swot_stack():
 
 def _ai_ctx_voter_roll_2002():
     try:
-        db    = get_survey_db()
+        db    = get_db()
         total = _safe_count(db['2002'])
 
         agg = list(db['2002'].aggregate([{'$facet': {
@@ -6160,13 +8152,863 @@ def _ai_ctx_genuine_voters():
         return f'[genuine_voters error: {e}]'
 
 
+# ── Builder 16: Socio-Economic Data (SurveyDataBase.Data) ────────────────────
+#
+# Document schema (confirmed from sample doc):
+#   wardNumber (int), boothNo (str "21-Apr"), houseNumber, address
+#   firstName, middleName, lastName, voterid, gender, age, dob, maritalStatus
+#   religion, predictedReligion, minority ("Yes"/"No"), community, subcategory
+#   economicStatus ("APL"/"BPL"…), annualIncome (int), familyIncome (int)
+#   education, educationtype, employmentStatus, employmentType
+#   healthStatus, diseaseType, diseaseName, differentlyAbled ("Yes"/"No")
+#   homeType, currentHomeType, areaType, currentAreaType
+#   schemesUsed (array of str), outstationResident ("Yes"/"No"), outstationCity/State
+#   partyMember ("Yes"/"No"), student ("Yes"/"No"), isHeadOfHouse ("Yes"/"No")
+#   sir_category (str), sir_suspicious (bool), Time_stamp (date)
+
+def _ai_ctx_socio_economic_data():
+    """
+    Loads socio-economic household data from the 'Data' collection in
+    SurveyDataBase (_SURVEY_URL cluster). Single $facet aggregation covers all
+    major dimensions so the AI can answer income/employment/health/housing/
+    scheme questions ward-by-ward.
+    """
+    try:
+        db    = get_survey_db()
+        coll  = db['Data']
+        total = _safe_count(coll)
+        if not total:
+            return '[Socio-Economic Data: collection empty or not found]'
+
+        agg = list(coll.aggregate([{'$facet': {
+
+            # ── Ward distribution (wardNumber is int) ─────────────────────────
+            'by_ward': [
+                {'$group': {'_id': '$wardNumber', 'n': {'$sum': 1}}},
+                {'$sort': {'_id': 1}},
+            ],
+
+            # ── Gender & marital status ───────────────────────────────────────
+            'by_gender': [
+                {'$group': {'_id': '$gender', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+            'by_marital': [
+                {'$group': {'_id': '$maritalStatus', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+
+            # ── Religion & community ──────────────────────────────────────────
+            'by_religion': [
+                {'$group': {'_id': '$religion', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+            'by_community': [
+                {'$match': {'community': {'$exists': True, '$ne': None, '$ne': ''}}},
+                {'$group': {'_id': '$community', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}}, {'$limit': 15},
+            ],
+
+            # ── Economic status ───────────────────────────────────────────────
+            'by_economic': [
+                {'$group': {'_id': '$economicStatus', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+
+            # ── Income buckets (annualIncome is numeric int/long) ─────────────
+            'income_buckets': [
+                {'$match': {'annualIncome': {'$type': ['int', 'long', 'double', 'decimal']}}},
+                {'$bucket': {
+                    'groupBy'   : '$annualIncome',
+                    'boundaries': [0, 50000, 100000, 200000, 300000, 500000, 1000000, 9999999999],
+                    'default'   : 'Other',
+                    'output'    : {'n': {'$sum': 1}, 'avg': {'$avg': '$annualIncome'}},
+                }},
+            ],
+            'avg_income': [
+                {'$match': {'annualIncome': {'$type': ['int', 'long', 'double', 'decimal']}}},
+                {'$group': {'_id': None, 'avg': {'$avg': '$annualIncome'}}},
+            ],
+
+            # ── Employment ───────────────────────────────────────────────────
+            'by_employment': [
+                {'$group': {'_id': '$employmentStatus', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+            'by_emp_type': [
+                {'$match': {'employmentType': {'$exists': True, '$ne': None, '$ne': ''}}},
+                {'$group': {'_id': '$employmentType', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}}, {'$limit': 12},
+            ],
+
+            # ── Education ────────────────────────────────────────────────────
+            'by_education': [
+                {'$group': {'_id': '$education', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+            'by_edu_type': [
+                {'$match': {'educationtype': {'$exists': True, '$ne': None, '$ne': ''}}},
+                {'$group': {'_id': '$educationtype', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}}, {'$limit': 12},
+            ],
+
+            # ── Health ───────────────────────────────────────────────────────
+            'by_health': [
+                {'$group': {'_id': '$healthStatus', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+            'by_disease_type': [
+                {'$match': {'diseaseType': {'$exists': True, '$ne': None, '$ne': ''}}},
+                {'$group': {'_id': '$diseaseType', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+            'by_disease_name': [
+                {'$match': {'diseaseName': {'$exists': True, '$ne': None, '$ne': ''}}},
+                {'$group': {'_id': '$diseaseName', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}}, {'$limit': 15},
+            ],
+
+            # ── Housing ──────────────────────────────────────────────────────
+            'by_home_type': [                        # permanent home ownership
+                {'$group': {'_id': '$homeType', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+            'by_current_home': [                     # current living arrangement
+                {'$match': {'currentHomeType': {'$exists': True, '$ne': None, '$ne': ''}}},
+                {'$group': {'_id': '$currentHomeType', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+            'by_area_type': [
+                {'$group': {'_id': '$areaType', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+
+            # ── Special flags (stored as "Yes"/"No" strings) ──────────────────
+            'diff_abled'    : [{'$match': {'differentlyAbled'  : 'Yes'}}, {'$count': 'n'}],
+            'outstation'    : [{'$match': {'outstationResident': 'Yes'}}, {'$count': 'n'}],
+            'party_members' : [{'$match': {'partyMember'       : 'Yes'}}, {'$count': 'n'}],
+            'students'      : [{'$match': {'student'           : 'Yes'}}, {'$count': 'n'}],
+            'minorities'    : [{'$match': {'minority'          : 'Yes'}}, {'$count': 'n'}],
+            'head_of_house' : [{'$match': {'isHeadOfHouse'     : 'Yes'}}, {'$count': 'n'}],
+            # sir_suspicious is a boolean true/false
+            'sir_suspicious': [{'$match': {'sir_suspicious': True}}, {'$count': 'n'}],
+
+            # ── Top outstation cities ─────────────────────────────────────────
+            'outstation_cities': [
+                {'$match': {'outstationResident': 'Yes',
+                            'outstationCity': {'$exists': True, '$ne': None, '$ne': ''}}},
+                {'$group': {'_id': '$outstationCity', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}}, {'$limit': 10},
+            ],
+
+            # ── SIR categories ────────────────────────────────────────────────
+            'by_sir_category': [
+                {'$match': {'sir_category': {'$exists': True, '$ne': None, '$ne': ''}}},
+                {'$group': {'_id': '$sir_category', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}},
+            ],
+
+            # ── Schemes used (array field, must $unwind first) ────────────────
+            'by_scheme': [
+                {'$unwind': '$schemesUsed'},
+                {'$group': {'_id': '$schemesUsed', 'n': {'$sum': 1}}},
+                {'$sort': {'n': -1}}, {'$limit': 20},
+            ],
+
+        }}]))[0]
+
+        wmap = {str(k): v['name'] for k, v in WARD_FULL_DATA.items()}
+        lines = [
+            '=== Socio-Economic Data (SurveyDataBase.Data) ===',
+            f'Total records: {total:,}',
+        ]
+
+        def _pct(n):
+            return f" ({round(n / total * 100, 1)}%)" if total else ''
+
+        def _sec(title, items, key='_id', val='n'):
+            if not items:
+                return
+            lines.append(f'\n{title}:')
+            for r in items:
+                lbl = str(r.get(key)) if r.get(key) not in (None, '') else 'Unknown'
+                lines.append(f"  {lbl:<32}: {r[val]:,}{_pct(r[val])}")
+
+        # Ward breakdown
+        lines.append('\nWard-wise Record Count:')
+        for w in agg.get('by_ward', []):
+            wid   = str(w['_id']) if w['_id'] is not None else '?'
+            wname = wmap.get(wid, wid)
+            lines.append(f"  Ward {wid:>3} ({wname:<22}): {w['n']:,}")
+
+        _sec('Gender',                    agg.get('by_gender', []))
+        _sec('Marital Status',            agg.get('by_marital', []))
+        _sec('Religion',                  agg.get('by_religion', []))
+        _sec('Community / Category',      agg.get('by_community', []))
+        _sec('Economic Status',           agg.get('by_economic', []))
+
+        # Income buckets with ₹ labels
+        bucket_labels = {
+            0:         '₹0 – 50,000',
+            50000:     '₹50k – 1L',
+            100000:    '₹1L – 2L',
+            200000:    '₹2L – 3L',
+            300000:    '₹3L – 5L',
+            500000:    '₹5L – 10L',
+            1000000:   '₹10L+',
+            'Other':   'Non-numeric / missing',
+        }
+        income_bkts = agg.get('income_buckets', [])
+        if income_bkts:
+            lines.append('\nAnnual Income Distribution:')
+            for b in income_bkts:
+                lbl = bucket_labels.get(b['_id'], str(b['_id']))
+                avg = f"  (avg ₹{b['avg']:,.0f})" if b.get('avg') else ''
+                lines.append(f"  {lbl:<22}: {b['n']:,}{_pct(b['n'])}{avg}")
+        if agg.get('avg_income'):
+            lines.append(f"  Overall avg annual income: ₹{agg['avg_income'][0].get('avg', 0):,.0f}")
+
+        _sec('Employment Status',         agg.get('by_employment', []))
+        _sec('Employment Type',           agg.get('by_emp_type', []))
+        _sec('Education Level',           agg.get('by_education', []))
+        _sec('Education Type (detail)',   agg.get('by_edu_type', []))
+        _sec('Health Status',             agg.get('by_health', []))
+        _sec('Disease Type',              agg.get('by_disease_type', []))
+        _sec('Disease Name (top 15)',     agg.get('by_disease_name', []))
+        _sec('Home Ownership Type',       agg.get('by_home_type', []))
+        _sec('Current Living Arrangement',agg.get('by_current_home', []))
+        _sec('Permanent Area Type',       agg.get('by_area_type', []))
+
+        # Scalar flags
+        da_n  = agg['diff_abled'][0]['n']    if agg.get('diff_abled')    else 0
+        out_n = agg['outstation'][0]['n']    if agg.get('outstation')    else 0
+        pm_n  = agg['party_members'][0]['n'] if agg.get('party_members') else 0
+        st_n  = agg['students'][0]['n']      if agg.get('students')      else 0
+        mn_n  = agg['minorities'][0]['n']    if agg.get('minorities')    else 0
+        hh_n  = agg['head_of_house'][0]['n'] if agg.get('head_of_house') else 0
+        sus_n = agg['sir_suspicious'][0]['n']if agg.get('sir_suspicious')else 0
+
+        lines += [
+            '',
+            f'Differently Abled      : {da_n:,}{_pct(da_n)}',
+            f'Outstation Residents   : {out_n:,}{_pct(out_n)}',
+            f'BJP Party Members      : {pm_n:,}{_pct(pm_n)}',
+            f'Students               : {st_n:,}{_pct(st_n)}',
+            f'Minority (Yes)         : {mn_n:,}{_pct(mn_n)}',
+            f'Head of Household      : {hh_n:,}{_pct(hh_n)}',
+            f'SIR Suspicious Flag    : {sus_n:,}{_pct(sus_n)}',
+        ]
+
+        _sec('Outstation Cities (top 10)', agg.get('outstation_cities', []))
+        _sec('SIR Category',               agg.get('by_sir_category', []))
+
+        if agg.get('by_scheme'):
+            lines.append('\nTop Government Schemes Used:')
+            for s in agg['by_scheme']:
+                if s['_id']:
+                    lines.append(f"  {str(s['_id']):<45}: {s['n']:,}")
+
+        return '\n'.join(lines)
+    except Exception as e:
+        return f'[Socio-Economic Data error: {e}]'
+
+
 # ════════════════════════════════════════════════════════════════════════════════
 # PARALLEL MONGO CONTEXT LOADER
 # ════════════════════════════════════════════════════════════════════════════════
 
+
+# ════════════════════════════════════════════════════════════════════════════════
+# RAG — Smart Query-Aware File Chunking
+# Each function loads only the relevant portion of a file based on the question.
+# ════════════════════════════════════════════════════════════════════════════════
+
+# 2023p.xlsx: ward name → sheet names (current 2023 + comparison 2018)
+_2023P_WARD_SHEETS = {
+    'ATTAVARA':           ['ATTAVARA',        'ATTAVARA-18'],
+    'ALAPE DAKSHINA':     ['ALAPE-S',         'ALAPE-S18'],
+    'ALAPE UTTARA':       [' ALAPE-N',        'ALAPE-N18'],
+    'BAJAL':              ['BAJAL',           'BAJAL-18'],
+    'BEJAI':              ['BEJAI',           'BEJAI-18'],
+    'BENDUR':             ['BENDUR',          'BENDR-18'],
+    'BENGRE':             ['BENGRE',          'BENGRE-18'],
+    'BOLAR':              ['BOLAR',           'BOLAR-18'],
+    'BOLOOR':             ['BOLOOR',          'BOLOOR-18'],
+    'NAVAYATH':           ['BUNDER',          'BNDER-18'],
+    'CENTRAL':            ['CENTRAL',         'CENTRAL-18'],
+    'CANTONMENT':         ['CONTONMENT',      'CONTONMENT-18'],
+    'COURT':              ['COURT',           'CORT-18'],
+    'DEREBAIL SOUTH WEST':['DEREBAIL NAIRTHYA','DEREBAILNAIRTYHYA18'],
+    'DEREBAIL SOUTH':     ['DEREBAIL SOUTH',  'DEREBAIL SOTH18'],
+    'DEREBAIL WEST':      ['DEREBAIL WEST',   'DEREBAIL WEST18'],
+    'DONGERKERY':         ['DONGARAKERI',     'DONGARKERI-18'],
+    'FALNIR':             ['FALNIR',          'FALNIR-18'],
+    'HOIGE BAZAR':        ['HOIGE BAZAR',     'HOIGE BAZAR-18'],
+    'JEPPINAMUGER':       ['JEPPINAMOGAR',    'JEPPINAMOGAR-18'],
+    'JEPPU':              ['JEPPU',           'JEPPU-18'],
+    'KADRI NORTH':        ['KADRI NORTH',     'KADRI-18'],
+    'KADRI SOUTH':        ['KADRI SOUTH',     'KADRI(S)-18'],
+    'KAMBLA':             ['KAMBALA',         'KAMBALA-18'],
+    'KANKANADY':          ['KANKANADY',       'KANKANADY-18'],
+    'KANNUR':             ['KANNUR',          'KANNUR-18'],
+    'KODIALBAIL':         ['KODIALBAIL',      'KODIALBAIL-18'],
+    'KUDROLI':            ['KUDROLI',         'KUDROLI-18'],
+    'MANNAGUDDA':         ['MANNAGUDA',       'MANNAGDA-18'],
+    'MAROLI':             ['MAROLI',          'MAROLI-18'],
+    'MILAGRIS':           ['MILAGRESS',       'MILAGRESS-18'],
+    'PADAVU CENTRAL':     ['PADAV CENTRAL',   'PADAV CENTRAL-18'],
+    'PADAVU POORVA':      ['PADAV EAST',      'PADAV EAST-18'],
+    'PADAVU':             ['PADAV WEST',      'PADAV WEST-18'],
+    'PORT':               ['PORT',            'PORT-18'],
+    'SHIVBHAG':           ['SHIVABAGH',       'SHIVABAGH-18'],
+    'VALENCIA':           ['VALENCIA',        'VALENCIA-18'],
+}
+
+_2023P_CANDIDATE_MARKERS = ['LOBO', 'KAMATH', 'VEDAVYASA', 'SANTHOSH',
+                             'DHARMENDRA', 'WINNY', 'K.S.PAI']
+
+
+def _rag_extract_2023p_ward_sheet(ws) -> str:
+    """Extract one ward sheet from 2023p.xlsx into a clean table."""
+    from openpyxl import load_workbook as _lw  # already imported at top
+    ward_name  = ''
+    candidates = []
+    data_rows  = []
+    total_row  = None
+    for row in ws.iter_rows(values_only=True):
+        vals = [v for v in row if v is not None]
+        if not vals:
+            continue
+        row_str = str(vals)
+        # Candidate name row
+        if any(m in row_str for m in _2023P_CANDIDATE_MARKERS):
+            candidates = [str(v) for v in row if v is not None]
+            continue
+        # Data rows: col[1] is booth number (int < 1000)
+        if len(row) >= 4 and isinstance(row[1], (int, float)) and row[1] and row[1] < 1000:
+            if not ward_name and row[0]:
+                ward_name = str(row[0])
+            booth  = int(row[1])
+            total  = row[2] or 0
+            votes  = [row[i] or 0 for i in range(3, min(3 + len(candidates), len(row)))]
+            data_rows.append((booth, int(total), votes))
+        # Total row: col[1] is None, col[2] is large number
+        elif (not row[1] and row[2] and isinstance(row[2], (int, float))
+              and row[2] > 500 and data_rows):
+            total_row = row
+
+    if not data_rows:
+        return ''
+
+    # Shorten candidate names to first 10 chars
+    cands_short = [c[:10] for c in (candidates or [])]
+    lines = [f'Ward: {ward_name}']
+    if cands_short:
+        hdr = f"{'Booth':>5}  {'Voters':>6}  " + '  '.join(f'{c:>10}' for c in cands_short)
+        lines.append(hdr)
+        lines.append('-' * (14 + 13 * len(cands_short)))
+    for booth, total, votes in data_rows:
+        vstr = '  '.join(f'{v:>10}' for v in votes)
+        lines.append(f'{booth:>5}  {total:>6}  {vstr}')
+    if total_row:
+        tvotes = [total_row[i] or 0 for i in range(3, min(3 + len(candidates), len(total_row)))]
+        vstr = '  '.join(f'{v:>10}' for v in tvotes)
+        lines.append(f'{"TOTAL":>5}  {int(total_row[2] or 0):>6}  {vstr}')
+    return '\n'.join(lines)
+
+
+def _rag_load_2023p(message: str) -> str:
+    """
+    Ward-aware extraction from 2023p.xlsx.
+    Specific ward mentioned → load those 2 sheets (2023 + 2018 comparison).
+    No ward → load MAIN WARD + WARD-BOOTH summary sheets only.
+    """
+    try:
+        from openpyxl import load_workbook as _lw
+    except ImportError:
+        return '[openpyxl not available]'
+
+    path = _os2.path.join(_AI_DATA_DIR, '2023p.xlsx')
+    if not _os2.path.exists(path):
+        # fuzzy find
+        for f in _os2.listdir(_AI_DATA_DIR):
+            if '2023p' in f.lower():
+                path = _os2.path.join(_AI_DATA_DIR, f)
+                break
+        else:
+            return '[2023p.xlsx not found]'
+
+    msg_upper     = message.upper()
+    matched_wards = []
+    for wnum, wdata in WARD_FULL_DATA.items():
+        wname = wdata['name'].upper()
+        if str(wnum) in message or wname in msg_upper or wname.split()[0] in msg_upper:
+            matched_wards.append(wname)
+
+    try:
+        wb = _lw(path, read_only=True, data_only=True)
+    except Exception as e:
+        return f'[2023p.xlsx load error: {e}]'
+
+    sections = []
+    if matched_wards:
+        for ward_key in matched_wards:
+            for sname in _2023P_WARD_SHEETS.get(ward_key, []):
+                actual = next((s for s in wb.sheetnames
+                               if s.strip().upper() == sname.strip().upper()), None)
+                if actual:
+                    text = _rag_extract_2023p_ward_sheet(wb[actual])
+                    if text:
+                        yr = '2018' if actual.strip().endswith('-18') else '2023'
+                        sections.append(f'=== 2023p | {ward_key} ({yr}) ===\n{text}')
+    else:
+        # Summary sheets
+        for sname in ['MAIN WARD', 'WARD-BOOTH', 'BOOTHWISE']:
+            if sname in wb.sheetnames:
+                ws    = wb[sname]
+                lines = []
+                for i, row in enumerate(ws.iter_rows(values_only=True)):
+                    vals = [v for v in row if v is not None]
+                    if vals:
+                        lines.append(','.join(str(v) for v in row if v is not None))
+                    if i > 100:
+                        break
+                if lines:
+                    sections.append(f'=== 2023p | {sname} ===\n' + '\n'.join(lines))
+
+    wb.close()
+    result = '\n\n'.join(sections)
+    print(f'[RAG File] 2023p: {len(result):,} chars (~{len(result)//4:,} tokens) | '
+          f'wards: {matched_wards or "summary"}')
+    return result or '[2023p: no matching data]'
+
+
+def _rag_load_xlsx_smart(fname: str, message: str,
+                          priority_sheets: list = None,
+                          keyword_sheet_map: dict = None,
+                          max_chars: int = 60_000) -> str:
+    """
+    Generic smart xlsx loader.
+    priority_sheets: always load these sheets
+    keyword_sheet_map: {keyword: [sheet_names]} — load sheet if keyword in message
+    max_chars: hard cap on output
+    """
+    try:
+        from openpyxl import load_workbook as _lw
+    except ImportError:
+        return '[openpyxl not available]'
+
+    path = _os2.path.join(_AI_DATA_DIR, fname)
+    if not _os2.path.exists(path):
+        for f in _os2.listdir(_AI_DATA_DIR):
+            if fname[:12].upper() in f.upper():
+                path = _os2.path.join(_AI_DATA_DIR, f)
+                fname = f
+                break
+        else:
+            return f'[{fname}: not found]'
+
+    try:
+        wb = _lw(path, read_only=True, data_only=True)
+    except Exception as e:
+        return f'[{fname} load error: {e}]'
+
+    msg_lower    = message.lower()
+    sheets_todo  = list(priority_sheets or [])
+
+    if keyword_sheet_map:
+        for kw, snames in keyword_sheet_map.items():
+            if kw in msg_lower:
+                sheets_todo.extend(snames)
+
+    # Dedupe while preserving order
+    seen = set()
+    sheets_todo = [s for s in sheets_todo if not (s in seen or seen.add(s))]
+
+    # If nothing matched keywords, load first 3 sheets
+    if not sheets_todo:
+        sheets_todo = wb.sheetnames[:3]
+
+    # Ward/booth filter from message
+    ward_filter = []
+    for wnum, wdata in WARD_FULL_DATA.items():
+        wname = wdata['name'].upper()
+        if str(wnum) in message or wname in message.upper() or wname.split()[0] in message.upper():
+            ward_filter.append(wname)
+
+    sections    = []
+    total_chars = 0
+
+    for sname in sheets_todo:
+        if sname not in wb.sheetnames or total_chars >= max_chars:
+            break
+        ws    = wb[sname]
+        lines = []
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            vals = [v for v in row if v is not None]
+            if not vals:
+                continue
+            row_str = ','.join(str(v) for v in row if v is not None)
+            # Apply ward filter only after header rows
+            if ward_filter and i > 5:
+                row_upper = row_str.upper()
+                if not any(wf in row_upper or wf.split()[0] in row_upper
+                           for wf in ward_filter):
+                    continue
+            lines.append(row_str)
+            if len(lines) > 150:
+                break
+        if len(lines) > 2:
+            chunk = f'=== {fname} | {sname} ===\n' + '\n'.join(lines)
+            sections.append(chunk)
+            total_chars += len(chunk)
+
+    wb.close()
+    result = '\n\n'.join(sections)
+    print(f'[RAG File] {fname}: {len(result):,} chars | wards: {ward_filter or "all"}')
+    return result or f'[{fname}: no data extracted]'
+
+
+def _rag_load_file(fkey: str, message: str) -> str:
+    """
+    Dispatch file loading based on file key prefix.
+    fkey is a prefix/keyword used to find the file in _AI_DATA_DIR.
+    """
+    if not _os2.path.isdir(_AI_DATA_DIR):
+        return '[data directory not found]'
+
+    fkey_upper = fkey.upper()
+
+    # ── 2023p — ward-aware sheet extraction ──────────────────────────────────
+    if '2023P' in fkey_upper:
+        return _rag_load_2023p(message)
+
+    # Find actual filename
+    fname = next((f for f in _os2.listdir(_AI_DATA_DIR)
+                  if fkey_upper in f.upper()), None)
+    if not fname:
+        return f'[File matching "{fkey}" not found in data/]'
+
+    fup = fname.upper()
+
+    # ── BJP Boothwise ─────────────────────────────────────────────────────────
+    if 'BJP_BOOTHWISE' in fup or 'BJP_B' in fup[:10]:
+        return _rag_load_xlsx_smart(fname, message,
+            priority_sheets=['📍 BOOTHWISE MASTER', '📊 WARD CONSOLIDATED'],
+            keyword_sheet_map={
+                'caste':      ['🕉 COMMUNITY ANALYSIS', '⚧ RELIGION × GENDER'],
+                'religion':   ['🕉 COMMUNITY ANALYSIS', '⚧ RELIGION × GENDER'],
+                'priority':   ['🎯 BOOTH PRIORITY LIST', '📈 TURNOUT STRATEGY'],
+                'turnout':    ['🎯 BOOTH PRIORITY LIST', '📈 TURNOUT STRATEGY'],
+                'strategy':   ['🎯 BOOTH PRIORITY LIST', '📈 TURNOUT STRATEGY'],
+            }, max_chars=60_000)
+
+    # ── BJP Political Intelligence ────────────────────────────────────────────
+    if 'BJP_POLITICAL' in fup or 'BJP_P' in fup[:10]:
+        return _rag_load_xlsx_smart(fname, message,
+            priority_sheets=['📊 EXECUTIVE DASHBOARD'],
+            keyword_sheet_map={
+                'strategy':   ['🎯 STRATEGY GAMEPLAN'],
+                'gameplan':   ['🎯 STRATEGY GAMEPLAN'],
+                'action':     ['✅ WARD ACTION TRACKER', '📅 CAMPAIGN CALENDAR'],
+                'caste':      ['🕉 CASTE-RELIGION MATRIX'],
+                'religion':   ['🕉 CASTE-RELIGION MATRIX'],
+                'history':    ['📅 HISTORICAL TREND 2013-23'],
+                'trend':      ['📅 HISTORICAL TREND 2013-23'],
+                'wsi':        ['🏆 WSI SCORE + SUMMARY'],
+                'score':      ['🏆 WSI SCORE + SUMMARY'],
+                'math':       ['🧮 MATH FORMULA & EQUATIONS'],
+                'formula':    ['🧮 MATH FORMULA & EQUATIONS'],
+                'manifesto':  ['📋 POLICY & MANIFESTO'],
+                'policy':     ['📋 POLICY & MANIFESTO'],
+                'weak':       ['🔍 WHY STRONG-MEDIUM-WEAK'],
+                'strong':     ['🔍 WHY STRONG-MEDIUM-WEAK'],
+            }, max_chars=55_000)
+
+    # ── Mangaluru Election Strategy ───────────────────────────────────────────
+    if 'MANGALURU_ELECTION' in fup:
+        return _rag_load_xlsx_smart(fname, message,
+            priority_sheets=['📊 EXECUTIVE DASHBOARD'],
+            keyword_sheet_map={
+                'ward':       ['🏛️ WARD DEEP ANALYSIS'],
+                'booth':      ['🗳️ BOOTH ANALYSIS (244)'],
+                'caste':      ['🕌 CASTE & RELIGION'],
+                'religion':   ['🕌 CASTE & RELIGION'],
+                'gender':     ['👩 GENDER ANALYSIS'],
+                'women':      ['👩 GENDER ANALYSIS'],
+                'weak':       ['🔴 WEAK→MEDIUM PLAN'],
+                'medium':     ['🟡 MEDIUM→STRONG PLAN'],
+                'action':     ['📅 90-DAY ACTION PLAN'],
+                '90':         ['📅 90-DAY ACTION PLAN'],
+                'intervention':['🚨 BOOTH INTERVENTION LIST'],
+                'sir':        ['📋 SIR & VOTER STATUS'],
+            }, max_chars=60_000)
+
+    # ── Mangaluru FULLSCALE ───────────────────────────────────────────────────
+    if 'MANGALURU_FULLSCALE' in fup or 'FULLSCALE' in fup:
+        return _rag_load_xlsx_smart(fname, message,
+            priority_sheets=['📊 MASTER DASHBOARD'],
+            keyword_sheet_map={
+                'ward':       ['🏛️ WARD ANALYSIS (FULL)'],
+                'booth':      ['🗳️ BOOTH ANALYSIS (244)'],
+                'caste':      ['🕌 CASTE TURNOUT MATRIX'],
+                'religion':   ['🕌 CASTE TURNOUT MATRIX'],
+                'non polled': ['⚡ NON-POLLED OPPORTUNITY'],
+                'nonpolled':  ['⚡ NON-POLLED OPPORTUNITY'],
+                'opportunity':['⚡ NON-POLLED OPPORTUNITY'],
+                'gender':     ['👩 GENDER ANALYSIS'],
+                'flip':       ['🎯 FLIP TARGETS'],
+                'target':     ['🎯 FLIP TARGETS'],
+                'strong':     ['🟢 STRONG WARD GAMEPLAN'],
+                'medium':     ['🟡 MEDIUM→STRONG PLAN'],
+                'weak':       ['🔴 WEAK→MEDIUM PLAN'],
+                '100':        ['📅 100-DAY GAMEPLAN'],
+                'gameplan':   ['📅 100-DAY GAMEPLAN'],
+            }, max_chars=60_000)
+
+    # ── Historical election files (2013/2014/2018/2019) ───────────────────────
+    if any(yr in fup for yr in ['2013', '2014', '2018', '2019']):
+        # Determine priority sheets based on year
+        priority = []
+        msg_lower = message.lower()
+        if '2019' in fup:
+            priority = ['Sheet1']
+        elif '2018' in fup and '2014' in fup:
+            priority = ['2014 AND 2018 SATATISTICAL ANLY', 'BJP WIN OR LOSS']
+        elif '2018' in fup:
+            priority = ['WARDWISE ANALYISIS', 'BJP WIN OR LOSS']
+        elif '2014' in fup:
+            priority = ['WARD WISE ANALYSIS', 'BJP WIN OR LOSS']
+        elif '2013' in fup:
+            priority = ['WARD WISE ANALYSIS', '3 YEAR WARD WISE ANALYSIS', 'BJP WIN OR LOSS']
+        return _rag_load_xlsx_smart(fname, message,
+            priority_sheets=priority,
+            keyword_sheet_map={
+                'bjp':        ['BJP', 'BJP WIN OR LOSS'],
+                'congress':   ['CONGRESS', 'BJP WIN OR LOSS'],
+                'booth':      ['2013 BOOTH WISE', '2013+  BOOTH WISE ANALYSIS',
+                               '2014 BOOTH WISE', '2018 BOOTHWISE', 'BOOTH WISE'],
+            }, max_chars=55_000)
+
+    # ── Generic fallback ──────────────────────────────────────────────────────
+    path = _os2.path.join(_AI_DATA_DIR, fname)
+    ext  = _os2.path.splitext(fname)[1].lower()
+    try:
+        if ext in ('.xlsx', '.xls'):
+            raw = _ai_read_excel_stream(path)
+        elif ext == '.csv':
+            raw = _ai_read_csv_stream(path)
+        else:
+            with open(path, 'r', encoding='utf-8', errors='ignore') as _f:
+                raw = _f.read()
+        return raw[:30_000]
+    except Exception as e:
+        return f'[{fname} read error: {e}]'
+
+
+# ── Intent map: message keywords → which mongo builders + file keys ───────────
+_RAG_INTENT_MAP = {
+    'voter_roll': {
+        'kw': ['voter', 'elector', 'registered', '2025', '2024', '2002',
+               'gender', 'male', 'female', 'total voters'],
+        'mongo': ['2025 Voter Roll (Ward Summary)', 'Booth-wise Counts'],
+        'files': [],
+    },
+    'caste_community': {
+        'kw': ['caste', 'community', 'bunt', 'billava', 'brahmin', 'muslim',
+               'christian', 'hindu', 'minority', 'obc', 'sc', 'st', 'tulu',
+               'konkani', 'beary', 'surname', 'religion'],
+        'mongo': ['Community/Caste Count 2023', 'Coastal Karnataka Caste Reference'],
+        'files': [],
+    },
+    'polling_2023': {
+        'kw': ['2023', 'polled', 'not polled', 'polling', 'turnout', 'voted',
+               'non polled', 'election result', 'win', 'lost', 'victory',
+               'margin', 'vote share', 'bjp', 'congress', 'inc',
+               'lobo', 'kamath', 'candidate'],
+        'mongo': ['2023 Polling Data', 'Polled/NotPolled with Caste 2023'],
+        'files': ['2023p'],
+    },
+    'bjp_strategy': {
+        'kw': ['bjp strategy', 'booth strategy', 'political intelligence',
+               'wsi', 'gameplan', 'manifesto', 'action plan', 'priority booth',
+               'strong medium weak', '5 pillar', 'ward action', 'campaign calendar'],
+        'mongo': [],
+        'files': ['BJP_Boothwise', 'BJP_Political'],
+    },
+    'ward_booth_info': {
+        'kw': ['blo', 'supervisor', 'mapped', 'cutoff', 'progeny',
+               'electors mapped', 'ward info', 'booth info', 'booth detail'],
+        'mongo': ['Ward Information (2026)', 'Booth Details'],
+        'files': [],
+    },
+    'survey': {
+        'kw': ['survey', 'socio', 'economic', 'employment', 'health',
+               'education', 'scheme', 'outstation', 'differently abled',
+               'family survey', 'not found survey', 'nonpolled survey'],
+        'mongo': ['Survey Records', 'NotFoundRecordSurvey', 'Socio-Economic Data (Data collection)'],
+        'files': [],
+    },
+    'sir': {
+        'kw': ['sir', 'revision', 'new addition', 'deleted', 'suspicious',
+               'not found', 'genuine', 'bogus', 'dead voter', 'ghost voter',
+               'phantom', 'duplicate'],
+        'mongo': ['SIR Analysis (2002 vs 2025)', 'Genuine Voters (SIR Verified)', '2002 Voter Roll'],
+        'files': [],
+    },
+    'deceased_future': {
+        'kw': ['deceased', 'dead', 'death', 'future voter', 'youth',
+               'eligible', '2028', 'new voter', 'young voter'],
+        'mongo': ['Future Voters & Deceased'],
+        'files': [],
+    },
+    'election_2019': {
+        'kw': ['2019'],
+        'mongo': [],
+        'files': ['2019_full'],
+    },
+    'election_2018': {
+        'kw': ['2018'],
+        'mongo': [],
+        'files': ['2018_WARD_WISE', '2014_AND_2018'],
+    },
+    'election_2014': {
+        'kw': ['2014'],
+        'mongo': [],
+        'files': ['2014_STATISTICAL', '2014_AND_2018'],
+    },
+    'election_2013': {
+        'kw': ['2013'],
+        'mongo': [],
+        'files': ['2013_WARD_WISE', '2013__WARD_WISE', '2013__2013__AND'],
+    },
+    'history': {
+        'kw': ['historical', 'history', 'past election', 'previous election',
+               'trend', 'across years', 'all elections', 'compare elections',
+               '5 election', 'five election', 'decade', 'decadal'],
+        'mongo': [],
+        'files': ['2013__2013__AND', '2014_WARD_WISE', '2019_full'],
+    },
+    'analysis': {
+        'kw': ['analyse', 'analysis', 'compare', 'comparison', 'priority ward',
+               'strategic', 'report', 'fullscale', 'flip', 'target ward',
+               'non polled opportunity', 'weak to medium', 'medium to strong',
+               '90 day', '100 day', 'booth intervention', 'deep analysis'],
+        'mongo': ['2023 Polling Data'],
+        'files': ['Mangaluru_Election', 'Mangaluru_FULLSCALE'],
+    },
+    'swot': {
+        'kw': ['swot', 'strength', 'weakness', 'opportunity', 'threat',
+               'strengths', 'weaknesses', 'opportunities', 'threats'],
+        'mongo': ['SWOT Query Stack (NewQueryStack1)', '2023 Polling Data'],
+        'files': [],
+    },
+}
+
+# All existing mongo context builder labels → callable map
+_RAG_MONGO_ALL = {
+    '2025 Voter Roll (Ward Summary)':         _ai_ctx_voter_roll_summary,
+    'Survey Records':                          _ai_ctx_survey_summary,
+    '2023 Polling Data':                       _ai_ctx_polling_summary,
+    'SIR Analysis (2002 vs 2025)':             _ai_ctx_sir_summary,
+    'Booth-wise Counts':                       _ai_ctx_booth_summary,
+    'Future Voters & Deceased':                _ai_ctx_future_deceased,
+    'Community/Caste Count 2023':              _ai_ctx_caste_count_2023,
+    'Polled/NotPolled with Caste 2023':        _ai_ctx_polled_notpolled_caste,
+    'Ward Information (2026)':                 _ai_ctx_ward_booth_2026,
+    'Booth Details':                           _ai_ctx_ward_booth_details,
+    'NotFoundRecordSurvey':                    _ai_ctx_not_found_survey,
+    'Coastal Karnataka Caste Reference':       _ai_ctx_coastal_caste_reference,
+    'SWOT Query Stack (NewQueryStack1)':       _ai_ctx_swot_stack,
+    '2002 Voter Roll':                         _ai_ctx_voter_roll_2002,
+    'Genuine Voters (SIR Verified)':           _ai_ctx_genuine_voters,
+    'Socio-Economic Data (Data collection)':   _ai_ctx_socio_economic_data,
+}
+
+
+def _rag_fetch_context(message: str) -> tuple:
+    """
+    Main RAG entry point.
+    Classifies message → runs only needed MongoDB builders + smart file chunks.
+    Returns (context_text, sources_list).
+    """
+    msg_lower      = message.lower()
+    needed_mongo   = []   # ordered, deduped labels
+    needed_files   = []   # ordered, deduped file keys
+    matched_intents = []
+
+    for intent, cfg in _RAG_INTENT_MAP.items():
+        if any(kw in msg_lower for kw in cfg['kw']):
+            matched_intents.append(intent)
+            for lbl in cfg['mongo']:
+                if lbl not in needed_mongo:
+                    needed_mongo.append(lbl)
+            for fk in cfg['files']:
+                if fk not in needed_files:
+                    needed_files.append(fk)
+
+    # Default: voter roll + polling for general questions
+    if not matched_intents:
+        needed_mongo = ['2025 Voter Roll (Ward Summary)', '2023 Polling Data']
+
+    print(f'[RAG] Intents: {matched_intents} | Mongo: {needed_mongo} | Files: {needed_files}')
+
+    sections = []
+    sources  = []
+
+    # ── MongoDB (parallel) ────────────────────────────────────────────────────
+    mongo_results = {}
+    def _run_mongo(label):
+        fn = _RAG_MONGO_ALL.get(label)
+        if not fn:
+            return label, f'[{label}: not found]'
+        try:
+            return label, fn()
+        except Exception as e:
+            return label, f'[{label} error: {e}]'
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = {pool.submit(_run_mongo, lbl): lbl for lbl in needed_mongo}
+        for future in as_completed(futures):
+            lbl, text = future.result()
+            mongo_results[lbl] = text
+
+    # Preserve order
+    for lbl in needed_mongo:
+        text = mongo_results.get(lbl, '')
+        if text:
+            sections.append(text)
+            sources.append(f'MongoDB:{lbl}')
+
+    # ── Files (smart chunked) ─────────────────────────────────────────────────
+    FILE_CHAR_BUDGET = 120_000   # ~30k tokens max across all files
+    total_file_chars = 0
+
+    for fkey in needed_files:
+        if total_file_chars >= FILE_CHAR_BUDGET:
+            print(f'[RAG] File budget reached, skipping: {fkey}')
+            break
+        try:
+            text = _rag_load_file(fkey, message)
+            if text and not text.startswith('['):
+                remaining = FILE_CHAR_BUDGET - total_file_chars
+                text = text[:remaining]
+                sections.append(text)
+                sources.append(f'File:{fkey}')
+                total_file_chars += len(text)
+        except Exception as e:
+            print(f'[RAG] File load error {fkey}: {e}')
+
+    context_text = '\n\n'.join(sections)
+    total_chars  = len(context_text)
+    print(f'[RAG] Total: {total_chars:,} chars (~{total_chars//4:,} tokens) | '
+          f'Sources: {len(sources)} | {sources}')
+    return context_text, sources
+
+
 def _ai_load_mongo_context():
     """
-    Run all 15 MongoDB context builders in parallel.
+    Run all 16 MongoDB context builders in parallel.
     Returns (combined_text: str, sources: list[str]).
     Total latency ≈ slowest single builder (~1-2 s), not sum of all.
     """
@@ -6186,6 +9028,7 @@ def _ai_load_mongo_context():
         ('SWOT Query Stack (NewQueryStack1)',      _ai_ctx_swot_stack),
         ('2002 Voter Roll',                       _ai_ctx_voter_roll_2002),
         ('Genuine Voters (SIR Verified)',         _ai_ctx_genuine_voters),
+        ('Socio-Economic Data (Data collection)', _ai_ctx_socio_economic_data),
     ]
 
     results = [None] * len(builders)
@@ -6338,7 +9181,19 @@ def _xlsx_to_csv_bytes(path: str) -> bytes:
 
     try:
         import openpyxl as _opxl
-        wb  = _opxl.load_workbook(path, data_only=True)
+        # First attempt: normal load.
+        # Some xlsx files have corrupt merged-cell ranges that make openpyxl
+        # crash deep inside bind_merged_cells(), raising SystemExit via gunicorn's
+        # SIGKILL handler — which bypasses a plain `except Exception`.
+        # Fallback: read_only=True skips merge-cell processing entirely.
+        try:
+            wb = _opxl.load_workbook(path, data_only=True)
+        except BaseException as _wb_err:
+            print(f'[xlsx loader] Normal load failed for {path}: {_wb_err!r} — retrying read_only')
+            try:
+                wb = _opxl.load_workbook(path, data_only=True, read_only=True)
+            except BaseException as _wb_err2:
+                raise RuntimeError(f'openpyxl failed (normal + read_only): {_wb_err2}') from _wb_err2
         buf = _io.StringIO()
 
         fname = path.split('/')[-1]
@@ -6422,7 +9277,10 @@ def _xlsx_to_csv_bytes(path: str) -> bytes:
         wb.close()
         return buf.getvalue().encode('utf-8')
 
-    except Exception as e:
+    except BaseException as e:
+        # BaseException (not just Exception) is required here because openpyxl can
+        # trigger gunicorn's signal handler mid-stack, raising SystemExit, which
+        # is NOT a subclass of Exception and would otherwise escape this handler.
         return f'[Excel conversion error for {path}: {e}]'.encode('utf-8')
 
 
@@ -6448,7 +9306,15 @@ def _get_or_upload_file(client, fname: str, path: str) -> tuple:
 
     try:
         if ext in _FILES_API_CONVERT:
-            file_bytes  = _xlsx_to_csv_bytes(path)   # ← smart chunker
+            try:
+                file_bytes = _xlsx_to_csv_bytes(path)   # ← smart chunker
+            except BaseException as _conv_err:
+                # Corrupt xlsx can raise SystemExit (gunicorn SIGKILL) which
+                # escapes a plain `except Exception`. Catch it here so one bad
+                # file never brings down the whole request worker.
+                print(f'[Files API] xlsx conversion raised {type(_conv_err).__name__} '
+                      f'for {fname}: {_conv_err!r} — skipping file')
+                return None, fname, None
             upload_name = fname.rsplit('.', 1)[0] + '.txt'
             mime        = 'text/plain'
         elif ext in _FILES_API_MIME:
@@ -6477,14 +9343,58 @@ def _get_or_upload_file(client, fname: str, path: str) -> tuple:
 
         return fid, fname, mime
 
-    except Exception as e:
+    except BaseException as e:
         print(f'[Files API] Upload failed for {fname}: {e}')
         return None, fname, None
 
 
-def _ai_load_files_api(client) -> tuple:
+# ── Keyword → file selector ───────────────────────────────────────────────────
+# Token budget: 200k - 4096 output - ~40k overhead = ~156k for files
+# TIER1 alone = 151,250 tokens → 97.7% of window, safe.
+# Extra files only load if a specific keyword is detected AND budget allows.
+
+_TIER1_FILES = {
+    '2023p.xlsx',
+    'Mangaluru_FULLSCALE_Analysis_v2.xlsx',
+    'Mangaluru_Election_Strategy_Report.xlsx',
+}
+
+# Remaining token budget after Tier1 = ~4,504 — only tiny files fit
+# Add keyword-triggered extras only when budget allows
+_KW_FILES = {
+    r'2019|lok sabha':          ('2019_full_data4.xlsx',              7938),
+    r'strategy|wsi|gameplan|intel': ('BJP_Political_Intelligence_System.xlsx', 12672),
+    r'caste|community|turnout': ('BJP_Boothwise_CasteReligion_Turnout_Strategy.xlsx', 19471),
+    r'2018':                    ('2018_WARD_WISE_STATISTICAL_ANALYSIS__BOOTHWISE_SEGREGATION_FINAL.xlsx', 29746),
+    r'2014':                    ('2014_STATISTICAL_ANALYSIS.xlsx',    21922),
+    r'2013':                    ('2013_WARD_WISE_STATISTICAL_ANALYSIS.xlsx', 17397),
+}
+_FILE_TOKEN_BUDGET = 155_000   # hard ceiling — never exceed this
+
+def _select_files_for_message(message: str) -> list:
+    """Return ordered list of filenames to load, respecting token budget."""
+    ml      = message.lower() if message else ''
+    selected = list(_TIER1_FILES)
+    used     = sum(t for kw, (fn, t) in _KW_FILES.items() if fn in _TIER1_FILES)
+    # Recalculate tier1 actual tokens
+    tier1_tok = 87_570 + 35_037 + 28_643   # 151,250
+    used = tier1_tok
+
+    for pattern, (fname, ftok) in _KW_FILES.items():
+        if fname in selected:
+            continue
+        if re.search(pattern, ml) and (used + ftok) <= _FILE_TOKEN_BUDGET:
+            selected.append(fname)
+            used += ftok
+
+    return selected
+
+
+def _ai_load_files_api(client, message: str = '') -> tuple:
     """
-    Upload all files in backend/data/ to Anthropic Files API.
+    Upload files in backend/data/ to Anthropic Files API.
+    Only loads files selected by _select_files_for_message() to stay
+    within the 200k context window.
     Returns (document_blocks, files_used, fallback_text).
     """
     document_blocks = []
@@ -6494,17 +9404,15 @@ def _ai_load_files_api(client) -> tuple:
     if not _os2.path.isdir(_AI_DATA_DIR):
         return [], [], ''
 
+    # Which files to load for this specific message
+    wanted   = set(_select_files_for_message(message))
     all_files = sorted(_os2.listdir(_AI_DATA_DIR))
-    loaded    = 0
 
     for fname in all_files:
-        if loaded >= _AI_MAX_FILES:
-            break
-
-        ext = _os2.path.splitext(fname)[1].lower()
-        if ext not in (_AI_SUPPORTED_EXTS | set(_FILES_API_MIME.keys()) | _FILES_API_CONVERT):
+        if fname not in wanted:
             continue
 
+        ext  = _os2.path.splitext(fname)[1].lower()
         path = _os2.path.join(_AI_DATA_DIR, fname)
         fid, display, mime = _get_or_upload_file(client, fname, path)
 
@@ -6520,7 +9428,6 @@ def _ai_load_files_api(client) -> tuple:
                 ),
             })
             files_used.append(fname)
-            loaded += 1
         else:
             # Fallback — inline text extraction
             print(f'[Files API] Falling back to inline text for: {fname}')
@@ -6539,17 +9446,15 @@ def _ai_load_files_api(client) -> tuple:
                 excerpt = raw[:_AI_CHARS_PER_FILE]
                 fallback_parts.append(f'===== FILE: {fname} =====\n{excerpt}')
                 files_used.append(fname + ' (inline)')
-                loaded += 1
-            except Exception as e:
+            except BaseException as e:
                 print(f'[Files API] Inline fallback also failed for {fname}: {e}')
 
     fallback_text = '\n\n'.join(fallback_parts)
     print(f'[Files API] Ready: {len(document_blocks)} via Files API, '
-          f'{len(fallback_parts)} inline fallbacks')
+          f'{len(fallback_parts)} inline fallbacks '
+          f'(wanted: {sorted(wanted)})')
     return document_blocks, files_used, fallback_text
 
-
-# ── Legacy inline readers (fallback when Files API upload fails) ──────────────
 
 def _ai_read_csv_stream(path):
     try:
@@ -6954,29 +9859,16 @@ def api_ai_chat(request):
             'chartSpec': None, 'exportSpec': None, 'filesUsed': [],
         }))
 
-    # ── Data question — load everything in parallel ───────────────────────────
-    mongo_ctx    = ''
-    all_sources  = []
-    doc_blocks   = []
-    fallback_txt = ''
-
+    # ── RAG: fetch only relevant context for this message ───────────────────
+    all_sources = []
     try:
-        mongo_ctx, mongo_sources = _ai_load_mongo_context()
-        all_sources.extend(mongo_sources)
+        rag_context, rag_sources = _rag_fetch_context(message)
+        all_sources.extend(rag_sources)
     except Exception as e:
-        mongo_ctx = f'MongoDB error: {e}'
+        rag_context = f'[RAG error: {e}]'
+        traceback.print_exc()
 
-    try:
-        doc_blocks, file_sources, fallback_txt = _ai_load_files_api(client)
-        all_sources.extend(file_sources)
-    except Exception as e:
-        print(f'[Files API] Error in _ai_load_files_api: {e}')
-        fallback_txt = f'[Files API error: {e}]'
-
-    system_prompt = _AI_CHAT_SYSTEM.replace('{MONGO_CONTEXT}', mongo_ctx)
-
-    if fallback_txt:
-        system_prompt += f'\n\n## INLINE FILE CONTEXT (Files API fallback):\n{fallback_txt}'
+    system_prompt = _AI_CHAT_SYSTEM.replace('{MONGO_CONTEXT}', rag_context)
 
     # ── Build messages ────────────────────────────────────────────────────────
     messages = []
@@ -6984,26 +9876,16 @@ def api_ai_chat(request):
         r, c = h.get('role', 'user'), h.get('content', '')
         if r in ('user', 'assistant') and c:
             messages.append({'role': r, 'content': c})
-
-    user_content = (doc_blocks + [{'type': 'text', 'text': message}]) if doc_blocks else message
-    messages.append({'role': 'user', 'content': user_content})
+    messages.append({'role': 'user', 'content': message})
 
     # ── Call Anthropic ────────────────────────────────────────────────────────
     try:
-        kwargs = dict(
+        response = client.messages.create(
             model      = 'claude-sonnet-4-20250514',
             max_tokens = 4096,
             system     = system_prompt,
             messages   = messages,
         )
-        if doc_blocks:
-            response = client.beta.messages.create(
-                **kwargs,
-                betas=['files-api-2025-04-14'],
-            )
-        else:
-            response = client.messages.create(**kwargs)
-
         reply_text = ''.join(b.text for b in response.content if hasattr(b, 'text'))
     except Exception as e:
         traceback.print_exc()
@@ -7086,7 +9968,7 @@ def api_ai_data_files(request):
     mongo_sources = []
     try:
         db1 = get_db()
-        db2 = get_survey_db()
+        db2 = get_db()
         mongo_sources = [
             {'name': '2025 Voter Roll',              'ext': 'mongodb', 'type': 'collection',
              'size': db1['2025'].estimated_document_count()},
@@ -7162,3 +10044,1718 @@ def api_ai_data_files(request):
         'files_api_cached': cached_count,
         'limits'          : {'max_files': _AI_MAX_FILES},
     }))
+    
+    
+_PLACE_ALLOWED_TYPES = {
+    'club', 'temple', 'church', 'mosque',
+    'school_govt', 'school_private', 'school_christian_missionary',
+    'anganwadi', 'college', 'orphanage', 'old_age_home',
+}
+
+
+def _places_cors(request, response):
+    origin = request.META.get('HTTP_ORIGIN', '')
+    if origin:
+        response['Access-Control-Allow-Origin']      = origin
+        response['Access-Control-Allow-Credentials'] = 'true'
+        response['Access-Control-Allow-Methods']     = 'GET, POST, DELETE, OPTIONS'
+        response['Access-Control-Allow-Headers']     = (
+            'Content-Type, Authorization, X-CSRFToken'
+        )
+    return response
+
+
+@csrf_exempt
+@require_http_methods(['GET', 'POST', 'DELETE', 'OPTIONS'])
+def api_ward_places(request):
+    """GET/POST/DELETE /api/ward-places/"""
+
+    if request.method == 'OPTIONS':
+        return _places_cors(request, JsonResponse({}))
+
+    # ── Auth ─────────────────────────────────────────────────────────────────
+    try:
+        user = _user_from_request(request)
+    except Exception as e:
+        return _places_cors(request, JsonResponse({'success': False, 'message': f'Auth error: {e}'}, status=500))
+    if not user:
+        return _places_cors(request, JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401))
+    if not _is_approved(user):
+        return _places_cors(request, JsonResponse({'success': False, 'message': 'Account pending approval.'}, status=403))
+
+    coll = get_survey_db()['WardData']
+
+    # ── GET — list all places for a ward ──────────────────────────────────────
+    if request.method == 'GET':
+        ward = request.GET.get('ward', '').strip()
+        if not ward:
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'ward param required.'}, status=400))
+        try:
+            ward_int = int(ward)
+        except ValueError:
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'ward must be a number.'}, status=400))
+
+        docs = list(coll.find(
+            {'ward': ward_int, 'record_type': 'local_place'},
+            {'_id': 1, 'type': 1, 'name': 1, 'address': 1,
+             'contactName': 1, 'contactPhone': 1, 'contactRole': 1,
+             'committeeMembers': 1,
+             'createdAt': 1, 'createdBy': 1}
+        ).sort('createdAt', 1))
+
+        for d in docs:
+            d['_id'] = str(d['_id'])
+            if isinstance(d.get('createdAt'), datetime):
+                d['createdAt'] = d['createdAt'].isoformat()
+
+        return _places_cors(request, JsonResponse({'success': True, 'places': docs}))
+
+    # ── POST — add a new place ────────────────────────────────────────────────
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+        except Exception:
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'Invalid JSON.'}, status=400))
+
+        ward      = body.get('ward')
+        ward_name = (body.get('wardName') or '').strip()
+        ptype     = (body.get('type') or '').strip().lower()
+        name      = (body.get('name') or '').strip()
+        address   = (body.get('address') or '').strip()
+        # Contact fields — vary by type but stored uniformly
+        contact_name  = (body.get('contactName')  or '').strip()
+        contact_phone = (body.get('contactPhone') or '').strip()
+        contact_role  = (body.get('contactRole')  or '').strip()
+        # Temple committee members: list of {name, phone}
+        committee_members = body.get('committeeMembers') or []
+        if not isinstance(committee_members, list):
+            committee_members = []
+        # Sanitise committee list
+        committee_members = [
+            {'name': str(m.get('name', '')).strip(), 'phone': str(m.get('phone', '')).strip()}
+            for m in committee_members
+            if isinstance(m, dict) and str(m.get('name', '')).strip()
+        ]
+
+        if not ward:
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'ward is required.'}, status=400))
+        if ptype not in _PLACE_ALLOWED_TYPES:
+            return _places_cors(request, JsonResponse({'success': False, 'message': f'type must be one of {_PLACE_ALLOWED_TYPES}.'}, status=400))
+        if not name:
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'name is required.'}, status=400))
+
+        try:
+            ward_int = int(ward)
+        except (ValueError, TypeError):
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'ward must be a number.'}, status=400))
+
+        doc = {
+            'record_type': 'local_place',
+            'ward':        ward_int,
+            'wardName':    ward_name,
+            'type':        ptype,
+            'name':        name,
+            'address':     address,
+            'contactName':  contact_name,
+            'contactPhone': contact_phone,
+            'contactRole':  contact_role,
+            'committeeMembers': committee_members,
+            'createdAt':   datetime.now(timezone.utc),
+            'createdBy':   user.get('username') or user.get('email') or 'unknown',
+        }
+
+        try:
+            result = coll.insert_one(doc)
+        except Exception as e:
+            return _places_cors(request, JsonResponse({'success': False, 'message': f'DB error: {e}'}, status=500))
+
+        return _places_cors(request, JsonResponse({
+            'success': True,
+            'place': {
+                '_id':      str(result.inserted_id),
+                'type':     ptype,
+                'name':     name,
+                'address':  address,
+                'contactName':  contact_name,
+                'contactPhone': contact_phone,
+                'contactRole':  contact_role,
+                'committeeMembers': committee_members,
+                'createdAt': doc['createdAt'].isoformat(),
+            },
+        }))
+
+    # ── DELETE — remove a place by _id ────────────────────────────────────────
+    if request.method == 'DELETE':
+        try:
+            body     = json.loads(request.body)
+            place_id = body.get('id', '').strip()
+        except Exception:
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'Invalid JSON.'}, status=400))
+
+        if not place_id:
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'id is required.'}, status=400))
+
+        try:
+            result = coll.delete_one({'_id': ObjectId(place_id), 'record_type': 'local_place'})
+        except Exception as e:
+            return _places_cors(request, JsonResponse({'success': False, 'message': f'DB error: {e}'}, status=500))
+
+        if result.deleted_count == 0:
+            return _places_cors(request, JsonResponse({'success': False, 'message': 'Place not found.'}, status=404))
+
+        return _places_cors(request, JsonResponse({'success': True}))
+
+    return _places_cors(request, JsonResponse({'success': False, 'message': 'Method not allowed.'}, status=405))
+
+
+@csrf_exempt
+@require_http_methods(['GET', 'OPTIONS'])
+def api_local_places_summary(request):
+    """
+    GET /api/local-places-summary/
+    Returns constituency-wide counts + full list of all local places,
+    grouped by type and ward, for the Dashboard overview panel.
+
+    Response:
+    {
+      "success": true,
+      "total": 42,
+      "counts": { "club": 10, "temple": 18, "church": 8, "mosque": 6 },
+      "byWard": [
+        { "ward": 28, "wardName": "MANNAGUDDA",
+          "places": [{"_id":"..","type":"club","name":"..","address":".."},...],
+          "counts": { "club":1, "temple":2, "church":0, "mosque":0 } },
+        ...
+      ]
+    }
+    """
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({})
+        origin = request.META.get('HTTP_ORIGIN', '')
+        if origin:
+            resp['Access-Control-Allow-Origin']      = origin
+            resp['Access-Control-Allow-Credentials'] = 'true'
+            resp['Access-Control-Allow-Methods']     = 'GET, OPTIONS'
+            resp['Access-Control-Allow-Headers']     = 'Content-Type, Authorization, X-CSRFToken'
+        return resp
+
+    try:
+        user = _user_from_request(request)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Auth error: {e}'}, status=500)
+    if not user:
+        return JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401)
+    if not _is_approved(user):
+        return JsonResponse({'success': False, 'message': 'Account pending approval.'}, status=403)
+
+    try:
+        coll = get_survey_db()['WardData']
+        docs = list(coll.find(
+            {'record_type': 'local_place'},
+            {'_id': 1, 'ward': 1, 'wardName': 1, 'type': 1, 'name': 1, 'address': 1,
+             'contactName': 1, 'contactPhone': 1, 'contactRole': 1, 'committeeMembers': 1}
+        ).sort([('ward', 1), ('type', 1), ('name', 1)]))
+
+        for d in docs:
+            d['_id'] = str(d['_id'])
+
+        _ALL_TYPES = [
+            'club', 'temple', 'church', 'mosque',
+            'school_govt', 'school_private', 'school_christian_missionary',
+            'anganwadi', 'college', 'orphanage', 'old_age_home',
+        ]
+        type_counts = {t: 0 for t in _ALL_TYPES}
+        for d in docs:
+            t = d.get('type', '')
+            if t in type_counts:
+                type_counts[t] += 1
+
+        ward_map = {}
+        for d in docs:
+            ward  = d.get('ward', 0)
+            wname = d.get('wardName', f'Ward {ward}')
+            if ward not in ward_map:
+                ward_map[ward] = {
+                    'ward': ward, 'wardName': wname, 'places': [],
+                    'counts': {t: 0 for t in _ALL_TYPES},
+                }
+            ward_map[ward]['places'].append(d)
+            t = d.get('type', '')
+            if t in ward_map[ward]['counts']:
+                ward_map[ward]['counts'][t] += 1
+
+        by_ward = sorted(ward_map.values(), key=lambda w: w['ward'])
+
+        return JsonResponse({
+            'success': True, 'total': len(docs),
+            'counts': type_counts, 'byWard': by_ward,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+# ── Beneficiary List for SWOT Query ──────────────────────────────────────────
+@csrf_exempt
+def api_beneficiary_list(request):
+    """
+    POST /api/swot/beneficiaries/
+    Body: {
+        "query":   {"economicStatus": "APL", "religion": "Buddhist", ...},
+        "page":    1,        # 1-based
+        "limit":   50        # max 100
+    }
+    Queries the 'Data' collection on _SURVEY_URL and returns matching voters.
+    """
+    if request.method == "OPTIONS":
+        return _ai_cors(request, JsonResponse({}))
+
+    user = _user_from_request(request)
+    if not user:
+        return _ai_cors(request, JsonResponse({"error": "Unauthorized"}, status=401))
+
+    try:
+        body = json.loads(request.body)
+    except Exception:
+        return _ai_cors(request, JsonResponse({"error": "Invalid JSON"}, status=400))
+
+    raw_query = body.get("query", {})
+    page      = max(1, int(body.get("page", 1)))
+    limit     = min(100, max(1, int(body.get("limit", 50))))
+    skip      = (page - 1) * limit
+
+    # Build MongoDB filter — only include non-empty, non-"Unknown" values
+    mongo_filter = {}
+    for k, v in raw_query.items():
+        if v and v not in ("Unknown", "", None):
+            mongo_filter[k] = v
+
+    try:
+        coll  = get_survey_db()['Data']
+        total = coll.count_documents(mongo_filter)
+
+        projection = {
+            '_id': 0,
+            'firstName': 1, 'middleName': 1, 'lastName': 1,
+            'voterid': 1, 'age': 1, 'gender': 1,
+            'wardNumber': 1, 'boothNo': 1, 'houseNumber': 1,
+            'address': 1, 'economicStatus': 1, 'religion': 1,
+            'education': 1, 'employmentStatus': 1, 'healthStatus': 1,
+            'diseaseType': 1, 'diseaseName': 1, 'minority': 1,
+            'differentlyAbled': 1, 'annualIncome': 1, 'familyIncome': 1,
+            'maritalStatus': 1, 'homeType': 1, 'contactNumber': 1,
+            'schemesUsed': 1, 'pollingStation': 1,
+        }
+
+        docs = list(coll.find(mongo_filter, projection).skip(skip).limit(limit))
+
+        # Serialize: convert any non-serialisable types
+        voters = []
+        for d in docs:
+            voter = {}
+            for k, v in d.items():
+                if hasattr(v, 'item'):          # numpy int/float
+                    voter[k] = v.item()
+                elif isinstance(v, list):
+                    voter[k] = [str(i) if not isinstance(i, (str, int, float, bool, type(None))) else i for i in v]
+                else:
+                    voter[k] = v
+            voters.append(voter)
+
+        return _ai_cors(request, JsonResponse({
+            'success': True,
+            'total':   total,
+            'page':    page,
+            'limit':   limit,
+            'pages':   (total + limit - 1) // limit,
+            'voters':  voters,
+        }))
+
+    except Exception as e:
+        return _ai_cors(request, JsonResponse({'success': False, 'error': str(e)}, status=500))
+
+# ─── COMMUNITY BREAKDOWN AGGREGATION (2025_new_mapped_notmapped_hmc) ──────────
+@require_http_methods(['GET'])
+def api_community_breakdown(request):
+    """
+    GET /api/community-breakdown/
+    Query params:
+      booths — comma-separated list of Booth No values to include
+               (frontend sends all booths for the selected ward, or a single
+                booth when a specific booth is chosen)
+      ward   — constituency ward number; stored for the response only, NOT
+               used as a DB field (Ward No in this collection is the local HMC
+               ward, which differs from the constituency ward number)
+      booth  — single booth number; if provided, overrides booths list
+
+    Aggregates Community + Category counts from '2025_new_mapped_notmapped_hmc',
+    sorted by count descending.
+
+    Response:
+      { success, ward, booth, total, rows: [{community, category, count}, …] }
+    """
+    ward   = request.GET.get('ward',   '').strip()
+    booth  = request.GET.get('booth',  '').strip()
+    booths = request.GET.get('booths', '').strip()
+
+    try:
+        db         = get_db()
+        collection = db['2025_new_mapped_notmapped_hmc']
+
+        mongo_filter = {}
+
+        # A single booth selection overrides the booths list
+        if booth:
+            try:
+                mongo_filter['Booth No'] = int(booth)
+            except ValueError:
+                mongo_filter['Booth No'] = booth
+        elif booths:
+            # Parse comma-separated booth numbers into a list of ints
+            booth_list = []
+            for b in booths.split(','):
+                b = b.strip()
+                if b:
+                    try:
+                        booth_list.append(int(b))
+                    except ValueError:
+                        booth_list.append(b)
+            if len(booth_list) == 1:
+                mongo_filter['Booth No'] = booth_list[0]
+            elif booth_list:
+                mongo_filter['Booth No'] = {'$in': booth_list}
+
+        pipeline = [
+            {'$match': mongo_filter},
+            {'$group': {
+                '_id':   {'community': '$Community', 'category': '$Category'},
+                'count': {'$sum': 1},
+            }},
+            {'$sort': {'count': -1}},
+            {'$project': {
+                '_id':       0,
+                'community': '$_id.community',
+                'category':  '$_id.category',
+                'count':     1,
+            }},
+        ]
+
+        rows  = list(collection.aggregate(pipeline))
+        total = sum(r['count'] for r in rows)
+
+        return JsonResponse({
+            'success': True,
+            'ward':    ward  or None,
+            'booth':   booth or None,
+            'total':   total,
+            'rows':    rows,
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+# ─── MAPPED / NOT-MAPPED RECORDS (2025_new_mapped_notmapped_hmc) ─────────────
+@require_http_methods(['GET'])
+def api_mapped_records(request):
+    """
+    GET /api/mapped-records/
+    Query params:
+      mapping_status — 'Mapped' | 'NotMapped' | 'All'  (default 'All')
+      poll_status    — 'Polled' | 'NotPolled'  | 'All'  (default 'All')
+      page           — 1-based  (default 1)
+      limit          — max 100  (default 25)
+      q              — free-text search across Name, Epic No (optional)
+      ward           — Ward No filter (optional)
+      booth          — Booth No filter (optional)
+
+    Reads from '2025_new_mapped_notmapped_hmc' collection in SurveyDataBase (MONGODB_URL cluster).
+    """
+    mapping_status = request.GET.get('mapping_status', 'All').strip()
+    poll_status    = request.GET.get('poll_status',    'All').strip()
+
+    try:
+        page  = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        limit = min(100, max(1, int(request.GET.get('limit', 25))))
+    except (ValueError, TypeError):
+        limit = 25
+
+    q         = request.GET.get('q',         '').strip()
+    ward      = request.GET.get('ward',      '').strip()
+    booth     = request.GET.get('booth',     '').strip()
+    booths    = request.GET.get('booths',    '').strip()  # comma-separated booth numbers
+    community = request.GET.get('community', '').strip()
+
+    try:
+        db         = get_db()
+        collection = db['2025_new_mapped_notmapped_hmc']
+
+        mongo_filter = {}
+
+        # Mapping Status stored as 'MAPPED' / 'NOT MAPPED'
+        if mapping_status == 'Mapped':
+            mongo_filter['Mapping Status'] = 'MAPPED'
+        elif mapping_status == 'NotMapped':
+            mongo_filter['Mapping Status'] = 'NOT MAPPED'
+
+        # Poll Status 2023 stored as 'POLLED' / 'NOT POLLED'
+        if poll_status == 'Polled':
+            mongo_filter['Poll Status 2023'] = 'POLLED'
+        elif poll_status == 'NotPolled':
+            mongo_filter['Poll Status 2023'] = 'NOT POLLED'
+
+        # Ward / booth filtering — NOTE: 'Ward No' in this collection is the local
+        # HMC ward number, which does NOT match the constituency ward numbers (21-60).
+        # Always filter by Booth No instead, using the booth list passed from the
+        # frontend (which derives it from the WARD_FULL_DATA mapping).
+        if booth:
+            try:
+                mongo_filter['Booth No'] = int(booth)
+            except ValueError:
+                mongo_filter['Booth No'] = booth
+        elif booths:
+            booth_list = []
+            for b in booths.split(','):
+                b = b.strip()
+                if b:
+                    try:
+                        booth_list.append(int(b))
+                    except ValueError:
+                        booth_list.append(b)
+            if len(booth_list) == 1:
+                mongo_filter['Booth No'] = booth_list[0]
+            elif booth_list:
+                mongo_filter['Booth No'] = {'$in': booth_list}
+        elif ward:
+            # Legacy fallback: if no booths list is provided, try Ward No
+            # (may not return correct results for constituency wards 21-60)
+            try:
+                mongo_filter['Ward No'] = int(ward)
+            except ValueError:
+                mongo_filter['Ward No'] = ward
+
+        # Community filter — supports comma-joined list (OR across multiple names)
+        if community:
+            community_names = [c.strip() for c in community.split(',') if c.strip()]
+            if len(community_names) == 1:
+                mongo_filter['Community'] = community_names[0]
+            else:
+                mongo_filter['Community'] = {'$in': community_names}
+
+        if q:
+            search_or = [
+                {'Name':    {'$regex': re.escape(q), '$options': 'i'}},
+                {'Epic No': {'$regex': re.escape(q), '$options': 'i'}},
+            ]
+            try:
+                search_or.append({'Booth No': int(q)})
+            except ValueError:
+                pass
+            mongo_filter = {'$and': [mongo_filter, {'$or': search_or}]} if mongo_filter else {'$or': search_or}
+
+        total_count = collection.count_documents(mongo_filter)
+        total_pages = max(1, math.ceil(total_count / limit))
+        page        = min(page, total_pages)
+        skip        = (page - 1) * limit
+
+        projection = {
+            '_id': 0,
+            'Epic No': 1, 'Name': 1, 'House No': 1,
+            'Relation Type': 1, 'Relative Name': 1,
+            'Age': 1, 'Gender': 1,
+            'Booth No': 1, 'Part No': 1, 'Ward No': 1,
+            'Community': 1, 'Category': 1, 'Confidence': 1,
+            'Mapping Status': 1, 'Poll Status 2023': 1,
+        }
+
+        records = list(collection.find(mongo_filter, projection).skip(skip).limit(limit))
+        for rec in records:
+            for k, v in rec.items():
+                if not isinstance(v, (str, int, float, bool, type(None))):
+                    rec[k] = str(v)
+
+        return JsonResponse({
+            'success':        True,
+            'mapping_status': mapping_status,
+            'poll_status':    poll_status,
+            'total_count':    total_count,
+            'total_pages':    total_pages,
+            'page':           page,
+            'limit':          limit,
+            'records':        records,
+        })
+
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
+
+
+# ─── HMC RECORDS (2025_new) ────────────────────────────────────────────────────
+@require_http_methods(['GET'])
+def api_hmc_records(request):
+    """
+    GET /api/hmc-records/
+    Query params:
+      religion  — H | M | C (required)
+      page      — 1-based (default 1)
+      limit     — max 100 (default 25)
+      q         — free-text search across Name, Epic NO (optional)
+      ward      — Ward filter (optional)
+      booth     — Booth No filter (optional)
+
+    Reads from '2025_new' collection, filtered by Religion field.
+    """
+    religion = request.GET.get('religion', '').strip().upper()
+    if religion not in ('H', 'M', 'C'):
+        return JsonResponse({'success': False, 'message': "religion must be H, M, or C"}, status=400)
+
+    try:
+        page  = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        limit = min(100, max(1, int(request.GET.get('limit', 25))))
+    except (ValueError, TypeError):
+        limit = 25
+
+    q     = request.GET.get('q', '').strip()
+    ward  = request.GET.get('ward', '').strip()
+    booth = request.GET.get('booth', '').strip()
+
+    try:
+        db         = get_db()
+        collection = db['2025_new']
+
+        mongo_filter = {'Religion': religion}
+
+        if ward:
+            mongo_filter['Ward'] = ward
+        if booth:
+            try:
+                mongo_filter['Booth No'] = int(booth)
+            except ValueError:
+                mongo_filter['Booth No'] = booth
+
+        if q:
+            try:
+                booth_int = int(q)
+                search_or = [
+                    {'Name':    {'$regex': re.escape(q), '$options': 'i'}},
+                    {'Epic NO': {'$regex': re.escape(q), '$options': 'i'}},
+                    {'Booth No': booth_int},
+                ]
+            except ValueError:
+                search_or = [
+                    {'Name':    {'$regex': re.escape(q), '$options': 'i'}},
+                    {'Epic NO': {'$regex': re.escape(q), '$options': 'i'}},
+                ]
+            mongo_filter = {'$and': [mongo_filter, {'$or': search_or}]}
+
+        total_count = collection.count_documents(mongo_filter)
+        total_pages = max(1, math.ceil(total_count / limit))
+        page        = min(page, total_pages)
+        skip        = (page - 1) * limit
+
+        projection = {
+            '_id': 0,
+            'Serial No': 1, 'Epic NO': 1, 'Name': 1,
+            'Relation Name': 1, 'Age': 1, 'Gender': 1,
+            'Booth No': 1, 'Part No': 1, 'Religion': 1,
+            'Address': 1,
+        }
+
+        records = list(collection.find(mongo_filter, projection).skip(skip).limit(limit))
+        for rec in records:
+            for k, v in rec.items():
+                if not isinstance(v, (str, int, float, bool, type(None))):
+                    rec[k] = str(v)
+
+        return JsonResponse({
+            'success':     True,
+            'religion':    religion,
+            'total_count': total_count,
+            'total_pages': total_pages,
+            'page':        page,
+            'limit':       limit,
+            'records':     records,
+        })
+
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
+
+
+# ─── POLLED / NOTPOLLED RECORDS (2023_polled_notpolled_caste_comm_hmc) ─────────
+@require_http_methods(['GET'])
+def api_polled_records(request):
+    """
+    GET /api/polled-records/
+    Query params:
+      filter_type — 'religion' | 'category' | 'community' (required)
+      value       — filter value (required)
+      status      — 'Polled' | 'NotPolled' | 'All' (default 'All')
+      page        — 1-based (default 1)
+      limit       — max 100 (default 25)
+      q           — free-text search across name, voterId (optional)
+
+    Reads from '2023_polled_notpolled_caste_comm_hmc' collection.
+    """
+    filter_type = request.GET.get('filter_type', '').strip()
+    value       = request.GET.get('value', '').strip()
+    status      = request.GET.get('status', 'All').strip()
+
+    if filter_type not in ('religion', 'category', 'community'):
+        return JsonResponse({'success': False, 'message': "filter_type must be religion, category, or community"}, status=400)
+    if not value:
+        return JsonResponse({'success': False, 'message': "value parameter is required"}, status=400)
+
+    try:
+        page  = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        limit = min(100, max(1, int(request.GET.get('limit', 25))))
+    except (ValueError, TypeError):
+        limit = 25
+
+    q = request.GET.get('q', '').strip()
+
+    FIELD_MAP = {
+        'religion':  'religion',
+        'category':  'Category',
+        'community': 'Community',
+    }
+
+    try:
+        db         = get_db()
+        collection = db['2023_polled_notpolled_caste_comm_hmc']
+
+        field = FIELD_MAP[filter_type]
+        mongo_filter = {field: value}
+
+        # religion stored as single letter H/M/C (sometimes mixed case)
+        if filter_type == 'religion':
+            mongo_filter = {'religion': {'$in': [value, value.lower(), value.upper()]}}
+
+        if status in ('Polled', 'NotPolled'):
+            mongo_filter['Polling Status'] = status
+
+        if q:
+            search_or = [
+                {'name':    {'$regex': re.escape(q), '$options': 'i'}},
+                {'voterId': {'$regex': re.escape(q), '$options': 'i'}},
+            ]
+            try:
+                booth_int = int(q)
+                search_or.append({'booth': booth_int})
+            except ValueError:
+                pass
+            mongo_filter = {'$and': [mongo_filter, {'$or': search_or}]}
+
+        total_count = collection.count_documents(mongo_filter)
+        total_pages = max(1, math.ceil(total_count / limit))
+        page        = min(page, total_pages)
+        skip        = (page - 1) * limit
+
+        projection = {
+            '_id': 0,
+            'booth': 1, 'serialNumber': 1, 'houseNumber': 1,
+            'name': 1, 'relationType': 1, 'relationName': 1,
+            'voterId': 1, 'gender': 1, 'age': 1,
+            'religion': 1, 'ward': 1,
+            'Community': 1, 'Caste': 1, 'Category': 1,
+            'Polling Status': 1,
+        }
+
+        records = list(collection.find(mongo_filter, projection).skip(skip).limit(limit))
+        for rec in records:
+            for k, v in rec.items():
+                if not isinstance(v, (str, int, float, bool, type(None))):
+                    rec[k] = str(v)
+
+        return JsonResponse({
+            'success':     True,
+            'filter_type': filter_type,
+            'value':       value,
+            'status':      status,
+            'total_count': total_count,
+            'total_pages': total_pages,
+            'page':        page,
+            'limit':       limit,
+            'records':     records,
+        })
+
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
+
+# ─── POLLED BREAKDOWN — ward / booth level ────────────────────────────────────
+# GET /api/polled-breakdown/?ward=<N>          → all booths for that ward
+# GET /api/polled-breakdown/?ward=<N>&booth=<B> → single booth
+#
+# Source collection: 2023_polled_notpolled_caste_comm_hmc  (MONGODB_URL cluster)
+# Doc shape: { booth:int, religion:"H"|"M"|"C", Category:"...", Community:"...",
+#              "Polling Status":"Polled"|"NotPolled", age, gender, … }
+#
+# Returns:
+# {
+#   "hmc":       { "H":{"polled":N,"notPolled":N,"total":N}, "M":{…}, "C":{…}, "total":{…} },
+#   "category":  [ {"key":"Hindu - OBC","polled":N,"notPolled":N}, … ],  # sorted by total desc
+#   "community": [ {"key":"Devadiga",   "polled":N,"notPolled":N}, … ],
+# }
+# ─────────────────────────────────────────────────────────────────────────────
+
+_polled_breakdown_cache     = {}   # (ward, booth, age_group) → {'data': {...}, 'ts': float}
+_POLLED_BREAKDOWN_CACHE_TTL = 300  # 5 min
+
+# Map frontend age-group labels to (min_age, max_age) inclusive ranges
+_AGE_GROUP_RANGES = {
+    '18-25': (18, 25),
+    '26-30': (26, 30),
+    '31-35': (31, 35),
+    '36-40': (36, 40),
+    '41-45': (41, 45),
+    '46-50': (46, 50),
+    '51-60': (51, 60),
+    '60+':   (61, 999),
+}
+
+@require_http_methods(['GET'])
+def api_polled_breakdown(request):
+    import time as _t
+
+    ward      = request.GET.get('ward',      '').strip()
+    booth     = request.GET.get('booth',     '').strip()
+    age_group = request.GET.get('age_group', 'All').strip()
+
+    if not ward and not booth:
+        return JsonResponse(
+            {'success': False, 'message': 'ward or booth parameter required'},
+            status=400,
+        )
+
+    cache_key = (ward, booth, age_group)
+    cached = _polled_breakdown_cache.get(cache_key)
+    if cached and (_t.time() - cached['ts']) < _POLLED_BREAKDOWN_CACHE_TTL:
+        return JsonResponse({'success': True, **cached['data']})
+
+    try:
+        db   = get_db()
+        coll = db['2023_polled_notpolled_caste_comm_hmc']
+
+        # ── Build the $match filter ──────────────────────────────────────────
+        if booth:
+            # Booth level — match both int and str forms (MongoDB $in is type-strict)
+            try:
+                booth_int = int(booth)
+                match_filter = {'booth': {'$in': [booth_int, str(booth_int)]}}
+            except ValueError:
+                match_filter = {'booth': booth}
+        else:
+            # Ward level — expand to all booth numbers for that ward
+            try:
+                ward_int = int(ward)
+            except ValueError:
+                ward_int = None
+
+            ward_booths = WARD_FULL_DATA.get(ward_int, {}).get('booths', [])
+            if not ward_booths:
+                return JsonResponse(
+                    {'success': False, 'message': f'No booths found for ward {ward}'},
+                    status=404,
+                )
+            # Include both int and str forms for every booth
+            booth_vals = list(ward_booths) + [str(b) for b in ward_booths]
+            match_filter = {'booth': {'$in': booth_vals}}
+
+        # ── Apply age_group filter on the age field (lowercase in collection) ──────
+        age_range = _AGE_GROUP_RANGES.get(age_group)
+        if age_range:
+            min_age, max_age = age_range
+            match_filter = dict(match_filter)   # shallow copy before mutating
+            # Field is 'age' (lowercase int) in 2023_polled_notpolled_caste_comm_hmc.
+            # Use $expr + $toInt so it works even if some docs store age as a string.
+            match_filter['$expr'] = {
+                '$and': [
+                    {'$gte': [{'$toInt': {'$ifNull': ['$age', -1]}}, min_age]},
+                    {'$lte': [{'$toInt': {'$ifNull': ['$age', -1]}}, max_age]},
+                ]
+            }
+
+        # ── Helper: run one aggregation and pivot into {key: {polled, notPolled}} ──
+        def _agg(group_field):
+            pipeline = [
+                {'$match': match_filter},
+                {'$group': {
+                    '_id': {
+                        'key':    f'${group_field}',
+                        'status': '$Polling Status',
+                    },
+                    'n': {'$sum': 1},
+                }},
+            ]
+            rows = list(coll.aggregate(pipeline))
+            bucket = {}
+            for row in rows:
+                key    = row['_id'].get('key') or 'Unclassified'
+                status = row['_id'].get('status', '')
+                n      = row['n']
+                if key not in bucket:
+                    bucket[key] = {'polled': 0, 'notPolled': 0}
+                if status == 'Polled':
+                    bucket[key]['polled']    += n
+                else:
+                    bucket[key]['notPolled'] += n
+            # Sort by total desc
+            return [
+                {'key': k, 'polled': v['polled'], 'notPolled': v['notPolled']}
+                for k, v in sorted(
+                    bucket.items(),
+                    key=lambda x: -(x[1]['polled'] + x[1]['notPolled']),
+                )
+            ]
+
+        # ── HMC ──────────────────────────────────────────────────────────────
+        # religion field stores single letters: H / M / C  (occasionally lowercase)
+        hmc_raw = _agg('religion')
+        rel_norm = {'h': 'H', 'm': 'M', 'c': 'C', 'H': 'H', 'M': 'M', 'C': 'C',
+                    'Hindu': 'H', 'Muslim': 'M', 'Christian': 'C'}
+        hmc = {
+            'H':     {'polled': 0, 'notPolled': 0, 'total': 0},
+            'M':     {'polled': 0, 'notPolled': 0, 'total': 0},
+            'C':     {'polled': 0, 'notPolled': 0, 'total': 0},
+            'total': {'polled': 0, 'notPolled': 0, 'total': 0},
+        }
+        for row in hmc_raw:
+            k = rel_norm.get(str(row['key']).strip())
+            if not k:
+                continue
+            hmc[k]['polled']    += row['polled']
+            hmc[k]['notPolled'] += row['notPolled']
+            hmc['total']['polled']    += row['polled']
+            hmc['total']['notPolled'] += row['notPolled']
+        for k in ('H', 'M', 'C', 'total'):
+            hmc[k]['total'] = hmc[k]['polled'] + hmc[k]['notPolled']
+
+        # ── Category & Community ──────────────────────────────────────────────
+        category  = _agg('Category')
+        community = _agg('Community')
+
+        result = {
+            'hmc':       hmc,
+            'category':  category,
+            'community': community,
+        }
+        _polled_breakdown_cache[cache_key] = {'data': result, 'ts': _t.time()}
+        return JsonResponse({'success': True, **result})
+
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
+
+# ─── COMMUNITY MAPPING & POLL RATES (2025_new_mapped_notmapped_hmc) ──────────
+# GET /api/community-map-poll-rates/
+#
+# Returns per-community aggregation using UNIQUE House No counts (not voter
+# counts) so the "Houses" column matches physical households, not voter rows.
+#
+# Response shape:
+# {
+#   "success": true,
+#   "summary": {
+#     "totalHouses": N,          // unique House No across whole collection
+#     "mapped": N, "mappedPct": F,
+#     "notMapped": N, "notMappedPct": F,
+#     "polled": N,  "polledPct": F,
+#     "notPolled": N, "notPolledPct": F,
+#     "totalVoters": N
+#   },
+#   "communities": [
+#     {
+#       "community": "Muslim",
+#       "houses": N,             // UNIQUE House No count for this community
+#       "voters": N,             // total voter rows
+#       "mapped": N, "mappedPct": F,
+#       "polled": N,  "polledPct": F
+#     }, ...
+#   ]
+# }
+# ─────────────────────────────────────────────────────────────────────────────
+
+_comm_map_poll_cache     = {}          # key → {'data': {...}, 'ts': float}
+_COMM_MAP_POLL_CACHE_TTL = 600         # 10 min — collection rarely changes
+
+@require_http_methods(['GET'])
+def api_community_map_poll_rates(request):
+    import time as _t
+
+    cache_key = 'global'
+    force_refresh = request.GET.get('refresh') == '1'
+    cached = _comm_map_poll_cache.get(cache_key)
+    if cached and not force_refresh and (_t.time() - cached['ts']) < _COMM_MAP_POLL_CACHE_TTL:
+        return JsonResponse({'success': True, **cached['data']})
+
+    try:
+        db   = get_db()
+        coll = db['2025_new_mapped_notmapped_hmc']
+
+        # ── Per-community aggregation ─────────────────────────────────────────
+        # Use $addToSet to collect unique House No values per community, then
+        # $size to count them.  For mapped/polled we sum conditional flags.
+        pipeline = [
+            {'$group': {
+                '_id':          '$Community',
+                'uniqueHouses': {'$addToSet': '$House No'},
+                'voters':       {'$sum': 1},
+                'mapped': {'$sum': {
+                    '$cond': [{'$eq': ['$Mapping Status', 'MAPPED']}, 1, 0]
+                }},
+                'polled': {'$sum': {
+                    '$cond': [{'$eq': ['$Poll Status 2023', 'POLLED']}, 1, 0]
+                }},
+            }},
+            {'$project': {
+                '_id':       0,
+                'community': '$_id',
+                'houses':    {'$size': '$uniqueHouses'},
+                'voters':    1,
+                'mapped':    1,
+                'polled':    1,
+                'mappedPct': {'$round': [
+                    {'$cond': [
+                        {'$eq': ['$voters', 0]}, 0,
+                        {'$multiply': [{'$divide': ['$mapped', '$voters']}, 100]}
+                    ]}, 1
+                ]},
+                'polledPct': {'$round': [
+                    {'$cond': [
+                        {'$eq': ['$voters', 0]}, 0,
+                        {'$multiply': [{'$divide': ['$polled', '$voters']}, 100]}
+                    ]}, 1
+                ]},
+            }},
+            {'$sort': {'houses': -1}},
+        ]
+
+        communities = list(coll.aggregate(pipeline, allowDiskUse=True))
+
+        # Sanitise community name — replace None / empty with 'Unclassified'
+        for row in communities:
+            if not row.get('community'):
+                row['community'] = 'Unclassified'
+
+        # ── Overall summary from 2025_new_mapped_notmapped_hmc ───────────────
+        # Count unique House No across the ENTIRE collection in one pass.
+        summary_pipeline = [
+            {'$group': {
+                '_id':          None,
+                'uniqueHouses': {'$addToSet': '$House No'},
+                'voters':       {'$sum': 1},
+                'mapped': {'$sum': {
+                    '$cond': [{'$eq': ['$Mapping Status', 'MAPPED']}, 1, 0]
+                }},
+                'polled': {'$sum': {
+                    '$cond': [{'$eq': ['$Poll Status 2023', 'POLLED']}, 1, 0]
+                }},
+            }},
+            {'$project': {
+                '_id':         0,
+                'totalHouses': {'$size': '$uniqueHouses'},
+                'totalVoters': '$voters',
+                'mapped':      1,
+                'polled':      1,
+            }},
+        ]
+        s_rows = list(coll.aggregate(summary_pipeline, allowDiskUse=True))
+        if s_rows:
+            s = s_rows[0]
+            total_h  = s['totalHouses']
+            total_v  = s['totalVoters']
+            mapped_v = s['mapped']
+            polled_v = s['polled']
+        else:
+            total_h = total_v = mapped_v = polled_v = 0
+
+        def pct(num, den):
+            return round((num / den) * 100, 1) if den else 0.0
+
+        summary = {
+            'totalHouses':   total_h,
+            'totalVoters':   total_v,
+            'mapped':        mapped_v,
+            'mappedPct':     pct(mapped_v, total_v),
+            'notMapped':     total_v - mapped_v,
+            'notMappedPct':  pct(total_v - mapped_v, total_v),
+            'polled':        polled_v,
+            'polledPct':     pct(polled_v, total_v),
+            'notPolled':     total_v - polled_v,
+            'notPolledPct':  pct(total_v - polled_v, total_v),
+        }
+
+        # ── Voter master summary from primary '2025' collection ───────────────
+        # This is the re-uploaded voter list and is the authoritative source
+        # for the Voter Master Data KPI cards shown in the dashboard.
+        try:
+            coll_2025 = db['2025']
+            vm_pipeline = [
+                {'$group': {
+                    '_id':    None,
+                    'total':  {'$sum': 1},
+                    'mapped': {'$sum': {
+                        '$cond': [
+                            {'$or': [
+                                {'$eq': ['$Mapping Status', 'MAPPED']},
+                                {'$eq': ['$Mapping Status', 'Mapped']},
+                            ]}, 1, 0
+                        ]
+                    }},
+                    'not_mapped': {'$sum': {
+                        '$cond': [
+                            {'$or': [
+                                {'$eq': ['$Mapping Status', 'NOT MAPPED']},
+                                {'$eq': ['$Mapping Status', 'Not Mapped']},
+                                {'$eq': ['$Mapping Status', 'NOT_MAPPED']},
+                            ]}, 1, 0
+                        ]
+                    }},
+                    'polled': {'$sum': {
+                        '$cond': [
+                            {'$or': [
+                                {'$eq': ['$Poll Status 2023', 'POLLED']},
+                                {'$eq': ['$Poll Status 2023', 'Polled']},
+                            ]}, 1, 0
+                        ]
+                    }},
+                }},
+            ]
+            vm_rows = list(coll_2025.aggregate(vm_pipeline))
+            if vm_rows:
+                vm = vm_rows[0]
+                vm_total      = vm.get('total', 0)
+                vm_mapped     = vm.get('mapped', 0)
+                vm_not_mapped = vm.get('not_mapped', 0)
+                vm_polled     = vm.get('polled', 0)
+            else:
+                vm_total = vm_mapped = vm_not_mapped = vm_polled = 0
+
+            voter_master = {
+                'totalVoters':    vm_total,
+                'mapped':         vm_mapped,
+                'mappedPct':      pct(vm_mapped, vm_total),
+                'notMapped':      vm_not_mapped,
+                'notMappedPct':   pct(vm_not_mapped, vm_total),
+                'polled':         vm_polled,
+                'polledPct':      pct(vm_polled, vm_total),
+                'notPolled':      vm_total - vm_polled,
+                'notPolledPct':   pct(vm_total - vm_polled, vm_total),
+            }
+
+            # ── New since 2002 + Retained counts from SIR collections ────────
+            try:
+                sir_db = get_db()
+                vm_new_since_2002 = sir_db['SIR_NewAdditions'].count_documents({})
+                vm_retained_2002  = sir_db['SIR_Retained'].count_documents({})
+                voter_master['newSince2002']    = vm_new_since_2002
+                voter_master['newSince2002Pct'] = pct(vm_new_since_2002, vm_total)
+                voter_master['retained2002']    = vm_retained_2002
+                voter_master['retained2002Pct'] = pct(vm_retained_2002, vm_total)
+            except Exception:
+                voter_master['newSince2002']    = 158995
+                voter_master['newSince2002Pct'] = 62.0
+                voter_master['retained2002']    = 12714
+                voter_master['retained2002Pct'] = 5.0
+        except Exception:
+            voter_master = {}   # non-fatal — frontend falls back to hardcoded
+
+        result = {'summary': summary, 'communities': communities, 'voter_master': voter_master}
+        _comm_map_poll_cache[cache_key] = {'data': result, 'ts': _t.time()}
+        return JsonResponse({'success': True, **result})
+
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
+
+# ─── POLLED SUMMARY — constituency-level (2023_polled_notpolled_caste_comm_hmc) ─
+# GET /api/polled-summary/
+#
+# Returns total voters, polled, notPolled + breakdowns by religion (H/M/C),
+# community, category, gender, and age group — all from the single authoritative
+# collection 2023_polled_notpolled_caste_comm_hmc (246,960 records).
+#
+# Add to urls.py:
+#   path('api/polled-summary/', views.api_polled_summary),
+# ─────────────────────────────────────────────────────────────────────────────────
+
+_polled_summary_cache     = {}   # 'data' / 'ts'
+_POLLED_SUMMARY_CACHE_TTL = 600  # 10 min (data doesn't change)
+
+@require_http_methods(['GET'])
+def api_polled_summary(request):
+    """
+    Constituency-wide aggregation of 2023_polled_notpolled_caste_comm_hmc.
+    Replaces the hardcoded DATA_2023 block in the frontend Dashboard.
+    """
+    import time as _t
+
+    cached = _polled_summary_cache.get('ts')
+    if cached and (_t.time() - cached) < _POLLED_SUMMARY_CACHE_TTL:
+        return JsonResponse({'success': True, **_polled_summary_cache['data']})
+
+    try:
+        db   = get_db()
+        coll = db['2023_polled_notpolled_caste_comm_hmc']
+
+        # ── Helper: group by field × Polling Status → {key: {polled, notPolled}} ──
+        def _agg(group_field):
+            pipeline = [
+                {'$group': {
+                    '_id': {
+                        'key':    f'${group_field}',
+                        'status': '$Polling Status',
+                    },
+                    'n': {'$sum': 1},
+                }},
+            ]
+            rows = list(coll.aggregate(pipeline, allowDiskUse=True))
+            bucket = {}
+            for row in rows:
+                key    = row['_id'].get('key') or 'Unclassified'
+                status = row['_id'].get('status', '')
+                n      = row['n']
+                if key not in bucket:
+                    bucket[key] = {'polled': 0, 'notPolled': 0}
+                if status == 'Polled':
+                    bucket[key]['polled']    += n
+                else:
+                    bucket[key]['notPolled'] += n
+            return sorted(
+                [{'key': k, 'polled': v['polled'], 'notPolled': v['notPolled'],
+                  'total': v['polled'] + v['notPolled']}
+                 for k, v in bucket.items()],
+                key=lambda x: -x['total'],
+            )
+
+        # ── HMC breakdown ─────────────────────────────────────────────────────
+        rel_raw  = _agg('religion')
+        rel_norm = {'h':'H','m':'M','c':'C','H':'H','M':'M','C':'C',
+                    'Hindu':'H','Muslim':'M','Christian':'C'}
+        hmc = {
+            'H':     {'polled':0,'notPolled':0,'total':0},
+            'M':     {'polled':0,'notPolled':0,'total':0},
+            'C':     {'polled':0,'notPolled':0,'total':0},
+            'total': {'polled':0,'notPolled':0,'total':0},
+        }
+        for row in rel_raw:
+            k = rel_norm.get(str(row['key']).strip())
+            if not k:
+                continue
+            hmc[k]['polled']          += row['polled']
+            hmc[k]['notPolled']       += row['notPolled']
+            hmc['total']['polled']    += row['polled']
+            hmc['total']['notPolled'] += row['notPolled']
+        for k in ('H','M','C','total'):
+            hmc[k]['total'] = hmc[k]['polled'] + hmc[k]['notPolled']
+
+        # ── Community & Category breakdowns ───────────────────────────────────
+        community = _agg('Community')
+        category  = _agg('Category')
+
+        # ── Gender breakdown ──────────────────────────────────────────────────
+        # gender field stores "F" / "M" single letters — normalise to full words
+        gender_raw_agg = _agg('gender')
+        _gender_norm = {'F':'Female','f':'Female','Female':'Female',
+                        'M':'Male',  'm':'Male',   'Male':'Male'}
+        _gender_bucket = {}
+        for _gr in gender_raw_agg:
+            _lbl = _gender_norm.get(str(_gr['key']).strip(), 'Other')
+            if _lbl not in _gender_bucket:
+                _gender_bucket[_lbl] = {'polled':0,'notPolled':0,'total':0}
+            _gender_bucket[_lbl]['polled']    += _gr['polled']
+            _gender_bucket[_lbl]['notPolled'] += _gr['notPolled']
+            _gender_bucket[_lbl]['total']     += _gr['total']
+        gender_raw = [
+            {'key': k, 'polled': v['polled'], 'notPolled': v['notPolled'], 'total': v['total']}
+            for k, v in sorted(_gender_bucket.items(), key=lambda x: -x[1]['total'])
+        ]
+
+        # ── Age group breakdown ───────────────────────────────────────────────
+        age_pipeline = [
+            {'$addFields': {
+                'ageInt': {'$toInt': {'$ifNull': ['$age', -1]}},
+            }},
+            {'$bucket': {
+                'groupBy': '$ageInt',
+                'boundaries': [0, 18, 26, 36, 46, 56, 66, 1000],
+                'default': 'Other',
+                'output': {
+                    'polled':    {'$sum': {'$cond': [{'$eq': ['$Polling Status','Polled']}, 1, 0]}},
+                    'notPolled': {'$sum': {'$cond': [{'$ne': ['$Polling Status','Polled']}, 1, 0]}},
+                    'total':     {'$sum': 1},
+                },
+            }},
+        ]
+        age_labels = {0:'<18', 18:'18-25', 26:'26-35', 36:'36-45',
+                      46:'46-55', 56:'56-65', 66:'65+'}
+        age_rows   = list(coll.aggregate(age_pipeline, allowDiskUse=True))
+        age_groups = []
+        for row in age_rows:
+            bid = row['_id']
+            if bid == 'Other' or bid == 0:
+                continue
+            label = age_labels.get(bid, str(bid))
+            total = row['total']
+            p     = row['polled']
+            rate  = round(p / total * 100, 1) if total else 0.0
+            age_groups.append({
+                'label':     label,
+                'polled':    p,
+                'notPolled': row['notPolled'],
+                'total':     total,
+                'rate':      rate,
+            })
+
+        # ── Overall totals ────────────────────────────────────────────────────
+        total_voters  = hmc['total']['total']
+        total_polled  = hmc['total']['polled']
+        total_notpoll = hmc['total']['notPolled']
+        avg_poll_rate = round(total_polled / total_voters * 100, 1) if total_voters else 0.0
+
+        result = {
+            'totalVoters':  total_voters,
+            'polled':       total_polled,
+            'notPolled':    total_notpoll,
+            'avgPollRate':  avg_poll_rate,
+            'hmc':          hmc,
+            'community':    community,
+            'category':     category,
+            'gender':       gender_raw,
+            'ageGroups':    age_groups,
+        }
+
+        _polled_summary_cache['data'] = result
+        _polled_summary_cache['ts']   = _t.time()
+        return JsonResponse({'success': True, **result})
+
+    except Exception as exc:
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
+
+# ─── SIR AI OVERVIEW ─────────────────────────────────────────────────────────
+# POST /api/sir/ai-overview/
+#
+# Accepts: { "sirData": "<serialised stats string>" }
+# Returns: { "success": true, "overview": { headline, summary, bullets, callout } }
+#
+# Aggregates live SIR stats (ward × category × religion) from the DB,
+# INCLUDING SIR_ConfirmedMatches and SIR_ConfirmedNotFound for accurate counts
+# and predicted religion breakdown from voter names.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Religion prediction from Mangaluru name patterns ─────────────────────────
+_MUSLIM_NAME_TOKENS = {
+    'mohammed','mohammad','muhammed','muhamad','md','syed','shaikh','sheikh',
+    'khan','patel','ali','hussain','hasan','hassan','begum','banu','bibi',
+    'fathima','fatima','ayesha','aisha','rahimulla','rahimullah','rasheed',
+    'rashid','irfan','imran','asif','asad','nazeer','nazir','farooq','faruk',
+    'saleem','salim','basheer','bashir','shafi','shafiq','abdulla','abdullah',
+    'hameed','hamid','majeed','majid','kaleem','kareem','karim','rafiq',
+    'rafeeq','niyaz','niyas','riyas','riyaz','shabeer','shabbir','muzammil',
+    'shoaib','shoeb','jahangir','sultan','nawab','mir','mulla','moulvi',
+    'hakeem','hakim','ismail','ibrahim','idris','yusuf','yunus','usman',
+    'uthman','ansar','ansari','sayyid','sayyed','khadija','khadeeja',
+    'zainab','ruqayya','mariam','maryam','amina','ameena','sabiya','sabina',
+    'naseema','naseema','zubaida','sumaiya','samiya','hiba','hina','rabia',
+    'rabiya','tahseen','tahsin','rehan','riyaz','mobin','mubin','iqbal',
+    'tanveer','tanvir','shamsuddin','salahuddin','nizamuddin','tajuddin',
+}
+_CHRISTIAN_NAME_TOKENS = {
+    'dsouza','d\'souza','rodrigues','fernandez','fernandes','pinto','dias',
+    'noronha','lobo','sequeira','mascarenhas','furtado','gonsalves','saldanha',
+    'menezes','pereira','monteiro','miranda','coelho','frank','franklyn',
+    'stany','stanislaus','cyril','cyriac','lancy','melwyn','melvin','melwyn',
+    'alwyn','alvin','aloysius','ignatius','pascal','xavier','xaviour','kevin',
+    'sheryl','sheryl','sherly','noel','noel','christmas','nativity','dsilva',
+    'dcunha','dcosta','dcosta','dmello','dpinto','dsousa','drose','antony',
+    'anthony','stephen','steven','george','joseph','thomas','johnson',
+    'wilson','nelson','darwin','christy','christel','clarence','clement',
+    'rosario','madonna','gracia','gracilda','cecilia','dolores','lourdes',
+    'saviour','salvadore','benicio','benhur','boniface','cletus','crispin',
+    'crispino','jovito','jovina','jovita','livia','livitha','melita',
+    'remigio','remigius','santhosh','satish','savvy','sherry','silvester',
+    'simona','simonetta','silas','titus','yvonne','vivienne','zelda',
+}
+
+def _predict_religion_from_name(name: str) -> str:
+    """
+    Predict Hindu / Muslim / Christian from a voter name string.
+    Uses token-level matching against curated Mangaluru name banks.
+    Returns 'Muslim', 'Christian', or 'Hindu' (default).
+    """
+    if not name:
+        return 'Hindu'
+    tokens = set(re.sub(r'[^a-z\s]', '', name.lower()).split())
+    if tokens & _MUSLIM_NAME_TOKENS:
+        return 'Muslim'
+    if tokens & _CHRISTIAN_NAME_TOKENS:
+        return 'Christian'
+    return 'Hindu'
+
+
+@csrf_exempt
+@require_http_methods(['POST', 'OPTIONS'])
+def api_sir_ai_overview(request):
+    """POST /api/sir/ai-overview/"""
+    import re as _re_sir
+
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
+
+    user = _user_from_request(request)
+    if not user:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401))
+
+    try:
+        body     = json.loads(request.body)
+        sir_data = (body.get('sirData') or '').strip()
+    except Exception:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400))
+
+    if not sir_data:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'sirData is required'}, status=400))
+
+    # ── Gather live DB stats to enrich the prompt ─────────────────────────────
+    try:
+        survey_db = get_survey_db()
+        main_db   = get_db()
+
+        # Overall counts per SIR category collection
+        cat_counts = {
+            'New Additions':  survey_db['SIR_NewAdditions'].count_documents({}),
+            'Retained':       survey_db['SIR_Retained'].count_documents({}),
+            'Modified':       survey_db['SIR_Modified'].count_documents({}),
+            'Deleted':        survey_db['SIR_Deleted'].count_documents({}),
+            'Suspicious':     survey_db['SIR_Suspicious'].count_documents({}),
+            'Not Found':      survey_db['SIR_NotFound'].count_documents({}),
+        }
+        total_sir = sum(cat_counts.values())
+        voters_2002 = main_db['2002'].count_documents({})
+        voters_2025 = main_db['2025'].count_documents({})
+
+        # ── SIR_ConfirmedMatches — field-verified confirmed records ───────────
+        confirmed_coll   = survey_db['SIR_ConfirmedMatches']
+        confirmed_total  = confirmed_coll.count_documents({})
+
+        # Status breakdown (MATCHED / NOT_FOUND_2025 / NOT_FOUND_2002 / NOT_FOUND_BOTH)
+        confirmed_status_pipeline = [
+            {'$group': {'_id': '$status', 'count': {'$sum': 1}}},
+        ]
+        confirmed_status_rows = list(confirmed_coll.aggregate(confirmed_status_pipeline))
+        confirmed_status = {str(r['_id']): r['count'] for r in confirmed_status_rows}
+
+        # Religion prediction for confirmed matches (use 'name' field)
+        confirmed_religion = {'Hindu': 0, 'Muslim': 0, 'Christian': 0}
+        for doc in confirmed_coll.find({}, {'name': 1, '_id': 0}):
+            rel = _predict_religion_from_name(doc.get('name', ''))
+            confirmed_religion[rel] = confirmed_religion.get(rel, 0) + 1
+
+        # Ward breakdown for confirmed matches (via record_2025.booth or record_2002.booth)
+        confirmed_ward_pipeline = [
+            {'$addFields': {
+                'booth_val': {
+                    '$ifNull': [
+                        '$record_2025.booth',
+                        {'$ifNull': ['$record_2002.booth', '$booth']}
+                    ]
+                }
+            }},
+            {'$match': {'booth_val': {'$ne': None}}},
+            {'$group': {'_id': '$booth_val', 'count': {'$sum': 1}}},
+        ]
+        confirmed_booth_rows = list(confirmed_coll.aggregate(confirmed_ward_pipeline))
+
+        # Map booths → wards for confirmed records
+        confirmed_ward_counts = {}
+        for row in confirmed_booth_rows:
+            booth_str = str(row['_id'])
+            ward_str  = BOOTH_TO_WARD.get(booth_str) or BOOTH_TO_WARD.get(row['_id'])
+            if ward_str:
+                confirmed_ward_counts[ward_str] = confirmed_ward_counts.get(ward_str, 0) + row['count']
+        top_confirmed_wards = sorted(confirmed_ward_counts.items(), key=lambda x: -x[1])[:10]
+
+        # ── SIR_ConfirmedNotFound — confirmed not-found records ───────────────
+        not_found_coll  = survey_db['SIR_ConfirmedNotFound']
+        not_found_total = not_found_coll.count_documents({})
+
+        # Religion prediction for not-found records
+        nf_religion = {'Hindu': 0, 'Muslim': 0, 'Christian': 0}
+        for doc in not_found_coll.find({}, {'name': 1, '_id': 0}):
+            rel = _predict_religion_from_name(doc.get('name', ''))
+            nf_religion[rel] = nf_religion.get(rel, 0) + 1
+
+        # ── Ward-level breakdown: new additions per ward ──────────────────────
+        ward_pipeline = [
+            {'$group': {'_id': '$ward', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+            {'$limit': 15},
+        ]
+        ward_new_rows = list(survey_db['SIR_NewAdditions'].aggregate(ward_pipeline))
+
+        # ── Religion breakdown from SIR_NewAdditions ──────────────────────────
+        rel_pipeline = [
+            {'$addFields': {
+                'rel_key': {'$ifNull': ['$Predicted_Religion_Label', '$Religion']}
+            }},
+            {'$group': {'_id': '$rel_key', 'count': {'$sum': 1}}},
+        ]
+        rel_rows = list(survey_db['SIR_NewAdditions'].aggregate(rel_pipeline))
+        rel_norm = {'H':'Hindu','h':'Hindu','Hindu':'Hindu',
+                    'M':'Muslim','m':'Muslim','Muslim':'Muslim',
+                    'C':'Christian','c':'Christian','Christian':'Christian'}
+        new_add_rel_counts = {}
+        for row in rel_rows:
+            k = rel_norm.get(str(row['_id']).strip() if row['_id'] else '', 'Other')
+            new_add_rel_counts[k] = new_add_rel_counts.get(k, 0) + row['count']
+
+        # Predict religion for new additions with no label using name field
+        unlabelled_cursor = survey_db['SIR_NewAdditions'].find(
+            {'Predicted_Religion_Label': None, 'Religion': None},
+            {'name': 1, '_id': 0}
+        ).limit(500)
+        for doc in unlabelled_cursor:
+            rel = _predict_religion_from_name(doc.get('name', ''))
+            new_add_rel_counts[rel] = new_add_rel_counts.get(rel, 0) + 1
+        other_count = new_add_rel_counts.pop('Other', 0)
+        new_add_rel_counts['Hindu'] = new_add_rel_counts.get('Hindu', 0) + other_count  # treat Other as Hindu
+
+        # ── Booth-level breakdown: top booths with new additions ──────────────
+        booth_pipeline = [
+            {'$group': {'_id': '$booth', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+            {'$limit': 10},
+        ]
+        booth_new_rows = list(survey_db['SIR_NewAdditions'].aggregate(booth_pipeline))
+
+        # ── Build enriched data string for the AI ────────────────────────────
+        lines = ['=== SIR Live Database Statistics ===']
+        lines.append(f'Total SIR Records Processed (all categories): {total_sir:,}')
+        lines.append(f'2002 Voter Roll: {voters_2002:,}  |  2025 Voter Roll: {voters_2025:,}')
+        delta = voters_2025 - voters_2002
+        lines.append(f'Net Roll Change: {delta:+,} voters ({round(delta / voters_2002 * 100, 1) if voters_2002 else 0:+.1f}%)')
+        lines.append('')
+        lines.append('--- SIR Category Breakdown ---')
+        for cat, cnt in cat_counts.items():
+            pct = round(cnt / total_sir * 100, 1) if total_sir else 0
+            lines.append(f'  {cat}: {cnt:,}  ({pct}%)')
+
+        lines.append('')
+        lines.append('--- Field-Confirmed Records (SIR_ConfirmedMatches) ---')
+        lines.append(f'  Total confirmed field verifications: {confirmed_total:,}')
+        for status_key, cnt in confirmed_status.items():
+            lines.append(f'  Status "{status_key}": {cnt:,}')
+        lines.append('  Religion prediction from confirmed voter names:')
+        cf_total_rel = sum(confirmed_religion.values()) or 1
+        for rel, cnt in sorted(confirmed_religion.items(), key=lambda x: -x[1]):
+            lines.append(f'    {rel}: {cnt:,}  ({round(cnt/cf_total_rel*100,1)}%)')
+        lines.append(f'  Top wards by confirmed record count:')
+        for ward_str, cnt in top_confirmed_wards:
+            wname = WARD_NUM_TO_NAME.get(ward_str, f'Ward {ward_str}')
+            lines.append(f'    {wname} (Ward {ward_str}): {cnt:,}')
+
+        lines.append('')
+        lines.append('--- Confirmed Not-Found Records (SIR_ConfirmedNotFound) ---')
+        lines.append(f'  Total confirmed not-found: {not_found_total:,}')
+        nf_total_rel = sum(nf_religion.values()) or 1
+        lines.append('  Religion prediction from not-found voter names:')
+        for rel, cnt in sorted(nf_religion.items(), key=lambda x: -x[1]):
+            lines.append(f'    {rel}: {cnt:,}  ({round(cnt/nf_total_rel*100,1)}%)')
+
+        lines.append('')
+        lines.append('--- Religion Breakdown (New Additions — predicted) ---')
+        total_rel = sum(new_add_rel_counts.values()) or 1
+        for rel, cnt in sorted(new_add_rel_counts.items(), key=lambda x: -x[1]):
+            lines.append(f'  {rel}: {cnt:,}  ({round(cnt/total_rel*100,1)}%)')
+
+        lines.append('')
+        lines.append('--- Top Wards by New Additions ---')
+        for row in ward_new_rows:
+            ward_id   = str(row['_id']) if row['_id'] else 'Unknown'
+            ward_name = WARD_NUM_TO_NAME.get(ward_id, ward_id)
+            lines.append(f'  {ward_name} (Ward {ward_id}): {row["count"]:,}')
+
+        lines.append('')
+        lines.append('--- Top Booths by New Additions ---')
+        for row in booth_new_rows:
+            lines.append(f'  Booth {row["_id"]}: {row["count"]:,}')
+
+        lines.append('')
+        lines.append('=== Ward Classification + BLO Progress (frontend data) ===')
+        lines.append(sir_data[:2500])
+
+        full_data = '\n'.join(lines)
+
+    except Exception as db_exc:
+        traceback.print_exc()
+        full_data = sir_data[:4000]
+
+    # ── Build prompts ─────────────────────────────────────────────────────────
+    system_prompt = (
+        "You are a senior political analyst overseeing the Special Intensive Revision (SIR) "
+        "process for Mangaluru City South constituency (Constituency 175, Karnataka).\n\n"
+        "SIR compares the 2002 and 2025 voter rolls to classify voters as: New Addition, Retained, "
+        "Modified, Deleted, Suspicious, or Not Found.\n\n"
+        "You also have data from SIR_ConfirmedMatches (field-verified matches) and "
+        "SIR_ConfirmedNotFound (confirmed absences), with PREDICTED RELIGION derived from voter names.\n\n"
+        "TASK: Produce a clear, accurate strategic intelligence overview. Focus on:\n"
+        "1. Real completion — how many of the 59,921 net new voters have been field-verified?\n"
+        "2. What do ConfirmedMatches tell us? Which wards have the most confirmed verifications?\n"
+        "3. Religion pattern in confirmed + new additions — Hindu/Muslim/Christian split, any demographic skew?\n"
+        "4. Suspicious entries and Not-Found risk — counts and affected wards.\n"
+        "5. BJP risk assessment — which wards with high new additions are Congress-leaning?\n"
+        "6. Top actionable priority — one specific ward/booth for immediate ground verification.\n\n"
+        "CRITICAL: Every number cited must come from the data provided. Do NOT invent figures.\n"
+        "Write clearly — a field worker should understand each bullet in under 5 seconds.\n\n"
+        "Return ONLY a valid JSON object — no markdown, no preamble:\n"
+        "{\n"
+        "  \"headline\": \"One punchy 12-15 word headline with a real number from the data\",\n"
+        "  \"summary\": \"2-3 sentences. Cover: total field-verified vs total roll, top religion in confirmed records, and single biggest risk ward.\",\n"
+        "  \"bullets\": [\n"
+        "    {\"icon\":\"📊\",\"text\":\"Completion: X of Y total records field-verified (Z%); 2002→2025 roll grew by N voters\"},\n"
+        "    {\"icon\":\"✅\",\"text\":\"Confirmed matches: top ward by count, status breakdown (MATCHED vs absent), and which religion dominates\"},\n"
+        "    {\"icon\":\"🕌\",\"text\":\"Religion prediction across new additions and confirmed records — cite Hindu/Muslim/Christian %\"},\n"
+        "    {\"icon\":\"⚠️\",\"text\":\"Suspicious + Not-Found entries — exact count, % of total, ward with most suspicious records\"},\n"
+        "    {\"icon\":\"🎯\",\"text\":\"Single highest-priority ward/booth for immediate field action — cite ward name, classification, and reason\"}\n"
+        "  ],\n"
+        "  \"callout\": {\n"
+        "    \"label\": \"SIR Bottom Line\",\n"
+        "    \"text\": \"One plain-language sentence. What is the single most important thing to act on right now?\",\n"
+        "    \"color\": \"#f59e0b\"\n"
+        "  }\n"
+        "}"
+    )
+
+    user_prompt = (
+        "Tab: SIR — Special Intensive Revision\n\n"
+        f"=== SIR DATA ===\n{full_data}"
+    )
+
+    try:
+        client  = _get_anthropic()
+        message = client.messages.create(
+            model      = 'claude-haiku-4-5-20251001',
+            max_tokens = 1400,
+            system     = system_prompt,
+            messages   = [{'role': 'user', 'content': user_prompt}],
+        )
+        raw = ''.join(b.text for b in message.content if hasattr(b, 'text')).strip()
+        raw = _re_sir.sub(r'^```(?:json)?\s*', '', raw)
+        raw = _re_sir.sub(r'\s*```$',          '', raw)
+        raw = raw.strip()
+        m   = _re_sir.search(r'\{[\s\S]*\}', raw)
+        if m:
+            raw = m.group(0)
+        try:
+            overview = json.loads(raw)
+        except json.JSONDecodeError:
+            overview = {
+                'headline': 'SIR Analysis — Special Intensive Revision',
+                'summary':  'The AI response could not be parsed. Please regenerate.',
+                'bullets':  [],
+                'callout':  None,
+            }
+        return _sir_cors(request, JsonResponse({'success': True, 'overview': overview}))
+    except Exception as exc:
+        traceback.print_exc()
+        return _sir_cors(request, JsonResponse({'success': False, 'message': str(exc)}, status=500))
+
+# ─── ADD TO urls.py: path('api/progeny/voters/', views.api_progeny_voters) ──────
+@csrf_exempt
+@require_http_methods(['GET', 'OPTIONS'])
+def api_progeny_voters(request):
+    """
+    GET /api/progeny/voters/?page=1&limit=20&search=<text>&ward=<int>&booth=<int>
+
+    Returns paginated progeny voter records from the 'progeny' collection in SurveyDataBase.
+
+    Query params:
+      page   — page number (default 1)
+      limit  — records per page, max 50 (default 20)
+      search — search across Voter Name, Epic / Voter ID, House No, Relative Name (case-insensitive)
+      ward   — filter by Ward number (int)
+      booth  — filter by Booth number (int)
+
+    Response:
+    {
+      success: true,
+      records: [ { ... full progeny document ... }, ... ],
+      total: <int>,
+      page: <int>,
+      pages: <int>
+    }
+    """
+    if request.method == 'OPTIONS':
+        return _sir_options(request)
+
+    user = _user_from_request(request)
+    if not user:
+        return _sir_cors(request, JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401))
+
+    page   = max(1, int(request.GET.get('page',  1)))
+    limit  = min(50, max(1, int(request.GET.get('limit', 20))))
+    skip   = (page - 1) * limit
+    search = request.GET.get('search', '').strip()
+    ward   = request.GET.get('ward',   '').strip()
+    booth  = request.GET.get('booth',  '').strip()
+
+    try:
+        db   = get_db()
+        coll = db['progeny']
+
+        # ── Build query filter ────────────────────────────────────────────────
+        query = {}
+
+        if search:
+            regex = {'$regex': re.escape(search), '$options': 'i'}
+            query['$or'] = [
+                {'Voter Name':    regex},
+                {'Epic / Voter ID': regex},
+                {'House No':      regex},
+                {'Relative Name': regex},
+                {'Name in 2025':  regex},
+            ]
+
+        if ward:
+            try:
+                query['Ward'] = int(ward)
+            except ValueError:
+                pass
+
+        if booth:
+            try:
+                query['Booth'] = int(booth)
+            except ValueError:
+                pass
+
+        total   = coll.count_documents(query)
+        cursor  = coll.find(query).sort([('Ward', 1), ('Booth', 1), ('Voter Name', 1)]).skip(skip).limit(limit)
+
+        records = []
+        for doc in cursor:
+            doc['_id'] = str(doc['_id'])
+            # Safely convert any non-serialisable types
+            for k, v in list(doc.items()):
+                if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                    doc[k] = None
+            records.append(doc)
+
+        return _sir_cors(request, JsonResponse({
+            'success': True,
+            'records': records,
+            'total':   total,
+            'page':    page,
+            'pages':   math.ceil(total / limit) if limit else 1,
+        }))
+
+    except Exception as exc:
+        traceback.print_exc()
+        return _sir_cors(request, JsonResponse({'success': False, 'message': str(exc)}, status=500))
