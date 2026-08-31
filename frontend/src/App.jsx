@@ -38,6 +38,7 @@ import AdminPanel   from './pages/AdminPanel';
 import Swot         from './pages/Swot';
 import AiChat       from './pages/Aichat';
 import BJPStrategy  from './pages/Bjpstrategy';   // ← NEW
+import SocialIntel  from './pages/SocialIntel';   // ← NEW
  
 export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -93,9 +94,10 @@ function Protected({ children }) {
 }
  
 const KEEP_ALIVE_ROUTES = [
-  { path: '/',     Page: Dashboard },
-  { path: '/sir',  Page: SIR       },
-  { path: '/swot', Page: Swot      },
+  { path: '/',       Page: Dashboard   },
+  { path: '/sir',    Page: SIR         },
+  { path: '/swot',   Page: Swot        },
+  { path: '/social', Page: SocialIntel },
 ];
  
 function KeepAlive({ isLoggedIn, authReady }) {

@@ -31,6 +31,7 @@ const ALL_NAV_LINKS = [
       </svg>
     ), label: 'SWOT' },
   { to: '/bjp', icon: null, label: 'BJP Strategy', isBjp: true },
+  { to: '/social', icon: null, label: 'Social Intel', isSocial: true },
   { to: '/ai',  icon: null, label: 'AI' },
 ];
 
@@ -84,7 +85,7 @@ export default function Navbar() {
         <div className="nav-links desktop-only">
           {ALL_NAV_LINKS.map(l => (
             <Link key={l.to} to={l.to}
-              className={`nav-link ${isActive(l.to) ? 'nav-link-active' : ''} ${l.to === '/ai' ? 'nav-link-ai' : ''} ${l.isBjp ? 'nav-link-bjp' : ''}`}>
+              className={`nav-link ${isActive(l.to) ? 'nav-link-active' : ''} ${l.to === '/ai' ? 'nav-link-ai' : ''} ${l.isBjp ? 'nav-link-bjp' : ''} ${l.isSocial ? 'nav-link-social' : ''}`}>
               {l.isBjp
                 ? <BJPIcon size={13}/>
                 : l.icon
@@ -160,7 +161,7 @@ export default function Navbar() {
           <div className="nav-drawer">
             {ALL_NAV_LINKS.map(l => (
               <Link key={l.to} to={l.to}
-                className={`drawer-link ${isActive(l.to) ? 'drawer-link-active' : ''} ${l.to === '/ai' ? 'drawer-link-ai' : ''} ${l.isBjp ? 'drawer-link-bjp' : ''}`}
+                className={`drawer-link ${isActive(l.to) ? 'drawer-link-active' : ''} ${l.to === '/ai' ? 'drawer-link-ai' : ''} ${l.isBjp ? 'drawer-link-bjp' : ''} ${l.isSocial ? 'drawer-link-social' : ''}`}
                 onClick={() => setOpen(false)}>
                 <span>
                   {l.isBjp ? <BJPIcon size={15}/> : (l.icon ?? <AIIcon size={15}/>)}
@@ -168,6 +169,7 @@ export default function Navbar() {
                 {l.label}
                 {l.to === '/ai' && <span className="drawer-ai-badge">AI</span>}
                 {l.isBjp && <span className="drawer-bjp-badge">INTEL</span>}
+                {l.isSocial && <span className="drawer-social-badge">NEW</span>}
               </Link>
             ))}
             {isAdmin && (
@@ -268,6 +270,15 @@ export default function Navbar() {
         .nav-link-admin { border: 1px solid rgba(245,158,11,0.2); }
         .nav-link-admin:hover { border-color: rgba(245,158,11,0.4); }
 
+        /* Social Intel link — purple accent */
+        .nav-link-social {
+          border: 1px solid rgba(139,92,246,0.3);
+          color: #c4b5fd !important;
+          background: rgba(139,92,246,0.08);
+        }
+        .nav-link-social:hover { border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.14) !important; }
+        .nav-link-social.nav-link-active { background: rgba(139,92,246,0.2) !important; border-color: rgba(139,92,246,0.5); color: #c4b5fd !important; }
+
         /* BJP pill — mobile top bar */
         .bjp-pill {
           display: flex; align-items: center; gap: 4px;
@@ -331,6 +342,13 @@ export default function Navbar() {
         .drawer-bjp-badge {
           margin-left: auto; font-size: 9px; font-weight: 800; letter-spacing: 0.8px;
           background: linear-gradient(135deg, #dc2626, #991b1b);
+          color: #fff; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+        }
+        .drawer-link-social { color: #c4b5fd !important; }
+        .drawer-link-social:hover { background: rgba(139,92,246,0.08) !important; }
+        .drawer-social-badge {
+          margin-left: auto; font-size: 9px; font-weight: 800; letter-spacing: 0.8px;
+          background: linear-gradient(135deg, #a78bfa, #7c3aed);
           color: #fff; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
         }
         .drawer-divider { height: 1px; background: var(--border); margin: 8px 0; }

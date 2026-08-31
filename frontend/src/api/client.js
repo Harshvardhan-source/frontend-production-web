@@ -453,4 +453,16 @@ export const polledApi = {
   },
 };
 
+// ── Social Media Intelligence ─────────────────────────────────────────────────
+export const socialMediaApi = {
+  overview:   ()             => api.get('/api/social/overview/'),
+  feed:       (params = {})  => api.get('/api/social/feed/', { params }),
+  post:       (id)           => api.get(`/api/social/post/${id}/`),
+  swot:       (perspective)  => api.get('/api/social/swot/', { params: { perspective } }),
+  outrage:    ()             => api.get('/api/social/outrage/'),
+  jobsStatus: ()             => api.get('/api/social/jobs/status/'),
+  sync:       ()             => api.post('/api/social/sync/'),
+  sources:    ()             => api.get('/api/social/sources/'),
+};
+
 export default api;
