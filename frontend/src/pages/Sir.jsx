@@ -4393,6 +4393,193 @@ function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   );
 }
 
+// ─── Vote Simulator — Turnout × Party-Share Projection ────────────────────────
+// Base numbers = "ASSUMING TOTAL VOTER COUNT" (I2+I3+I4) from the SIR drop-off
+// model, summed across the Hindu/Muslim/Christian-majority booth clusters.
+// Party split mirrors the sheet's own formula (M8/N8/O8 on the Hindu-majority
+// cluster): BJP = votes polled × BJP-share slider · SDPI = BJP votes × 1%
+// (the sheet computes SDPI as a slice carved out of BJP's own tally, not the
+// total pool) · Congress = votes polled − BJP votes.
+const SIM_TOTAL_VOTERS   = 258944; // I2 + I3 + I4
+const SIM_SDPI_OF_BJP    = 1;      // N = M * 1%, per sheet formula
+const SIM_TURNOUT_MIN    = 50, SIM_TURNOUT_MAX  = 80, SIM_TURNOUT_DEFAULT  = 56.5;
+const SIM_BJPSHARE_MIN   = 65, SIM_BJPSHARE_MAX = 80, SIM_BJPSHARE_DEFAULT = 70;
+
+function SpectrumSlider({ label, hint, value, min, max, step = 0.5, unit = '%', gradient, accent, onChange }) {
+  return (
+    <div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:2 }}>
+        <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:'0.5px' }}>{label}</span>
+        <span style={{ fontSize:22, fontWeight:800, color:accent, fontVariantNumeric:'tabular-nums', transition:'color 0.3s' }}>{value.toFixed(1)}{unit}</span>
+      </div>
+      {hint && <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginBottom:10 }}>{hint}</div>}
+      <div style={{ position:'relative', height:30, display:'flex', alignItems:'center' }}>
+        <div style={{ position:'absolute', left:0, right:0, height:8, borderRadius:5, background:gradient, boxShadow:'inset 0 1px 3px rgba(0,0,0,0.35)' }} />
+        <input
+          className="sim-slider"
+          type="range" min={min} max={max} step={step} value={value}
+          onChange={e => onChange(parseFloat(e.target.value))}
+          style={{ position:'relative', width:'100%', height:30, margin:0, background:'transparent', cursor:'pointer', zIndex:2 }}
+        />
+      </div>
+      <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,0.25)', fontWeight:600, marginTop:2 }}>
+        <span>{min}{unit} min</span>
+        <span>{max}{unit} max</span>
+      </div>
+    </div>
+  );
+}
+
+function VoteSimulator() {
+  const [turnout, setTurnout]   = useState(SIM_TURNOUT_DEFAULT);
+  const [bjpShare, setBjpShare] = useState(SIM_BJPSHARE_DEFAULT);
+
+  const votesPolled = SIM_TOTAL_VOTERS * (turnout / 100);
+  const congShare    = 100 - bjpShare;
+  const bjpVotes      = votesPolled * (bjpShare / 100);
+  const congVotes     = votesPolled * (congShare / 100);
+  const sdpiVotes      = bjpVotes * (SIM_SDPI_OF_BJP / 100);
+  const bjpWin        = bjpVotes >= congVotes;
+  const marginVotes    = Math.abs(bjpVotes - congVotes);
+  const marginPct      = Math.abs(bjpShare - congShare);
+  const isDefault      = turnout === SIM_TURNOUT_DEFAULT && bjpShare === SIM_BJPSHARE_DEFAULT;
+
+  const reset = () => { setTurnout(SIM_TURNOUT_DEFAULT); setBjpShare(SIM_BJPSHARE_DEFAULT); };
+  const fmt = n => Math.round(n).toLocaleString('en-IN');
+
+  return (
+    <div style={{
+      background: 'linear-gradient(145deg,rgba(17,28,52,0.95),rgba(10,18,35,0.98))',
+      border: '1px solid rgba(99,102,241,0.22)',
+      borderRadius: 18,
+      overflow: 'hidden',
+      marginBottom: 20,
+      boxShadow: '0 6px 32px rgba(0,0,0,0.4)',
+    }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg,rgba(99,102,241,0.1),rgba(249,115,22,0.05))',
+        borderBottom: '1px solid rgba(99,102,241,0.15)',
+        padding: '16px 20px 14px',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 7, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', flexShrink: 0 }}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 14V9M6 14V4M10 14v-7M14 14V2" />
+              </svg>
+            </span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#c7d2fe', letterSpacing: '-0.3px' }}>Vote Simulator</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#a5b4fc', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 20, padding: '2px 9px' }}>
+              Turnout × Party-Share
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', paddingLeft: 26 }}>
+            Drag either spectrum to project vote receivables · base {fmt(SIM_TOTAL_VOTERS)} assumed voters (post-SIR)
+          </div>
+        </div>
+        {!isDefault && (
+          <button onClick={reset} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 7, padding: '6px 12px', cursor: 'pointer',
+            fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)',
+          }}>
+            ↺ Reset to base ({SIM_TURNOUT_DEFAULT}% / {SIM_BJPSHARE_DEFAULT}%)
+          </button>
+        )}
+      </div>
+
+      <div style={{ padding: '20px 20px 22px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+        {/* ── Sliders ──────────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 22 : 32 }}>
+          <SpectrumSlider
+            label="Voter Turnout Ratio"
+            hint="Share of assumed voters who actually cast a vote"
+            value={turnout} min={SIM_TURNOUT_MIN} max={SIM_TURNOUT_MAX}
+            gradient="linear-gradient(90deg,#ef4444,#f59e0b,#22d3ee,#10b981)"
+            accent="#22d3ee"
+            onChange={setTurnout}
+          />
+          <SpectrumSlider
+            label="Party Vote Ratio (BJP Share)"
+            hint="Of votes polled, share received by BJP — remainder to Congress"
+            value={bjpShare} min={SIM_BJPSHARE_MIN} max={SIM_BJPSHARE_MAX}
+            gradient="linear-gradient(90deg,#fbbf24,#f97316,#ea580c)"
+            accent="#f97316"
+            onChange={setBjpShare}
+          />
+        </div>
+
+        {/* ── KPI strip ────────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 10 }}>
+          {[
+            { label: 'Assumed Voters', value: fmt(SIM_TOTAL_VOTERS), color: '#a5b4fc' },
+            { label: 'Votes Polled',   value: fmt(votesPolled),      color: '#22d3ee' },
+            { label: 'BJP Votes',      value: fmt(bjpVotes),         color: '#f97316' },
+            { label: 'Congress Votes', value: fmt(congVotes),        color: '#10b981' },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${color}22`, borderRadius: 12, padding: '12px 14px' }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color, letterSpacing: '-0.4px', fontVariantNumeric: 'tabular-nums', transition: 'color 0.3s' }}>{value}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginTop: 2 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Stacked projection bar ──────────────────────────────────────── */}
+        <div>
+          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 30, boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
+            <div style={{
+              width: `${bjpShare}%`, background: 'linear-gradient(135deg,#fb923c,#f97316)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 800, color: '#fff', transition: 'width 0.35s ease',
+            }}>
+              {bjpShare >= 20 ? `BJP ${bjpShare.toFixed(1)}%` : ''}
+            </div>
+            <div style={{
+              width: `${congShare}%`, background: 'linear-gradient(135deg,#10b981,#059669)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 800, color: '#fff', transition: 'width 0.35s ease',
+            }}>
+              {congShare >= 20 ? `INC ${congShare.toFixed(1)}%` : ''}
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+            <span>SDPI (spoiler estimate, off BJP's own base): <b style={{ color: '#c4b5fd' }}>{fmt(sdpiVotes)} votes</b></span>
+            <span>Votes polled: <b style={{ color: 'rgba(255,255,255,0.6)' }}>{fmt(votesPolled)}</b></span>
+          </div>
+        </div>
+
+        {/* ── Win/Loss verdict ─────────────────────────────────────────────── */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
+          background: bjpWin ? 'rgba(249,115,22,0.1)' : 'rgba(16,185,129,0.1)',
+          border: `1px solid ${bjpWin ? 'rgba(249,115,22,0.3)' : 'rgba(16,185,129,0.3)'}`,
+          borderRadius: 12, padding: '14px 18px', transition: 'background 0.35s, border-color 0.35s',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>{bjpWin ? '🚩' : '🏳️'}</span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: bjpWin ? '#fb923c' : '#34d399' }}>
+                {bjpWin ? 'BJP' : 'CONGRESS'} — Projected Win
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                Margin of {marginPct.toFixed(1)}% · {fmt(marginVotes)} votes
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>at {turnout.toFixed(1)}% turnout · {bjpShare.toFixed(1)}% BJP share</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 const CAT_INFO = {
   NEW:        { emoji:'➕', why:'Present in 2025 but absent from 2002 — new generation voter or migrant' },
   DELETED:    { emoji:'🗑', why:'Was in 2002 but removed from 2025 — death, migration out, or data cleanup' },
@@ -4437,6 +4624,9 @@ export default function SIR() {
         {/* Progeny Family Tree Intelligence — from Excel report */}
         <ProgenyAnalysisDashboard />
 
+        {/* Vote Simulator — Turnout × Party-Share Projection */}
+        <VoteSimulator />
+
       </div>
 
       <style>{`
@@ -4457,6 +4647,28 @@ export default function SIR() {
           .sir-filter-input { max-width: 100% !important; }
           .sir-bulk-wrap { flex-direction: column !important; align-items: flex-start !important; }
         }
+        .sim-slider { -webkit-appearance: none; appearance: none; }
+        .sim-slider::-webkit-slider-runnable-track { -webkit-appearance: none; background: transparent; height: 8px; }
+        .sim-slider::-webkit-slider-thumb {
+          -webkit-appearance: none; appearance: none;
+          width: 22px; height: 22px; border-radius: 50%;
+          background: #fff; border: 3px solid #6366f1;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 4px rgba(99,102,241,0.18);
+          cursor: pointer; margin-top: -7px;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .sim-slider::-webkit-slider-thumb:hover,
+        .sim-slider::-webkit-slider-thumb:active { transform: scale(1.18); box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 0 6px rgba(99,102,241,0.22); }
+        .sim-slider::-moz-range-track { background: transparent; height: 8px; border: none; }
+        .sim-slider::-moz-range-thumb {
+          width: 22px; height: 22px; border-radius: 50%;
+          background: #fff; border: 3px solid #6366f1;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+          cursor: pointer; transition: transform 0.15s ease;
+        }
+        .sim-slider::-moz-range-thumb:hover { transform: scale(1.18); }
+        .sim-slider:focus { outline: none; }
+        .sim-slider:focus::-webkit-slider-thumb { box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 6px rgba(99,102,241,0.3); }
       `}</style>
     </div>
   );
