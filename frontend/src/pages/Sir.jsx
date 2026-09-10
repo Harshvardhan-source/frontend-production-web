@@ -4393,17 +4393,33 @@ function SIRFilterBar({ ward, booth, onWardChange, onBoothChange }) {
   );
 }
 
-// ─── Vote Simulator — Turnout × Party-Share Projection ────────────────────────
-// Base numbers = "ASSUMING TOTAL VOTER COUNT" (I2+I3+I4) from the SIR drop-off
-// model, summed across the Hindu/Muslim/Christian-majority booth clusters.
-// Party split mirrors the sheet's own formula (M8/N8/O8 on the Hindu-majority
-// cluster): BJP = votes polled × BJP-share slider · SDPI = BJP votes × 1%
-// (the sheet computes SDPI as a slice carved out of BJP's own tally, not the
-// total pool) · Congress = votes polled − BJP votes.
-const SIM_TOTAL_VOTERS   = 258944; // I2 + I3 + I4
-const SIM_SDPI_OF_BJP    = 1;      // N = M * 1%, per sheet formula
-const SIM_TURNOUT_MIN    = 50, SIM_TURNOUT_MAX  = 80, SIM_TURNOUT_DEFAULT  = 56.5;
-const SIM_BJPSHARE_MIN   = 65, SIM_BJPSHARE_MAX = 80, SIM_BJPSHARE_DEFAULT = 70;
+// ─── Vote Simulator — Community Turnout × Party-Share Projection ──────────────
+// The sheet's three zone rows (TOTAL H / TOTAL M / TOTAL C) are Hindu-,
+// Muslim- and Christian-majority booth clusters, each with its own turnout
+// and its own party split — so a single city-wide turnout number hides the
+// real lever: BJP's result rides almost entirely on Hindu turnout + Hindu
+// vote-share, while the Muslim and Christian clusters are structurally
+// Congress/SDPI (per the sheet's own N3/O3/O4 formulas). Each zone gets its
+// own turnout spectrum; the BJP-share spectrum applies to the Hindu zone only
+// (mirrors M8 on that row) — Muslim/Christian keep the sheet's own fixed
+// split (SDPI 20% of Muslim-zone votes; BJP 1% of Christian-zone votes).
+//   Hindu zone:     BJP = polled × BJP-share · SDPI = BJP × 1% (informational
+//                   slice of BJP's own tally, sheet formula N2 = M2*1%) ·
+//                   Congress = polled − BJP
+//   Muslim zone:    SDPI = polled × 20% (sheet formula N3) · Congress = polled − SDPI
+//   Christian zone: BJP = polled × 1% (sheet formula M4) · Congress = polled − BJP
+const SIM_ZONES = [
+  { key: 'hindu',     label: 'Hindu-Majority Booths',     totalVoters: 163457, baseTurnout: 62.8, accent: '#fb923c' }, // I2, K2
+  { key: 'muslim',    label: 'Muslim-Majority Booths',    totalVoters: 50855,  baseTurnout: 51.9, accent: '#a78bfa' }, // I3, K3
+  { key: 'christian', label: 'Christian-Majority Booths', totalVoters: 44632,  baseTurnout: 54.4, accent: '#38bdf8' }, // I4, K4
+];
+const SIM_TOTAL_VOTERS      = SIM_ZONES.reduce((s, z) => s + z.totalVoters, 0); // 258,944
+const SIM_SDPI_OF_HINDU_BJP = 1;  // N2 = M2 * 1% — informational, not subtracted from Congress
+const SIM_MUSLIM_SDPI_SHARE = 20; // N3 = L3 * 20% — real slice, subtracted from Congress
+const SIM_CHRISTIAN_BJP_SHARE = 1; // M4 = L4 * 1%
+const SIM_TURNOUT_MIN       = 50, SIM_TURNOUT_MAX  = 80;
+const SIM_BJPSHARE_MIN      = 65, SIM_BJPSHARE_MAX = 85, SIM_BJPSHARE_DEFAULT = 70;
+const SIM_TURNOUT_DEFAULT   = Object.fromEntries(SIM_ZONES.map(z => [z.key, z.baseTurnout]));
 
 function SpectrumSlider({ label, hint, value, min, max, step = 0.5, unit = '%', gradient, accent, onChange }) {
   return (
@@ -4433,16 +4449,38 @@ function SpectrumSlider({ label, hint, value, min, max, step = 0.5, unit = '%', 
 function VoteSimulator() {
   const [turnout, setTurnout]   = useState(SIM_TURNOUT_DEFAULT);
   const [bjpShare, setBjpShare] = useState(SIM_BJPSHARE_DEFAULT);
+  const setZoneTurnout = (key, val) => setTurnout(t => ({ ...t, [key]: val }));
 
-  const votesPolled = SIM_TOTAL_VOTERS * (turnout / 100);
-  const congShare    = 100 - bjpShare;
-  const bjpVotes      = votesPolled * (bjpShare / 100);
-  const congVotes     = votesPolled * (congShare / 100);
-  const sdpiVotes      = bjpVotes * (SIM_SDPI_OF_BJP / 100);
-  const bjpWin        = bjpVotes >= congVotes;
-  const marginVotes    = Math.abs(bjpVotes - congVotes);
-  const marginPct      = Math.abs(bjpShare - congShare);
-  const isDefault      = turnout === SIM_TURNOUT_DEFAULT && bjpShare === SIM_BJPSHARE_DEFAULT;
+  const zoneResults = SIM_ZONES.map(z => {
+    const t = turnout[z.key];
+    const polled = z.totalVoters * (t / 100);
+    let bjp, sdpi, cong;
+    if (z.key === 'hindu') {
+      bjp  = polled * (bjpShare / 100);
+      sdpi = bjp * (SIM_SDPI_OF_HINDU_BJP / 100); // informational only — not subtracted
+      cong = polled - bjp;
+    } else if (z.key === 'muslim') {
+      sdpi = polled * (SIM_MUSLIM_SDPI_SHARE / 100);
+      cong = polled - sdpi;
+      bjp  = 0;
+    } else {
+      bjp  = polled * (SIM_CHRISTIAN_BJP_SHARE / 100);
+      cong = polled - bjp;
+      sdpi = 0;
+    }
+    return { ...z, turnout: t, polled, bjp, sdpi, cong };
+  });
+
+  const votesPolled = zoneResults.reduce((s, z) => s + z.polled, 0);
+  const bjpVotes     = zoneResults.reduce((s, z) => s + z.bjp,    0);
+  const congVotes    = zoneResults.reduce((s, z) => s + z.cong,   0);
+  const sdpiVotes    = zoneResults.reduce((s, z) => s + z.sdpi,   0);
+  const bjpSharePct  = votesPolled ? (bjpVotes  / votesPolled) * 100 : 0;
+  const congSharePct = votesPolled ? (congVotes / votesPolled) * 100 : 0;
+  const bjpWin       = bjpVotes >= congVotes;
+  const marginVotes  = Math.abs(bjpVotes - congVotes);
+  const marginPct    = votesPolled ? (marginVotes / votesPolled) * 100 : 0;
+  const isDefault    = SIM_ZONES.every(z => turnout[z.key] === z.baseTurnout) && bjpShare === SIM_BJPSHARE_DEFAULT;
 
   const reset = () => { setTurnout(SIM_TURNOUT_DEFAULT); setBjpShare(SIM_BJPSHARE_DEFAULT); };
   const fmt = n => Math.round(n).toLocaleString('en-IN');
@@ -4472,11 +4510,11 @@ function VoteSimulator() {
             </span>
             <span style={{ fontSize: 16, fontWeight: 800, color: '#c7d2fe', letterSpacing: '-0.3px' }}>Vote Simulator</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#a5b4fc', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 20, padding: '2px 9px' }}>
-              Turnout × Party-Share
+              Community Turnout × Party-Share
             </span>
           </div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', paddingLeft: 26 }}>
-            Drag either spectrum to project vote receivables · base {fmt(SIM_TOTAL_VOTERS)} assumed voters (post-SIR)
+            Drag any spectrum to project vote receivables · base {fmt(SIM_TOTAL_VOTERS)} assumed voters across Hindu/Muslim/Christian-majority booths (post-SIR)
           </div>
         </div>
         {!isDefault && (
@@ -4486,26 +4524,38 @@ function VoteSimulator() {
             borderRadius: 7, padding: '6px 12px', cursor: 'pointer',
             fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)',
           }}>
-            ↺ Reset to base ({SIM_TURNOUT_DEFAULT}% / {SIM_BJPSHARE_DEFAULT}%)
+            ↺ Reset to base
           </button>
         )}
       </div>
 
       <div style={{ padding: '20px 20px 22px', display: 'flex', flexDirection: 'column', gap: 22 }}>
 
-        {/* ── Sliders ──────────────────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 22 : 32 }}>
+        {/* ── Community turnout spectrums ─────────────────────────────────── */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+            Voter Turnout Ratio — by community-majority booths
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: isMobile ? 22 : 24 }}>
+            {SIM_ZONES.map(z => (
+              <SpectrumSlider
+                key={z.key}
+                label={z.label}
+                hint={`${fmt(z.totalVoters)} assumed voters · base ${z.baseTurnout}%`}
+                value={turnout[z.key]} min={SIM_TURNOUT_MIN} max={SIM_TURNOUT_MAX}
+                gradient="linear-gradient(90deg,#ef4444,#f59e0b,#22d3ee,#10b981)"
+                accent={z.accent}
+                onChange={v => setZoneTurnout(z.key, v)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* ── Party vote ratio (BJP share of Hindu-zone vote) ─────────────── */}
+        <div style={{ paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <SpectrumSlider
-            label="Voter Turnout Ratio"
-            hint="Share of assumed voters who actually cast a vote"
-            value={turnout} min={SIM_TURNOUT_MIN} max={SIM_TURNOUT_MAX}
-            gradient="linear-gradient(90deg,#ef4444,#f59e0b,#22d3ee,#10b981)"
-            accent="#22d3ee"
-            onChange={setTurnout}
-          />
-          <SpectrumSlider
-            label="Party Vote Ratio (BJP Share)"
-            hint="Of votes polled, share received by BJP — remainder to Congress"
+            label="Party Vote Ratio — BJP Share of Hindu-Majority Vote"
+            hint="Congress takes the remainder in this zone. Muslim zone stays SDPI 20% / INC 80%, Christian zone BJP 1% / INC 99%, per the sheet's own formulas."
             value={bjpShare} min={SIM_BJPSHARE_MIN} max={SIM_BJPSHARE_MAX}
             gradient="linear-gradient(90deg,#fbbf24,#f97316,#ea580c)"
             accent="#f97316"
@@ -4516,10 +4566,10 @@ function VoteSimulator() {
         {/* ── KPI strip ────────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 10 }}>
           {[
-            { label: 'Assumed Voters', value: fmt(SIM_TOTAL_VOTERS), color: '#a5b4fc' },
-            { label: 'Votes Polled',   value: fmt(votesPolled),      color: '#22d3ee' },
-            { label: 'BJP Votes',      value: fmt(bjpVotes),         color: '#f97316' },
-            { label: 'Congress Votes', value: fmt(congVotes),        color: '#10b981' },
+            { label: 'Votes Polled',   value: fmt(votesPolled), color: '#22d3ee' },
+            { label: 'BJP Votes',      value: fmt(bjpVotes),    color: '#f97316' },
+            { label: 'Congress Votes', value: fmt(congVotes),   color: '#10b981' },
+            { label: 'SDPI Votes',     value: fmt(sdpiVotes),   color: '#c4b5fd' },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${color}22`, borderRadius: 12, padding: '12px 14px' }}>
               <div style={{ fontSize: 17, fontWeight: 800, color, letterSpacing: '-0.4px', fontVariantNumeric: 'tabular-nums', transition: 'color 0.3s' }}>{value}</div>
@@ -4528,26 +4578,59 @@ function VoteSimulator() {
           ))}
         </div>
 
+        {/* ── Zone-wise breakdown ──────────────────────────────────────────── */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                {['Zone', 'Turnout', 'Polled', 'BJP', 'SDPI', 'Congress'].map((h, i) => (
+                  <th key={h} style={{ textAlign: i === 0 ? 'left' : 'right', padding: '6px 8px', color: 'rgba(255,255,255,0.35)', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {zoneResults.map(z => (
+                <tr key={z.key} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <td style={{ padding: '7px 8px', color: z.accent, fontWeight: 700 }}>{z.label}</td>
+                  <td style={{ padding: '7px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.6)' }}>{z.turnout.toFixed(1)}%</td>
+                  <td style={{ padding: '7px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.6)' }}>{fmt(z.polled)}</td>
+                  <td style={{ padding: '7px 8px', textAlign: 'right', color: '#f97316', fontWeight: 700 }}>{fmt(z.bjp)}</td>
+                  <td style={{ padding: '7px 8px', textAlign: 'right', color: '#c4b5fd', fontWeight: 700 }}>{fmt(z.sdpi)}</td>
+                  <td style={{ padding: '7px 8px', textAlign: 'right', color: '#10b981', fontWeight: 700 }}>{fmt(z.cong)}</td>
+                </tr>
+              ))}
+              <tr>
+                <td style={{ padding: '7px 8px', color: 'rgba(255,255,255,0.8)', fontWeight: 800 }}>Total</td>
+                <td />
+                <td style={{ padding: '7px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.8)', fontWeight: 800 }}>{fmt(votesPolled)}</td>
+                <td style={{ padding: '7px 8px', textAlign: 'right', color: '#f97316', fontWeight: 800 }}>{fmt(bjpVotes)}</td>
+                <td style={{ padding: '7px 8px', textAlign: 'right', color: '#c4b5fd', fontWeight: 800 }}>{fmt(sdpiVotes)}</td>
+                <td style={{ padding: '7px 8px', textAlign: 'right', color: '#10b981', fontWeight: 800 }}>{fmt(congVotes)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         {/* ── Stacked projection bar ──────────────────────────────────────── */}
         <div>
           <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 30, boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
             <div style={{
-              width: `${bjpShare}%`, background: 'linear-gradient(135deg,#fb923c,#f97316)',
+              width: `${bjpSharePct}%`, background: 'linear-gradient(135deg,#fb923c,#f97316)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 12, fontWeight: 800, color: '#fff', transition: 'width 0.35s ease',
             }}>
-              {bjpShare >= 20 ? `BJP ${bjpShare.toFixed(1)}%` : ''}
+              {bjpSharePct >= 20 ? `BJP ${bjpSharePct.toFixed(1)}%` : ''}
             </div>
             <div style={{
-              width: `${congShare}%`, background: 'linear-gradient(135deg,#10b981,#059669)',
+              width: `${congSharePct}%`, background: 'linear-gradient(135deg,#10b981,#059669)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 12, fontWeight: 800, color: '#fff', transition: 'width 0.35s ease',
             }}>
-              {congShare >= 20 ? `INC ${congShare.toFixed(1)}%` : ''}
+              {congSharePct >= 20 ? `INC ${congSharePct.toFixed(1)}%` : ''}
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-            <span>SDPI (spoiler estimate, off BJP's own base): <b style={{ color: '#c4b5fd' }}>{fmt(sdpiVotes)} votes</b></span>
+            <span>SDPI: <b style={{ color: '#c4b5fd' }}>{fmt(sdpiVotes)} votes</b> (spoiler off BJP's Hindu-zone base + 20% of Muslim-zone votes)</span>
             <span>Votes polled: <b style={{ color: 'rgba(255,255,255,0.6)' }}>{fmt(votesPolled)}</b></span>
           </div>
         </div>
@@ -4571,7 +4654,9 @@ function VoteSimulator() {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>at {turnout.toFixed(1)}% turnout · {bjpShare.toFixed(1)}% BJP share</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+              H {turnout.hindu.toFixed(1)}% · M {turnout.muslim.toFixed(1)}% · C {turnout.christian.toFixed(1)}% turnout · {bjpShare.toFixed(1)}% BJP share
+            </div>
           </div>
         </div>
 

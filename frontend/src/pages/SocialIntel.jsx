@@ -10,13 +10,13 @@ import usePolling from '../hooks/usePolling';
 const RISK_COLOR = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' };
 const SENTIMENT_COLOR = { positive: '#10b981', neutral: '#9badc8', negative: '#ef4444' };
 const QUADRANT_COLOR = { strength: '#10b981', weakness: '#ef4444', opportunity: '#22d3ee', threat: '#f59e0b' };
-const PLATFORM_LABEL = { youtube: 'YouTube', news: 'News', x: 'X', instagram: 'Instagram', facebook: 'Facebook' };
+const PLATFORM_LABEL = { youtube: 'YouTube', news: 'News', web: 'Web', x: 'X', instagram: 'Instagram', facebook: 'Facebook' };
 const BIG_ACCOUNT_THRESHOLD = 10000;
 
 const CATEGORY_OPTIONS = ['political_statement', 'project_statement', 'protest', 'administrative', 'single_statement', 'other'];
 const SENTIMENT_OPTIONS = ['positive', 'neutral', 'negative'];
 const RISK_OPTIONS = ['low', 'medium', 'high'];
-const PLATFORM_OPTIONS = ['youtube', 'news', 'x', 'instagram', 'facebook'];
+const PLATFORM_OPTIONS = ['youtube', 'news', 'web', 'x', 'instagram', 'facebook'];
 
 function timeAgo(iso) {
   if (!iso) return '—';
@@ -196,6 +196,75 @@ function SwotBoard({ swot, perspective, setPerspective, loading }) {
           );
         })}
       </div>
+    </SectionCard>
+  );
+}
+
+// ── Consolidated report ─────────────────────────────────────────────────────
+
+function ReportCase({ post }) {
+  const risk = RISK_COLOR[post.risk_level] || '#9badc8';
+  return (
+    <div style={{
+      display: 'flex', gap: 10, borderLeft: `3px solid ${risk}`, background: 'rgba(255,255,255,0.02)',
+      borderRadius: 8, padding: 10,
+    }}>
+      {post.image_url && (
+        <img src={post.image_url} alt="" style={{
+          width: 64, height: 64, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: 'var(--bg-surface)',
+        }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+      )}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 3 }}>
+          <Pill color="#9badc8">{PLATFORM_LABEL[post.platform] || post.platform}</Pill>
+          {post.post_type === 'video' && <Pill color="#22d3ee">clip</Pill>}
+          <Pill color={risk}>{post.risk_level}</Pill>
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.4 }}>
+          {post.summary || (post.text || '').slice(0, 140)}
+        </div>
+        {post.media_url && (
+          <a href={post.media_url} target="_blank" rel="noreferrer" style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
+            source ↗
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReportPanel({ report, loading }) {
+  return (
+    <SectionCard
+      title="Consolidated briefing"
+      subtitle="Text, images, and video clips grouped by issue — AI-assessed, refreshed every 30 min"
+    >
+      {loading && !report ? (
+        <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Building briefing…</div>
+      ) : !report?.groups?.length ? (
+        <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Nothing to report yet — sync to pull in content.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {report.groups.map((g) => (
+            <div key={g.category}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-1)', textTransform: 'capitalize' }}>
+                  {g.category.replace('_', ' ')}
+                </span>
+                <Pill color="#9badc8">{g.count} items</Pill>
+              </div>
+              {g.overview && (
+                <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 8 }}>
+                  {g.overview}
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {g.highlighted_cases.map((p) => <ReportCase key={p._id} post={p} />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </SectionCard>
   );
 }
@@ -399,6 +468,8 @@ export default function SocialIntel() {
   const [swotLoading, setSwotLoading] = useState(false);
   const [perspective, setPerspective] = useState('political');
   const [outrage, setOutrage] = useState(null);
+  const [report, setReport] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
   const [jobsActive, setJobsActive] = useState(0);
   const [syncing, setSyncing] = useState(false);
 
@@ -416,6 +487,10 @@ export default function SocialIntel() {
   }, []);
   const loadOutrage = useCallback(() => {
     socialMediaApi.outrage().then(({ data }) => setOutrage(data)).catch(() => {});
+  }, []);
+  const loadReport = useCallback(() => {
+    setReportLoading(true);
+    socialMediaApi.report().then(({ data }) => setReport(data)).catch(() => {}).finally(() => setReportLoading(false));
   }, []);
   const loadJobsStatus = useCallback(() => {
     socialMediaApi.jobsStatus().then(({ data }) => setJobsActive(data.active || 0)).catch(() => {});
@@ -439,7 +514,7 @@ export default function SocialIntel() {
       .finally(() => setFeedLoading(false));
   }, []);
 
-  useEffect(() => { loadOverview(); loadSources(); loadOutrage(); }, [loadOverview, loadSources, loadOutrage]);
+  useEffect(() => { loadOverview(); loadSources(); loadOutrage(); loadReport(); }, [loadOverview, loadSources, loadOutrage, loadReport]);
   useEffect(() => { loadSwot(perspective); }, [perspective, loadSwot]);
   useEffect(() => { setFeedPage(1); loadFeed(1, filters); }, [filters, loadFeed]);
 
@@ -451,7 +526,7 @@ export default function SocialIntel() {
     setSyncing(true);
     socialMediaApi.sync()
       .then(() => {
-        setTimeout(() => { loadOverview(); loadFeed(1, filters); loadOutrage(); }, 4000);
+        setTimeout(() => { loadOverview(); loadFeed(1, filters); loadOutrage(); loadReport(); }, 4000);
       })
       .finally(() => setTimeout(() => setSyncing(false), 2000));
   };
@@ -462,6 +537,7 @@ export default function SocialIntel() {
     <div style={{ maxWidth: 980, margin: '0 auto', padding: '16px 14px 90px' }}>
       <KpiStrip overview={overview} onSync={handleSync} syncing={syncing} lastSynced={lastSyncedTimes[0]} />
       <SourcesPanel sources={sources} />
+      <ReportPanel report={report} loading={reportLoading} />
       <SwotBoard swot={swot} perspective={perspective} setPerspective={setPerspective} loading={swotLoading} />
       <OutragePanel outrage={outrage} />
       <Feed

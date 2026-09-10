@@ -460,6 +460,7 @@ export const socialMediaApi = {
   post:       (id)           => api.get(`/api/social/post/${id}/`),
   swot:       (perspective)  => api.get('/api/social/swot/', { params: { perspective } }),
   outrage:    ()             => api.get('/api/social/outrage/'),
+  report:     ()             => api.get('/api/social/report/'),
   jobsStatus: ()             => api.get('/api/social/jobs/status/'),
   sync:       ()             => api.post('/api/social/sync/'),
   sources:    ()             => api.get('/api/social/sources/'),
