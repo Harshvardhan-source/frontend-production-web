@@ -160,36 +160,55 @@ export const SIR_HEADLINE_FINDINGS = [
 ];
 
 // File 3 "Congress Booth Targeting" (24 booths inside the 5 critical wards),
-// merged with File 1's "SDPI Vote-Split Risk" (congressRiskTier/congressAction)
-// and File 2's "Fragmentation Advantage" (bjpResourceGuidance) for the 10
-// tracked Congress-leaning booths. BJP-heavy booths have no community-model
-// overlay — those two files only modelled the already-Congress-leaning booths.
+// merged with File 1's "SDPI Vote-Split Risk" (congressRiskTier/congressAction/
+// flipsAt) and File 2's "Fragmentation Advantage" (bjpResourceGuidance/
+// bjpExtraVotesNeeded) for the 10 tracked Congress-leaning booths. BJP-heavy
+// booths have no community-model overlay — those two files only modelled the
+// already-Congress-leaning booths.
 export const SIR_BOOTH_TARGETING = [
-  { ward: 'KADRI SOUTH', booth: 57, totalVoters: 1386, bjpPct: '41.6%', congressPct: '56.8%', marginPp: -15.2, priority: 'Congress-leaning', congressRiskTier: 'MODERATE', congressAction: 'Monitor SDPI candidate strength locally; prepare consolidation messaging as contingency', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only' },
-  { ward: 'KADRI SOUTH', booth: 61, totalVoters: 1425, bjpPct: '46.4%', congressPct: '51.2%', marginPp: -4.8, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only' },
+  { ward: 'KADRI SOUTH', booth: 57, totalVoters: 1386, bjpPct: '41.6%', congressPct: '56.8%', marginPp: -15.2, priority: 'Congress-leaning', congressRiskTier: 'MODERATE', flipsAt: 'Flips at MID-range (~20%) leakage', congressAction: 'Monitor SDPI candidate strength locally; prepare consolidation messaging as contingency', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only', bjpExtraVotesNeeded: 0 },
+  { ward: 'KADRI SOUTH', booth: 61, totalVoters: 1425, bjpPct: '46.4%', congressPct: '51.2%', marginPp: -4.8, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', flipsAt: 'Flips even at LOW-end (15%) leakage', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only', bjpExtraVotesNeeded: 0 },
   { ward: 'KADRI SOUTH', booth: 60, totalVoters: 1400, bjpPct: '72.6%', congressPct: '25.8%', marginPp: 46.9, priority: 'BJP-heavy' },
   { ward: 'KADRI SOUTH', booth: 59, totalVoters: 972, bjpPct: '76.0%', congressPct: '21.8%', marginPp: 54.2, priority: 'BJP-heavy' },
-  { ward: 'ATTAVARA', booth: 242, totalVoters: 1008, bjpPct: '26.4%', congressPct: '73.1%', marginPp: -46.7, priority: 'Congress-leaning', congressRiskTier: 'LOWER RISK', congressAction: 'Standard consolidate/protect-turnout approach remains adequate', bjpResourceGuidance: 'Genuine persuasion target — allocate real spend' },
-  { ward: 'ATTAVARA', booth: 221, totalVoters: 1018, bjpPct: '45.6%', congressPct: '53.1%', marginPp: -7.5, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only' },
-  { ward: 'ATTAVARA', booth: 222, totalVoters: 1092, bjpPct: '48.9%', congressPct: '49.2%', marginPp: -0.3, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only' },
+  { ward: 'ATTAVARA', booth: 242, totalVoters: 1008, bjpPct: '26.4%', congressPct: '73.1%', marginPp: -46.7, priority: 'Congress-leaning', congressRiskTier: 'LOWER RISK', flipsAt: 'Safe within assumed range', congressAction: 'Standard consolidate/protect-turnout approach remains adequate', bjpResourceGuidance: 'Genuine persuasion target — allocate real spend', bjpExtraVotesNeeded: 168 },
+  { ward: 'ATTAVARA', booth: 221, totalVoters: 1018, bjpPct: '45.6%', congressPct: '53.1%', marginPp: -7.5, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', flipsAt: 'Flips even at LOW-end (15%) leakage', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only', bjpExtraVotesNeeded: 0 },
+  { ward: 'ATTAVARA', booth: 222, totalVoters: 1092, bjpPct: '48.9%', congressPct: '49.2%', marginPp: -0.3, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', flipsAt: 'Flips even at LOW-end (15%) leakage', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only', bjpExtraVotesNeeded: 0 },
   { ward: 'ATTAVARA', booth: 152, totalVoters: 694, bjpPct: '59.2%', congressPct: '40.2%', marginPp: 19, priority: 'BJP-heavy' },
   { ward: 'ATTAVARA', booth: 243, totalVoters: 964, bjpPct: '59.6%', congressPct: '38.1%', marginPp: 21.5, priority: 'BJP-heavy' },
   { ward: 'ATTAVARA', booth: 153, totalVoters: 883, bjpPct: '66.7%', congressPct: '31.8%', marginPp: 35, priority: 'BJP-heavy' },
   { ward: 'ATTAVARA', booth: 151, totalVoters: 967, bjpPct: '73.6%', congressPct: '25.0%', marginPp: 48.6, priority: 'BJP-heavy' },
-  { ward: 'PADAVU POORVA', booth: 36, totalVoters: 1558, bjpPct: '45.6%', congressPct: '52.4%', marginPp: -6.8, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only' },
-  { ward: 'PADAVU POORVA', booth: 40, totalVoters: 1597, bjpPct: '47.2%', congressPct: '50.2%', marginPp: -3, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only' },
+  { ward: 'PADAVU POORVA', booth: 36, totalVoters: 1558, bjpPct: '45.6%', congressPct: '52.4%', marginPp: -6.8, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', flipsAt: 'Flips even at LOW-end (15%) leakage', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only', bjpExtraVotesNeeded: 0 },
+  { ward: 'PADAVU POORVA', booth: 40, totalVoters: 1597, bjpPct: '47.2%', congressPct: '50.2%', marginPp: -3, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', flipsAt: 'Flips even at LOW-end (15%) leakage', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only', bjpExtraVotesNeeded: 0 },
   { ward: 'PADAVU POORVA', booth: 37, totalVoters: 1049, bjpPct: '64.8%', congressPct: '32.4%', marginPp: 32.4, priority: 'BJP-heavy' },
-  { ward: 'MANGALADEVI', booth: 147, totalVoters: 1071, bjpPct: '30.0%', congressPct: '68.8%', marginPp: -38.7, priority: 'Congress-leaning', congressRiskTier: 'LOWER RISK', congressAction: 'Standard consolidate/protect-turnout approach remains adequate', bjpResourceGuidance: 'Genuine persuasion target — allocate real spend' },
-  { ward: 'MANGALADEVI', booth: 223, totalVoters: 809, bjpPct: '46.8%', congressPct: '52.0%', marginPp: -5.2, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only' },
+  { ward: 'MANGALADEVI', booth: 147, totalVoters: 1071, bjpPct: '30.0%', congressPct: '68.8%', marginPp: -38.7, priority: 'Congress-leaning', congressRiskTier: 'LOWER RISK', flipsAt: 'Safe within assumed range', congressAction: 'Standard consolidate/protect-turnout approach remains adequate', bjpResourceGuidance: 'Genuine persuasion target — allocate real spend', bjpExtraVotesNeeded: 94 },
+  { ward: 'MANGALADEVI', booth: 223, totalVoters: 809, bjpPct: '46.8%', congressPct: '52.0%', marginPp: -5.2, priority: 'Congress-leaning', congressRiskTier: 'EXTREME/HIGH', flipsAt: 'Flips even at LOW-end (15%) leakage', congressAction: 'Direct minority-consolidation campaign vs SDPI messaging — do not rely on generic GOTV', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only', bjpExtraVotesNeeded: 0 },
   { ward: 'MANGALADEVI', booth: 224, totalVoters: 1048, bjpPct: '55.3%', congressPct: '43.3%', marginPp: 11.9, priority: 'BJP-heavy' },
   { ward: 'MANGALADEVI', booth: 227, totalVoters: 1018, bjpPct: '58.5%', congressPct: '39.8%', marginPp: 18.7, priority: 'BJP-heavy' },
   { ward: 'MANGALADEVI', booth: 228, totalVoters: 945, bjpPct: '65.3%', congressPct: '32.9%', marginPp: 32.4, priority: 'BJP-heavy' },
   { ward: 'MANGALADEVI', booth: 226, totalVoters: 1216, bjpPct: '68.5%', congressPct: '29.1%', marginPp: 39.4, priority: 'BJP-heavy' },
-  { ward: 'HOIGE BAZAR', booth: 229, totalVoters: 1368, bjpPct: '39.6%', congressPct: '59.5%', marginPp: -19.9, priority: 'Congress-leaning', congressRiskTier: 'MODERATE', congressAction: 'Monitor SDPI candidate strength locally; prepare consolidation messaging as contingency', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only' },
+  { ward: 'HOIGE BAZAR', booth: 229, totalVoters: 1368, bjpPct: '39.6%', congressPct: '59.5%', marginPp: -19.9, priority: 'Congress-leaning', congressRiskTier: 'MODERATE', flipsAt: 'Flips at MID-range (~20%) leakage', congressAction: 'Monitor SDPI candidate strength locally; prepare consolidation messaging as contingency', bjpResourceGuidance: 'Fragmentation-secured — protect turnout only', bjpExtraVotesNeeded: 0 },
   { ward: 'HOIGE BAZAR', booth: 233, totalVoters: 1301, bjpPct: '55.7%', congressPct: '42.7%', marginPp: 13, priority: 'BJP-heavy' },
   { ward: 'HOIGE BAZAR', booth: 232, totalVoters: 1105, bjpPct: '59.7%', congressPct: '39.3%', marginPp: 20.4, priority: 'BJP-heavy' },
   { ward: 'HOIGE BAZAR', booth: 239, totalVoters: 1231, bjpPct: '60.0%', congressPct: '38.9%', marginPp: 21.1, priority: 'BJP-heavy' },
   { ward: 'HOIGE BAZAR', booth: 235, totalVoters: 932, bjpPct: '75.8%', congressPct: '23.0%', marginPp: 52.7, priority: 'BJP-heavy' },
+];
+
+// File 2 (BJP_Win_Strategy_Fragmentation_Analysis.xlsx) "Ward Prioritization
+// Matrix" sheet — a consolidated defense+offense view per critical ward that
+// was extracted separately from the other files but never surfaced in the UI.
+export const SIR_WARD_PRIORITIZATION = [
+  { ward: 'KADRI SOUTH', sirRiskFlag: 'CRITICAL', atRiskPoolPU: 363, fragmentationSecuredBooths: 2, genuineTargetBooths: 0, recommendation: 'Highest priority: resolve mapping/resubmission for 363 PU voters; both booths (57, 61) are fragmentation-secured — turnout protection only, no persuasion spend needed here.' },
+  { ward: 'ATTAVARA', sirRiskFlag: 'CRITICAL', atRiskPoolPU: 207, fragmentationSecuredBooths: 2, genuineTargetBooths: 1, recommendation: 'High priority: resolve mapping for 207 PU voters; 2 of 3 tracked booths are fragmentation-secured, but booth 242 is a genuine hard target (~168 extra votes) — deprioritise unless resources allow.' },
+  { ward: 'PADAVU POORVA', sirRiskFlag: 'CRITICAL', atRiskPoolPU: 96, fragmentationSecuredBooths: 2, genuineTargetBooths: 0, recommendation: 'High priority: resolve mapping for 96 PU voters; both tracked booths (36, 40) fragmentation-secured — turnout protection only.' },
+  { ward: 'MANGALADEVI', sirRiskFlag: 'CRITICAL', atRiskPoolPU: 153, fragmentationSecuredBooths: 1, genuineTargetBooths: 1, recommendation: 'High priority: resolve mapping for 153 PU voters; booth 223 fragmentation-secured, booth 147 is a genuine hard target (~94 extra votes) — lower ROI, deprioritise unless resources allow.' },
+  { ward: 'HOIGE BAZAR', sirRiskFlag: 'CRITICAL', atRiskPoolPU: 233, fragmentationSecuredBooths: 1, genuineTargetBooths: 0, recommendation: 'High priority: resolve mapping for 233 PU voters; tracked booth (229) fragmentation-secured — turnout protection only.' },
+];
+export const SIR_WARD_PRIORITIZATION_ACTION_PLAN = [
+  'DEFENSE FIRST: mapping/resubmission drives in all 5 CRITICAL wards, before roll freeze — protects existing BJP margin and is unaffected by the fragmentation dynamic (it\'s about BJP\'s own voters staying on the roll).',
+  'HOLD, DON\'T SPEND, in the 8 fragmentation-secured booths: a basic turnout-protection GOTV pass is enough; the Congress-SDPI split is already doing the persuasion work.',
+  'REDIRECT freed-up persuasion budget: either into the 2 genuine hard-target booths (Attavara 242, Mangaladevi 147), or into the 6 WATCH-tier wards from the ward risk ranking (Bejai, Kodialbail, Mannagudda, Derebail West/South, Padavu Central) where no fragmentation cushion exists.',
+  'MONITOR SDPI candidate strength each cycle: the fragmentation advantage is contingent on SDPI actually fielding and contesting seriously in these booths — if SDPI doesn\'t contest, the underlying Congress margin reappears and BJP would need real persuasion there after all.',
+  'KEEP HINDU-CONSOLIDATION MESSAGING RUNNING CONSTITUENCY-WIDE regardless of the above — it\'s the only lever that grows BJP\'s total vote share rather than just its margin in a handful of booths.',
 ];
 
 // Community population (constituency-wide, user-supplied) and the resulting
@@ -230,5 +249,6 @@ export const SIR_STRATEGY_CAVEATS = [
   'The model applies community vote-share assumptions to raw population, not to registered electors or projected turnout.',
   'No ward- or booth-level religious population data exists — the SDPI-leakage/fragmentation figures apply a constituency-wide assumption uniformly to every tracked booth, not a measured local count.',
   'The breakeven/fragmentation model assumes SDPI draws votes only from Congress\'s existing base in a booth, not from BJP or non-voters — if that assumption is wrong, real effects differ from what is modelled here.',
+  'Data-quality note carried over from the original source file (not introduced by this analysis): the booth-level BJP%/Congress% figures shown do not always arithmetically reconcile with the raw BJP-votes/Congress-votes columns from the same sheet (e.g. booth 57: 433 BJP votes ÷ 1,386 total = 31.2%, not the 41.6% shown) — treat the percentages as the source file\'s own stated figures, not a value independently recomputed from the vote counts.',
   'This is a resource-allocation and turnout/persuasion planning exercise, not a voter-suppression plan: it does not recommend discouraging anyone from voting, covertly funding a spoiler candidate, or targeting any community with anything other than standard GOTV/persuasion outreach.',
 ];

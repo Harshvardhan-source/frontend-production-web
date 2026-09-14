@@ -7,6 +7,7 @@ import {
 import {
   SIR_STRATEGY_SUMMARY, SIR_RISK_RANKING, SIR_RISK_RANKING_NOTES,
   SIR_CRITICAL_WARDS, SIR_BOOTH_TARGETING, SIR_WARD_DEMOGRAPHIC_PROFILE,
+  SIR_WARD_PRIORITIZATION, SIR_WARD_PRIORITIZATION_ACTION_PLAN,
   SIR_COMMUNITY_POPULATION, SIR_POPULATION_GROWTH_PCT,
   SIR_VOTE_BANK_CONGRESS, SIR_VOTE_BANK_CONGRESS_TOTAL,
   SIR_VOTE_BANK_BJP, SIR_VOTE_BANK_BJP_TOTAL,
@@ -4956,6 +4957,42 @@ function SIRStrategyDashboard() {
             </div>
 
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+              Ward prioritization matrix — defense (SIR risk) + offense (fragmentation), consolidated
+            </div>
+            <div style={{ overflowX: 'auto', marginBottom: 14 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {['Ward', 'SIR Risk', 'At-Risk Pool (PU)', 'Frag.-Secured Booths', 'Genuine-Target Booths', 'Recommendation'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Ward' || h === 'Recommendation' ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {SIR_WARD_PRIORITIZATION.map((w, i) => (
+                    <tr key={w.ward} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap' }}>{w.ward}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: '#ef4444', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 5, padding: '2px 7px' }}>{w.sirRiskFlag}</span>
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.atRiskPoolPU}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#10b981' }}>{w.fragmentationSecuredBooths}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: w.genuineTargetBooths > 0 ? '#fbbf24' : '#94a3b8' }}>{w.genuineTargetBooths}</td>
+                      <td style={{ padding: '8px 10px', fontSize: 10, color: 'rgba(255,255,255,0.4)', maxWidth: 260 }}>{w.recommendation}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
+              {SIR_WARD_PRIORITIZATION_ACTION_PLAN.map((a, i) => (
+                <div key={i} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+                  <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{i + 1}. </span>{a}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
               Booth-level targeting inside those wards ({SIR_BOOTH_TARGETING.length} booths) — Congress-leaning booths
               carry the community vote-bank overlay from the source model; BJP-heavy booths do not.
             </div>
@@ -4963,7 +5000,7 @@ function SIRStrategyDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                    {['Ward', 'Booth', 'Voters', 'BJP %', 'Congress %', 'Margin (pp)', 'Priority', 'Congress Risk Tier', 'BJP Resource Guidance'].map(h => (
+                    {['Ward', 'Booth', 'Voters', 'BJP %', 'Congress %', 'Margin (pp)', 'Priority', 'Congress Risk Tier', 'Flips At', 'BJP Resource Guidance', 'Extra Votes Needed'].map(h => (
                       <th key={h} style={{ padding: '8px 10px', textAlign: ['Ward'].includes(h) ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)' }}>{h}</th>
                     ))}
                   </tr>
@@ -4988,8 +5025,14 @@ function SIRStrategyDashboard() {
                         <td style={{ padding: '8px 10px', textAlign: 'right', color: tc || 'rgba(255,255,255,0.2)', fontWeight: tc ? 700 : 400, whiteSpace: 'nowrap' }}>
                           {b.congressRiskTier || '—'}
                         </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: 10, color: 'rgba(255,255,255,0.4)', maxWidth: 180, whiteSpace: 'nowrap' }}>
+                          {b.flipsAt || '—'}
+                        </td>
                         <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: 10, color: 'rgba(255,255,255,0.4)', maxWidth: 220 }}>
                           {b.bjpResourceGuidance || '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: b.bjpExtraVotesNeeded > 0 ? '#fbbf24' : 'rgba(255,255,255,0.2)', fontWeight: b.bjpExtraVotesNeeded > 0 ? 700 : 400 }}>
+                          {b.bjpExtraVotesNeeded !== undefined ? b.bjpExtraVotesNeeded : '—'}
                         </td>
                       </tr>
                     );
