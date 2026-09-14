@@ -4,6 +4,13 @@ import {
   SIR_DISCREPANCY_SUMMARY, SIR_DISCREPANCY_WARDS,
   SIR_BY_BOOTH_CATEGORY, SIR_BY_TURNOUT, SIR_BY_PARTY_WON,
 } from './sirDiscrepancyData';
+import {
+  SIR_STRATEGY_SUMMARY, SIR_RISK_RANKING, SIR_CRITICAL_WARDS, SIR_BOOTH_TARGETING,
+  SIR_COMMUNITY_POPULATION, SIR_POPULATION_GROWTH_PCT,
+  SIR_VOTE_BANK_CONGRESS, SIR_VOTE_BANK_CONGRESS_TOTAL,
+  SIR_VOTE_BANK_BJP, SIR_VOTE_BANK_BJP_TOTAL,
+  SIR_STRATEGY_ASSUMPTIONS, SIR_STRATEGY_CAVEATS,
+} from './sirStrategyData';
 
 const API = (process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com') + '/api';
 
@@ -4723,6 +4730,419 @@ function SIRDiscrepancyDashboard() {
   );
 }
 
+// ─── Strategic Risk, Booth Targeting & Vote-Bank Model — from 3 uploaded workbooks ─
+function SIRStrategyDashboard() {
+  const [activeTab, setActiveTab] = useState('overview'); // overview | ranking | critical | votebank
+  const [sortKey, setSortKey] = useState('riskRatio');
+  const [sortDir, setSortDir] = useState('desc');
+  const [flagFilter, setFlagFilter] = useState('ALL');
+
+  const flagColor = {
+    CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)' },
+    WATCH:    { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)' },
+    STABLE:   { color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)' },
+  };
+  const riskTierColor = {
+    'EXTREME/HIGH': '#ef4444', 'MODERATE': '#f59e0b', 'LOWER RISK': '#10b981',
+  };
+
+  const sortedRanking = [...SIR_RISK_RANKING]
+    .filter(w => flagFilter === 'ALL' || w.flag === flagFilter)
+    .sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (typeof av === 'string') return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv);
+      return sortDir === 'desc' ? bv - av : av - bv;
+    });
+
+  const handleSort = (key) => {
+    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+  const SortArrow = ({ col }) => (
+    <span style={{ fontSize: 9, marginLeft: 3, opacity: sortKey === col ? 1 : 0.3 }}>
+      {sortKey === col ? (sortDir === 'desc' ? '▼' : '▲') : '⇅'}
+    </span>
+  );
+
+  const TABS = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'ranking',  label: 'Ward Risk Ranking' },
+    { key: 'critical', label: 'Critical Wards & Booths' },
+    { key: 'votebank', label: 'Vote-Bank Model' },
+  ];
+
+  const CaveatsPanel = () => (
+    <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 10, padding: 12, marginTop: 14 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
+        Assumptions &amp; caveats — read before acting on any figure below
+      </div>
+      <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {SIR_STRATEGY_CAVEATS.map((c, i) => (
+          <li key={i} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>{c}</li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  const VoteBankTable = ({ rows, total, label }) => (
+    <div style={{ overflowX: 'auto', marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', margin: '10px 0 6px' }}>{label}</div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            {['Community', '2023 Pop.', 'Low (2023)', 'Mid (2023)', 'High (2023)', 'Composition % (Mid)', 'Mid (2028 proj.)'].map(h => (
+              <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Community' ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)' }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.community} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+              <td style={{ padding: '8px 10px', fontWeight: 600, color: '#e2e8f0' }}>{r.community}</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{r.pop2023.toLocaleString()}</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{r.low2023.toLocaleString()}</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fbbf24', fontWeight: 700 }}>{r.mid2023.toLocaleString()}</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{r.high2023.toLocaleString()}</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#22d3ee' }}>{r.compositionPctMid}%</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{r.mid2028.toLocaleString()}</td>
+            </tr>
+          ))}
+          <tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <td style={{ padding: '8px 10px', fontWeight: 800, color: '#fbbf24' }}>Total pool</td>
+            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fbbf24', fontWeight: 800 }}>{total.pop2023.toLocaleString()}</td>
+            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fbbf24', fontWeight: 800 }}>{total.low2023.toLocaleString()}</td>
+            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fbbf24', fontWeight: 800 }}>{total.mid2023.toLocaleString()}</td>
+            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fbbf24', fontWeight: 800 }}>{total.high2023.toLocaleString()}</td>
+            <td />
+            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fbbf24', fontWeight: 800 }}>{total.mid2028.toLocaleString()}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div style={{
+      background: 'linear-gradient(145deg,rgba(12,18,42,0.97),rgba(8,12,28,0.99))',
+      border: '1px solid rgba(99,102,241,0.18)',
+      borderRadius: 18,
+      overflow: 'hidden',
+      marginBottom: 20,
+      boxShadow: '0 6px 32px rgba(0,0,0,0.4)',
+    }}>
+      <div style={{
+        background: 'linear-gradient(135deg,rgba(99,102,241,0.09),rgba(245,158,11,0.06))',
+        borderBottom: '1px solid rgba(99,102,241,0.15)',
+        padding: '16px 20px 14px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 7, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', flexShrink: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="8" cy="8" r="6.5"/>
+                  <path d="M8 4.5v4l2.5 1.5"/>
+                </svg>
+              </span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#a5b4fc', letterSpacing: '-0.3px' }}>
+                Strategic Risk &amp; Vote-Bank Model
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#fbbf24', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 20, padding: '2px 9px' }}>
+                PLANNING ANALYTICS
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', paddingLeft: 26 }}>
+              SIR mapping risk × 2018→2023 swing × booth targeting, both sides — see Vote-Bank Model tab for assumptions
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {[
+              { val: SIR_STRATEGY_SUMMARY.bjpHeldWardsAnalysed,          lbl: 'Wards Analysed',     color: '#a5b4fc' },
+              { val: SIR_STRATEGY_SUMMARY.totalPolledUnmappedAtRisk.toLocaleString(), lbl: 'PU Pool (all wards)', color: '#f59e0b' },
+              { val: SIR_STRATEGY_SUMMARY.estimatedVotesAtRisk.toLocaleString(), lbl: 'Est. Votes at Risk', color: '#ef4444' },
+              { val: SIR_STRATEGY_SUMMARY.criticalWardCount,             lbl: 'Critical Wards',     color: '#ef4444' },
+            ].map(({ val, lbl, color }) => (
+              <div key={lbl} style={{ textAlign: 'center', background: 'rgba(0,0,0,0.25)', border: `1px solid ${color}28`, borderRadius: 10, padding: '6px 13px', minWidth: 90 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{val}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginTop: 1 }}>{lbl}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {TABS.map(({ key, label }) => {
+          const active = activeTab === key;
+          return (
+            <button key={key} onClick={() => setActiveTab(key)} style={{
+              flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6,
+              padding: '10px 18px', background: active ? 'rgba(99,102,241,0.08)' : 'transparent',
+              border: 'none', borderBottom: active ? '2px solid #a5b4fc' : '2px solid transparent',
+              color: active ? '#a5b4fc' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: active ? 700 : 500,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ padding: 18 }}>
+        {/* ══ OVERVIEW ══════════════════════════════════════════════════════════ */}
+        {activeTab === 'overview' && (
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: 4 }}>
+              25 BJP-held wards were screened by SIR-mapping risk (Polled-but-Unmapped pool relative to 2023 win margin)
+              combined with 2018→2023 swing. 5 wards flag CRITICAL — the same 5 wards are also Congress's best
+              near-term opportunity, since narrow/narrowing BJP margins cut both ways. A separate community vote-bank
+              model (see Vote-Bank Model tab) layers Congress-SDPI Muslim-vote fragmentation on top of those same 5
+              wards, at booth level.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 10, margin: '14px 0' }}>
+              <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#f87171', textTransform: 'uppercase' }}>BJP defense</div>
+                <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 4, lineHeight: 1.5 }}>
+                  In the 5 CRITICAL wards: resolve mapping/resubmission for the at-risk PU pool before roll freeze, then
+                  GOTV among already-mapped non-voters. This is the same voter-roll-quality work regardless of the
+                  fragmentation dynamic.
+                </div>
+              </div>
+              <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, padding: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#34d399', textTransform: 'uppercase' }}>Congress opportunity</div>
+                <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 4, lineHeight: 1.5 }}>
+                  A ward-wide turnout increase does not close a narrow BJP margin if new voters mirror the existing
+                  split — targeted mobilisation in specific Congress-leaning/near-even booths is what the source
+                  analysis models instead.
+                </div>
+              </div>
+              <div style={{ background: 'rgba(165,180,252,0.08)', border: '1px solid rgba(165,180,252,0.25)', borderRadius: 10, padding: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#a5b4fc', textTransform: 'uppercase' }}>Fragmentation dynamic</div>
+                <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 4, lineHeight: 1.5 }}>
+                  Where SDPI contests a booth, modelled Muslim-vote leakage to SDPI can flip a booth to BJP without
+                  extra BJP spend — described as structural, not something to manufacture or fund; contingent on SDPI
+                  actually contesting each cycle.
+                </div>
+              </div>
+            </div>
+            <CaveatsPanel />
+          </div>
+        )}
+
+        {/* ══ WARD RISK RANKING ═════════════════════════════════════════════════ */}
+        {activeTab === 'ranking' && (
+          <div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+              {['ALL', 'CRITICAL', 'WATCH', 'STABLE'].map(f => {
+                const active = flagFilter === f;
+                const cfg = flagColor[f] || { color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' };
+                const count = f === 'ALL' ? SIR_RISK_RANKING.length : SIR_RISK_RANKING.filter(w => w.flag === f).length;
+                return (
+                  <button key={f} onClick={() => setFlagFilter(f)} style={{
+                    padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: active ? 700 : 400, cursor: 'pointer',
+                    background: active ? cfg.bg : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${active ? cfg.border : 'rgba(255,255,255,0.07)'}`,
+                    color: active ? cfg.color : 'rgba(255,255,255,0.4)',
+                  }}>
+                    {f} ({count})
+                  </button>
+                );
+              })}
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Click column headers to sort</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {[
+                      { key: 'ward',                  label: 'Ward' },
+                      { key: 'margin2023',            label: '2023 Margin (votes)' },
+                      { key: 'swing20182023',         label: '2018→23 Swing (pp)' },
+                      { key: 'polledUnmapped',        label: 'Polled & Unmapped' },
+                      { key: 'riskRatio',             label: 'Risk Ratio' },
+                      { key: 'votesAtRisk',           label: 'Votes at Risk' },
+                      { key: 'turnoutIncreaseNeeded', label: 'Turnout +pp Needed' },
+                      { key: 'flag',                  label: 'Flag', noSort: true },
+                    ].map(({ key, label, noSort }) => (
+                      <th key={key} onClick={() => !noSort && handleSort(key)}
+                        style={{ padding: '8px 10px', textAlign: key === 'ward' ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: sortKey === key ? '#a5b4fc' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: noSort ? 'default' : 'pointer', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)', userSelect: 'none' }}>
+                        {label}{!noSort && <SortArrow col={key} />}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedRanking.map((w, i) => {
+                    const cfg = flagColor[w.flag];
+                    return (
+                      <tr key={w.ward} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                        <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)', borderRadius: 4, padding: '1px 6px', minWidth: 24, textAlign: 'center' }}>{w.ward}</span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>{w.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.margin2023.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: w.swing20182023 < 0 ? '#ef4444' : '#10b981' }}>{w.swing20182023 > 0 ? '+' : ''}{w.swing20182023}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.polledUnmapped.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: cfg.color, fontWeight: 700 }}>{w.riskRatio.toFixed(2)}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.votesAtRisk}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.turnoutIncreaseNeeded}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 5, padding: '2px 7px' }}>{w.flag}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ══ CRITICAL WARDS & BOOTHS ═══════════════════════════════════════════ */}
+        {activeTab === 'critical' && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+              The 5 critical wards — BJP defense pool vs. Congress votes needed to flip
+            </div>
+            <div style={{ overflowX: 'auto', marginBottom: 20 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {['Ward', 'Margin %', 'Margin (votes)', 'Swing (pp)', 'BJP At-Risk Pool', 'BJP GOTV Pool', 'Congress Votes to Flip'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Ward' ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {SIR_CRITICAL_WARDS.map((w, i) => (
+                    <tr key={w.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#e2e8f0' }}>{w.name}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.margin2023Pct}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.margin2023Votes}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: w.swing20182023 < 0 ? '#ef4444' : '#10b981' }}>{w.swing20182023 > 0 ? '+' : ''}{w.swing20182023}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#ef4444' }}>{w.bjpAtRiskVoters}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#22d3ee' }}>{w.bjpGotvPool}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#10b981' }}>{w.congressVotesToFlip}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+              Booth-level targeting inside those wards ({SIR_BOOTH_TARGETING.length} booths) — Congress-leaning booths
+              carry the community vote-bank overlay from the source model; BJP-heavy booths do not.
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {['Ward', 'Booth', 'Voters', 'BJP %', 'Congress %', 'Margin (pp)', 'Priority', 'Congress Risk Tier', 'BJP Resource Guidance'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: ['Ward'].includes(h) ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {SIR_BOOTH_TARGETING.map((b, i) => {
+                    const isLeaning = b.priority === 'Congress-leaning';
+                    const tierColor = riskTierColor[b.congressRiskTier];
+                    return (
+                      <tr key={`${b.ward}-${b.booth}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                        <td style={{ padding: '8px 10px', color: '#94a3b8', whiteSpace: 'nowrap' }}>{b.ward}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#e2e8f0', fontWeight: 600 }}>{b.booth}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{b.totalVoters.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fb923c' }}>{b.bjpPct}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#60a5fa' }}>{b.congressPct}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: b.marginPp < 0 ? '#60a5fa' : '#fb923c' }}>{b.marginPp > 0 ? '+' : ''}{b.marginPp}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: isLeaning ? '#60a5fa' : '#fb923c', background: isLeaning ? 'rgba(96,165,250,0.1)' : 'rgba(251,146,60,0.08)', borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+                            {b.priority}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: tierColor || 'rgba(255,255,255,0.2)', fontWeight: tierColor ? 700 : 400, whiteSpace: 'nowrap' }}>
+                          {b.congressRiskTier || '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: 10, color: 'rgba(255,255,255,0.4)', maxWidth: 220 }}>
+                          {b.bjpResourceGuidance || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <CaveatsPanel />
+          </div>
+        )}
+
+        {/* ══ VOTE-BANK MODEL ═══════════════════════════════════════════════════ */}
+        {activeTab === 'votebank' && (
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: 4 }}>
+              Constituency-wide population by community (user-supplied), and the resulting modelled vote pool for each
+              party under the voting-behaviour assumptions below. Population grows ~{SIR_POPULATION_GROWTH_PCT}% uniformly
+              across all three communities in the 2023→2028 projection, so community <em>share</em> of the pool does not
+              shift on its own — only the absolute pool size grows.
+            </div>
+
+            <div style={{ overflowX: 'auto', margin: '14px 0' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, maxWidth: 480 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {['Community', '2023 Population', '2028 Projected'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Community' ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', background: 'rgba(0,0,0,0.15)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {SIR_COMMUNITY_POPULATION.map(p => (
+                    <tr key={p.community} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#e2e8f0' }}>{p.community}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{p.pop2023.toLocaleString()}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{p.pop2028.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <VoteBankTable rows={SIR_VOTE_BANK_CONGRESS} total={SIR_VOTE_BANK_CONGRESS_TOTAL} label="Estimated Congress vote pool" />
+            <VoteBankTable rows={SIR_VOTE_BANK_BJP} total={SIR_VOTE_BANK_BJP_TOTAL} label="Estimated BJP vote pool" />
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', margin: '14px 0 6px' }}>Voting-behaviour assumptions used above</div>
+            <div style={{ overflowX: 'auto', marginBottom: 4 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {['Community', 'Splits To', 'Low %', 'Mid %', 'High %', 'Basis'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: ['Low %', 'Mid %', 'High %'].includes(h) ? 'right' : 'left', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {SIR_STRATEGY_ASSUMPTIONS.map((a, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#e2e8f0' }}>{a.community}</td>
+                      <td style={{ padding: '8px 10px', color: '#94a3b8' }}>{a.splitsTo}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{a.low}%</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fbbf24', fontWeight: 700 }}>{a.mid}%</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{a.high}%</td>
+                      <td style={{ padding: '8px 10px', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{a.basis}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <CaveatsPanel />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function VoteSimulator() {
   const [turnout, setTurnout]   = useState(SIM_TURNOUT_DEFAULT);
   const [bjpShare, setBjpShare] = useState(SIM_BJPSHARE_DEFAULT);
@@ -4988,6 +5408,9 @@ export default function SIR() {
 
         {/* SIR 2026 Discrepancy Analysis — from 3 uploaded Excel reports */}
         <SIRDiscrepancyDashboard />
+
+        {/* Strategic Risk, Booth Targeting & Vote-Bank Model — from 3 uploaded workbooks */}
+        <SIRStrategyDashboard />
 
         {/* Vote Simulator — Turnout × Party-Share Projection */}
         <VoteSimulator />
