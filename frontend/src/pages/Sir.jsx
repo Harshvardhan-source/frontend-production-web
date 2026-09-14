@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '../components/Navbar';
+import {
+  SIR_DISCREPANCY_SUMMARY, SIR_DISCREPANCY_WARDS,
+  SIR_BY_BOOTH_CATEGORY, SIR_BY_TURNOUT, SIR_BY_PARTY_WON,
+} from './sirDiscrepancyData';
 
 const API = (process.env.REACT_APP_API_URL || 'https://production-web-conn-bzpt.onrender.com') + '/api';
 
@@ -4446,6 +4450,279 @@ function SpectrumSlider({ label, hint, value, min, max, step = 0.5, unit = '%', 
   );
 }
 
+// ─── SIR 2026 Discrepancy Analysis — from 3 uploaded Excel reports ────────────
+function SIRDiscrepancyDashboard() {
+  const [activeTab, setActiveTab] = useState('overview'); // overview | wards | political
+  const [sortKey, setSortKey] = useState('totalDiscrepancy');
+  const [sortDir, setSortDir] = useState('desc');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+
+  const comboColor = {
+    'Polled & Mapped':     { color: '#10b981', bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.25)'  },
+    'Polled & Unmapped':   { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)'    },
+    'Unpolled & Mapped':   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)'  },
+    'Unpolled & Unmapped': { color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)'  },
+  };
+
+  const BOOTH_CATEGORIES = ['ALL', ...SIR_BY_BOOTH_CATEGORY.map(c => c.category)];
+
+  const filteredWards = SIR_DISCREPANCY_WARDS
+    .filter(w => categoryFilter === 'ALL' || w.boothCategory === categoryFilter)
+    .sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (typeof av === 'string') return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv);
+      return sortDir === 'desc' ? bv - av : av - bv;
+    });
+
+  const handleSort = (key) => {
+    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+
+  const SortArrow = ({ col }) => (
+    <span style={{ fontSize: 9, marginLeft: 3, opacity: sortKey === col ? 1 : 0.3 }}>
+      {sortKey === col ? (sortDir === 'desc' ? '▼' : '▲') : '⇅'}
+    </span>
+  );
+
+  const TABS = [
+    { key: 'overview',  label: 'Overview'              },
+    { key: 'wards',     label: 'Ward Breakdown'        },
+    { key: 'political', label: 'Political Correlation' },
+  ];
+
+  const overall = SIR_DISCREPANCY_SUMMARY.overall;
+  const overallTotal = overall.polledMapped + overall.polledUnmapped + overall.unpolledMapped + overall.unpolledUnmapped;
+
+  const RollupTable = ({ rows, keyField, keyLabel }) => (
+    <div style={{ overflowX: 'auto', marginBottom: 18 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            {[keyLabel, 'Wards', 'BJP Poll %', 'Cong Poll %', 'Total Disc.', 'Polled&Mapped %', 'Polled&Unmapped %', 'Unpolled&Mapped %', 'Unpolled&Unmapped %'].map(h => (
+              <th key={h} style={{ padding: '8px 10px', textAlign: h === keyLabel ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)' }}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r[keyField]} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+              <td style={{ padding: '8px 10px', fontWeight: 600, color: '#e2e8f0' }}>{r[keyField]}</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{r.wardCount}</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#fb923c' }}>{r.bjpPollingPct}%</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#60a5fa' }}>{r.congressPollingPct}%</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{r.totalDiscrepancy.toLocaleString()}</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Polled & Mapped'].color, fontWeight: r.dominantCombo === 'Polled & Mapped' ? 800 : 400 }}>{r.polledMappedPct}%</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Polled & Unmapped'].color, fontWeight: r.dominantCombo === 'Polled & Unmapped' ? 800 : 400 }}>{r.polledUnmappedPct}%</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Unpolled & Mapped'].color, fontWeight: r.dominantCombo === 'Unpolled & Mapped' ? 800 : 400 }}>{r.unpolledMappedPct}%</td>
+              <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Unpolled & Unmapped'].color, fontWeight: r.dominantCombo === 'Unpolled & Unmapped' ? 800 : 400 }}>{r.unpolledUnmappedPct}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div style={{
+      background: 'linear-gradient(145deg,rgba(12,18,42,0.97),rgba(8,12,28,0.99))',
+      border: '1px solid rgba(245,158,11,0.18)',
+      borderRadius: 18,
+      overflow: 'hidden',
+      marginBottom: 20,
+      boxShadow: '0 6px 32px rgba(0,0,0,0.4)',
+    }}>
+      {/* ── Panel Header ──────────────────────────────────────────────────────── */}
+      <div style={{
+        background: 'linear-gradient(135deg,rgba(245,158,11,0.09),rgba(99,102,241,0.06))',
+        borderBottom: '1px solid rgba(245,158,11,0.15)',
+        padding: '16px 20px 14px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 7, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#fbbf24', flexShrink: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 13L6 3l4 6 2-3 2 7"/>
+                  <path d="M1 13h14"/>
+                </svg>
+              </span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#fbbf24', letterSpacing: '-0.3px' }}>
+                SIR 2026 Discrepancy Analysis
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 20, padding: '2px 9px' }}>
+                2023 → SIR 2026
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', paddingLeft: 26 }}>
+              AC 203 Mangalore City South · voters matched against 2025 master list, cross-referenced with 2023 poll status
+            </div>
+          </div>
+          {/* Top-level KPIs strip */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {[
+              { val: SIR_DISCREPANCY_SUMMARY.totalDiscrepancy.toLocaleString(), lbl: 'Discrepancy Records', color: '#f59e0b'  },
+              { val: SIR_DISCREPANCY_SUMMARY.matchedToWard.toLocaleString(),    lbl: 'Matched to Ward',     color: '#22d3ee'  },
+              { val: SIR_DISCREPANCY_SUMMARY.notFoundInMaster.toLocaleString(), lbl: 'Not in Master List',  color: '#ef4444'  },
+              { val: SIR_DISCREPANCY_SUMMARY.distinctWards,                    lbl: 'Wards Covered',       color: '#a78bfa'  },
+            ].map(({ val, lbl, color }) => (
+              <div key={lbl} style={{ textAlign: 'center', background: 'rgba(0,0,0,0.25)', border: `1px solid ${color}28`, borderRadius: 10, padding: '6px 13px', minWidth: 90 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{val}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginTop: 1 }}>{lbl}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tab Row ────────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {TABS.map(({ key, label }) => {
+          const active = activeTab === key;
+          return (
+            <button key={key} onClick={() => setActiveTab(key)} style={{
+              flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6,
+              padding: '10px 18px', background: active ? 'rgba(245,158,11,0.08)' : 'transparent',
+              border: 'none', borderBottom: active ? '2px solid #fbbf24' : '2px solid transparent',
+              color: active ? '#fbbf24' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: active ? 700 : 500,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ padding: 18 }}>
+        {/* ══ OVERVIEW TAB ══════════════════════════════════════════════════════ */}
+        {activeTab === 'overview' && (
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>
+              Overall category breakdown across {overallTotal.toLocaleString()} matched voters (2023 poll status × SIR mapping status)
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10, marginBottom: 20 }}>
+              {[
+                { label: 'Polled & Mapped',     n: overall.polledMapped,     note: 'Voted in 2023, correctly retained' },
+                { label: 'Polled & Unmapped',   n: overall.polledUnmapped,   note: 'Voted in 2023, NOT mapped to 2025 list' },
+                { label: 'Unpolled & Mapped',   n: overall.unpolledMapped,   note: 'Mapped, but did not vote in 2023' },
+                { label: 'Unpolled & Unmapped', n: overall.unpolledUnmapped, note: 'Neither polled nor mapped' },
+              ].map(({ label, n, note }) => {
+                const cfg = comboColor[label];
+                const pct = ((n / overallTotal) * 100).toFixed(1);
+                return (
+                  <div key={label} style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 10, padding: 12 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: cfg.color, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: cfg.color, margin: '4px 0' }}>{n.toLocaleString()} <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.7 }}>({pct}%)</span></div>
+                    <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)' }}>{note}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.5 }}>
+              "Polled & Unmapped" — voters with a 2023 polling record who did not cleanly map onto the 2025 master list —
+              is the dominant category in 36 of 38 wards. This is an AI-assisted data-quality signal, not a determination
+              about any individual voter's eligibility.
+            </div>
+          </div>
+        )}
+
+        {/* ══ WARD BREAKDOWN TAB ═══════════════════════════════════════════════ */}
+        {activeTab === 'wards' && (
+          <div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+              {BOOTH_CATEGORIES.map(c => {
+                const active = categoryFilter === c;
+                const count = c === 'ALL' ? SIR_DISCREPANCY_WARDS.length : SIR_DISCREPANCY_WARDS.filter(w => w.boothCategory === c).length;
+                return (
+                  <button key={c} onClick={() => setCategoryFilter(c)} style={{
+                    padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: active ? 700 : 400, cursor: 'pointer',
+                    background: active ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${active ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.07)'}`,
+                    color: active ? '#fbbf24' : 'rgba(255,255,255,0.4)', transition: 'all 0.15s',
+                  }}>
+                    {c} ({count})
+                  </button>
+                );
+              })}
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>
+                Click column headers to sort
+              </span>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {[
+                      { key: 'ward',                 label: 'Ward'          },
+                      { key: 'boothCategory',        label: 'Category', noSort: true },
+                      { key: 'totalDiscrepancy',     label: 'Total Disc.'  },
+                      { key: 'polledMappedPct',      label: 'Polled & Mapped %'    },
+                      { key: 'polledUnmappedPct',    label: 'Polled & Unmapped %'  },
+                      { key: 'unpolledMappedPct',    label: 'Unpolled & Mapped %'  },
+                      { key: 'unpolledUnmappedPct',  label: 'Unpolled & Unmapped %'},
+                      { key: 'dominantCombo',        label: 'Dominant', noSort: true },
+                    ].map(({ key, label, noSort }) => (
+                      <th key={key} onClick={() => !noSort && handleSort(key)}
+                        style={{ padding: '8px 10px', textAlign: key === 'ward' || key === 'boothCategory' ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: sortKey === key ? '#fbbf24' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: noSort ? 'default' : 'pointer', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.15)', userSelect: 'none' }}>
+                        {label}{!noSort && <SortArrow col={key} />}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredWards.map((w, i) => {
+                    const dCfg = comboColor[w.dominantCombo] || comboColor['Unpolled & Unmapped'];
+                    return (
+                      <tr key={w.ward} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                        <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)', borderRadius: 4, padding: '1px 6px', minWidth: 24, textAlign: 'center' }}>{w.ward}</span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>{w.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '8px 10px', fontSize: 10.5, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{w.boothCategory}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.totalDiscrepancy.toLocaleString()}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Polled & Mapped'].color }}>{w.polledMappedPct}%</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Polled & Unmapped'].color }}>{w.polledUnmappedPct}%</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Unpolled & Mapped'].color }}>{w.unpolledMappedPct}%</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Unpolled & Unmapped'].color }}>{w.unpolledUnmappedPct}%</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: dCfg.color, background: dCfg.bg, border: `1px solid ${dCfg.border}`, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+                            {w.dominantCombo}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ══ POLITICAL CORRELATION TAB ═════════════════════════════════════════ */}
+        {activeTab === 'political' && (
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+              2023 poll/mapping status rolled up by ward political context — AI-assisted data-quality analytics, not a
+              targeting instruction.
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', margin: '14px 0 6px' }}>By 2023 booth categorization</div>
+            <RollupTable rows={SIR_BY_BOOTH_CATEGORY} keyField="category" keyLabel="Category" />
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', margin: '14px 0 6px' }}>By 2023 turnout tier</div>
+            <RollupTable rows={SIR_BY_TURNOUT} keyField="turnoutTier" keyLabel="Turnout Tier" />
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', margin: '14px 0 6px' }}>By 2023 winning party</div>
+            <RollupTable rows={SIR_BY_PARTY_WON} keyField="partyWon" keyLabel="Party Won" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function VoteSimulator() {
   const [turnout, setTurnout]   = useState(SIM_TURNOUT_DEFAULT);
   const [bjpShare, setBjpShare] = useState(SIM_BJPSHARE_DEFAULT);
@@ -4708,6 +4985,9 @@ export default function SIR() {
 
         {/* Progeny Family Tree Intelligence — from Excel report */}
         <ProgenyAnalysisDashboard />
+
+        {/* SIR 2026 Discrepancy Analysis — from 3 uploaded Excel reports */}
+        <SIRDiscrepancyDashboard />
 
         {/* Vote Simulator — Turnout × Party-Share Projection */}
         <VoteSimulator />
