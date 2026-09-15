@@ -342,6 +342,20 @@ export const sirApi = {
       image:    imageBase64,
       mimeType: mimeType,
     }),
+
+  /**
+   * Drill-down voter records behind a ward/category cell in the SIR
+   * discrepancy dashboards. category: 'PM' | 'PU' | 'UM' | 'UU'.
+   * Response: { success, records[], total, page, limit }
+   */
+  discrepancyRecords: ({ ward, category, booth, q, page = 1, limit = 25 } = {}) => {
+    const params = { page, limit };
+    if (ward !== undefined && ward !== null) params.ward = ward;
+    if (category) params.category = category;
+    if (booth !== undefined && booth !== null) params.booth = booth;
+    if (q) params.q = q;
+    return api.get('/api/sir/discrepancy-records/', { params });
+  },
 };
 
 // ── SWOT Beneficiary List ─────────────────────────────────────────────────────

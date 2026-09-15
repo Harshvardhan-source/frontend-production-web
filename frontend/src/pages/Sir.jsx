@@ -4384,12 +4384,107 @@ function DKSIRVerificationButton() {
   );
 }
 
+// ─── Voter-record drill-down dialog — shared by the SIR discrepancy dashboards ─
+// Clicking a PU/PM/UM/UU cell opens this and fetches the real voter rows
+// behind that number from /api/sir/discrepancy-records/ (backed by the
+// 'Wardwise Priority Mapped Voter Lists' import). Follows this file's own
+// established fetch pattern (raw fetch + cc_token bearer header) rather than
+// client.js's sirApi, matching every other call already in Sir.jsx.
+const CATEGORY_LABELS = { PM: 'Polled & Mapped', PU: 'Polled & Unmapped', UM: 'Unpolled & Mapped', UU: 'Unpolled & Unmapped' };
+
+function RecordsDialog({ drill, onClose }) {
+  const [records, setRecords] = useState([]);
+  const [total, setTotal]     = useState(0);
+  const [page, setPage]       = useState(1);
+  const [loading, setLoading] = useState(false);
+  const limit = 25;
+
+  useEffect(() => { setPage(1); }, [drill?.ward, drill?.category]);
+
+  useEffect(() => {
+    if (!drill) return;
+    setLoading(true);
+    const token = sessionStorage.getItem('cc_token');
+    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    const params = new URLSearchParams({ page, limit });
+    if (drill.ward != null) params.set('ward', drill.ward);
+    if (drill.category) params.set('category', drill.category);
+    fetch(`${API}/sir/discrepancy-records/?${params}`, { credentials: 'include', headers })
+      .then(r => r.json())
+      .then(j => { if (j.success) { setRecords(j.records || []); setTotal(j.total || 0); } })
+      .catch(() => { setRecords([]); setTotal(0); })
+      .finally(() => setLoading(false));
+  }, [drill, page]);
+
+  if (!drill) return null;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
+      <div style={{ background: '#0d1528', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, maxWidth: 980, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>
+              {drill.wardName}{drill.category ? ` — ${CATEGORY_LABELS[drill.category]}` : ' — All categories'}
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{total.toLocaleString()} voter{total === 1 ? '' : 's'}</div>
+          </div>
+          <button onClick={onClose} style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 8, width: 28, height: 28, color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 14 }}>✕</button>
+        </div>
+        <div style={{ overflow: 'auto', flex: 1 }}>
+          {loading ? (
+            <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading…</div>
+          ) : records.length === 0 ? (
+            <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No records found.</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#0d1528' }}>
+                  {['Booth', 'EPIC', 'Elector Name', 'Age', 'Gender', 'House / Address', 'Relation', 'Relative Name', 'Reason', '2023 Poll', 'SIR Status'].map(h => (
+                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((r, i) => (
+                  <tr key={r._id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                    <td style={{ padding: '7px 10px', color: '#94a3b8' }}>{r['Booth No']}</td>
+                    <td style={{ padding: '7px 10px', color: '#94a3b8', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{r['EPIC Number']}</td>
+                    <td style={{ padding: '7px 10px', color: '#e2e8f0', fontWeight: 600, whiteSpace: 'nowrap' }}>{r['Elector Name']}</td>
+                    <td style={{ padding: '7px 10px', color: '#94a3b8' }}>{r['Age']}</td>
+                    <td style={{ padding: '7px 10px', color: '#94a3b8' }}>{r['Gender']}</td>
+                    <td style={{ padding: '7px 10px', color: 'rgba(255,255,255,0.4)', maxWidth: 160 }}>{r['House No / Address']}</td>
+                    <td style={{ padding: '7px 10px', color: 'rgba(255,255,255,0.4)' }}>{r['Relation']}</td>
+                    <td style={{ padding: '7px 10px', color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{r['Relative Name']}</td>
+                    <td style={{ padding: '7px 10px', color: '#fbbf24', fontSize: 10, whiteSpace: 'nowrap' }}>{r['Reason for Discrepancy']}</td>
+                    <td style={{ padding: '7px 10px', color: '#94a3b8', whiteSpace: 'nowrap' }}>{r['2023 Poll Status']}</td>
+                    <td style={{ padding: '7px 10px', color: r['SIR Mapping Status'] === 'MAPPED' ? '#10b981' : '#ef4444', whiteSpace: 'nowrap' }}>{r['SIR Mapping Status']}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: page <= 1 ? 'rgba(255,255,255,0.2)' : '#e2e8f0', cursor: page <= 1 ? 'default' : 'pointer' }}>← Prev</button>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Page {page} of {totalPages}</span>
+          <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: page >= totalPages ? 'rgba(255,255,255,0.2)' : '#e2e8f0', cursor: page >= totalPages ? 'default' : 'pointer' }}>Next →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── SIR 2026 Discrepancy Analysis — from 3 uploaded Excel reports ────────────
 function SIRDiscrepancyDashboard() {
   const [activeTab, setActiveTab] = useState('overview'); // overview | wards | political
   const [sortKey, setSortKey] = useState('totalDiscrepancy');
   const [sortDir, setSortDir] = useState('desc');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [drill, setDrill] = useState(null); // { ward, wardName, category } | null — opens RecordsDialog
+
+  const comboToCategory = { 'Polled & Mapped': 'PM', 'Polled & Unmapped': 'PU', 'Unpolled & Mapped': 'UM', 'Unpolled & Unmapped': 'UU' };
+  const openDrill = (ward, wardName, comboLabel) => setDrill({ ward, wardName, category: comboLabel ? comboToCategory[comboLabel] : null });
 
   const comboColor = {
     'Polled & Mapped':     { color: '#10b981', bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.25)'  },
@@ -4581,7 +4676,7 @@ function SIRDiscrepancyDashboard() {
                 );
               })}
               <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>
-                Click column headers to sort
+                Click column headers to sort · click Total/% cells to view voter records
               </span>
             </div>
 
@@ -4618,11 +4713,11 @@ function SIRDiscrepancyDashboard() {
                           </div>
                         </td>
                         <td style={{ padding: '8px 10px', fontSize: 10.5, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{w.boothCategory}</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.totalDiscrepancy.toLocaleString()}</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Polled & Mapped'].color }}>{w.polledMappedPct}%</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Polled & Unmapped'].color }}>{w.polledUnmappedPct}%</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Unpolled & Mapped'].color }}>{w.unpolledMappedPct}%</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Unpolled & Unmapped'].color }}>{w.unpolledUnmappedPct}%</td>
+                        <td onClick={() => openDrill(w.ward, w.name, null)} title="View all voter records for this ward" style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>{w.totalDiscrepancy.toLocaleString()}</td>
+                        <td onClick={() => openDrill(w.ward, w.name, 'Polled & Mapped')} title="View Polled & Mapped voter records" style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Polled & Mapped'].color, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>{w.polledMappedPct}%</td>
+                        <td onClick={() => openDrill(w.ward, w.name, 'Polled & Unmapped')} title="View Polled & Unmapped voter records" style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Polled & Unmapped'].color, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>{w.polledUnmappedPct}%</td>
+                        <td onClick={() => openDrill(w.ward, w.name, 'Unpolled & Mapped')} title="View Unpolled & Mapped voter records" style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Unpolled & Mapped'].color, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>{w.unpolledMappedPct}%</td>
+                        <td onClick={() => openDrill(w.ward, w.name, 'Unpolled & Unmapped')} title="View Unpolled & Unmapped voter records" style={{ padding: '8px 10px', textAlign: 'right', color: comboColor['Unpolled & Unmapped'].color, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>{w.unpolledUnmappedPct}%</td>
                         <td style={{ padding: '8px 10px', textAlign: 'right' }}>
                           <span style={{ fontSize: 9, fontWeight: 700, color: dCfg.color, background: dCfg.bg, border: `1px solid ${dCfg.border}`, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>
                             {w.dominantCombo}
@@ -4653,6 +4748,7 @@ function SIRDiscrepancyDashboard() {
           </div>
         )}
       </div>
+      <RecordsDialog drill={drill} onClose={() => setDrill(null)} />
     </div>
   );
 }
@@ -4663,6 +4759,7 @@ function SIRStrategyDashboard() {
   const [sortKey, setSortKey] = useState('rank');
   const [sortDir, setSortDir] = useState('asc');
   const [tierFilter, setTierFilter] = useState('ALL');
+  const [drill, setDrill] = useState(null); // { ward, wardName, category } | null — opens RecordsDialog
 
   const tierColor = {
     1: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)' },
@@ -4900,9 +4997,9 @@ function SIRStrategyDashboard() {
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>{w.name}</span>
                           </div>
                         </td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.total.toLocaleString()}</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.polledUnmapped.toLocaleString()}</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#ef4444' }}>{w.puPct}%</td>
+                        <td onClick={() => setDrill({ ward: w.ward, wardName: w.name, category: null })} title="View all voter records for this ward" style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>{w.total.toLocaleString()}</td>
+                        <td onClick={() => setDrill({ ward: w.ward, wardName: w.name, category: 'PU' })} title="View Polled & Unmapped voter records" style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>{w.polledUnmapped.toLocaleString()}</td>
+                        <td onClick={() => setDrill({ ward: w.ward, wardName: w.name, category: 'PU' })} title="View Polled & Unmapped voter records" style={{ padding: '8px 10px', textAlign: 'right', color: '#ef4444', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>{w.puPct}%</td>
                         <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>{w.margin2023 !== null ? w.margin2023.toLocaleString() : '—'}</td>
                         <td style={{ padding: '8px 10px', textAlign: 'right', color: w.swing20182023 === null ? 'rgba(255,255,255,0.2)' : w.swing20182023 < 0 ? '#ef4444' : '#10b981' }}>{w.swing20182023 !== null ? `${w.swing20182023 > 0 ? '+' : ''}${w.swing20182023}` : '—'}</td>
                         <td style={{ padding: '8px 10px', textAlign: 'right', color: cfg.color, fontWeight: w.riskRatio !== null ? 700 : 400 }}>{w.riskRatio !== null ? w.riskRatio.toFixed(2) : '—'}</td>
@@ -5181,6 +5278,7 @@ function SIRStrategyDashboard() {
           </div>
         )}
       </div>
+      <RecordsDialog drill={drill} onClose={() => setDrill(null)} />
     </div>
   );
 }
