@@ -54,6 +54,13 @@ const SUGGESTED = [
     sub:     'Mangaluru_FULLSCALE · Election_Strategy_Report',
     color:   '#f59e0b',
   },
+  {
+    icon:    'warning',
+    label:   'Social monitor & sentiment',
+    text:    'What is the current public sentiment and outrage level from social media and news monitoring? Show the top risk items, the political SWOT it feeds into, and a recommended action at MLA, corporator, booth-worker and karyakartha level.',
+    sub:     'social_posts · social_swot (live)',
+    color:   '#ef4444',
+  },
 ];
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -957,6 +964,7 @@ export default function AiChat() {
                 const rgb = s.color === '#4f46e5' ? '79,70,229'
                           : s.color === '#06b6d4' ? '6,182,212'
                           : s.color === '#10b981' ? '16,185,129'
+                          : s.color === '#ef4444' ? '239,68,68'
                           : '245,158,11';
                 const applyHover = (el) => {
                   el.style.background  = `rgba(${rgb},0.1)`;
